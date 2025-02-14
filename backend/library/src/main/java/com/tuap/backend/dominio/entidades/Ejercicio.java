@@ -2,24 +2,41 @@ package com.tuap.backend.dominio.entidades;
 
 import java.util.UUID;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
+@Table(name = "ejercicio")
 public class Ejercicio {
     @Id
     private UUID id;
+    @Column(nullable = false)
     private String nombre;
+    @Column(nullable = false)
     private String descripcion;
+    @Column(nullable = false)
     private Float peso;
+    @Column(nullable = false)
     private int repeticiones;
+    @Column(nullable = false)
     private int series;
+    @Column(nullable = false)
     private String categoria;
+    @Column(nullable = false)
     private int duracion;
+    @Column(nullable = false)
     private String dificultad;
+    @Column(nullable = false)
     private String enlaceAnimacion;
+    @Column(nullable = false)
     private int descanso;
 
+
+    public Ejercicio() {
+    }
+    
     public Ejercicio( UUID id, String nombre, String descripcion, Float peso, int repeticiones, int series,
      String categoria, int duracion, String dificultad, String enlaceAnimacion, int descanso) {   
         this.id = id;

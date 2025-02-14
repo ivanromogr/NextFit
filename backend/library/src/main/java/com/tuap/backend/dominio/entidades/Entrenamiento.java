@@ -1,70 +1,92 @@
 package com.tuap.backend.dominio.entidades;
 
+import java.util.List;
 import java.util.UUID;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
 @Entity
+@Table(name = "entrenamiento")
 public class Entrenamiento {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
+
+    @Column(nullable = false)
     private String titulo;
-    private UUID entrenadorId;
-    private UUID clienteId;
+
+    @ManyToOne
+    @JoinColumn(name = "entrenador_id", nullable = false)
+    private Entrenador entrenador;
+
+    @ManyToOne
+    @JoinColumn(name = "cliente_id", nullable = false)
+    private Cliente cliente;
+
+    @Column(nullable = false)
     private String descripcion;
 
-    
-    public Entrenamiento(UUID id, String titulo, UUID entrenadorId, UUID clienteId, String descripcion) {
+    @OneToMany(mappedBy = "entrenamiento", cascade = CascadeType.ALL)
+    private List<Progreso> progresos;
+
+    public Entrenamiento() {
+    }
+
+    public Entrenamiento(UUID id, String titulo, Entrenador entrenador, Cliente cliente, String descripcion) {
         this.id = id;
         this.titulo = titulo;
-        this.entrenadorId = entrenadorId;
-        this.clienteId = clienteId;
+        this.entrenador = entrenador;
+        this.cliente = cliente;
         this.descripcion = descripcion;
     }
 
-    //Getters
-
+    // Getters y Setters
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public String getTitulo() {
         return titulo;
     }
 
-    public UUID getEntrenadorId() {
-        return entrenadorId;
+    public void setTitulo(String titulo) {
+        this.titulo = titulo;
     }
 
-    public UUID getClienteId() {
-        return clienteId;
+    public Entrenador getEntrenador() {
+        return entrenador;
+    }
+
+    public void setEntrenador(Entrenador entrenador) {
+        this.entrenador = entrenador;
+    }
+
+    public Cliente getCliente() {
+        return cliente;
+    }
+
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
     }
 
     public String getDescripcion() {
         return descripcion;
     }
 
-    //Setters
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public void setTitulo(String titulo) {
-        this.titulo = titulo;
-    }
-
-    public void setEntrenadorId(UUID entrenadorId) {
-        this.entrenadorId = entrenadorId;
-    }
-
-    public void setClienteId(UUID clienteId) {
-        this.clienteId = clienteId;
-    }
-
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
     }
-
 }
