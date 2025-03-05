@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro</title>
+    <script>
+        function toggleFields() {
+            var rol = document.getElementById("rol").value;
+            var clienteFields = document.getElementById("clienteFields");
+            var entrenadorFields = document.getElementById("entrenadorFields");
+
+            if (rol === "cliente") {
+                clienteFields.style.display = "block";
+                entrenadorFields.style.display = "none";
+            } else if (rol === "entrenador") {
+                clienteFields.style.display = "none";
+                entrenadorFields.style.display = "block";
+            } else {
+                clienteFields.style.display = "none";
+                entrenadorFields.style.display = "none";
+            }
+        }
+    </script>
+</head>
+<body>
+    <h2>Registro</h2>
+    <form th:action="@{/register}" method="POST">
+        <label for="nombre">Nombre:</label>
+        <input type="text" id="nombre" name="nombre" required />
+
+        <label for="apellido">Apellido:</label>
+        <input type="text" id="apellido" name="apellido" required />
+
+        <label for="email">Correo Electrónico:</label>
+        <input type="email" id="email" name="email" required />
+
+        <label for="contraseña">Contraseña:</label>
+        <input type="password" id="contraseña" name="contraseña" required />
+
+        <label for="rol">Rol:</label>
+        <select id="rol" name="rol" required onchange="toggleFields()">
+            <option value="">Selecciona un rol</option>
+            <option value="cliente">Cliente</option>
+            <option value="entrenador">Entrenador</option>
+        </select>
+
+        <div id="clienteFields" style="display: none;">
+            <label for="peso">Peso:</label>
+            <input type="number" id="peso" name="peso" />
+
+            <label for="altura">Altura:</label>
+            <input type="number" id="altura" name="altura" />
+
+            <label for="edad">Edad:</label>
+            <input type="number" id="edad" name="edad" />
+
+            <label for="objetivo">Objetivo:</label>
+            <input type="text" id="objetivo" name="objetivo" />
+        </div>
+
+        <div id="entrenadorFields" style="display: none;">
+            <label for="especialidad">Especialidad:</label>
+            <input type="text" id="especialidad" name="especialidad" />
+        </div>
+
+        <button type="submit">Registrar</button>
+    </form>
+</body>
+</html>

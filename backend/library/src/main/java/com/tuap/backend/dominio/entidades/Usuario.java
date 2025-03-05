@@ -19,6 +19,8 @@ public class Usuario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)  // Mantén la estrategia de generación automática
+    @Column(columnDefinition = "BINARY(16)", unique = true, nullable = false)
+
     private UUID id;
     
     @Column(nullable = false)
@@ -38,6 +40,7 @@ public class Usuario {
 
     // Constructor sin el parámetro de id, ya que se genera automáticamente
     public Usuario() {
+        super();
     }
 
     public Usuario(String nombre, String apellido, String email, String contraseña, String rol) {
@@ -97,6 +100,7 @@ public class Usuario {
     public void setContraseña(String contraseña) {
         this.contraseña = contraseña;
     }
+
     public String getRol() {
         return rol;
     }

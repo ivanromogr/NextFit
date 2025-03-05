@@ -11,19 +11,20 @@ import jakarta.persistence.PrimaryKeyJoinColumn;
 @Entity
 @PrimaryKeyJoinColumn(name = "id")
 public class Cliente extends Usuario {
+   
+
     @Column(nullable = false)
-    private String codigoCliente;
+    private double peso;
+
     @Column(nullable = false)
-    private Float peso;
-    @Column(nullable = false)
-    private Float altura;
+    private int altura;
+
     @Column(nullable = false)
     private int edad;
+
     @Column(nullable = false)
     private String objetivo;
-    @Column(nullable = false)
-    private String codigoUnico;
-    
+
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
     private List<Progreso> progresos;
 
@@ -31,41 +32,33 @@ public class Cliente extends Usuario {
     private List<Chat> chats;
 
     public Cliente() {
+        super();
     }
 
-    public Cliente(String codigoCliente, Float peso, Float altura, int edad, String objetivo, String codigoUnico,
-            String nombre, String apellido,String rol, String email, String contraseña) {
-        super(nombre, apellido,rol,email, contraseña); // id es generado automáticamente, no hace falta pasarlo
-        this.codigoCliente = codigoCliente;
+    public Cliente( String nombre, String apellido, String email, String contraseña, String rol, double peso, int altura, int edad, String objetivo) {
+        super(nombre, apellido, rol, email, contraseña); // id es generado automáticamente, no hace falta pasarlo
         this.peso = peso;
         this.altura = altura;
         this.edad = edad;
         this.objetivo = objetivo;
-        this.codigoUnico = codigoUnico;
     }
 
     // Getters y Setters
-    public String getCodigoCliente() {
-        return codigoCliente;
-    }
+    
 
-    public void setCodigoCliente(String codigoCliente) {
-        this.codigoCliente = codigoCliente;
-    }
-
-    public Float getPeso() {
+    public double getPeso() {
         return peso;
     }
 
-    public void setPeso(Float peso) {
+    public void setPeso(double peso) {
         this.peso = peso;
     }
 
-    public Float getAltura() {
+    public int getAltura() {
         return altura;
     }
 
-    public void setAltura(Float altura) {
+    public void setAltura(int altura) {
         this.altura = altura;
     }
 
@@ -83,13 +76,5 @@ public class Cliente extends Usuario {
 
     public void setObjetivo(String objetivo) {
         this.objetivo = objetivo;
-    }
-
-    public String getCodigoUnico() {
-        return codigoUnico;
-    }
-
-    public void setCodigoUnico(String codigoUnico) {
-        this.codigoUnico = codigoUnico;
     }
 }

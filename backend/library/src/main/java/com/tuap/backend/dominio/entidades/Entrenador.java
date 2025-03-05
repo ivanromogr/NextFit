@@ -14,9 +14,6 @@ public class Entrenador extends Usuario {
     @Column(nullable = false)
     private String especialidad;
 
-    @Column(nullable = false)
-    private String codigoEntrenador;
-    
     @OneToMany(mappedBy = "entrenador", cascade = CascadeType.ALL)
     private List<Chat> chats;
 
@@ -24,12 +21,12 @@ public class Entrenador extends Usuario {
     private List<Entrenamiento> entrenamientos;
 
     public Entrenador() {
+        super();
     }
 
-    public Entrenador(String especialidad, String codigoEntrenador,String rol, String nombre, String apellido, String email, String contraseña) {
-        super(nombre, apellido, email, contraseña,rol); // id es generado automáticamente, no hace falta pasarlo
+    public Entrenador( String nombre, String apellido, String email, String contraseña, String rol, String especialidad) {
+        super(nombre, apellido, email, contraseña, rol);
         this.especialidad = especialidad;
-        this.codigoEntrenador = codigoEntrenador;
     }
 
     // Getters y Setters
@@ -41,12 +38,5 @@ public class Entrenador extends Usuario {
         this.especialidad = especialidad;
     }
 
-    public String getCodigoEntrenador() {
-        return codigoEntrenador;
-    }
-
-    public void setCodigoEntrenador(String codigoEntrenador) {
-        this.codigoEntrenador = codigoEntrenador;
-    }
 }
 

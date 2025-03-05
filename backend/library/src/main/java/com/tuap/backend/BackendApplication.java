@@ -2,11 +2,10 @@ package com.tuap.backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.context.annotation.ComponentScan;
 
-@SpringBootApplication(scanBasePackages = "com.tuap.backend")
-@EnableJpaRepositories(basePackages = "com.tuap.backend.repositorios")
-
+@SpringBootApplication
+@ComponentScan(basePackages = "com.tuap.backend")
 public class BackendApplication {
 
     public static void main(String[] args) {
