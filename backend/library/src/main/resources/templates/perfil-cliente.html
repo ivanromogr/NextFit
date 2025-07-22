@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Perfil del Cliente</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>Perfil de [[${cliente.nombre}]] [[${cliente.apellido}]]</h1>
+    <ul>
+        <li><strong>Email:</strong> [[${cliente.email}]]</li>
+        <li><strong>Edad:</strong> [[${cliente.edad}]]</li>
+        <li><strong>Peso:</strong> [[${cliente.peso}]] kg</li>
+        <li><strong>Altura:</strong> [[${cliente.altura}]] cm</li>
+        <li><strong>Objetivo:</strong> [[${cliente.objetivo}]]</li>
+    </ul>
+    <a th:href="@{/menucliente/{id}(id=${cliente.id})}">Volver al menú</a>
+</body>
+</html>

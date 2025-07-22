@@ -1,12 +1,17 @@
 package com.tuap.backend.dominio.gestores;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,7 +26,6 @@ import com.tuap.backend.dominio.entidades.Entrenador;
 import com.tuap.backend.dominio.entidades.Usuario;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
-import com.tuap.backend.repositorios.UsuarioRepository;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -36,8 +40,6 @@ public class GestorLogin {
     private static final String RELLENA_CAMPOS = "Rellena todos los campos";
     private static final String USUARIO_EXISTE_STR = "El nombre de usuario ya existe";
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
 
     @Autowired
     private ClienteDAO clienteDAO;
@@ -53,11 +55,11 @@ public class GestorLogin {
     /*
      * GETMAPPINGS
      */
-
+    
     @GetMapping("/")
-    public String homePage() {
-        return "home";
-    }
+    public String paginaInicio() {
+    return "index";
+}
 
     @GetMapping("/login")
     public String loginForm(Model model) {
@@ -75,29 +77,7 @@ public class GestorLogin {
      * POSTMAPPINGS
      */
 
-    @PostMapping("/login")
-    public String loginSubmit(@ModelAttribute Usuario usuario, Model model) {
-        if (usuario == null) {
-            model.addAttribute(ERROR_STR, "El usuario no existe, pruebe otra vez");
-            return LOGIN_STR;
-        }
-
-        model.addAttribute(USUARIO_STR, usuario);
-        Optional<Cliente> clienteOpt = clienteDAO.findByEmail(usuario.getEmail());
-        Optional<Entrenador> entrenadorOpt = entrenadorDAO.findByEmail(usuario.getEmail());
-
-        String resultadoCliente = manejarCliente(clienteOpt, usuario, model);
-        String resultadoEntrenador = manejarEntrenador(entrenadorOpt, usuario, model);
-
-        if (resultadoCliente != null) { 
-            return resultadoCliente;
-        } else if (resultadoEntrenador != null) {
-            return resultadoEntrenador;
-        } else {
-            model.addAttribute(ERROR_STR, "El usuario no existe, pruebe otra vez");
-            return LOGIN_STR;
-        }
-    }
+    
 
     @PostMapping("/register")
     public String registroSubmit(
@@ -115,13 +95,19 @@ public class GestorLogin {
             return REGISTRO_STR;
         }
 
+        // Comprobación global de email único
+        if (emailExisteEnSistema(usuario.getEmail())) {
+            model.addAttribute(ERROR_STR, USUARIO_EXISTE_STR);
+            return REGISTRO_STR;
+        }
+
         boolean registroExitoso;
         switch (rol.toLowerCase()) {
             case "cliente":
-                registroExitoso = procesarRegistroCliente(usuario, model, peso, altura, edad, objetivo);
+                registroExitoso = registrarCliente(usuario, model, peso, altura, edad, objetivo,null) != 0;
                 break;
             case "entrenador":
-                registroExitoso = procesarRegistroEntrenador(usuario, model, especialidad);
+                registroExitoso = registrarEntrenador(usuario, model, especialidad) != 0;
                 break;
             default:
                 model.addAttribute(ERROR_STR, "Ingresa un tipo de usuario válido");
@@ -129,35 +115,31 @@ public class GestorLogin {
         }
 
         if (registroExitoso) {
-            return "redirect:/login"; // Redirige a la página de login después del registro
+            return "redirect:/login";
         } else {
             return REGISTRO_STR;
         }
     }
 
     private boolean procesarRegistroCliente(Usuario usuario, Model model, Double peso, Integer altura,
-     Integer edad, String objetivo) {
-        if (clienteDAO.findByEmail(usuario.getEmail()).isPresent()) {
-            model.addAttribute(ERROR_STR, USUARIO_EXISTE_STR);
-            return false;
-        }
-        return registrarCliente(usuario, model, peso, altura, edad, objetivo) != 0;
+     Integer edad, String objetivo, String fotoPerfil) {
+        return registrarCliente(usuario, model, peso, altura, edad, objetivo,fotoPerfil) != 0;
+    }
+    private boolean emailExisteEnSistema(String email) {
+    return clienteDAO.findByEmail(email).isPresent() || entrenadorDAO.findByEmail(email).isPresent();
     }
 
     private boolean procesarRegistroEntrenador(Usuario usuario, Model model, String especialidad) {
-        if (entrenadorDAO.findByEmail(usuario.getEmail()).isPresent()) {
-            model.addAttribute(ERROR_STR, USUARIO_EXISTE_STR);
-            return false;
-        }
         return registrarEntrenador(usuario, model, especialidad) != 0;
     }
 
     private int registrarCliente(Usuario usuario, Model model, 
-            Double peso, Integer altura, Integer edad, String objetivo) {
+            Double peso, Integer altura, Integer edad, String objetivo, String fotoPerfil) {
         if (usuario != null && !usuario.getNombre().isEmpty() && !usuario.getEmail().isEmpty() && !usuario.getContraseña().isEmpty()) {
-            
+            String encoded = passwordEncoder.encode(usuario.getContraseña());
+
             Cliente cliente = new Cliente(usuario.getNombre(), usuario.getApellido(), usuario.getEmail(), passwordEncoder.encode(usuario.getContraseña()),
-            "cliente", peso, altura, edad, objetivo);
+            "ROLE_CLIENTE", peso, altura, edad, objetivo,fotoPerfil);
             clienteDAO.save(cliente);
             return 1;
         } else {
@@ -169,7 +151,7 @@ public class GestorLogin {
     private int registrarEntrenador(Usuario usuario, Model model, String especialidad) {
         if (usuario != null && !usuario.getNombre().isEmpty() && !usuario.getEmail().isEmpty() && !usuario.getContraseña().isEmpty()) {
             Entrenador entrenador = new Entrenador(usuario.getNombre(), usuario.getApellido(), usuario.getEmail(), passwordEncoder.encode(usuario.getContraseña()),
-            "entrenador", especialidad);
+            "ROLE_ENTRENADOR", especialidad);
             entrenadorDAO.save(entrenador);
             return 1;
         } else {
@@ -178,36 +160,94 @@ public class GestorLogin {
         }
     }
 
+   
+
     private String manejarCliente(Optional<Cliente> clienteOpt, Usuario usuario, Model model) {
-        if (clienteOpt.isPresent()) {
-            Cliente cliente = clienteOpt.get();
-            if (passwordEncoder.matches(usuario.getContraseña(), cliente.getContraseña())) {
-                return "redirect:/menucliente/" + cliente.getId();
-            } else {
-                model.addAttribute(ERROR_STR, CONTRASENA_STR);
-                return LOGIN_STR;
-            }
+    if (clienteOpt.isPresent()) {
+        Cliente cliente = clienteOpt.get();
+        
+        boolean matches = passwordEncoder.matches(usuario.getContraseña(), cliente.getContraseña());
+
+        if (matches) {
+            SimpleGrantedAuthority authority = new SimpleGrantedAuthority(cliente.getRol()); // → "ROLE_CLIENTE"
+
+            UserDetails userDetails = User.withUsername(cliente.getEmail())
+                .password(cliente.getContraseña()) // obligatorio, aunque no se use
+                .authorities(authority) // usamos authority, no roles
+                .build();
+
+             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+            
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            System.out.println("Autenticado: " + auth.isAuthenticated());
+            System.out.println("Roles: " + auth.getAuthorities());
+
+            return "redirect:/menucliente/" + cliente.getId();
+        } else {
+            model.addAttribute(ERROR_STR, CONTRASENA_STR);
+            return LOGIN_STR;
         }
-        return null;
     }
+    return null;
+}
+
+
+
 
     private String manejarEntrenador(Optional<Entrenador> entrenadorOpt, Usuario usuario, Model model) {
-        if (entrenadorOpt.isPresent()) {
-            Entrenador entrenador = entrenadorOpt.get();
-            if (passwordEncoder.matches(usuario.getContraseña(), entrenador.getContraseña())) {
-                return "redirect:/menuentrenador/" + entrenador.getId();
-            } else {
-                model.addAttribute(ERROR_STR, CONTRASENA_STR);
-                return LOGIN_STR;
-            }
+    if (entrenadorOpt.isPresent()) {
+        Entrenador entrenador = entrenadorOpt.get();
+
+        if (passwordEncoder.matches(usuario.getContraseña(), entrenador.getContraseña())) {
+           SimpleGrantedAuthority authority = new SimpleGrantedAuthority(entrenador.getRol()); // → "ROLE_ENTRENADOR"
+
+            UserDetails userDetails = User.withUsername(entrenador.getEmail())
+                .password(entrenador.getContraseña()) // obligatorio, aunque no se use
+                .authorities(authority) // usamos authority, no roles
+                .build();
+
+            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            System.out.println("Autenticado: " + auth.isAuthenticated());
+            System.out.println("Roles: " + auth.getAuthorities());
+
+            return "redirect:/menuentrenador/" + entrenador.getId();
+        } else {
+            model.addAttribute(ERROR_STR, CONTRASENA_STR);
+            return LOGIN_STR;
         }
-        return null;
+    }
+    return null;
+}
+
+
+    
+    @GetMapping("/post-login")
+public String redireccionPostLogin(Authentication authentication) {
+    String email = authentication.getName();
+
+    // Buscar en ClienteDAO
+    Optional<Cliente> clienteOpt = clienteDAO.findByEmail(email);
+    if (clienteOpt.isPresent()) {
+        Cliente cliente = clienteOpt.get();
+        return "redirect:/menucliente/" + cliente.getId();
     }
 
-    @GetMapping("/usuarios")
-    public List<Usuario> getAllUsuarios() {
-        return usuarioRepository.findAll();
+    // Buscar en EntrenadorDAO
+    Optional<Entrenador> entrenadorOpt = entrenadorDAO.findByEmail(email);
+    if (entrenadorOpt.isPresent()) {
+        Entrenador entrenador = entrenadorOpt.get();
+        return "redirect:/menuentrenador/" + entrenador.getId();
     }
+
+    // Si no se encuentra el usuario
+    return "redirect:/login?error=true";
+}
 
     @GetMapping("/clientes/{id}")
     public Cliente getClienteById(@PathVariable UUID idCliente) {
@@ -219,25 +259,45 @@ public class GestorLogin {
         return entrenadorDAO.findById(idEntrenador).orElse(null);
     }
     
-    @PostMapping("/api/recover-password")
+@PostMapping("/api/recover-password")
     public ResponseEntity<String> recoverPassword(@RequestParam String email, @RequestParam String nuevaContraseña) {
-        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
-        if (usuarioOpt.isPresent()) {
-            Usuario usuario = usuarioOpt.get();
-            usuario.setContraseña(passwordEncoder.encode(nuevaContraseña));
-            usuarioRepository.save(usuario);
-            return ResponseEntity.ok("Contraseña actualizada correctamente");
-        }
-        return ResponseEntity.status(404).body("Usuario no encontrado");
-    }
+        Optional<Cliente> clienteOpt = clienteDAO.findByEmail(email);
+Optional<Entrenador> entrenadorOpt = entrenadorDAO.findByEmail(email);
 
-    private String generateToken(Usuario usuario) {
-        return Jwts.builder()
-                .setSubject(usuario.getEmail())
-                .claim("roles", usuario.getRol())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 86400000)) // 1 día
-                .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
-                .compact();
-    }
+if (clienteOpt.isPresent()) {
+    Cliente cliente = clienteOpt.get();
+    cliente.setContraseña(passwordEncoder.encode(nuevaContraseña));
+    clienteDAO.save(cliente);
+    return ResponseEntity.ok("Contraseña actualizada correctamente");
+} else if (entrenadorOpt.isPresent()) {
+    Entrenador entrenador = entrenadorOpt.get();
+    entrenador.setContraseña(passwordEncoder.encode(nuevaContraseña));
+    entrenadorDAO.save(entrenador);
+    return ResponseEntity.ok("Contraseña actualizada correctamente");
+}
+
+    // Add this return if neither cliente nor entrenador is found
+    return ResponseEntity.badRequest().body("Usuario no encontrado");
+}
+
+private String generateToken(Cliente cliente) {
+    return Jwts.builder()
+            .setSubject(cliente.getEmail())
+            .claim("roles", cliente.getRol())
+            .setIssuedAt(new Date())
+            .setExpiration(new Date(System.currentTimeMillis() + 86400000))
+            .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
+            .compact();
+}
+
+private String generateToken(Entrenador entrenador) {
+    return Jwts.builder()
+            .setSubject(entrenador.getEmail())
+            .claim("roles", entrenador.getRol())
+            .setIssuedAt(new Date())
+            .setExpiration(new Date(System.currentTimeMillis() + 86400000))
+            .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
+            .compact();
+}
+
 }
