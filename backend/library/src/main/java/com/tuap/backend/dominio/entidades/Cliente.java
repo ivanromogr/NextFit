@@ -51,6 +51,8 @@ public class Cliente {
     @Column(nullable = true)
     private String fotoPerfil;
 
+    @Column(nullable = false)
+    private String genero;
 
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
     private List<Progreso> progresos;
@@ -63,7 +65,7 @@ public class Cliente {
     public Cliente() {}
 
     public Cliente(String nombre, String apellido, String email, String contraseña, String rol,
-                   double peso, int altura, int edad, String objetivo, String fotoPerfil) {
+                   double peso, int altura, int edad, String objetivo, String fotoPerfil, String genero) {
         this.nombre = nombre;
         this.apellido = apellido;
         this.email = email;
@@ -74,6 +76,7 @@ public class Cliente {
         this.edad = edad;
         this.objetivo = objetivo;
         this.fotoPerfil = fotoPerfil;
+        this.genero = genero;
     }
 
     public UUID getId() {
@@ -178,6 +181,14 @@ public class Cliente {
 
     public void setChats(List<Chat> chats) {
         this.chats = chats;
+    }
+
+    public String getGenero() {
+        return genero;
+    }
+
+    public void setGenero(String genero) {
+        this.genero = genero;
     }
 
     

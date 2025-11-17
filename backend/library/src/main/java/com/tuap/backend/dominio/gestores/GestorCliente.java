@@ -36,10 +36,7 @@ public class GestorCliente {
         // Obtener el contexto de seguridad actual
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        // Imprimir información del usuario autenticado
-        System.out.println("▶️ Usuario autenticado en controlador: " + auth.getName());
-        System.out.println("▶️ Roles en controlador: " + auth.getAuthorities());
-        System.out.println("llega ");
+        
 
         // Verificar si el cliente existe en base de datos
         Optional<Cliente> clienteOpt = clienteDAO.findById(id);
@@ -53,7 +50,7 @@ public class GestorCliente {
 
         return "menucliente"; // Nombre de la vista HTML
     }
-
+    // Ver tu perfil 
     @GetMapping("/cliente/perfil/{id}")
     public String verPerfilCliente(@PathVariable UUID id, Model model) {
         Cliente cliente = verPerfil(id);
@@ -65,7 +62,7 @@ public class GestorCliente {
             return "error";
         }
     }
-
+    //editar tu perfil
     @GetMapping("/cliente/editar/{id}")
     public String editarPerfilCliente(@PathVariable UUID id, Model model) {
         Cliente cliente = verPerfil(id);

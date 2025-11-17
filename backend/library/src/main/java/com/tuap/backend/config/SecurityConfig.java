@@ -1,19 +1,16 @@
 package com.tuap.backend.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import com.tuap.backend.persistencia.ClienteDAO;
-import com.tuap.backend.persistencia.EntrenadorDAO;
 
 @Configuration
 @EnableWebSecurity
@@ -28,26 +25,31 @@ public class SecurityConfig {
         this.customSuccessHandler = customSuccessHandler;
     }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/register", "/login", "/recover-password", "/api/**").permitAll()
-                .requestMatchers("/menucliente/**").hasRole("CLIENTE")
-                .requestMatchers("/menuentrenador/**").hasRole("ENTRENADOR")
-                .anyRequest().authenticated())
-            .formLogin(form -> form
-                .loginPage("/login")
-                .successHandler(customSuccessHandler)
-                .permitAll())
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login")
-                .permitAll());
+   @Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(AbstractHttpConfigurer::disable)
+        .cors(Customizer.withDefaults())
 
-        return http.build();
-    }
+        .authorizeHttpRequests(auth -> auth
+            .anyRequest().permitAll()   // 🔓 TODO PERMITIDO TEMPORALMENTE
+        )
+
+        .formLogin(form -> form
+            .loginPage("/login")
+            .successHandler(customSuccessHandler)
+            .permitAll()
+        )
+
+        .logout(logout -> logout
+            .logoutUrl("/logout")
+            .logoutSuccessUrl("/login")
+            .permitAll()
+        );
+
+    return http.build();
+}
+
 
     @Bean
     public AuthenticationManager authManager(HttpSecurity http) throws Exception {
@@ -63,4 +65,3 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
-

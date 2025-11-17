@@ -35,6 +35,27 @@ public class Entrenador {
 
     @Column(nullable = false)
     private String especialidad;
+        @Column
+    private Integer edad;
+
+    @Column
+    private String genero;
+
+    @Column
+    private Integer aniosExperiencia;
+
+    @Column
+    private String formacion;
+
+    @Column(length = 1000)
+    private String descripcionPerfil;
+
+    @Column
+    private String modalidadTrabajo; // ONLINE / PRESENCIAL / MIXTO, etc.
+
+    @Column
+    private String fotoPerfil;
+
 
     @OneToMany(mappedBy = "entrenador", cascade = CascadeType.ALL)
     private List<Chat> chats;
@@ -43,15 +64,28 @@ public class Entrenador {
     private List<Entrenamiento> entrenamientos;
 
     // Constructores
-    public Entrenador() {}
+    public Entrenador() {
+    }
 
-    public Entrenador(String nombre, String apellido, String email, String contraseña, String rol, String especialidad) {
+    public Entrenador(String nombre, String apellido, String email, String contraseña, String rol,
+            String especialidad,
+            Integer edad, String genero,
+            Integer aniosExperiencia, String formacion,
+            String descripcionPerfil, String modalidadTrabajo,
+            String fotoPerfil) {
         this.nombre = nombre;
         this.apellido = apellido;
         this.email = email;
         this.contraseña = contraseña;
         this.rol = rol;
         this.especialidad = especialidad;
+        this.edad = edad;
+        this.genero = genero;
+        this.aniosExperiencia = aniosExperiencia;
+        this.formacion = formacion;
+        this.descripcionPerfil = descripcionPerfil;
+        this.modalidadTrabajo = modalidadTrabajo;
+        this.fotoPerfil = fotoPerfil;
     }
 
     public UUID getId() {
@@ -126,5 +160,60 @@ public class Entrenador {
         this.entrenamientos = entrenamientos;
     }
 
-    
+        public Integer getEdad() {
+        return edad;
+    }
+
+    public void setEdad(Integer edad) {
+        this.edad = edad;
+    }
+
+    public String getGenero() {
+        return genero;
+    }
+
+    public void setGenero(String genero) {
+        this.genero = genero;
+    }
+
+    public Integer getAniosExperiencia() {
+        return aniosExperiencia;
+    }
+
+    public void setAniosExperiencia(Integer aniosExperiencia) {
+        this.aniosExperiencia = aniosExperiencia;
+    }
+
+    public String getFormacion() {
+        return formacion;
+    }
+
+    public void setFormacion(String formacion) {
+        this.formacion = formacion;
+    }
+
+    public String getDescripcionPerfil() {
+        return descripcionPerfil;
+    }
+
+    public void setDescripcionPerfil(String descripcionPerfil) {
+        this.descripcionPerfil = descripcionPerfil;
+    }
+
+    public String getModalidadTrabajo() {
+        return modalidadTrabajo;
+    }
+
+    public void setModalidadTrabajo(String modalidadTrabajo) {
+        this.modalidadTrabajo = modalidadTrabajo;
+    }
+
+    public String getFotoPerfil() {
+        return fotoPerfil;
+    }
+
+    public void setFotoPerfil(String fotoPerfil) {
+        this.fotoPerfil = fotoPerfil;
+    }
+
 }
