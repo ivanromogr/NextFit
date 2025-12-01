@@ -1,0 +1,35 @@
+{
+    "sqltools.connections": [
+        {
+            "name": "Derby Connection",
+            "driver": "JDBC",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 1527,
+            "database": "libraryDB",
+            "username": "user",
+            "password": "password",
+            "jdbcOptions": {
+                "url": "jdbc:derby://localhost:1527/libraryDB;create=true",
+                "driverClass": "org.apache.derby.jdbc.ClientDriver",
+                "additionalArgs": {
+                    "driverLibrary": "C:/path/to/derbyclient.jar"
+                }
+            }
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "aplicaciondeportes",
+            "username": "root",
+            "database": "aplicaciondeportes"
+        }
+    ],
+    "java.configuration.updateBuildConfiguration": "interactive"
+}
