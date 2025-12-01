@@ -1,0 +1,100 @@
+/* src/components/ui/GymDateInput.css */
+
+/* Color de fondo principal del calendario */
+.gym-datepicker-wrapper .react-datepicker {
+    background-color: #18181b;
+    border: 1px solid #3f3f46;
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+    color: #ffffff;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* Cabecera (mes y año) */
+.gym-datepicker-wrapper .react-datepicker__header {
+    background-color: #27272a;
+    border-bottom: 1px solid #3f3f46;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    padding-top: 12px;
+}
+
+/* Título del mes actual */
+.gym-datepicker-wrapper .react-datepicker__current-month,
+.gym-datepicker-wrapper .react-datepicker-time__header,
+.gym-datepicker-wrapper .react-datepicker-year-header {
+    color: #ffffff;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Nombres de los días de la semana (Lu, Ma, Mi...) */
+.gym-datepicker-wrapper .react-datepicker__day-name {
+    color: #FACC15; /* Amarillo neón */
+    font-weight: 600;
+}
+
+/* Días del mes */
+.gym-datepicker-wrapper .react-datepicker__day {
+    color: #ffffff;
+    border-radius: 50%; /* Días redondos */
+    transition: all 0.2s ease;
+}
+
+/* Hover sobre un día */
+.gym-datepicker-wrapper .react-datepicker__day:hover {
+    background-color: #3f3f46;
+    color: #FACC15;
+}
+
+/* Día seleccionado */
+.gym-datepicker-wrapper .react-datepicker__day--selected,
+.gym-datepicker-wrapper .react-datepicker__day--keyboard-selected {
+    background-color: #FACC15;
+    color: #000000;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+}
+
+/* Día de hoy */
+.gym-datepicker-wrapper .react-datepicker__day--today {
+    font-weight: bold;
+    color: #FACC15;
+    border: 1px solid #FACC15;
+    background-color: transparent;
+}
+
+/* Días fuera del mes actual */
+.gym-datepicker-wrapper .react-datepicker__day--outside-month {
+    color: #525252;
+}
+
+/* Flechas de navegación (mes anterior/siguiente) */
+.gym-datepicker-wrapper .react-datepicker__navigation-icon::before {
+    border-color: #FACC15;
+    border-width: 2px 2px 0 0;
+}
+
+/* Dropdown de años y meses (cuando se abre) */
+.gym-datepicker-wrapper .react-datepicker__year-dropdown,
+.gym-datepicker-wrapper .react-datepicker__month-dropdown,
+.gym-datepicker-wrapper .react-datepicker__month-year-dropdown {
+    background-color: #18181b;
+    border: 1px solid #3f3f46;
+    color: #ffffff;
+}
+
+/* Opciones dentro de los dropdowns */
+.gym-datepicker-wrapper .react-datepicker__year-option:hover,
+.gym-datepicker-wrapper .react-datepicker__month-option:hover,
+.gym-datepicker-wrapper .react-datepicker__month-year-option:hover {
+    background-color: #3f3f46;
+    color: #FACC15;
+}
+
+/* Flecha del "popper" (el triangulito que une el input con el calendario) */
+.gym-datepicker-wrapper .react-datepicker-popper[data-placement^="bottom"] .react-datepicker__triangle::before,
+.gym-datepicker-wrapper .react-datepicker-popper[data-placement^="bottom"] .react-datepicker__triangle::after {
+    border-bottom-color: #27272a; /* Color de la cabecera */
+}

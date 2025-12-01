@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;600;700&family=Inter:wght@400;600;800&display=swap');
+
+:root {
+  --neon-yellow: #FACC15;
+  --bg-overlay: rgba(0, 0, 0, 0.85);
+}
+
+/* 1. RESETEO TOTAL */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: #ffffff;
+  
+  /* 2. COLOR DE SEGURIDAD (Si la imagen falla, se verá negro, NO blanco) */
+  background-color: #050505; 
+  
+  /* 3. IMAGEN DE FONDO */
+  background-image: url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1470&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* 4. CAPA OSCURA (Para que el texto se lea) */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: var(--bg-overlay); /* Capa negra al 85% */
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Tipografías */
+h1, h2, h3 {
+  font-family: 'Teko', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+* { box-sizing: border-box; }
