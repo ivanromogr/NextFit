@@ -20,11 +20,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.tuap.backend.controladores.dto.EntrenadorOnboardingRequest;
-import com.tuap.backend.controladores.dto.OnboardingRequest;
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.Entrenador;
 import com.tuap.backend.dominio.entidades.Usuario;
+import com.tuap.backend.dto.EntrenadorOnboardingRequest;
+import com.tuap.backend.dto.OnboardingRequest;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
 

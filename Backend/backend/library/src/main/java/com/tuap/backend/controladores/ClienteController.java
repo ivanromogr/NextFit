@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.tuap.backend.controladores.dto.OnboardingRequest;
 import com.tuap.backend.dominio.entidades.Cliente;
+import com.tuap.backend.dto.OnboardingRequest;
 import com.tuap.backend.persistencia.ClienteDAO;
 
 @RestController

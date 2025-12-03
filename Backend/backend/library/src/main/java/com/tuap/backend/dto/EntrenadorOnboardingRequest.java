@@ -1,4 +1,4 @@
-package com.tuap.backend.controladores.dto;
+package com.tuap.backend.dto;
 
 import java.util.UUID;
 
