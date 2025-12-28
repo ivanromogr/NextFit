@@ -6,9 +6,11 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping; // ✅ Importante
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,38 +22,63 @@ import com.tuap.backend.dto.RutinaRequest;
 
 @RestController
 @RequestMapping("/api/rutinas")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class RutinaController {
 
     @Autowired
     private GestorRutina gestorRutina;
 
-    // Generar con IA
-    @PostMapping("/generar")
-    public ResponseEntity<?> generarAuto(@RequestBody GenerarRutinaRequest request) {
+    // --- CARRIL 1: MANUAL ---
+    @PostMapping("/manual")
+    public ResponseEntity<?> crearRutinaManual(@RequestBody RutinaRequest request) {
         try {
-            Rutina rutina = gestorRutina.generarRutinaAutomatica(request);
-            return ResponseEntity.ok(rutina);
+            Rutina nueva = gestorRutina.crearRutinaManual(request);
+            return ResponseEntity.ok(nueva);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    // --- CARRIL 2: AUTOMÁTICO IA ---
+    @PostMapping("/auto")
+    public ResponseEntity<?> generarRutinaAutomatica(@RequestBody GenerarRutinaRequest request) {
+        try {
+            Rutina nueva = gestorRutina.generarRutinaAutomatica(request);
+            return ResponseEntity.ok(nueva);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Error generando plan: " + e.getMessage());
         }
     }
 
-    // Crear Manual
-    @PostMapping("/manual")
-    public ResponseEntity<?> crearManual(@RequestBody RutinaRequest request) {
+    // --- ✅ NUEVO: ACTUALIZAR RUTINA (PUT) ---
+    // Este endpoint recibe los cambios del editor y los guarda
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarRutina(@PathVariable UUID id, @RequestBody Rutina rutinaDatos) {
         try {
-            Rutina rutina = gestorRutina.crearRutinaManual(request);
-            return ResponseEntity.ok(rutina);
+            Rutina actualizada = gestorRutina.actualizarRutina(id, rutinaDatos);
+            return ResponseEntity.ok(actualizada);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Error al actualizar: " + e.getMessage());
         }
     }
 
-    // Ver rutinas del cliente
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminarRutina(@PathVariable UUID id) {
+        try {
+            gestorRutina.eliminarRutina(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al eliminar: " + e.getMessage());
+        }
+    }
+
+    // Listar Rutinas
     @GetMapping("/cliente/{idCliente}")
-    public ResponseEntity<List<Rutina>> listarRutinas(@PathVariable UUID idCliente) {
-        return ResponseEntity.ok(gestorRutina.obtenerRutinasDeCliente(idCliente));
+    public List<Rutina> obtenerRutinas(@PathVariable UUID idCliente) {
+        return gestorRutina.obtenerRutinasDeCliente(idCliente);
     }
 }

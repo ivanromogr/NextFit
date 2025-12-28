@@ -28,14 +28,19 @@ public class DetalleRutina {
     @JsonIgnoreProperties("detalles") // Evita bucle infinito
     private Rutina rutina;
 
-    // Qué ejercicio es (Lo saca de tu catálogo de Ejercicios existente)
+    // Qué ejercicio es
     @ManyToOne
     @JoinColumn(name = "ejercicio_id", nullable = false)
     private Ejercicio ejercicio;
 
     private int series;
     private int repeticiones;
-    private String notas; // Ej: "Descansa 90 segundos"
+    private String notas; 
+
+    // --- NUEVOS CAMPOS ---
+    // Usamos Float e Integer (objetos) para permitir nulos si fuera necesario
+    private Float peso; 
+    private Integer rpe; // Rating of Perceived Exertion (1-10)
 
     public DetalleRutina() {}
 
@@ -57,4 +62,11 @@ public class DetalleRutina {
 
     public String getNotas() { return notas; }
     public void setNotas(String notas) { this.notas = notas; }
+
+    // --- GETTERS Y SETTERS NUEVOS ---
+    public Float getPeso() { return peso; }
+    public void setPeso(Float peso) { this.peso = peso; }
+
+    public Integer getRpe() { return rpe; }
+    public void setRpe(Integer rpe) { this.rpe = rpe; }
 }

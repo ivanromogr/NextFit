@@ -367,7 +367,24 @@ private int registrarEntrenador(Usuario usuario, Model model, String especialida
                     .body("No se ha podido registrar el usuario.");
         }
 
-        // 5) Todo OK
+        // 5) Todo OK -> devolver ID del nuevo recurso para que el frontend lo use
+        if ("cliente".equals(rolNormalizado)) {
+            Optional<Cliente> cliOpt = clienteDAO.findByEmail(usuario.getEmail());
+            if (cliOpt.isPresent()) {
+                Cliente c = cliOpt.get();
+                java.util.Map<String, java.util.UUID> body = java.util.Map.of("clienteId", c.getId());
+                return ResponseEntity.ok(body);
+            }
+        }
+        if ("entrenador".equals(rolNormalizado)) {
+            Optional<Entrenador> entOpt = entrenadorDAO.findByEmail(usuario.getEmail());
+            if (entOpt.isPresent()) {
+                Entrenador e = entOpt.get();
+                java.util.Map<String, java.util.UUID> body = java.util.Map.of("entrenadorId", e.getId());
+                return ResponseEntity.ok(body);
+            }
+        }
+        // Fallback (algo raro pasó)
         return ResponseEntity.ok().build();
     }
 

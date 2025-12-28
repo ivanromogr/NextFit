@@ -1,6 +1,8 @@
 package com.tuap.backend.config;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.Entrenador;
 import com.tuap.backend.persistencia.ClienteDAO;
@@ -19,33 +22,52 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class CustomSuccessHandler implements AuthenticationSuccessHandler {
+
     @Autowired
     private ClienteDAO clienteDAO;
 
     @Autowired
     private EntrenadorDAO entrenadorDAO;
 
+    // Herramienta para convertir datos a JSON
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException, ServletException {
 
         String email = authentication.getName();
+        String role = "cliente";
+        Object id = null; // Usamos Object para que acepte tanto Long como UUID sin fallar
+
+        // 1. Buscamos el ID del usuario en la base de datos
         Optional<Cliente> clienteOpt = clienteDAO.findByEmail(email);
         if (clienteOpt.isPresent()) {
             Cliente cliente = clienteOpt.get();
-            response.sendRedirect("/menucliente/" + cliente.getId());
-            return;
+            id = cliente.getId();
+            role = "cliente";
+        } else {
+            Optional<Entrenador> entrenadorOpt = entrenadorDAO.findByEmail(email);
+            if (entrenadorOpt.isPresent()) {
+                Entrenador entrenador = entrenadorOpt.get();
+                id = entrenador.getId();
+                role = "entrenador";
+            }
         }
 
-        Optional<Entrenador> entrenadorOpt = entrenadorDAO.findByEmail(email);
-        if (entrenadorOpt.isPresent()) {
-            Entrenador entrenador = entrenadorOpt.get();
-            response.sendRedirect("/menuentrenador/" + entrenador.getId());
-            return;
-        }
+        // 2. IMPORTANTE: Devolvemos un JSON (Status 200) en lugar de redirigir
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType("application/json;charset=UTF-8");
 
-        // Por si acaso no se encuentra el usuario
-        response.sendRedirect("/login?error=true");
+        Map<String, Object> data = new HashMap<>();
+        data.put("status", 200);
+        data.put("message", "Login exitoso");
+        data.put("role", role);
+        data.put("id", id); // Aquí va el UUID o el número, lo que sea que use tu BD
+        data.put("email", email);
+
+        // Enviamos la respuesta al Frontend
+        response.getWriter().write(objectMapper.writeValueAsString(data));
+        response.flushBuffer();
     }
-
 }

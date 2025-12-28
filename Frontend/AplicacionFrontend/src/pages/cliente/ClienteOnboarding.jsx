@@ -133,9 +133,16 @@ export default function ClienteOnboarding() {
       };
       
       console.log("Enviando datos...", payload);
-      await completarOnboardingCliente(payload);
-      
-      // Limpieza y redirección
+      const resp = await completarOnboardingCliente(payload);
+
+      // Si el backend devuelve un id, guardamos ese id como 'clienteId'
+      const idDevuelto = resp?.idCliente || resp?.id || userId;
+      if (idDevuelto) {
+        localStorage.setItem("clienteId", idDevuelto);
+        setUserId(idDevuelto);
+      }
+
+      // Limpieza del ID temporal y redirección
       localStorage.removeItem("registration_userId"); 
       navigate("/cliente/dashboard");
 

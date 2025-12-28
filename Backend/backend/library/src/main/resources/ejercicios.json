@@ -1,0 +1,272 @@
+[
+  {
+    "nombre": "Press de Banca",
+    "grupoMuscular": "Pecho",
+    "equipamiento": "Barra",
+    "dificultad": "Intermedio",
+    "imagenUrl": "/imagenes/press_banca.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=sqIwK4yq3Lw",
+    "instrucciones": "1. Túmbate en el banco con los ojos bajo la barra.\n2. Baja controlado hasta el pecho.\n3. Empuja explosivamente."
+  },
+  {
+    "nombre": "Flexiones",
+    "grupoMuscular": "Pecho",
+    "equipamiento": "Peso corporal",
+    "dificultad": "Principiante",
+    "imagenUrl": "/imagenes/flexiones.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=e_6NbbDk2Ks",
+    "instrucciones": "1. Manos a la anchura de hombros.\n2. Cuerpo recto como tabla.\n3. Baja hasta rozar el suelo."
+  },
+  {
+    "nombre": "Aperturas con Mancuernas",
+    "grupoMuscular": "Pecho",
+    "equipamiento": "Mancuernas",
+    "dificultad": "Intermedio",
+    "imagenUrl": "/imagenes/aperturas_mancuernas.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=eozdVDA78K0",
+    "instrucciones": "1. Abre los brazos con ligera flexión.\n2. Siente el estiramiento.\n3. Cierra como abrazando un árbol."
+  },
+  {
+    "nombre": "Press Inclinado",
+    "grupoMuscular": "Pecho",
+    "equipamiento": "Mancuernas",
+    "dificultad": "Intermedio",
+    "imagenUrl": "/imagenes/press_inclinado.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=8iPEnn-ltC8",
+    "instrucciones": "1. Banco a 30-45 grados.\n2. Empuja hacia el techo.\n3. Baja al pecho superior."
+  },
+  {
+    "nombre": "Fondos en Paralelas",
+    "grupoMuscular": "Pecho",
+    "equipamiento": "Peso corporal",
+    "dificultad": "Avanzado",
+    "imagenUrl": "/imagenes/fondos_paralelas.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=2z8JmcrW-As",
+    "instrucciones": "1. Inclina el tronco adelante.\n2. Baja hasta 90 grados.\n3. Empuja fuerte."
+  },
+  {
+    "nombre": "Dominadas",
+    "grupoMuscular": "Espalda",
+    "equipamiento": "Peso corporal",
+    "dificultad": "Avanzado",
+    "imagenUrl": "/imagenes/dominadas.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=eGo4IYlbE5g",
+    "instrucciones": "1. Agarre ancho.\n2. Sube la barbilla sobre la barra.\n3. Baja completo."
+  },
+  {
+    "nombre": "Remo con Barra",
+    "grupoMuscular": "Espalda",
+    "equipamiento": "Barra",
+    "dificultad": "Avanzado",
+    "imagenUrl": "/imagenes/remo_con_barra.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=G8l_8chR5BE",
+    "instrucciones": "1. Espalda recta inclinada.\n2. Tira la barra a la cadera.\n3. Aprieta espalda."
+  },
+  {
+    "nombre": "Jalón al Pecho",
+    "grupoMuscular": "Espalda",
+    "equipamiento": "Máquina",
+    "dificultad": "Principiante",
+    "imagenUrl": "/imagenes/jalon_al_pecho.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=CAwf7n6Luuc",
+    "instrucciones": "1. Tira hacia la clavícula.\n2. Baja los codos.\n3. Controla la subida."
+  },
+  {
+    "nombre": "Remo Gironda",
+    "grupoMuscular": "Espalda",
+    "equipamiento": "Polea",
+    "dificultad": "Intermedio",
+    "imagenUrl": "/imagenes/remo_gironda.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=GZbfZ033f74",
+    "instrucciones": "1. Espalda recta.\n2. Tira al ombligo.\n3. No te balancees."
+  },
+  {
+    "nombre": "Peso Muerto",
+    "grupoMuscular": "Espalda",
+    "equipamiento": "Barra",
+    "dificultad": "Avanzado",
+    "imagenUrl": "/imagenes/peso_muerto.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=7Q_GnXm7Nb8",
+    "instrucciones": "1. Levanta el peso del suelo.\n2. Espalda neutra siempre.\n3. Empuja con piernas."
+  },
+  {
+    "nombre": "Sentadilla",
+    "grupoMuscular": "Piernas",
+    "equipamiento": "Barra",
+    "dificultad": "Avanzado",
+    "imagenUrl": "/imagenes/sentadilla.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=QKKZ9AGYTi4",
+    "instrucciones": "1. Baja profundo.\n2. Rodillas hacia fuera.\n3. Pecho arriba."
+  },
+  {
+    "nombre": "Prensa",
+    "grupoMuscular": "Piernas",
+    "equipamiento": "Máquina",
+    "dificultad": "Principiante",
+    "imagenUrl": "/imagenes/prensa.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=IZxyjW7MPJQ",
+    "instrucciones": "1. Empuja con los talones.\n2. No bloquees rodillas.\n3. Baja controlado."
+  },
+  {
+    "nombre": "Zancadas",
+    "grupoMuscular": "Piernas",
+    "equipamiento": "Mancuernas",
+    "dificultad": "Intermedio",
+    "imagenUrl": "/imagenes/zancadas.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=QOVaHkwWsRo",
+    "instrucciones": "1. Paso largo.\n2. Rodilla trasera casi al suelo.\n3. Torso recto."
+  },
+  {
+    "nombre": "Peso Muerto Rumano",
+    "grupoMuscular": "Piernas",
+    "equipamiento": "Barra",
+    "dificultad": "Intermedio",
+    "imagenUrl": "/imagenes/peso_muerto_rumano.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=JCXUYuzwNrM",
+    "instrucciones": "1. Piernas semi-rígidas.\n2. Cadera atrás.\n3. Siente los isquios."
+  },
+  {
+    "nombre": "Extensión Cuádriceps",
+    "grupoMuscular": "Piernas",
+    "equipamiento": "Máquina",
+    "dificultad": "Principiante",
+    "imagenUrl": "/imagenes/extension_cuadriceps.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=YyvSfVjQeL0",
+    "instrucciones": "1. Extiende rodillas.\n2. Aguanta 1 seg arriba.\n3. Baja lento."
+  },
+  {
+    "nombre": "Gemelos en Máquina",
+    "grupoMuscular": "Piernas",
+    "equipamiento": "Máquina",
+    "dificultad": "Principiante",
+    "imagenUrl": "/imagenes/gemelos_maquina.jpg",
+    "videoUrl": "https://www.youtube.com/watch?v=ymG9Pdrk_5c",
+    "instrucciones": "1. Talones abajo del todo.\n2. Sube explosivo.\n3. Rango completo."
+  },
+  {
+    "nombre": "Press Militar",
+    "grupoMuscular": "Hombros",
+    "equipamiento": "Barra",
+    "dificultad": "Intermedio",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Press+Militar",
+    "videoUrl": "https://www.youtube.com/watch?v=2yjwXTZQDDI",
+    "instrucciones": "1. Empuja sobre la cabeza.\n2. Abdomen fuerte.\n3. No arquees espalda."
+  },
+  {
+    "nombre": "Elevaciones Laterales",
+    "grupoMuscular": "Hombros",
+    "equipamiento": "Mancuernas",
+    "dificultad": "Principiante",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Elev+Laterales",
+    "videoUrl": "https://www.youtube.com/watch?v=3VcKaXpzqRo",
+    "instrucciones": "1. Codos semi-flexionados.\n2. Sube hasta la horizontal.\n3. Baja despacio."
+  },
+  {
+    "nombre": "Pájaros",
+    "grupoMuscular": "Hombros",
+    "equipamiento": "Mancuernas",
+    "dificultad": "Intermedio",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Pajaros",
+    "videoUrl": "https://www.youtube.com/watch?v=ttvfGg9d76c",
+    "instrucciones": "1. Inclínate.\n2. Abre brazos atrás.\n3. Enfoca hombro posterior."
+  },
+  {
+    "nombre": "Press Arnold",
+    "grupoMuscular": "Hombros",
+    "equipamiento": "Mancuernas",
+    "dificultad": "Intermedio",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Press+Arnold",
+    "videoUrl": "https://www.youtube.com/watch?v=jeG_bC-a0ls",
+    "instrucciones": "1. Empieza palmas hacia ti.\n2. Gira al subir.\n3. Termina palmas al frente."
+  },
+  {
+    "nombre": "Curl con Barra",
+    "grupoMuscular": "Brazos",
+    "equipamiento": "Barra",
+    "dificultad": "Principiante",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Curl+Barra",
+    "videoUrl": "https://www.youtube.com/watch?v=kwG2ipFRgfo",
+    "instrucciones": "1. Codos pegados.\n2. Sube sin balanceo.\n3. Aprieta bíceps."
+  },
+  {
+    "nombre": "Curl Martillo",
+    "grupoMuscular": "Brazos",
+    "equipamiento": "Mancuernas",
+    "dificultad": "Principiante",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Curl+Martillo",
+    "videoUrl": "https://www.youtube.com/watch?v=zC3nLlEvin4",
+    "instrucciones": "1. Palmas se miran.\n2. Sube la mancuerna.\n3. Ideal para antebrazo."
+  },
+  {
+    "nombre": "Tríceps Polea",
+    "grupoMuscular": "Brazos",
+    "equipamiento": "Polea",
+    "dificultad": "Principiante",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Triceps+Polea",
+    "videoUrl": "https://www.youtube.com/watch?v=vB5OHsJ3ECE",
+    "instrucciones": "1. Codos fijos.\n2. Extiende abajo.\n3. Separa cuerda."
+  },
+  {
+    "nombre": "Press Francés",
+    "grupoMuscular": "Brazos",
+    "equipamiento": "Barra Z",
+    "dificultad": "Intermedio",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Press+Frances",
+    "videoUrl": "https://www.youtube.com/watch?v=-rh3MHnwlqw",
+    "instrucciones": "1. Barra a la frente.\n2. Codos cerrados.\n3. Extiende arriba."
+  },
+  {
+    "nombre": "Fondos en Banco",
+    "grupoMuscular": "Brazos",
+    "equipamiento": "Peso corporal",
+    "dificultad": "Principiante",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Fondos+Banco",
+    "videoUrl": "https://www.youtube.com/watch?v=0326dy_-CzM",
+    "instrucciones": "1. Manos en banco.\n2. Baja cadera.\n3. Empuja con brazos."
+  },
+  {
+    "nombre": "Plancha",
+    "grupoMuscular": "Abdominales",
+    "equipamiento": "Peso corporal",
+    "dificultad": "Principiante",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Plancha",
+    "videoUrl": "https://www.youtube.com/watch?v=ASdvN_XEl_c",
+    "instrucciones": "1. Codos al suelo.\n2. Cuerpo recto.\n3. Aguanta isométrico."
+  },
+  {
+    "nombre": "Crunch",
+    "grupoMuscular": "Abdominales",
+    "equipamiento": "Peso corporal",
+    "dificultad": "Principiante",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Crunch",
+    "videoUrl": "https://www.youtube.com/watch?v=Xyd_fa5zoEU",
+    "instrucciones": "1. Eleva hombros.\n2. Contrae abdomen.\n3. No tires del cuello."
+  },
+  {
+    "nombre": "Elevación Piernas",
+    "grupoMuscular": "Abdominales",
+    "equipamiento": "Peso corporal",
+    "dificultad": "Intermedio",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Elev+Piernas",
+    "videoUrl": "https://www.youtube.com/watch?v=JB2oyawG9y0",
+    "instrucciones": "1. Cuelga o túmbate.\n2. Sube piernas.\n3. Controla la bajada."
+  },
+  {
+    "nombre": "Burpees",
+    "grupoMuscular": "Cardio",
+    "equipamiento": "Peso corporal",
+    "dificultad": "Avanzado",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Burpees",
+    "videoUrl": "https://www.youtube.com/watch?v=TU8QYXL8gEQ",
+    "instrucciones": "1. Flexión.\n2. Recoge.\n3. Salto."
+  },
+  {
+    "nombre": "Mountain Climbers",
+    "grupoMuscular": "Cardio",
+    "equipamiento": "Peso corporal",
+    "dificultad": "Intermedio",
+    "imagenUrl": "https://placehold.co/600x400/111/FACC15?text=Climbers",
+    "videoUrl": "https://www.youtube.com/watch?v=nmwgirgXLIg",
+    "instrucciones": "1. Posición plancha.\n2. Rodillas al pecho.\n3. Rápido."
+  }
+]

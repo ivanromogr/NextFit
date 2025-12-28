@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function GymButton({ children, onClick, loading, fullWidth, disabled }) {
+export default function GymButton({ children, onClick, loading, fullWidth, disabled, type = 'button' }) {
   
   // Estilos base
   const baseStyle = {
@@ -47,6 +47,7 @@ export default function GymButton({ children, onClick, loading, fullWidth, disab
 
   return (
     <button 
+      type={type}
       onClick={!disabled ? onClick : undefined} // Aseguramos que no haga click
       disabled={disabled || loading}
       style={currentStyle}

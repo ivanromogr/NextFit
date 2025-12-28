@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom"; // 👈 IMPORTANTE: Usamos Link
-import { loginForm } from "../../api/endpoints";
+import { Link, useNavigate } from "react-router-dom"; // Importamos useNavigate
+import { loginForm } from "../../api/endpoints"; 
 import GymButton from "../../components/ui/GymButton";
 import GymInput from "../../components/ui/GymInput";
 import { Mail, Lock, Zap, ArrowRight } from "lucide-react";
 
 export default function Login() {
+  const navigate = useNavigate(); // Hook para redirigir sin recargar la página
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -16,15 +17,47 @@ export default function Login() {
     setError("");
 
     try {
+      // 1. Llamamos al endpoint de login
       const resp = await loginForm(form);
-      if (resp.status === 200 || resp.ok) {
-         // Aquí rediriges al dashboard
-         window.location.href = "/cliente/dashboard"; // Forzamos recarga para asegurar limpieza
+
+      // 2. Verificamos si la respuesta es correcta (Status 200)
+      // Gracias al CustomSuccessHandler modificado, resp.data tendrá el ID y el ROL
+      if (resp.status === 200 && resp.data?.id) {
+         console.log("LOGIN EXITOSO:", resp.data);
+         
+         const { role, id } = resp.data;
+
+         // 3. Guardamos la sesión en LocalStorage (CRÍTICO para evitar bucles)
+         localStorage.setItem("registration_userId", id); // Backup por compatibilidad
+         
+         if (role === "cliente") {
+             localStorage.setItem("clienteId", id);
+         } else if (role === "entrenador") {
+             localStorage.setItem("entrenadorId", id);
+         }
+
+         // 4. Redirección manual según el rol
+         if (role === "entrenador") {
+            navigate("/entrenador/dashboard");
+         } else {
+            navigate("/cliente/dashboard");
+         }
+
       } else {
-         setError("Credenciales incorrectas");
+         // Si llegamos aquí, el servidor respondió 200 pero sin datos válidos
+         setError("Error: No se pudieron obtener los datos del usuario.");
       }
+
     } catch (err) {
-      setError("No se pudo conectar con el servidor");
+      console.error("Error en Login:", err);
+      // Capturamos el error. Si el backend redirige a error (404/401), mostramos credenciales incorrectas.
+      // Esto pasa porque tu SecurityConfig original redirige si falla la password.
+      const status = err.response?.status;
+      if (status === 401 || status === 404) {
+          setError("Credenciales incorrectas.");
+      } else {
+          setError("Error de conexión con el servidor.");
+      }
     } finally {
       setLoading(false);
     }
@@ -36,7 +69,8 @@ export default function Login() {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center', 
-      padding: '20px'
+      padding: '20px',
+      backgroundColor: '#000' // Fondo negro simple
     }}>
       
       {/* TARJETA DE LOGIN */}
@@ -44,15 +78,13 @@ export default function Login() {
         width: '100%',
         maxWidth: '400px',
         padding: '40px 30px',
-        // Fondo semi-transparente estilo cristal
         backgroundColor: 'rgba(20, 20, 20, 0.95)', 
         border: '1px solid rgba(255, 255, 255, 0.1)',
         borderRadius: '20px',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)', // Sombra profunda
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
         backdropFilter: 'blur(10px)'
       }}>
 
-        {/* LOGO SUPERIOR */}
         <div style={{ textAlign: 'center', marginBottom: '35px' }}>
           <div style={{ 
             display: 'inline-flex', padding: '12px', 
@@ -62,11 +94,7 @@ export default function Login() {
              <Zap size={32} color="#FACC15" fill="#FACC15" />
           </div>
           
-          {/* Título en BLANCO para que se lea */}
-          <h1 style={{ 
-            margin: 0, fontSize: '2.8rem', lineHeight: 1, 
-            color: 'white', fontStyle: 'italic' 
-          }}>
+          <h1 style={{ margin: 0, fontSize: '2.8rem', lineHeight: 1, color: 'white', fontStyle: 'italic' }}>
             NETX<span style={{ color: '#FACC15' }}>FIT</span>
           </h1>
           <p style={{ color: '#737373', fontSize: '0.9rem', marginTop: '8px', fontWeight: '500' }}>
@@ -109,25 +137,17 @@ export default function Login() {
           </div>
         </form>
 
-        {/* ENLACE DE REGISTRO ARREGLADO */}
         <div style={{ marginTop: '30px', textAlign: 'center', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <p style={{ color: '#a3a3a3', fontSize: '0.9rem', marginBottom: '10px' }}>
             ¿Aún no eres miembro?
           </p>
           
-          {/* Usamos el componente Link para evitar errores de navegación */}
           <Link 
             to="/registro" 
             style={{ 
-              textDecoration: 'none',
-              color: '#FACC15', 
-              fontWeight: 'bold', 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              textTransform: 'uppercase',
-              fontSize: '0.9rem',
-              letterSpacing: '1px'
+              textDecoration: 'none', color: '#FACC15', fontWeight: 'bold', 
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              textTransform: 'uppercase', fontSize: '0.9rem', letterSpacing: '1px'
             }}
           >
             Crear cuenta gratis <ArrowRight size={16} />

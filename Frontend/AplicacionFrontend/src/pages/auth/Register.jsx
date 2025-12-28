@@ -28,21 +28,25 @@ export default function Register() {
     try {
       const resp = await registerUser(form);
 
-      if (resp.ok) {
-        const dataBackend = await resp.json();
-        let idUsuario = (form.rol === "CLIENTE") ? dataBackend.clienteId : dataBackend.entrenadorId;
+      if (resp && resp.status >= 200 && resp.status < 300) {
+        const dataBackend = resp.data || {};
+        // Intentamos distintas keys por compatibilidad (clienteId / idCliente / id)
+        let idUsuario = (form.rol === "CLIENTE") ? (dataBackend.clienteId || dataBackend.idCliente || dataBackend.id) : (dataBackend.entrenadorId || dataBackend.idEntrenador || dataBackend.id);
 
         if (idUsuario) localStorage.setItem("registration_userId", idUsuario);
 
         const ruta = form.rol === "CLIENTE" ? "/cliente/onboarding" : "/entrenador/onboarding";
         navigate(ruta, { state: { userId: idUsuario } });
-
-      } else {
-        const text = await resp.text();
-        setError(text || "Error al registrar usuario.");
       }
+
     } catch (err) {
-      setError("Error de conexión.");
+      if (err.response) {
+        // Errores enviados por el servidor (ej: 409 -> usuario existe)
+        const data = err.response.data;
+        setError(typeof data === "string" ? data : (data?.message || "Error al registrar usuario."));
+      } else {
+        setError("Error de conexión.");
+      }
     } finally {
       setLoading(false);
     }
