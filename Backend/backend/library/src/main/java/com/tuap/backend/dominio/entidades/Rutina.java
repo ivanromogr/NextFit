@@ -2,7 +2,7 @@ package com.tuap.backend.dominio.entidades;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID; // Importante para inicializar la lista
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -32,20 +32,32 @@ public class Rutina {
     private String descripcion;
     private String nivel;
 
+    // ✅ Campo correcto
+    @Column(nullable = false)
+    private String creador; 
+
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;
 
-    // ✅ CAMBIO IMPORTANTE: orphanRemoval = true y FetchType.EAGER
-    // orphanRemoval: Si quitas un ejercicio de la lista, se borra de la BD.
-    // FetchType.EAGER: Carga los ejercicios inmediatamente para evitar errores de sesión.
     @OneToMany(mappedBy = "rutina", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonIgnoreProperties("rutina")
-    private List<DetalleRutina> detalles = new ArrayList<>(); // Inicializamos la lista para evitar NullPointer
+    private List<DetalleRutina> detalles = new ArrayList<>();
 
     public Rutina() {}
 
-    // Getters y Setters
+    // --- GETTERS Y SETTERS ---
+
+    // 🚨🚨🚨 ¡ESTOS DOS SON LOS QUE HACEN QUE EL FRONTEND RECIBA EL DATO! 🚨🚨🚨
+    public String getCreador() { 
+        return creador; 
+    }
+
+    public void setCreador(String creador) { 
+        this.creador = creador; 
+    }
+    // -------------------------------------------------------------------------
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -66,7 +78,6 @@ public class Rutina {
 
     public List<DetalleRutina> getDetalles() { return detalles; }
     public void setDetalles(List<DetalleRutina> detalles) { 
-        // Truco para que orphanRemoval funcione correctamente al reemplazar la lista
         if (this.detalles == null) {
             this.detalles = detalles;
         } else {

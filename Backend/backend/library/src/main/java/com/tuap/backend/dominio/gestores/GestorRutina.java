@@ -27,27 +27,49 @@ public class GestorRutina {
     @Autowired private DetalleRutinaDAO detalleRutinaDAO;
     @Autowired private ClienteDAO clienteDAO;
     @Autowired private EjercicioDAO ejercicioDAO;
+    @Autowired private com.tuap.backend.persistencia.EntrenadorDAO entrenadorDAO;
 
     // =========================================================
     //  PARTE 1: CREADOR MANUAL
     // =========================================================
     @Transactional
     public Rutina crearRutinaManual(RutinaRequest request) {
-        // 1. Buscamos cliente
         Cliente cliente = clienteDAO.findById(request.getIdCliente())
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
-        // 2. Creamos rutina
         Rutina rutina = new Rutina();
         rutina.setCliente(cliente);
         rutina.setNombre(request.getNombre());
         rutina.setDescripcion(request.getDescripcion());
         rutina.setObjetivo(request.getObjetivo());
         rutina.setNivel("Personalizado");
+        
+        // ✅ NUEVO: Guardamos quién crea la rutina
+        // Prioridad:
+        // 1) Si el request especifica 'creador', respetarlo (compatibilidad hacia atrás)
+        // 2) Si no, determinamos quién está autenticado: ENTRENADOR o CLIENTE
+        // 3) Si no hay auth, por defecto CLIENTE
+        if (request.getCreador() != null && !request.getCreador().isBlank()) {
+            rutina.setCreador(request.getCreador());
+        } else {
+            // Intentamos inferir desde el SecurityContext (usuario actualmente autenticado)
+            try {
+                var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                if (auth != null && auth.getName() != null) {
+                    String email = auth.getName();
+                    boolean esEntrenador = entrenadorDAO.findByEmail(email).isPresent();
+                    rutina.setCreador(esEntrenador ? "ENTRENADOR" : "CLIENTE");
+                } else {
+                    rutina.setCreador("CLIENTE");
+                }
+            } catch (Exception ex) {
+                // En caso de entornos de test o sin seguridad, dejamos CLIENTE por defecto
+                rutina.setCreador("CLIENTE");
+            }
+        }
 
         rutina = rutinaDAO.save(rutina);
 
-        // 3. Añadimos los ejercicios que seleccionó el usuario manualmente
         List<DetalleRutina> detalles = new ArrayList<>();
         for (RutinaRequest.EjercicioDetalleDTO d : request.getEjercicios()) {
             Ejercicio ej = ejercicioDAO.findById(d.getIdEjercicio())
@@ -72,16 +94,15 @@ public class GestorRutina {
     // =========================================================
     @Transactional
     public Rutina generarRutinaAutomatica(GenerarRutinaRequest request) {
-        
         Cliente cliente = clienteDAO.findById(request.getIdCliente())
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
-        // Cabecera de la Rutina
         Rutina rutina = new Rutina();
         rutina.setCliente(cliente);
         rutina.setNombre("Plan " + formatearTexto(request.getObjetivo()));
         rutina.setObjetivo(request.getObjetivo());
         rutina.setNivel(request.getNivel());
+        rutina.setCreador("IA"); // Marcamos que fue la IA
         
         String desc = String.format("Plan de %s. Frecuencia: %d días/semana. Nivel: %s.", 
                 formatearTexto(request.getObjetivo()), request.getDiasPorSemana(), formatearTexto(request.getNivel()));
@@ -91,86 +112,86 @@ public class GestorRutina {
 
         List<DetalleRutina> detalles = new ArrayList<>();
 
-        // --- LÓGICA DE PLANTILLAS PROFESIONALES ---
         if ("FUERZA".equalsIgnoreCase(request.getObjetivo())) {
-            // Fuerza
-            agregarEjercicioSiExiste(detalles, rutina, "Sentadilla", 5, 5, 9, "Descanso 3-5 min. Prioridad técnica.");
-            agregarEjercicioSiExiste(detalles, rutina, "Press de Banca", 5, 5, 9, "Barra al pecho, pausa 1 seg.");
-            agregarEjercicioSiExiste(detalles, rutina, "Peso Muerto", 3, 5, 9, "Agarre mixto si es necesario.");
-            agregarEjercicioSiExiste(detalles, rutina, "Press Militar", 4, 6, 8, "Bloquea los codos arriba.");
-            agregarEjercicioSiExiste(detalles, rutina, "Dominadas", 4, 6, 9, "Lastradas si llegas a 10 reps.");
-
+            agregarEjercicioSiExiste(detalles, rutina, "Sentadilla", 5, 5, 9, "Descanso 3-5 min.");
+            agregarEjercicioSiExiste(detalles, rutina, "Press de Banca", 5, 5, 9, "Barra al pecho.");
+            agregarEjercicioSiExiste(detalles, rutina, "Peso Muerto", 3, 5, 9, "Agarre mixto.");
+            agregarEjercicioSiExiste(detalles, rutina, "Press Militar", 4, 6, 8, "Bloquea arriba.");
+            agregarEjercicioSiExiste(detalles, rutina, "Dominadas", 4, 6, 9, "Lastradas.");
         } else if ("GANAR_MASA".equalsIgnoreCase(request.getObjetivo())) {
-            // Hipertrofia
-            agregarEjercicioSiExiste(detalles, rutina, "Press Inclinado", 4, 10, 8, "Enfoca pecho superior.");
-            agregarEjercicioSiExiste(detalles, rutina, "Sentadilla", 4, 10, 8, "Profunda y controlada.");
-            agregarEjercicioSiExiste(detalles, rutina, "Remo con Barra", 4, 12, 8, "Torso a 45 grados.");
+            agregarEjercicioSiExiste(detalles, rutina, "Press Inclinado", 4, 10, 8, "Pecho superior.");
+            agregarEjercicioSiExiste(detalles, rutina, "Sentadilla", 4, 10, 8, "Profunda.");
+            agregarEjercicioSiExiste(detalles, rutina, "Remo con Barra", 4, 12, 8, "Torso 45º.");
             agregarEjercicioSiExiste(detalles, rutina, "Zancadas", 3, 12, 7, "Pasos por pierna.");
-            agregarEjercicioSiExiste(detalles, rutina, "Elevaciones Laterales", 4, 15, 9, "Controla la bajada.");
+            agregarEjercicioSiExiste(detalles, rutina, "Elevaciones Laterales", 4, 15, 9, "Controla bajada.");
             agregarEjercicioSiExiste(detalles, rutina, "Curl con Barra", 3, 12, 9, "Sin balanceo.");
             agregarEjercicioSiExiste(detalles, rutina, "Press Francés", 3, 12, 8, "Codos cerrados.");
-
         } else {
-            // Definición
             agregarEjercicioSiExiste(detalles, rutina, "Burpees", 4, 15, 8, "Ritmo constante.");
-            agregarEjercicioSiExiste(detalles, rutina, "Sentadilla", 4, 20, 7, "Carga ligera, enfoque velocidad.");
-            agregarEjercicioSiExiste(detalles, rutina, "Mountain Climbers", 4, 30, 8, "30 segundos activos.");
-            agregarEjercicioSiExiste(detalles, rutina, "Flexiones", 4, 15, 9, "Al fallo técnico.");
-            agregarEjercicioSiExiste(detalles, rutina, "Plancha", 4, 1, 9, "Aguanta 60 segundos.");
+            agregarEjercicioSiExiste(detalles, rutina, "Sentadilla", 4, 20, 7, "Velocidad.");
+            agregarEjercicioSiExiste(detalles, rutina, "Mountain Climbers", 4, 30, 8, "30 segs.");
+            agregarEjercicioSiExiste(detalles, rutina, "Flexiones", 4, 15, 9, "Al fallo.");
+            agregarEjercicioSiExiste(detalles, rutina, "Plancha", 4, 1, 9, "60 segs.");
         }
 
         if (detalles.isEmpty()) {
-            throw new RuntimeException("Error: No se encontraron ejercicios compatibles en la base de datos.");
+            throw new RuntimeException("Error: No se encontraron ejercicios compatibles.");
         }
         
         detalleRutinaDAO.saveAll(detalles);
         rutina.setDetalles(detalles);
-
         return rutina;
     }
 
     // =========================================================
-    //  PARTE 3: ACTUALIZAR RUTINA (NUEVO - PARA EL EDITOR)
+    //  PARTE 3: ACTUALIZAR RUTINA
     // =========================================================
     @Transactional
     public Rutina actualizarRutina(UUID id, Rutina rutinaDatosNuevos) {
-        // 1. Buscar la rutina existente en la base de datos
         Rutina rutinaExistente = rutinaDAO.findById(id)
                 .orElseThrow(() -> new RuntimeException("Rutina no encontrada con ID: " + id));
 
-        // 2. Actualizar datos básicos
         rutinaExistente.setNombre(rutinaDatosNuevos.getNombre());
         rutinaExistente.setObjetivo(rutinaDatosNuevos.getObjetivo());
         rutinaExistente.setNivel(rutinaDatosNuevos.getNivel());
+        
+        // No actualizamos 'creador' para que no se pierda quién la hizo originalmente
 
-        // 3. ACTUALIZAR EJERCICIOS (Magia de orphanRemoval)
-        // Limpiamos la lista actual. Gracias a orphanRemoval=true en la entidad Rutina,
-        // Hibernate borrará de la BD los ejercicios que ya no estén en la lista.
         rutinaExistente.getDetalles().clear();
 
-        // 4. Añadimos los nuevos ejercicios que vienen del Frontend
         if (rutinaDatosNuevos.getDetalles() != null) {
             for (DetalleRutina detalle : rutinaDatosNuevos.getDetalles()) {
-                // Importante: Vinculamos el detalle con la rutina padre
                 detalle.setRutina(rutinaExistente); 
                 rutinaExistente.getDetalles().add(detalle);
             }
         }
-
-        // 5. Guardar cambios
         return rutinaDAO.save(rutinaExistente);
     }
 
     // =========================================================
-    //  UTILIDADES COMUNES
+    //  UTILIDADES
     // =========================================================
+    
+    // Obtener TODAS (Para el cliente)
     public List<Rutina> obtenerRutinasDeCliente(UUID idCliente) {
         return rutinaDAO.findByClienteId(idCliente);
     }
 
+    // ✅ NUEVO: Obtener SOLO las creadas por ENTRENADOR (Para el panel del entrenador)
+    public List<Rutina> obtenerRutinasDeEntrenadorParaCliente(UUID idCliente) {
+        return rutinaDAO.findByClienteIdAndCreador(idCliente, "ENTRENADOR");
+    }
+
+    public void eliminarRutina(UUID id) {
+        if (rutinaDAO.existsById(id)) {
+            rutinaDAO.deleteById(id);
+        } else {
+            throw new RuntimeException("La rutina no existe");
+        }
+    }
+
     private void agregarEjercicioSiExiste(List<DetalleRutina> lista, Rutina rutina, String nombreClave, int series, int reps, int rpe, String notas) {
         Optional<Ejercicio> optEjercicio = ejercicioDAO.findFirstByNombreContainingIgnoreCase(nombreClave);
-        
         if (optEjercicio.isPresent()) {
             DetalleRutina d = new DetalleRutina();
             d.setRutina(rutina);
@@ -181,16 +202,6 @@ public class GestorRutina {
             d.setRpe(rpe);
             d.setNotas(notas);
             lista.add(d);
-        } else {
-            System.err.println("⚠️ Aviso: La IA intentó usar '" + nombreClave + "' pero no existe en la BD.");
-        }
-    }
-
-    public void eliminarRutina(UUID id) {
-        if (rutinaDAO.existsById(id)) {
-            rutinaDAO.deleteById(id); // Gracias al CascadeType.ALL, borra también los ejercicios
-        } else {
-            throw new RuntimeException("La rutina no existe");
         }
     }
 

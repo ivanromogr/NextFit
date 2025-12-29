@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping; // ✅ Importante
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,7 +28,6 @@ public class RutinaController {
     @Autowired
     private GestorRutina gestorRutina;
 
-    // --- CARRIL 1: MANUAL ---
     @PostMapping("/manual")
     public ResponseEntity<?> crearRutinaManual(@RequestBody RutinaRequest request) {
         try {
@@ -39,7 +38,6 @@ public class RutinaController {
         }
     }
 
-    // --- CARRIL 2: AUTOMÁTICO IA ---
     @PostMapping("/auto")
     public ResponseEntity<?> generarRutinaAutomatica(@RequestBody GenerarRutinaRequest request) {
         try {
@@ -51,8 +49,6 @@ public class RutinaController {
         }
     }
 
-    // --- ✅ NUEVO: ACTUALIZAR RUTINA (PUT) ---
-    // Este endpoint recibe los cambios del editor y los guarda
     @PutMapping("/{id}")
     public ResponseEntity<?> actualizarRutina(@PathVariable UUID id, @RequestBody Rutina rutinaDatos) {
         try {
@@ -76,9 +72,15 @@ public class RutinaController {
         }
     }
 
-    // Listar Rutinas
+    // CLIENTE: Ve TODAS (Suyas + Entrenador)
     @GetMapping("/cliente/{idCliente}")
     public List<Rutina> obtenerRutinas(@PathVariable UUID idCliente) {
         return gestorRutina.obtenerRutinasDeCliente(idCliente);
+    }
+
+    // ✅ ENTRENADOR: Solo ve las que él ha creado para el cliente
+    @GetMapping("/cliente/{idCliente}/entrenador")
+    public List<Rutina> obtenerRutinasEntrenador(@PathVariable UUID idCliente) {
+        return gestorRutina.obtenerRutinasDeEntrenadorParaCliente(idCliente);
     }
 }

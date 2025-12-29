@@ -2,27 +2,21 @@ import axios from "axios";
 
 // --- 1. CONFIGURACIÓN AXIOS ---
 export const api = axios.create({
-  baseURL: "http://localhost:8080", // Tu puerto de Spring Boot
-  withCredentials: true,            // IMPORTANTE: Permite mantener la sesión (cookies)
+  baseURL: "http://localhost:8080", 
+  withCredentials: true,            
   headers: {
     "Content-Type": "application/json",
   },
 });
 
 // --- 2. AUTENTICACIÓN (LOGIN) ---
-// Configurado para 'formLogin' de Spring Security (x-www-form-urlencoded)
 export const loginForm = async ({ email, password }) => {
-  
-  // Usamos URLSearchParams para simular un formulario HTML clásico.
-  // Esto es OBLIGATORIO porque tu SecurityConfig usa .formLogin()
   const params = new URLSearchParams();
-  params.append("username", email);    // Spring Security busca 'username' por defecto
+  params.append("username", email);    
   params.append("password", password); 
   
-  // Enviamos también 'email' por si tu lógica personalizada lo busca así
   if (!params.has("email")) params.append("email", email);
 
-  // Enviamos la petición sobrescribiendo el tipo de contenido
   return api.post("/login", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded" 
@@ -59,21 +53,17 @@ export const obtenerEjercicios = async () => {
   return response.data;
 };
 
-// IA: Generar rutina automática
 export const generarRutinaAuto = async (payload) => {
   const response = await api.post("/api/rutinas/auto", payload);
   return response.data;
 };
 
-// Manual: Guardar rutina diseñada a mano
 export const guardarRutinaManual = async (payload) => {
   const response = await api.post("/api/rutinas/manual", payload);
   return response.data;
 };
 
-// Actualizar una rutina existente
 export const actualizarRutina = async (idRutina, payload) => {
-  // Payload debe tener: { nombre, objetivo, nivel, detalles: [...] }
   const response = await api.put(`/api/rutinas/${idRutina}`, payload);
   return response.data;
 };
@@ -82,14 +72,36 @@ export const eliminarRutina = async (id) => {
   return api.delete(`/api/rutinas/${id}`);
 };
 
-// Obtener las rutinas de un cliente (CON PROTECCIÓN ANTI-ERRORES)
+// CLIENTE: Obtener TODAS las rutinas (Propias + Entrenador)
 export const obtenerRutinasCliente = async (idCliente) => {
   try {
       const response = await api.get(`/api/rutinas/cliente/${idCliente}`);
-      // Si la respuesta es válida y es un array, la devolvemos. Si no, devolvemos array vacío.
       return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
       console.error("Error obteniendo rutinas:", error);
-      return []; // En caso de error de red, devolvemos lista vacía para que no se rompa la UI
+      return []; 
   }
+};
+
+// ✅ NUEVO: ENTRENADOR: Obtener SOLO las creadas por él para ese cliente
+// Esta función es necesaria para la vista "RutinasDeCliente.jsx" del entrenador
+export const obtenerRutinasAsignadasPorEntrenador = async (idCliente) => {
+  try {
+      const response = await api.get(`/api/rutinas/cliente/${idCliente}/entrenador`);
+      return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+      console.error("Error obteniendo rutinas entrenador:", error);
+      return []; 
+  }
+};
+
+// --- 7. ZONA ENTRENADOR ---
+
+export const obtenerClientesEntrenador = async (idEntrenador) => {
+  const response = await api.get(`/api/entrenador/${idEntrenador}/clientes`);
+  return response.data;
+};
+
+export const ficharCliente = async (idEntrenador, emailCliente) => {
+  return api.post(`/api/entrenador/${idEntrenador}/fichar`, { email: emailCliente });
 };

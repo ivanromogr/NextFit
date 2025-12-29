@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { obtenerEjercicios, guardarRutinaManual } from '../../api/endpoints';
 
 // --- ICONOS SVG ---
 const IconSearch = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
@@ -11,8 +12,8 @@ const IconClose = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="no
 const IconVideo = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>;
 const IconSave = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>;
 const IconImageOff = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>;
+const IconChevronLeft = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>;
 
-// --- COMPONENTE REUTILIZABLE ---
 const CrearEntrenamiento = ({ 
     clienteIdProp = null, 
     rutinaInicial = null, 
@@ -104,15 +105,43 @@ const CrearEntrenamiento = ({
         setInfoEjercicio(datosNormalizados);
     };
 
+    // --- 🚨 LÓGICA DE CANCELAR / VOLVER (CORREGIDA) ---
+    const handleVolver = () => {
+        // 1. CAPTURAMOS EL MODO ANTES DE LIMPIAR
+        // Si 'clienteObjetivoId' existe, significa que venimos de un flujo de Entrenador (el entrenador "apuntó" a un cliente).
+        // Si NO existe, es que el cliente entró directamente.
+        const modoEntrenador = localStorage.getItem("clienteObjetivoId");
+
+        // 2. Limpiamos la variable
+        localStorage.removeItem("clienteObjetivoId");
+
+        // 3. Redirigimos según el modo detectado
+        if (modoEntrenador) {
+            navigate("/entrenador/dashboard");
+        } else {
+            navigate("/cliente/dashboard");
+        }
+    };
+
+    // --- LÓGICA DE GUARDAR ---
     const guardar = async () => {
         if (!nombreRutina.trim()) return alert("Por favor, asigna un nombre a la rutina.");
         if (ejerciciosSeleccionados.length === 0) return alert("La rutina debe tener al menos un ejercicio.");
         
-        const idCliente = clienteIdProp || localStorage.getItem("clienteId");
-        if (!idCliente) return alert("Error de sesión: No se identificó al usuario.");
+        // Capturamos esto ANTES de usarlo o borrarlo para saber quién lo creó
+        const esModoEntrenador = localStorage.getItem("clienteObjetivoId");
+
+        const idCliente = clienteIdProp || esModoEntrenador || localStorage.getItem("clienteId");
+        
+        if (!idCliente) return alert("Error de sesión: No se identificó al usuario destino.");
+
+        // Detectar etiqueta correcta para el backend
+        const entrenadorId = localStorage.getItem("entrenadorId");
+        const etiquetaCreador = (entrenadorId && entrenadorId !== "null" && entrenadorId !== "undefined") ? "ENTRENADOR" : "CLIENTE"; 
 
         const payload = {
             idCliente,
+            creador: etiquetaCreador,
             nombre: nombreRutina,
             descripcion: descripcionRutina,
             objetivo: "Personalizado",
@@ -135,20 +164,25 @@ const CrearEntrenamiento = ({
 
             if (res.ok) {
                 alert(rutinaInicial ? "✅ Rutina actualizada correctamente" : "✅ Nueva rutina creada");
+                
+                // Limpieza
+                localStorage.removeItem("clienteObjetivoId");
+
                 if (onGuardarSuccess) {
                     onGuardarSuccess(); 
                 } else {
-                    navigate("/cliente/dashboard");
+                    // Usamos la misma lógica que el botón volver:
+                    // Si estábamos en modo entrenador (había un cliente objetivo), volvemos al entrenador.
+                    // Si no, al cliente.
+                    if (esModoEntrenador) {
+                        navigate("/entrenador/dashboard");
+                    } else {
+                        navigate("/cliente/dashboard");
+                    }
                 }
             } else {
                 const txt = await res.text();
-                if (txt.includes("Cliente no encontrado")) {
-                    alert("Sesión caducada. Por favor, inicia sesión de nuevo.");
-                    localStorage.removeItem("clienteId");
-                    navigate("/auth/login");
-                } else {
-                    alert("Error al guardar: " + txt);
-                }
+                alert("Error al guardar: " + txt);
             }
         } catch (e) { alert("Error de conexión con el servidor."); }
     };
@@ -172,6 +206,8 @@ const CrearEntrenamiento = ({
     // --- ESTILOS "CYBERPUNK / HIGH-TECH" ---
     const styles = {
         container: { display: 'flex', height: '100vh', width: '100%', background: 'radial-gradient(circle at 10% 20%, #1a1a1a 0%, #000 90%)', color: 'white', fontFamily: 'sans-serif', overflow: 'hidden' },
+        
+        // --- SIDEBAR ---
         sidebar: { width: '380px', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.05)', background: 'rgba(20,20,20,0.6)', backdropFilter: 'blur(10px)' },
         sidebarHeader: { padding: '25px', borderBottom: '1px solid rgba(255,255,255,0.05)' },
         
@@ -180,6 +216,7 @@ const CrearEntrenamiento = ({
         searchIconPos: { position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' },
         selectInput: { width: '100%', padding: '12px', borderRadius: '12px', background: '#0a0a0a', color: '#888', border: '1px solid #333', outline: 'none', cursor: 'pointer' },
         
+        // --- MAIN ---
         main: { flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' },
         header: { padding: '30px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.05)' },
         titleInput: { background: 'transparent', fontSize: '2.5rem', fontFamily: 'Teko, sans-serif', textTransform: 'uppercase', color: 'white', border: 'none', borderBottom: '2px solid transparent', width: '100%', outline: 'none', transition: 'border 0.3s' },
@@ -187,9 +224,8 @@ const CrearEntrenamiento = ({
         cardArea: { flex: 1, overflowY: 'auto', padding: '40px', scrollBehavior: 'smooth' },
         card: { background: 'linear-gradient(145deg, #141414, #0f0f0f)', borderRadius: '16px', border: '1px solid #222', display: 'flex', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', transition: 'transform 0.2s', position: 'relative', minHeight: '220px' },
         
-        // --- SECCIÓN DE IMAGEN FIJA (CON BOTÓN INFO ARREGLADO) ---
+        // --- SECCIÓN IMAGEN ---
         imageSection: { width: '220px', height: '220px', position: 'relative', borderRight: '1px solid #222', background: '#000', flexShrink: 0 },
-        // CAMBIO AQUI: Fondo oscuro para que el icono se vea siempre
         infoBtn: { position: 'absolute', top: '10px', left: '10px', background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', transition: 'all 0.2s', zIndex: 20 },
         indexBadge: { position: 'absolute', bottom: '10px', right: '10px', background: '#FACC15', color: 'black', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', boxShadow: '0 2px 10px rgba(250,204,21,0.3)' },
 
@@ -203,6 +239,8 @@ const CrearEntrenamiento = ({
         controlLabel: { fontSize: '0.65rem', color: '#666', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '1px' },
         controlInput: { width: '100%', background: 'transparent', border: 'none', color: 'white', textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold', outline: 'none', fontFamily: 'monospace' },
 
+        // --- BOTONES ---
+        backBtn: { background: 'transparent', border: '1px solid #333', color: '#888', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', marginRight:'20px', transition:'all 0.2s' },
         saveBtn: { background: '#FACC15', color: 'black', border: 'none', padding: '12px 30px', borderRadius: '50px', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 0 15px rgba(250, 204, 21, 0.4)', transition: 'all 0.3s' },
 
         modalOverlay: { position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.9)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(5px)' },
@@ -211,6 +249,14 @@ const CrearEntrenamiento = ({
 
     return (
         <div style={styles.container}>
+            
+            {/* TRUCO CSS: QUITAR FLECHAS INPUT NUMBER */}
+            <style>{`
+                input[type=number]::-webkit-outer-spin-button,
+                input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+                input[type=number] { -moz-appearance: textfield; }
+            `}</style>
+
             {/* SIDEBAR */}
             <div style={styles.sidebar}>
                 <div style={styles.sidebarHeader}>
@@ -259,6 +305,15 @@ const CrearEntrenamiento = ({
             {/* MAIN PANEL */}
             <div style={styles.main}>
                 <div style={styles.header}>
+                    <button 
+                        style={styles.backBtn} 
+                        onClick={handleVolver}
+                        onMouseEnter={e => e.currentTarget.style.color = 'white'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#888'}
+                    >
+                        <IconChevronLeft /> CANCELAR
+                    </button>
+
                     <div style={{flex: 1, marginRight: '40px'}}>
                         <input 
                             style={styles.titleInput} 

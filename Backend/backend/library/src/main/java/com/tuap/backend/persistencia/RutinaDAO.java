@@ -1,5 +1,6 @@
 package com.tuap.backend.persistencia;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,4 +12,5 @@ import com.tuap.backend.dominio.entidades.Rutina;
 public interface RutinaDAO extends JpaRepository<Rutina, UUID> {
     // Buscar rutinas por cliente (filtrado real para evitar mostrar rutinas de otros usuarios)
     java.util.List<Rutina> findByClienteId(java.util.UUID clienteId);
+    List<Rutina> findByClienteIdAndCreador(UUID clienteId, String creador);
 }

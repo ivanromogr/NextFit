@@ -3,17 +3,19 @@ package com.tuap.backend.dominio.entidades;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties; // Importante para evitar bucles JSON
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 
 @Entity
-
-
 public class Cliente {
 
     @Id
@@ -60,7 +62,13 @@ public class Cliente {
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
     private List<Chat> chats;
 
+    // ✅ NUEVA RELACIÓN: Entrenador (Puede ser null si no tiene entrenador asignado)
+    @ManyToOne
+    @JoinColumn(name = "entrenador_id")
+    @JsonIgnoreProperties("clientes") // Evita bucle infinito al pedir datos del entrenador
+    private Entrenador entrenador;
 
+    
     // Constructores
     public Cliente() {}
 
@@ -79,118 +87,50 @@ public class Cliente {
         this.genero = genero;
     }
 
-    public UUID getId() {
-        return id;
-    }
+    // Getters y Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
 
-    public String getNombre() {
-        return nombre;
-    }
+    public String getApellido() { return apellido; }
+    public void setApellido(String apellido) { this.apellido = apellido; }
 
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public String getApellido() {
-        return apellido;
-    }
+    public String getContraseña() { return contraseña; }
+    public void setContraseña(String contraseña) { this.contraseña = contraseña; }
 
-    public void setApellido(String apellido) {
-        this.apellido = apellido;
-    }
+    public String getRol() { return rol; }
+    public void setRol(String rol) { this.rol = rol; }
 
-    public String getEmail() {
-        return email;
-    }
+    public double getPeso() { return peso; }
+    public void setPeso(double peso) { this.peso = peso; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    public int getAltura() { return altura; }
+    public void setAltura(int altura) { this.altura = altura; }
 
-    public String getContraseña() {
-        return contraseña;
-    }
+    public int getEdad() { return edad; }
+    public void setEdad(int edad) { this.edad = edad; }
 
-    public void setContraseña(String contraseña) {
-        this.contraseña = contraseña;
-    }
+    public String getObjetivo() { return objetivo; }
+    public void setObjetivo(String objetivo) { this.objetivo = objetivo; }
 
-    public String getRol() {
-        return rol;
-    }
+    public String getFotoPerfil() { return fotoPerfil; }
+    public void setFotoPerfil(String fotoPerfil) { this.fotoPerfil = fotoPerfil; }
 
-    public void setRol(String rol) {
-        this.rol = rol;
-    }
+    public List<Progreso> getProgresos() { return progresos; }
+    public void setProgresos(List<Progreso> progresos) { this.progresos = progresos; }
 
-    public double getPeso() {
-        return peso;
-    }
+    public List<Chat> getChats() { return chats; }
+    public void setChats(List<Chat> chats) { this.chats = chats; }
 
-    public void setPeso(double peso) {
-        this.peso = peso;
-    }
+    public String getGenero() { return genero; }
+    public void setGenero(String genero) { this.genero = genero; }
 
-    public int getAltura() {
-        return altura;
-    }
-
-    public void setAltura(int altura) {
-        this.altura = altura;
-    }
-
-    public int getEdad() {
-        return edad;
-    }
-
-    public void setEdad(int edad) {
-        this.edad = edad;
-    }
-
-    public String getObjetivo() {
-        return objetivo;
-    }
-
-    public void setObjetivo(String objetivo) {
-        this.objetivo = objetivo;
-    }
-
-    public String getFotoPerfil() {
-        return fotoPerfil;
-    }
-
-    public void setFotoPerfil(String fotoPerfil) {
-        this.fotoPerfil = fotoPerfil;
-    }
-
-    public List<Progreso> getProgresos() {
-        return progresos;
-    }
-
-    public void setProgresos(List<Progreso> progresos) {
-        this.progresos = progresos;
-    }
-
-    public List<Chat> getChats() {
-        return chats;
-    }
-
-    public void setChats(List<Chat> chats) {
-        this.chats = chats;
-    }
-
-    public String getGenero() {
-        return genero;
-    }
-
-    public void setGenero(String genero) {
-        this.genero = genero;
-    }
-
-    
+    // ✅ Getters/Setters para Entrenador
+    public Entrenador getEntrenador() { return entrenador; }
+    public void setEntrenador(Entrenador entrenador) { this.entrenador = entrenador; }
 }
-   

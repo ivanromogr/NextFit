@@ -4,14 +4,15 @@ import java.util.List;
 import java.util.UUID;
 
 public class RutinaRequest {
-    
+
     private UUID idCliente;
     private String nombre;
-    private String objetivo;
     private String descripcion;
-    private String nivel; // Nuevo campo
+    private String objetivo;
     
-    // Lista de ejercicios seleccionados
+    // ✅ 1. CAMPO NUEVO PARA SOLUCIONAR EL PRIMER ERROR
+    private String creador; 
+
     private List<EjercicioDetalleDTO> ejercicios;
 
     // Getters y Setters
@@ -21,28 +22,30 @@ public class RutinaRequest {
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
 
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+
     public String getObjetivo() { return objetivo; }
     public void setObjetivo(String objetivo) { this.objetivo = objetivo; }
 
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-    
-    public String getNivel() { return nivel; }
-    public void setNivel(String nivel) { this.nivel = nivel; }
+    // ✅ Getter y Setter para Creador (¡ESTO ES LO QUE FALTABA!)
+    public String getCreador() { return creador; }
+    public void setCreador(String creador) { this.creador = creador; }
 
     public List<EjercicioDetalleDTO> getEjercicios() { return ejercicios; }
     public void setEjercicios(List<EjercicioDetalleDTO> ejercicios) { this.ejercicios = ejercicios; }
 
-    // --- CLASE INTERNA ACTUALIZADA ---
+    // Clase interna para los detalles del ejercicio
     public static class EjercicioDetalleDTO {
         private UUID idEjercicio;
         private int series;
         private int repeticiones;
-        private String notas;
         
-        // Campos nuevos para el modo manual
-        private Float peso;
-        private Integer rpe;
+        // ✅ 2. CAMBIO DE TIPO: De double a Float para solucionar el segundo error
+        private Float peso; 
+        
+        private int rpe;
+        private String notas;
 
         public UUID getIdEjercicio() { return idEjercicio; }
         public void setIdEjercicio(UUID idEjercicio) { this.idEjercicio = idEjercicio; }
@@ -52,14 +55,15 @@ public class RutinaRequest {
 
         public int getRepeticiones() { return repeticiones; }
         public void setRepeticiones(int repeticiones) { this.repeticiones = repeticiones; }
-        
-        public String getNotas() { return notas; }
-        public void setNotas(String notas) { this.notas = notas; }
-        
+
+        // Getters y Setters de Peso como Float
         public Float getPeso() { return peso; }
         public void setPeso(Float peso) { this.peso = peso; }
-        
-        public Integer getRpe() { return rpe; }
-        public void setRpe(Integer rpe) { this.rpe = rpe; }
+
+        public int getRpe() { return rpe; }
+        public void setRpe(int rpe) { this.rpe = rpe; }
+
+        public String getNotas() { return notas; }
+        public void setNotas(String notas) { this.notas = notas; }
     }
 }

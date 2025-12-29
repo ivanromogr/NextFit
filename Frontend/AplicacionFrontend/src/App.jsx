@@ -1,18 +1,22 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-// --- IMPORTACIONES DE PÁGINAS ---
+// --- IMPORTACIONES DE AUTENTICACIÓN Y ONBOARDING ---
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ClienteOnboarding from "./pages/cliente/ClienteOnboarding";
 import EntrenadorOnboarding from "./pages/auth/EntrenadorOnboarding";
-import ExplorarEjercicios from "./pages/cliente/ExplorarEjercicios";
+
+// --- ZONA CLIENTE ---
 import MenuCliente from "./pages/cliente/MenuCliente";
+import ExplorarEjercicios from "./pages/cliente/ExplorarEjercicios";
+import CrearEntrenamiento from "./components/functional/CrearEntrenamiento"; // Creador Manual
+import GenerarRutinaIA from "./pages/cliente/GenerarRutinaIA";
+import SesionEntrenamiento from "./pages/cliente/SesionEntrenamiento";
 import EditarRutina from "./pages/cliente/EditarRutina";
 
-// --- IMPORTACIÓN DE FUNCIONALIDADES ---
-import CrearEntrenamiento from "./components/functional/CrearEntrenamiento";
-import GenerarRutinaIA from "./pages/cliente/GenerarRutinaIA";
-import SesionEntrenamiento from "./pages/cliente/SesionEntrenamiento"; // <--- ✅ IMPORTANTE: Nuevo import
+// --- ZONA ENTRENADOR ---
+import MenuEntrenador from "./pages/entrenador/MenuEntrenador";
+import RutinasDeCliente from "./pages/entrenador/RutinasDeCliente"; // ✅ NUEVA RUTA IMPORTANTE
 
 function App() {
   return (
@@ -27,37 +31,31 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/registro" element={<Register />} />
 
-        {/* --- ONBOARDING (Configuración inicial) --- */}
+        {/* --- ONBOARDING --- */}
         <Route path="/cliente/onboarding" element={<ClienteOnboarding />} />
         <Route path="/entrenador/onboarding" element={<EntrenadorOnboarding />} />
 
-        {/* --- ZONA CLIENTE --- */}
-        
-        {/* Dashboard Principal */}
+        {/* --- RUTAS DEL CLIENTE --- */}
         <Route path="/cliente/dashboard" element={<MenuCliente />} />
-        
-        {/* Buscador de Ejercicios */}
         <Route path="/cliente/ejercicios" element={<ExplorarEjercicios />} />
         <Route path="/cliente/explorar" element={<ExplorarEjercicios />} />
-
-        {/* Creador Manual de Rutinas */}
+        
+        {/* Crear y Editar */}
         <Route path="/cliente/crear-rutina" element={<CrearEntrenamiento />} />
-
-        {/* Generador Automático IA */}
         <Route path="/cliente/generar-ia" element={<GenerarRutinaIA />} />
-
-        {/* ✅ RUTA NUEVA: Ejecución de Sesión (Cronómetro) */}
-        {/* El :rutinaId es dinámico para saber qué rutina cargar */}
+        <Route path="/cliente/editar-rutina/:rutinaId" element={<EditarRutina />} />
+        
+        {/* Entrenar */}
         <Route path="/cliente/sesion/:rutinaId" element={<SesionEntrenamiento />} />
 
+        {/* --- RUTAS DEL ENTRENADOR --- */}
+        <Route path="/entrenador/dashboard" element={<MenuEntrenador />} />
+        
+        {/* ✅ ESTA ES LA RUTA NUEVA PARA GESTIONAR ATLETAS */}
+        <Route path="/entrenador/cliente/:clienteId/rutinas" element={<RutinasDeCliente />} />
 
-        {/* --- ZONA ENTRENADOR --- */}
-        <Route path="/entrenador/dashboard" element={<h1>Panel Entrenador (En construcción)</h1>} />
-
-        {/* Ruta 404 por si ponen algo raro */}
+        {/* Ruta 404 (Cualquier cosa desconocida lleva al login) */}
         <Route path="*" element={<Navigate to="/auth/login" replace />} />
-
-        <Route path="/cliente/editar-rutina/:rutinaId" element={<EditarRutina />} />
 
       </Routes>
     </BrowserRouter>
