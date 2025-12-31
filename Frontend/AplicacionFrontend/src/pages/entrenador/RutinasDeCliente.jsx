@@ -78,7 +78,7 @@ export default function RutinasDeCliente() {
         <div style={styles.header}>
             <div>
                 <button style={styles.backBtn} onClick={() => navigate('/entrenador/dashboard')}>
-                    <ChevronLeft size={20}/> VOLVER AL PANEL
+                    <ChevronLeft size={20}/> VOLVER AL MENÚ PRINCIPAL
                 </button>
                 <div style={{marginTop:'20px', display:'flex', alignItems:'center', gap:'15px'}}>
                     <div style={{background:'#27272a', padding:'15px', borderRadius:'50%'}}>

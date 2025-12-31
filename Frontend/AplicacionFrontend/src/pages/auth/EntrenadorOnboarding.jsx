@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { completarOnboardingEntrenador } from "../../api/endpoints";
 
-// Iconos Pro de Lucide (Añadidos Utensils y Swords)
+// Iconos Pro de Lucide
 import { 
   ChevronLeft, Check, Dumbbell, User, Briefcase, 
   GraduationCap, Laptop, Users, FileText, Zap, 
-  Activity, HeartPulse, Trophy, Utensils, Swords 
+  Activity, HeartPulse, Trophy, Utensils, Swords,
+  ChevronDown 
 } from "lucide-react";
 
 // Componentes UI Personalizados
@@ -16,6 +17,22 @@ import GymDateInput from "../../components/ui/GymDateInput";
 import GymSelectionCard from "../../components/ui/GymSelectionCard";
 
 const STEPS = ["identidad", "especialidad", "experiencia", "detalles"];
+
+// LISTA DE TITULACIONES PARA EL DROPDOWN
+const LISTA_TITULACIONES = [
+  "Grado en CAFD / INEF",
+  "Doble Grado CAFD + Fisioterapia",
+  "Técnico Superior (TSAF / TAFAD)",
+  "Máster en Alto Rendimiento",
+  "Certificación NSCA (CPT / CSCS)",
+  "Certificación ACSM / NASM / ACE",
+  "Entrenador Nacional (FEFF / IFBB)",
+  "CrossFit Level 1 / 2",
+  "Instructor de Yoga / Pilates",
+  "Estudiante de CAFD",
+  "Experiencia Propia / Autodidacta",
+  "Otro"
+];
 
 export default function EntrenadorOnboarding() {
   const navigate = useNavigate();
@@ -29,20 +46,22 @@ export default function EntrenadorOnboarding() {
   const [data, setData] = useState({
     genero: "",
     fechaNacimiento: "",
-    especialidad: [], // Array para selección múltiple
+    especialidad: [], 
     aniosExperiencia: "",
     modalidadTrabajo: "",
     formacion: "",
     descripcionPerfil: ""
   });
 
-  // Recuperar ID
+  // Recuperar ID del registro previo
   useEffect(() => {
     let idRecuperado = location.state?.userId || localStorage.getItem("registration_userId");
     if (idRecuperado) {
         setUserId(idRecuperado);
     } else {
         console.warn("⚠️ Modo desarrollo: Sin ID de usuario.");
+        // Si no hay ID, podrías redirigir al registro para evitar errores
+        // navigate("/auth/register");
     }
   }, [location, navigate]);
 
@@ -67,7 +86,6 @@ export default function EntrenadorOnboarding() {
         return data.genero !== "" && data.fechaNacimiento !== "";
       
       case "especialidad":
-        // Validamos que haya seleccionado AL MENOS UNA
         return data.especialidad.length > 0;
 
       case "experiencia":
@@ -75,7 +93,7 @@ export default function EntrenadorOnboarding() {
         return !isNaN(anios) && anios >= 0 && data.modalidadTrabajo !== "";
 
       case "detalles":
-        return data.formacion.trim().length > 2 && data.descripcionPerfil.trim().length > 15;
+        return data.formacion !== "" && data.descripcionPerfil.trim().length > 15;
 
       default: return false;
     }
@@ -106,7 +124,6 @@ export default function EntrenadorOnboarding() {
         idEntrenador: userId,
         genero: data.genero,
         edad: edadCalculada,
-        // Convertimos el array a string separado por comas
         especialidad: data.especialidad.join(", "), 
         aniosExperiencia: parseInt(data.aniosExperiencia),
         modalidadTrabajo: data.modalidadTrabajo,
@@ -118,7 +135,14 @@ export default function EntrenadorOnboarding() {
       console.log("Enviando perfil entrenador:", payload);
       await completarOnboardingEntrenador(payload);
       
+      // ✅ FIX CRÍTICO: GUARDAMOS TU IDENTIDAD ANTES DE SALIR
+      // Esto evita que el Dashboard te expulse al login
+      localStorage.setItem("entrenadorId", userId);
+      
+      // Limpiamos datos temporales del registro
       localStorage.removeItem("registration_userId");
+      
+      // Redirigimos al panel principal
       navigate("/entrenador/dashboard"); 
 
     } catch (error) {
@@ -129,7 +153,7 @@ export default function EntrenadorOnboarding() {
     }
   };
 
-  // LISTA COMPLETA DE ESPECIALIDADES (10 OPCIONES)
+  // LISTA DE ESPECIALIDADES VISUALES
   const especialidades = [
     { id: "Musculación", icon: Dumbbell },
     { id: "CrossFit", icon: Zap },
@@ -139,8 +163,8 @@ export default function EntrenadorOnboarding() {
     { id: "Yoga / Pilates", icon: User },
     { id: "Powerlifting", icon: Dumbbell },
     { id: "Rehabilitación", icon: HeartPulse },
-    { id: "Nutrición", icon: Utensils },       // NUEVO
-    { id: "Boxeo / Artes Marciales", icon: Swords }, // NUEVO
+    { id: "Nutrición", icon: Utensils },
+    { id: "Boxeo / Artes Marciales", icon: Swords },
   ];
 
   return (
@@ -218,7 +242,7 @@ export default function EntrenadorOnboarding() {
           </div>
         )}
 
-        {/* PASO 2: ESPECIALIDAD (SELECCIÓN MÚLTIPLE) */}
+        {/* PASO 2: ESPECIALIDAD */}
         {currentStep === "especialidad" && (
           <div className="animate-enter">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -255,10 +279,69 @@ export default function EntrenadorOnboarding() {
           </div>
         )}
 
-        {/* PASO 4: DETALLES */}
+        {/* PASO 4: DETALLES (CON DROPDOWN Y BIO) */}
         {currentStep === "detalles" && (
           <div className="animate-enter">
-            <GymInput label="Titulación / Formación" placeholder="Ej: Grado CAFD + Máster Alto Rendimiento" icon={GraduationCap} value={data.formacion} onChange={(e) => setData({ ...data, formacion: e.target.value })} />
+            
+            {/* DROPDOWN DE TITULACIÓN */}
+            <div style={{ marginBottom: '30px' }}>
+                <label style={{ 
+                    display: 'block', 
+                    color: '#a1a1aa', 
+                    fontSize: '0.85rem', 
+                    fontWeight: '700', 
+                    marginBottom: '10px', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '1px' 
+                }}>
+                    Titulación / Formación
+                </label>
+
+                <div style={{ position: 'relative', width: '100%' }}>
+                    <GraduationCap 
+                        size={20} 
+                        color="#FACC15" 
+                        style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }} 
+                    />
+
+                    <select
+                        value={data.formacion}
+                        onChange={(e) => setData({...data, formacion: e.target.value})}
+                        style={{
+                            width: '100%',
+                            padding: '16px',
+                            paddingLeft: '48px',
+                            paddingRight: '48px',
+                            backgroundColor: '#18181b',
+                            border: '1px solid #3f3f46',
+                            borderRadius: '12px',
+                            color: data.formacion ? 'white' : '#71717a',
+                            fontSize: '1rem',
+                            outline: 'none',
+                            appearance: 'none',
+                            cursor: 'pointer',
+                            fontFamily: 'Inter, sans-serif',
+                            transition: 'border-color 0.3s'
+                        }}
+                        onFocus={(e) => { e.target.style.borderColor = '#FACC15'; e.target.style.backgroundColor = '#000'; }}
+                        onBlur={(e) => { e.target.style.borderColor = '#3f3f46'; e.target.style.backgroundColor = '#18181b'; }}
+                    >
+                        <option value="" disabled>Selecciona tu formación...</option>
+                        {LISTA_TITULACIONES.map((titulo, index) => (
+                            <option key={index} value={titulo} style={{ background: '#121214', color: 'white' }}>
+                                {titulo}
+                            </option>
+                        ))}
+                    </select>
+
+                    <ChevronDown 
+                        size={20} 
+                        color="#FACC15" 
+                        style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} 
+                    />
+                </div>
+            </div>
+
             <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', marginBottom: '10px', color: '#a1a1aa', fontSize: '0.85rem', fontWeight: '700', letterSpacing: '1px' }}>
                     BIOGRAFÍA / SOBRE TI

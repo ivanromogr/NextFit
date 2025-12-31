@@ -14,6 +14,10 @@ const IconSave = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="non
 const IconImageOff = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>;
 const IconChevronLeft = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>;
 
+// --- NUEVOS ICONOS PARA TOAST ---
+const IconCheckCircle = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+const IconAlertCircle = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
+
 const CrearEntrenamiento = ({ 
     clienteIdProp = null, 
     rutinaInicial = null, 
@@ -31,6 +35,9 @@ const CrearEntrenamiento = ({
     const [descripcionRutina, setDescripcionRutina] = useState("");
     const [ejerciciosSeleccionados, setEjerciciosSeleccionados] = useState([]);
     const [infoEjercicio, setInfoEjercicio] = useState(null);
+
+    // ✅ NUEVO: Estado para Notificación Toast
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     // --- 1. MODO EDICIÓN ---
     useEffect(() => {
@@ -75,6 +82,12 @@ const CrearEntrenamiento = ({
         return () => clearTimeout(timeout);
     }, [busqueda, filtroMusculo]);
 
+    // --- HELPER PARA TOAST ---
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
+    };
+
     // --- LÓGICA UI ---
     const agregarEjercicio = (ej) => {
         setEjerciciosSeleccionados([...ejerciciosSeleccionados, {
@@ -105,17 +118,11 @@ const CrearEntrenamiento = ({
         setInfoEjercicio(datosNormalizados);
     };
 
-    // --- 🚨 LÓGICA DE CANCELAR / VOLVER (CORREGIDA) ---
+    // --- LÓGICA DE CANCELAR / VOLVER ---
     const handleVolver = () => {
-        // 1. CAPTURAMOS EL MODO ANTES DE LIMPIAR
-        // Si 'clienteObjetivoId' existe, significa que venimos de un flujo de Entrenador (el entrenador "apuntó" a un cliente).
-        // Si NO existe, es que el cliente entró directamente.
         const modoEntrenador = localStorage.getItem("clienteObjetivoId");
-
-        // 2. Limpiamos la variable
         localStorage.removeItem("clienteObjetivoId");
 
-        // 3. Redirigimos según el modo detectado
         if (modoEntrenador) {
             navigate("/entrenador/dashboard");
         } else {
@@ -123,21 +130,26 @@ const CrearEntrenamiento = ({
         }
     };
 
-    // --- LÓGICA DE GUARDAR ---
+    // --- LÓGICA DE GUARDAR (CON TOAST) ---
     const guardar = async () => {
-        if (!nombreRutina.trim()) return alert("Por favor, asigna un nombre a la rutina.");
-        if (ejerciciosSeleccionados.length === 0) return alert("La rutina debe tener al menos un ejercicio.");
+        if (!nombreRutina.trim()) {
+            showToast("Asigna un nombre a la rutina", "error");
+            return;
+        }
+        if (ejerciciosSeleccionados.length === 0) {
+            showToast("Añade al menos un ejercicio", "error");
+            return;
+        }
         
-        // Capturamos esto ANTES de usarlo o borrarlo para saber quién lo creó
-        const esModoEntrenador = localStorage.getItem("clienteObjetivoId");
-
-        const idCliente = clienteIdProp || esModoEntrenador || localStorage.getItem("clienteId");
+        const clienteObjetivo = localStorage.getItem("clienteObjetivoId");
+        const idCliente = clienteIdProp || clienteObjetivo || localStorage.getItem("clienteId");
         
-        if (!idCliente) return alert("Error de sesión: No se identificó al usuario destino.");
+        if (!idCliente) {
+            showToast("Error de sesión: Usuario no identificado", "error");
+            return;
+        }
 
-        // Detectar etiqueta correcta para el backend
-        const entrenadorId = localStorage.getItem("entrenadorId");
-        const etiquetaCreador = (entrenadorId && entrenadorId !== "null" && entrenadorId !== "undefined") ? "ENTRENADOR" : "CLIENTE"; 
+        const etiquetaCreador = clienteObjetivo ? "ENTRENADOR" : "CLIENTE";
 
         const payload = {
             idCliente,
@@ -163,28 +175,27 @@ const CrearEntrenamiento = ({
             });
 
             if (res.ok) {
-                alert(rutinaInicial ? "✅ Rutina actualizada correctamente" : "✅ Nueva rutina creada");
+                // ✅ Notificación de Éxito
+                showToast(rutinaInicial ? "Rutina actualizada correctamente" : "Rutina creada con éxito", "success");
                 
-                // Limpieza
-                localStorage.removeItem("clienteObjetivoId");
-
-                if (onGuardarSuccess) {
-                    onGuardarSuccess(); 
-                } else {
-                    // Usamos la misma lógica que el botón volver:
-                    // Si estábamos en modo entrenador (había un cliente objetivo), volvemos al entrenador.
-                    // Si no, al cliente.
-                    if (esModoEntrenador) {
-                        navigate("/entrenador/dashboard");
+                // Esperar para ver el mensaje
+                setTimeout(() => {
+                    localStorage.removeItem("clienteObjetivoId");
+                    if (onGuardarSuccess) {
+                        onGuardarSuccess(); 
                     } else {
-                        navigate("/cliente/dashboard");
+                        if (clienteObjetivo) {
+                            navigate("/entrenador/dashboard");
+                        } else {
+                            navigate("/cliente/dashboard");
+                        }
                     }
-                }
+                }, 1500);
             } else {
                 const txt = await res.text();
-                alert("Error al guardar: " + txt);
+                showToast("Error al guardar: " + txt, "error");
             }
-        } catch (e) { alert("Error de conexión con el servidor."); }
+        } catch (e) { showToast("Error de conexión con el servidor", "error"); }
     };
 
     // --- COMPONENTE AUXILIAR PARA IMAGEN ---
@@ -207,7 +218,6 @@ const CrearEntrenamiento = ({
     const styles = {
         container: { display: 'flex', height: '100vh', width: '100%', background: 'radial-gradient(circle at 10% 20%, #1a1a1a 0%, #000 90%)', color: 'white', fontFamily: 'sans-serif', overflow: 'hidden' },
         
-        // --- SIDEBAR ---
         sidebar: { width: '380px', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.05)', background: 'rgba(20,20,20,0.6)', backdropFilter: 'blur(10px)' },
         sidebarHeader: { padding: '25px', borderBottom: '1px solid rgba(255,255,255,0.05)' },
         
@@ -216,7 +226,6 @@ const CrearEntrenamiento = ({
         searchIconPos: { position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' },
         selectInput: { width: '100%', padding: '12px', borderRadius: '12px', background: '#0a0a0a', color: '#888', border: '1px solid #333', outline: 'none', cursor: 'pointer' },
         
-        // --- MAIN ---
         main: { flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' },
         header: { padding: '30px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.05)' },
         titleInput: { background: 'transparent', fontSize: '2.5rem', fontFamily: 'Teko, sans-serif', textTransform: 'uppercase', color: 'white', border: 'none', borderBottom: '2px solid transparent', width: '100%', outline: 'none', transition: 'border 0.3s' },
@@ -224,7 +233,6 @@ const CrearEntrenamiento = ({
         cardArea: { flex: 1, overflowY: 'auto', padding: '40px', scrollBehavior: 'smooth' },
         card: { background: 'linear-gradient(145deg, #141414, #0f0f0f)', borderRadius: '16px', border: '1px solid #222', display: 'flex', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', transition: 'transform 0.2s', position: 'relative', minHeight: '220px' },
         
-        // --- SECCIÓN IMAGEN ---
         imageSection: { width: '220px', height: '220px', position: 'relative', borderRight: '1px solid #222', background: '#000', flexShrink: 0 },
         infoBtn: { position: 'absolute', top: '10px', left: '10px', background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', transition: 'all 0.2s', zIndex: 20 },
         indexBadge: { position: 'absolute', bottom: '10px', right: '10px', background: '#FACC15', color: 'black', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', boxShadow: '0 2px 10px rgba(250,204,21,0.3)' },
@@ -239,23 +247,50 @@ const CrearEntrenamiento = ({
         controlLabel: { fontSize: '0.65rem', color: '#666', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '1px' },
         controlInput: { width: '100%', background: 'transparent', border: 'none', color: 'white', textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold', outline: 'none', fontFamily: 'monospace' },
 
-        // --- BOTONES ---
         backBtn: { background: 'transparent', border: '1px solid #333', color: '#888', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', marginRight:'20px', transition:'all 0.2s' },
         saveBtn: { background: '#FACC15', color: 'black', border: 'none', padding: '12px 30px', borderRadius: '50px', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 0 15px rgba(250, 204, 21, 0.4)', transition: 'all 0.3s' },
 
         modalOverlay: { position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.9)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(5px)' },
-        modalContent: { background: '#111', width: '90%', maxWidth: '700px', borderRadius: '20px', border: '1px solid #333', boxShadow: '0 50px 100px rgba(0,0,0,0.8)', overflow: 'hidden' }
+        modalContent: { background: '#111', width: '90%', maxWidth: '700px', borderRadius: '20px', border: '1px solid #333', boxShadow: '0 50px 100px rgba(0,0,0,0.8)', overflow: 'hidden' },
+
+        // ✅ ESTILO PARA NOTIFICACIÓN (TOAST)
+        toast: {
+            position: 'fixed',
+            top: '30px',
+            left: '50%',
+            transform: toast.show ? 'translate(-50%, 0)' : 'translate(-50%, -20px)',
+            opacity: toast.show ? 1 : 0,
+            pointerEvents: toast.show ? 'auto' : 'none',
+            zIndex: 99999, // Encima de todo
+            background: '#18181b',
+            border: `1px solid ${toast.type === 'success' ? '#10B981' : '#EF4444'}`,
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: '50px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            fontWeight: '600',
+            fontSize: '0.95rem',
+            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+        }
     };
 
     return (
         <div style={styles.container}>
             
-            {/* TRUCO CSS: QUITAR FLECHAS INPUT NUMBER */}
             <style>{`
                 input[type=number]::-webkit-outer-spin-button,
                 input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
                 input[type=number] { -moz-appearance: textfield; }
             `}</style>
+
+            {/* ✅ TOAST NOTIFICACIÓN */}
+            <div style={styles.toast}>
+                {toast.type === 'success' ? <IconCheckCircle /> : <IconAlertCircle />}
+                {toast.message}
+            </div>
 
             {/* SIDEBAR */}
             <div style={styles.sidebar}>
@@ -284,8 +319,6 @@ const CrearEntrenamiento = ({
                                 <div style={{fontWeight:'bold', fontSize:'0.95rem', color: 'white'}}>{ej.nombre}</div>
                                 <div style={{fontSize:'0.7rem', color:'#666', textTransform:'uppercase', letterSpacing:'1px'}}>{ej.grupoMuscular}</div>
                             </div>
-                            
-                            {/* BOTÓN INFO EN LA BIBLIOTECA */}
                             <button 
                                 onClick={(e) => abrirInfo(e, ej, 'biblioteca')}
                                 style={{background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#aaa', marginRight: '5px'}}
@@ -295,7 +328,6 @@ const CrearEntrenamiento = ({
                             >
                                 <IconInfo />
                             </button>
-
                             <div style={{background: '#FACC15', borderRadius:'50%', padding:'4px', display:'flex', color:'black'}}><IconPlus /></div>
                         </div>
                     ))}
@@ -350,60 +382,23 @@ const CrearEntrenamiento = ({
                     ) : (
                         ejerciciosSeleccionados.map((ej, index) => (
                             <div key={ej.tempId} style={styles.card}>
-                                {/* SECCIÓN VISUAL (IZQUIERDA) - TAMAÑO FIJO */}
                                 <div style={styles.imageSection}>
-                                    {/* BOTÓN INFO SOBRE LA IMAGEN */}
-                                    <button 
-                                        style={styles.infoBtn} 
-                                        onClick={(e) => abrirInfo(e, ej, 'local')} 
-                                        title="Información técnica"
-                                        onMouseEnter={e => {e.currentTarget.style.background = '#FACC15'; e.currentTarget.style.color='black'}}
-                                        onMouseLeave={e => {e.currentTarget.style.background = 'rgba(0,0,0,0.7)'; e.currentTarget.style.color='white'}}
-                                    >
-                                        <IconInfo />
-                                    </button>
-                                    
+                                    <button style={styles.infoBtn} onClick={(e) => abrirInfo(e, ej, 'local')}><IconInfo /></button>
                                     <ImageWithFallback src={ej.imagen} style={{width:'100%', height:'100%', objectFit:'cover'}} />
                                     <div style={styles.indexBadge}>#{index + 1}</div>
                                 </div>
-
-                                {/* SECCIÓN DATOS (DERECHA) */}
                                 <div style={styles.dataSection}>
                                     <div style={styles.cardHeader}>
-                                        <div>
-                                            <div style={styles.cardSubtitle}>{ej.musculo}</div>
-                                            <h3 style={styles.cardTitle}>{ej.nombre}</h3>
-                                        </div>
+                                        <div><div style={styles.cardSubtitle}>{ej.musculo}</div><h3 style={styles.cardTitle}>{ej.nombre}</h3></div>
                                         <button onClick={() => eliminar(ej.tempId)} style={{background:'transparent', border:'none', color:'#444', cursor:'pointer', padding:'8px'}} title="Eliminar"><IconTrash /></button>
                                     </div>
-
-                                    {/* PANEL DE CONTROL DE INPUTS */}
                                     <div style={styles.controlPanel}>
-                                        <div style={styles.controlItem}>
-                                            <label style={styles.controlLabel}>Series</label>
-                                            <input type="number" style={styles.controlInput} value={ej.series} onChange={e => actualizar(ej.tempId, 'series', e.target.value)} />
-                                        </div>
-                                        <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}>
-                                            <label style={styles.controlLabel}>Reps</label>
-                                            <input type="number" style={styles.controlInput} value={ej.reps} onChange={e => actualizar(ej.tempId, 'reps', e.target.value)} />
-                                        </div>
-                                        <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}>
-                                            <label style={{...styles.controlLabel, color: '#FACC15'}}>Peso (Kg)</label>
-                                            <input type="number" style={{...styles.controlInput, color: '#FACC15'}} value={ej.peso} onChange={e => actualizar(ej.tempId, 'peso', e.target.value)} />
-                                        </div>
-                                        <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}>
-                                            <label style={{...styles.controlLabel, color: '#60A5FA'}}>RPE</label>
-                                            <input type="number" style={{...styles.controlInput, color: '#60A5FA'}} value={ej.rpe} onChange={e => actualizar(ej.tempId, 'rpe', e.target.value)} />
-                                        </div>
+                                        <div style={styles.controlItem}><label style={styles.controlLabel}>Series</label><input type="number" style={styles.controlInput} value={ej.series} onChange={e => actualizar(ej.tempId, 'series', e.target.value)} /></div>
+                                        <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}><label style={styles.controlLabel}>Reps</label><input type="number" style={styles.controlInput} value={ej.reps} onChange={e => actualizar(ej.tempId, 'reps', e.target.value)} /></div>
+                                        <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}><label style={{...styles.controlLabel, color: '#FACC15'}}>Peso (Kg)</label><input type="number" style={{...styles.controlInput, color: '#FACC15'}} value={ej.peso} onChange={e => actualizar(ej.tempId, 'peso', e.target.value)} /></div>
+                                        <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}><label style={{...styles.controlLabel, color: '#60A5FA'}}>RPE</label><input type="number" style={{...styles.controlInput, color: '#60A5FA'}} value={ej.rpe} onChange={e => actualizar(ej.tempId, 'rpe', e.target.value)} /></div>
                                     </div>
-
-                                    <input 
-                                        type="text" 
-                                        style={{width:'100%', marginTop:'15px', background:'transparent', borderBottom:'1px solid #333', borderTop:'none', borderLeft:'none', borderRight:'none', color:'#aaa', outline:'none', padding:'8px 0', fontSize:'0.9rem'}} 
-                                        placeholder="📝 Notas técnicas (ej: Descanso 90s, tempo lento...)" 
-                                        value={ej.notas} 
-                                        onChange={e => actualizar(ej.tempId, 'notas', e.target.value)} 
-                                    />
+                                    <input type="text" style={{width:'100%', marginTop:'15px', background:'transparent', borderBottom:'1px solid #333', borderTop:'none', borderLeft:'none', borderRight:'none', color:'#aaa', outline:'none', padding:'8px 0', fontSize:'0.9rem'}} placeholder="📝 Notas técnicas (ej: Descanso 90s, tempo lento...)" value={ej.notas} onChange={e => actualizar(ej.tempId, 'notas', e.target.value)} />
                                 </div>
                             </div>
                         ))
@@ -419,7 +414,6 @@ const CrearEntrenamiento = ({
                             <h3 style={{margin:0, fontFamily: 'Teko, sans-serif', fontSize: '1.8rem', textTransform: 'uppercase'}}>{infoEjercicio.nombre}</h3>
                             <button onClick={() => setInfoEjercicio(null)} style={{background:'none', border:'none', color:'#666', cursor:'pointer'}}><IconClose /></button>
                         </div>
-                        {/* AQUÍ ESTÁ EL CAMBIO CLAVE: objectFit: 'cover' para llenar el cuadro */}
                         <div style={{position: 'relative', width:'100%', height:'300px', background:'black'}}>
                             <ImageWithFallback 
                                 src={infoEjercicio.imagen} 

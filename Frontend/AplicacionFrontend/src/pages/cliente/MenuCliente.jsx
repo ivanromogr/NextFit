@@ -136,7 +136,7 @@ export default function MenuCliente() {
       <aside style={styles.sidebar}>
         <div style={styles.logo}>
             <div style={styles.logoIcon}><Dumbbell size={22} strokeWidth={3}/></div>
-            <span>NETXFIT</span>
+            <span>NEXTFIT</span>
         </div>
         <nav style={{display: 'flex', flexDirection: 'column', gap: '8px', flex: 1}}>
             <div style={styles.navItem(true)}><LayoutGrid size={20}/> Dashboard</div>

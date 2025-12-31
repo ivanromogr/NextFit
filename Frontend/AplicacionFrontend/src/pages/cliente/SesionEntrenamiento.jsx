@@ -1,320 +1,367 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { obtenerRutinasCliente } from '../../api/endpoints';
-
-// Iconos
 import { 
-    ChevronDown, Check, Plus, MoreHorizontal, Clock, Trash2, Info, X, Youtube, 
-    Activity, Dumbbell, Play, Pause, Trophy, Save 
+    ChevronLeft, Check, Clock, Save, MoreHorizontal, 
+    Plus, Info, Trash2, X, MessageSquare, Activity,
+    Trophy, Youtube 
 } from 'lucide-react';
 
-const SesionEntrenamiento = () => {
+export default function SesionEntrenamiento() {
     const { rutinaId } = useParams();
     const navigate = useNavigate();
     
+    // --- ESTADOS ---
     const [rutina, setRutina] = useState(null);
     const [loading, setLoading] = useState(true);
     
-    // --- ESTADOS DEL CRONÓMETRO ---
-    const [seconds, setSeconds] = useState(0);
-    const [isTimerRunning, setIsTimerRunning] = useState(true);
+    // Datos de la sesión
+    const [datosSesion, setDatosSesion] = useState({});
+    const [notasSesion, setNotasSesion] = useState({});
+    const [editandoNotaId, setEditandoNotaId] = useState(null);
 
-    const [progress, setProgress] = useState({});
-    
-    // Estados para Modales
+    // Modales (NUEVO)
     const [infoExercise, setInfoExercise] = useState(null);
-    const [showFinishModal, setShowFinishModal] = useState(false); // <--- NUEVO ESTADO PARA EL MODAL DE FINALIZAR
+    const [showFinishModal, setShowFinishModal] = useState(false);
+
+    // Cronómetro
+    const [tiempo, setTiempo] = useState(0);
+    const [timerActivo, setTimerActivo] = useState(true);
+    const timerRef = useRef(null);
 
     // --- CARGA DE DATOS ---
     useEffect(() => {
-        const fetchRutina = async () => {
+        const cargar = async () => {
             const clienteId = localStorage.getItem("clienteId");
-            const todas = await obtenerRutinasCliente(clienteId);
-            const encontrada = todas.find(r => r.id === rutinaId);
-            setRutina(encontrada);
-            
-            const initialProgress = {};
-            if(encontrada && encontrada.detalles) {
-                encontrada.detalles.forEach((detalle, dIndex) => {
-                    initialProgress[dIndex] = [];
-                    for(let i=0; i < detalle.series; i++) {
-                        initialProgress[dIndex].push({ 
-                            kg: detalle.peso || 0, 
-                            reps: detalle.repeticiones || 0,
-                            rpe: 8, 
-                            done: false 
-                        });
-                    }
-                });
-            }
-            setProgress(initialProgress);
-            setLoading(false);
-        };
-        fetchRutina();
-    }, [rutinaId]);
+            if (!clienteId) return navigate("/auth/login");
 
-    // --- TIMER LOGIC ---
-    useEffect(() => {
-        let interval = null;
-        if (isTimerRunning) {
-            interval = setInterval(() => setSeconds(s => s + 1), 1000);
-        } else {
-            clearInterval(interval);
-        }
-        return () => clearInterval(interval);
-    }, [isTimerRunning]);
-
-    const toggleTimer = () => setIsTimerRunning(!isTimerRunning);
-
-    const formatTime = (secs) => {
-        const h = Math.floor(secs / 3600);
-        const m = Math.floor((secs % 3600) / 60);
-        const s = secs % 60;
-        if (h > 0) return `${h}h ${m}min`;
-        return `${m}min ${s}s`; 
-    };
-
-    // --- STATS ---
-    const getStats = () => {
-        let totalSets = 0;
-        let totalVolume = 0;
-        Object.values(progress).forEach(exerciseSets => {
-            exerciseSets.forEach(set => {
-                if(set.done) {
-                    totalSets++;
-                    totalVolume += (parseFloat(set.kg) || 0) * (parseFloat(set.reps) || 0);
+            try {
+                const todas = await obtenerRutinasCliente(clienteId);
+                const actual = todas.find(r => r.id === rutinaId);
+                
+                if (actual) {
+                    setRutina(actual);
+                    inicializarSesion(actual.detalles);
+                } else {
+                    navigate("/cliente/dashboard");
                 }
-            });
+            } catch (e) { console.error(e); } finally { setLoading(false); }
+        };
+        cargar();
+    }, [rutinaId, navigate]);
+
+    const inicializarSesion = (ejercicios) => {
+        const estructura = {};
+        ejercicios.forEach(ej => {
+            estructura[ej.id] = Array(ej.series).fill(0).map(() => ({
+                peso: ej.peso || 0,
+                reps: ej.repeticiones || 0,
+                rpe: ej.rpe || 8,
+                hecho: false
+            }));
         });
-        return { totalSets, totalVolume };
-    };
-    const { totalSets, totalVolume } = getStats();
-
-    // --- HANDLERS ---
-    const handleInputChange = (exIndex, setIndex, field, value) => {
-        const newProgress = {...progress};
-        newProgress[exIndex][setIndex][field] = value;
-        setProgress(newProgress);
+        setDatosSesion(estructura);
     };
 
-    const toggleSet = (exIndex, setIndex) => {
-        const newProgress = {...progress};
-        newProgress[exIndex][setIndex].done = !newProgress[exIndex][setIndex].done;
-        setProgress(newProgress);
-    };
-
-    const addSet = (exIndex) => {
-        const newProgress = {...progress};
-        const previousSet = newProgress[exIndex][newProgress[exIndex].length - 1];
-        newProgress[exIndex].push({
-            kg: previousSet ? previousSet.kg : 0,
-            reps: previousSet ? previousSet.reps : 0,
-            rpe: previousSet ? previousSet.rpe : 8,
-            done: false
-        });
-        setProgress(newProgress);
-    };
-
-    const removeSet = (exIndex, setIndex) => {
-        const newProgress = {...progress};
-        if (newProgress[exIndex].length <= 1) {
-            // Confirmación suave si es la única (opcional)
-            // if(!window.confirm("...")) return; 
+    // --- CRONÓMETRO ---
+    useEffect(() => {
+        if (timerActivo) {
+            timerRef.current = setInterval(() => setTiempo(t => t + 1), 1000);
+        } else {
+            clearInterval(timerRef.current);
         }
-        newProgress[exIndex].splice(setIndex, 1);
-        setProgress(newProgress);
+        return () => clearInterval(timerRef.current);
+    }, [timerActivo]);
+
+    const formatoTiempo = (segundos) => {
+        const m = Math.floor(segundos / 60);
+        const s = segundos % 60;
+        return `${m}min ${s < 10 ? '0' : ''}${s}s`;
     };
 
-    // --- NUEVOS HANDLERS PARA EL FINAL ---
+    // --- LÓGICA DE SETS ---
+    const updateSet = (idEjercicio, index, campo, valor) => {
+        const newSets = [...datosSesion[idEjercicio]];
+        newSets[index][campo] = valor;
+        setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
+    };
+
+    const toggleCheck = (idEjercicio, index) => {
+        const newSets = [...datosSesion[idEjercicio]];
+        newSets[index].hecho = !newSets[index].hecho;
+        setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
+    };
+
+    const addSet = (idEjercicio) => {
+        const newSets = [...datosSesion[idEjercicio]];
+        const ultimo = newSets[newSets.length - 1] || { peso: 0, reps: 0, rpe: 8 };
+        newSets.push({ ...ultimo, hecho: false });
+        setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
+    };
+
+    const removeSet = (idEjercicio, index) => {
+        const newSets = datosSesion[idEjercicio].filter((_, i) => i !== index);
+        setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
+    };
+
+    // --- LÓGICA DE NOTAS ---
+    const guardarNotaEnEstado = (idEjercicio, texto) => {
+        setNotasSesion({ ...notasSesion, [idEjercicio]: texto });
+    };
+
+    const finalizarEdicionNota = () => setEditandoNotaId(null);
+
+    // --- LÓGICA DE FINALIZAR (CON MODAL) ---
+    const calcularVolumenTotal = () => {
+        let volumen = 0;
+        Object.values(datosSesion).forEach(sets => {
+            sets.forEach(s => { if(s.hecho) volumen += (parseFloat(s.peso)||0) * (parseFloat(s.reps)||0); });
+        });
+        return volumen;
+    };
+
     const handleTerminarClick = () => {
-        setIsTimerRunning(false); // Pausamos el tiempo al abrir el modal
+        setTimerActivo(false); // Pausamos el tiempo
         setShowFinishModal(true);
     };
 
     const confirmFinish = () => {
-        // Aquí iría la lógica para guardar en Base de Datos
-        console.log("Guardando entreno:", { duration: seconds, volume: totalVolume, sets: totalSets });
+        const payload = {
+            rutinaId,
+            duracion: tiempo,
+            ejercicios: datosSesion,
+            notas: notasSesion
+        };
+        console.log(">>> GUARDANDO EN BD:", payload);
+        // Aquí iría la llamada real a la API
         navigate("/cliente/dashboard");
     };
 
     const cancelFinish = () => {
         setShowFinishModal(false);
-        setIsTimerRunning(true); // Reanudamos el tiempo
+        setTimerActivo(true); // Reanudamos el tiempo
     };
-
-    if (loading) return <div style={{background:'#09090b', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', color:'white'}}>CARGANDO...</div>;
 
     // --- ESTILOS ---
     const styles = {
-        container: { 
-            minHeight: '100vh', 
-            background: 'radial-gradient(circle at 50% 0%, #1c1c1e 0%, #000000 100%)', 
-            color: 'white', fontFamily: 'sans-serif', paddingBottom:'100px',
-            position: 'relative'
-        },
+        page: { background: '#09090b', minHeight: '100vh', color: 'white', fontFamily: 'sans-serif', paddingBottom: '100px' },
         
-        // Header
-        stickyHeader: {
-            position: 'sticky', top: 0, zIndex: 50,
-            background: 'rgba(9, 9, 11, 0.85)', backdropFilter: 'blur(20px)',
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
-            boxShadow: '0 4px 30px rgba(0,0,0,0.5)'
-        },
-        topRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 25px' },
-        headerTitle: { fontSize: '1.1rem', fontWeight: '800', display:'flex', alignItems:'center', gap:'10px', color: 'white', textTransform: 'uppercase', letterSpacing: '1px', cursor: 'default' },
-        finishBtn: { background: 'linear-gradient(135deg, #FACC15 0%, #d4ac0d 100%)', color: 'black', border: 'none', padding: '10px 24px', borderRadius: '8px', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 0 15px rgba(250, 204, 21, 0.15)', textTransform: 'uppercase', letterSpacing: '0.5px', transition: 'all 0.2s' },
-
-        // Stats
-        statsRow: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 0.5fr', padding: '5px 25px 20px 25px', gap: '20px', alignItems: 'start' },
-        statBox: { display:'flex', flexDirection:'column', gap:'2px' },
-        statLabel: { color: '#71717a', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing:'0.5px' },
-        statValue: { fontSize: '1.5rem', fontWeight: '900', color: 'white', fontFamily: 'monospace', letterSpacing:'-1px' },
-        statValueTime: { fontSize: '1.5rem', fontWeight: '900', color: '#FACC15', fontFamily: 'monospace', letterSpacing:'-1px', cursor: 'pointer', display:'flex', alignItems:'center', gap:'8px', textShadow: '0 0 20px rgba(250, 204, 21, 0.3)' }, 
-        bodyIcon: { opacity: 0.2, display:'flex', justifyContent:'center', alignItems:'center', height:'100%' },
-
-        progressBarContainer: { height: '3px', width: '100%', background: '#27272a', position: 'absolute', bottom: 0 },
-        progressBarFill: { height: '100%', background: '#FACC15', width: `${(totalSets / (rutina.detalles.length * 3)) * 100}%`, transition: 'width 0.5s ease', boxShadow: '0 0 10px #FACC15' },
-
-        content: { maxWidth: '1000px', margin: '40px auto', padding: '0 20px' },
-
-        // Cards
-        card: { background: '#121214', border: '1px solid #27272a', borderRadius: '16px', marginBottom: '40px', overflow: 'hidden', boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)' },
-        cardHeader: { padding: '25px', background: 'linear-gradient(to bottom, #18181b, #121214)', borderBottom: '1px solid #27272a', display: 'flex', alignItems: 'center', gap: '20px' },
-        exImg: { width: '60px', height: '60px', borderRadius: '10px', background: '#27272a', objectFit: 'cover', padding:'4px', border: '1px solid #3f3f46' },
-        exName: { fontSize: '1.3rem', fontWeight: '800', color: '#FACC15', margin:0, textTransform:'uppercase' },
-        exSub: { color: '#a1a1aa', fontSize: '0.9rem', marginTop:'4px' },
-        iconBtn: { background:'rgba(255,255,255,0.05)', border:'none', width:'36px', height:'36px', borderRadius:'8px', cursor:'pointer', color:'#a1a1aa', display:'flex', alignItems:'center', justifyContent:'center', transition: 'all 0.2s' },
-
-        // Table
-        tableHeader: { display: 'grid', gridTemplateColumns: '0.5fr 1.5fr 1fr 1fr 1fr 0.5fr 0.3fr', padding: '15px 0', color: '#52525b', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', textAlign: 'center', letterSpacing: '1px', marginBottom: '5px' },
-        row: (done) => ({ display: 'grid', gridTemplateColumns: '0.5fr 1.5fr 1fr 1fr 1fr 0.5fr 0.3fr', padding: '12px 0', alignItems: 'center', textAlign: 'center', background: done ? 'rgba(250, 204, 21, 0.04)' : 'transparent', marginBottom: '4px', borderRadius: '8px', border: done ? '1px solid rgba(250, 204, 21, 0.15)' : '1px solid transparent', transition: 'all 0.3s ease' }),
-
-        input: { background: '#09090b', border: '1px solid #27272a', color: 'white', textAlign: 'center', padding: '12px', borderRadius: '8px', width: '100%', fontSize: '1.1rem', fontWeight: '700', outline: 'none', fontFamily: 'monospace', transition: 'border-color 0.2s, box-shadow 0.2s' },
-        checkBtn: (done) => ({ width: '40px', height: '40px', borderRadius: '10px', border: 'none', background: done ? '#FACC15' : '#27272a', color: done ? 'black' : '#52525b', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)', margin: '0 auto', transform: done ? 'scale(1.05)' : 'scale(1)', boxShadow: done ? '0 0 15px rgba(250, 204, 21, 0.4)' : 'none' }),
-        trashBtn: { background: 'transparent', border: 'none', color: '#3f3f46', cursor: 'pointer', display: 'flex', justifyContent: 'center', transition: 'color 0.2s' },
-        addBtn: { width: '100%', padding: '18px', background: 'transparent', border: 'none', borderTop:'1px solid #27272a', color: '#a1a1aa', fontWeight: '700', marginTop: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem', textTransform:'uppercase', letterSpacing:'1px', transition: 'all 0.2s' },
-
-        // --- ESTILOS DEL MODAL GENERAL ---
-        modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+        topBar: { position: 'sticky', top: 0, background: '#09090b', zIndex: 50, borderBottom: '1px solid #222', padding: '15px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+        headerTitle: { fontSize: '1.2rem', fontWeight: '900', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '15px' },
         
-        // --- ESTILOS ESPECÍFICOS MODAL FINALIZAR ---
+        statsBar: { display: 'flex', justifyContent:'space-between', padding: '20px 40px', background:'#0c0c0e' },
+        statItem: { display: 'flex', flexDirection: 'column' },
+        statLabel: { fontSize: '0.65rem', color: '#71717a', fontWeight: 'bold', marginBottom: '4px', textTransform:'uppercase', letterSpacing:'1px' },
+        statValueYellow: { fontSize: '1.4rem', fontWeight: 'bold', color: '#FACC15', display:'flex', alignItems:'center', gap:'5px' },
+        statValue: { fontSize: '1.4rem', fontWeight: 'bold', color: '#fff' },
+        timerUnderline: { height:'2px', width:'100%', background:'#FACC15', marginTop:'10px' },
+
+        card: { background: '#121214', borderRadius: '12px', border: '1px solid #27272a', margin: '30px 40px', overflow: 'hidden' },
+        cardHeader: { padding: '25px', borderBottom: '1px solid #222', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
+        
+        // Notas
+        noteWrapper: { marginTop: '8px' },
+        notePlaceholder: { color: '#71717a', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontStyle: 'italic', transition: 'color 0.2s' },
+        noteDisplay: { color: '#ccc', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background:'rgba(255,255,255,0.05)', padding:'8px 12px', borderRadius:'6px', width:'fit-content' },
+        noteInput: { width: '100%', background: '#09090b', border: '1px solid #333', color: 'white', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', resize: 'none', minHeight:'60px', fontFamily:'sans-serif' },
+        noteActions: { display: 'flex', gap: '10px', marginTop: '8px' },
+        btnSaveNote: { background: '#FACC15', color: 'black', border: 'none', padding: '6px 14px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize:'0.75rem' },
+        
+        exTitle: { fontSize: '1.4rem', fontWeight: '900', textTransform: 'uppercase', color: '#FACC15', marginBottom: '5px' },
+        imgBox: { width:'50px', height:'50px', background:'#fff', borderRadius:'8px', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid #333' },
+
+        tableHeader: { display: 'grid', gridTemplateColumns: '0.5fr 1fr 1fr 1fr 1fr 0.5fr 0.5fr', padding: '12px 20px', background: '#18181b', color: '#52525b', fontSize: '0.65rem', fontWeight: '900', letterSpacing:'1px', textAlign: 'center', textTransform:'uppercase' },
+        tableRow: (hecho) => ({ display: 'grid', gridTemplateColumns: '0.5fr 1fr 1fr 1fr 1fr 0.5fr 0.5fr', padding: '15px 20px', borderBottom: '1px solid #1f1f22', alignItems: 'center', background: hecho ? 'rgba(250, 204, 21, 0.05)' : 'transparent', transition:'background 0.2s' }),
+        input: { width: '100%', background: '#09090b', border: '1px solid #27272a', color: 'white', padding: '10px', borderRadius: '6px', textAlign: 'center', fontWeight: 'bold', outline: 'none', fontSize:'1rem' },
+        
+        checkBtn: (hecho) => ({ width: '40px', height: '40px', borderRadius: '8px', background: hecho ? '#FACC15' : '#27272a', border: 'none', color: hecho ? 'black' : '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition:'all 0.2s' }),
+        addSetBtn: { width: '100%', padding: '18px', background: 'transparent', border: 'none', color: '#aaa', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.8rem', borderTop: '1px solid #222', textTransform:'uppercase', letterSpacing:'1px' },
+        finishBtn: { background: '#FACC15', color: 'black', border: 'none', padding: '10px 24px', borderRadius: '6px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing:'0.5px' },
+        iconBtn: { background:'rgba(255,255,255,0.1)', border:'none', color:'#aaa', width:'32px', height:'32px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' },
+
+        // --- ESTILOS MODALES ---
+        modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+        
+        // Modal Finalizar
         finishModalCard: { background: '#121212', borderRadius: '30px', width: '90%', maxWidth: '450px', padding: '40px', textAlign: 'center', border: '1px solid #27272a', boxShadow: '0 25px 80px rgba(0,0,0,0.9)' },
         finishTitle: { fontSize: '2rem', fontWeight: '900', color: 'white', margin: '20px 0 10px 0', textTransform: 'uppercase' },
         finishSub: { color: '#a1a1aa', fontSize: '1rem', marginBottom: '30px' },
-        
         statsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '35px', background: '#18181b', padding: '20px', borderRadius: '16px', border: '1px solid #27272a' },
-        statItem: { display: 'flex', flexDirection: 'column' },
         statItemLabel: { fontSize: '0.7rem', color: '#71717a', fontWeight: '700', textTransform: 'uppercase' },
         statItemValue: { fontSize: '1.2rem', color: '#FACC15', fontWeight: '900', marginTop: '5px' },
-
-        modalActions: { display: 'flex', gap: '15px' },
-        btnCancel: { flex: 1, background: 'transparent', border: '1px solid #3f3f46', color: 'white', padding: '15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
-        btnConfirm: { flex: 1, background: '#FACC15', border: 'none', color: 'black', padding: '15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 0 20px rgba(250, 204, 21, 0.2)' },
-
-        // --- ESTILOS MODAL INFO ---
+        
+        // Modal Info
         infoModalCard: { background: '#121212', borderRadius: '24px', width: '90%', maxWidth: '550px', padding: '40px', position: 'relative', border: '1px solid #333', boxShadow: '0 25px 60px rgba(0,0,0,0.8)' },
         modalTag: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(250, 204, 21, 0.1)', color: '#FACC15', padding: '6px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '15px', letterSpacing: '1px' },
         infoTitle: { fontSize: '2rem', fontWeight: '900', color: 'white', marginBottom: '20px', lineHeight: 1, textTransform: 'uppercase' },
         infoText: { color: '#a1a1aa', fontSize: '1rem', lineHeight: 1.7, marginBottom: '30px' },
-        closeBtn: { position: 'absolute', top: '25px', right: '25px', background: '#1f1f22', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', transition: 'background 0.2s' },
-        ytBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', background: '#CC0000', color: 'white', textDecoration: 'none', padding: '16px', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', width: '100%', textTransform: 'uppercase', letterSpacing: '0.5px', boxShadow: '0 4px 15px rgba(204, 0, 0, 0.3)', transition: 'transform 0.2s' }
+        closeBtn: { position: 'absolute', top: '25px', right: '25px', background: '#1f1f22', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' },
+        ytBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', background: '#CC0000', color: 'white', textDecoration: 'none', padding: '16px', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', width: '100%', textTransform: 'uppercase', letterSpacing: '0.5px', boxShadow: '0 4px 15px rgba(204, 0, 0, 0.3)' },
+
+        modalActions: { display: 'flex', gap: '15px' },
+        btnCancel: { flex: 1, background: 'transparent', border: '1px solid #3f3f46', color: 'white', padding: '15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
+        btnConfirm: { flex: 1, background: '#FACC15', border: 'none', color: 'black', padding: '15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 0 20px rgba(250, 204, 21, 0.2)' },
     };
 
+    if (loading) return <div style={{...styles.page, display:'flex', justifyContent:'center', alignItems:'center'}}>Cargando...</div>;
+
     return (
-        <div style={styles.container}>
-            <style>{`
-                input[type=number]::-webkit-outer-spin-button,
-                input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-                input[type=number] { -moz-appearance: textfield; }
-                ::selection { background: rgba(250, 204, 21, 0.3); color: white; }
-            `}</style>
+        <div style={styles.page}>
+            <style>{`input[type=number]::-webkit-inner-spin-button {-webkit-appearance: none; margin:0;}`}</style>
 
             {/* HEADER */}
-            <div style={styles.stickyHeader}>
-                <div style={styles.topRow}>
-                    <div style={styles.headerTitle}>
-                        <ChevronDown size={20} color="#71717a"/> {rutina?.nombre || "ENTRENO"}
-                    </div>
-                    <div style={{display:'flex', alignItems:'center', gap:'20px'}}>
-                        <Clock size={20} color="#52525b" />
-                        <button 
-                            style={styles.finishBtn} 
-                            onClick={handleTerminarClick} // Cambiado a nueva función
-                            onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.1)'}
-                            onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
-                        >
-                            Terminar
-                        </button>
-                    </div>
+            <div style={styles.topBar}>
+                <div style={styles.headerTitle}>
+                    <button onClick={() => navigate(-1)} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><ChevronLeft/></button>
+                    {rutina?.nombre}
                 </div>
-                
-                <div style={styles.statsRow}>
-                    <div style={styles.statBox}>
-                        <span style={styles.statLabel}>Duración</span>
-                        <div style={styles.statValueTime} onClick={toggleTimer} title={isTimerRunning ? "Pausar" : "Reanudar"}>
-                            {formatTime(seconds)} 
-                            {isTimerRunning ? <Activity size={18} className="animate-pulse"/> : <Play size={18} fill="#FACC15"/>}
-                        </div>
-                    </div>
-                    <div style={styles.statBox}>
-                        <span style={styles.statLabel}>Volumen</span>
-                        <span style={styles.statValue}>{totalVolume} <span style={{fontSize:'0.9rem', color:'#52525b'}}>kg</span></span>
-                    </div>
-                    <div style={styles.statBox}>
-                        <span style={styles.statLabel}>Series</span>
-                        <span style={styles.statValue}>{totalSets}</span>
-                    </div>
-                    <div style={styles.bodyIcon}><Activity size={32} color="#27272a" /></div>
-                </div>
-                
-                <div style={styles.progressBarContainer}>
-                    <div style={styles.progressBarFill}></div>
+                <div style={{display:'flex', alignItems:'center', gap:'20px'}}>
+                    <Clock size={20} color="#71717a"/>
+                    <button style={styles.finishBtn} onClick={handleTerminarClick}>TERMINAR</button>
                 </div>
             </div>
 
-            {/* CONTENIDO */}
-            <div style={styles.content}>
-                {rutina?.detalles?.map((detalle, exIndex) => (
-                    <div key={exIndex} style={styles.card}>
+            {/* BARRA SUPERIOR (Tiempo, Volumen, Series) */}
+            <div style={styles.statsBar}>
+                <div style={styles.statItem}>
+                    <span style={styles.statLabel}>DURACIÓN</span>
+                    <span style={styles.statValueYellow}>
+                        {formatoTiempo(tiempo)} <Activity size={16}/>
+                    </span>
+                    <div style={styles.timerUnderline}></div>
+                </div>
+                <div style={styles.statItem}>
+                    <span style={styles.statLabel}>VOLUMEN</span>
+                    <span style={styles.statValue}>{calcularVolumenTotal()} <span style={{fontSize:'0.8rem', color:'#555', marginTop:'4px'}}>kg</span></span>
+                </div>
+                <div style={styles.statItem}>
+                    <span style={styles.statLabel}>SERIES</span>
+                    <span style={styles.statValue}>
+                        {Object.values(datosSesion).flat().filter(s => s.hecho).length}
+                    </span>
+                </div>
+            </div>
+
+            {/* LISTA DE EJERCICIOS */}
+            {rutina?.detalles?.map((ej) => {
+                const sets = datosSesion[ej.id] || [];
+                const notaActual = notasSesion[ej.id] || "";
+                const editando = editandoNotaId === ej.id;
+
+                return (
+                    <div key={ej.id} style={styles.card}>
                         <div style={styles.cardHeader}>
-                            <img src={detalle.ejercicio?.imagenUrl || "https://via.placeholder.com/64"} alt="icono" style={styles.exImg} />
-                            <div style={{flex: 1}}>
-                                <div style={styles.exName}>{detalle.ejercicio?.nombre}</div>
-                                <div style={styles.exSub}>Añadir nota...</div>
+                            <div style={{display:'flex', gap:'20px', flex: 1}}>
+                                <div style={styles.imgBox}>
+                                    {ej.ejercicio.imagenUrl ? 
+                                        <img src={ej.ejercicio.imagenUrl} style={{width:'100%', height:'100%', objectFit:'cover'}}/> :
+                                        <Activity color="#333"/>
+                                    }
+                                </div>
+
+                                <div style={{flex:1}}>
+                                    <div style={styles.exTitle}>{ej.ejercicio.nombre}</div>
+                                    
+                                    {/* ✅ NOTAS FUNCIONALES */}
+                                    <div style={styles.noteWrapper}>
+                                        {editando ? (
+                                            <div>
+                                                <textarea 
+                                                    autoFocus
+                                                    placeholder="Escribe tus notas..."
+                                                    style={styles.noteInput}
+                                                    value={notaActual}
+                                                    onChange={(e) => guardarNotaEnEstado(ej.id, e.target.value)}
+                                                    onBlur={finalizarEdicionNota}
+                                                />
+                                                <div style={styles.noteActions}>
+                                                    <button style={styles.btnSaveNote} onMouseDown={finalizarEdicionNota}>GUARDAR</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div onClick={() => setEditandoNotaId(ej.id)}>
+                                                {notaActual ? (
+                                                    <div style={styles.noteDisplay}>
+                                                        <MessageSquare size={14} color="#FACC15"/>
+                                                        {notaActual}
+                                                    </div>
+                                                ) : (
+                                                    <div style={styles.notePlaceholder}>
+                                                        <Plus size={14}/> Añadir nota...
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
+                            
                             <div style={{display:'flex', gap:'10px'}}>
-                                <button style={styles.iconBtn} onClick={() => setInfoExercise(detalle.ejercicio)} title="Técnica"><Info size={20}/></button>
-                                <button style={styles.iconBtn}><MoreHorizontal size={20}/></button>
+                                {/* BOTÓN DE INFO: ABRE EL MODAL */}
+                                <button style={styles.iconBtn} onClick={() => setInfoExercise(ej.ejercicio)}>
+                                    <Info size={18}/>
+                                </button>
+                                <button style={styles.iconBtn}><MoreHorizontal size={18}/></button>
                             </div>
                         </div>
 
+                        {/* TABLA DE SERIES */}
                         <div>
                             <div style={styles.tableHeader}>
-                                <span>SET</span><span>ANTERIOR</span><span>KG</span><span>REPS</span><span>RPE</span><span>LISTO</span><span></span>
+                                <div>SET</div>
+                                <div>ANTERIOR</div>
+                                <div>KG</div>
+                                <div>REPS</div>
+                                <div>RPE</div>
+                                <div>LISTO</div>
+                                <div></div>
                             </div>
-                            {progress[exIndex] && progress[exIndex].map((serie, sIndex) => (
-                                <div key={sIndex} style={styles.row(serie.done)}>
-                                    <div style={{fontWeight:'900', color: serie.done ? '#FACC15' : '#3f3f46', fontSize:'1.1rem'}}>{sIndex + 1}</div>
-                                    <div style={{color:'#3f3f46', fontSize:'0.9rem', fontFamily:'monospace'}}>--</div>
-                                    <div style={{padding:'0 8px'}}><input type="number" style={styles.input} value={serie.kg} onChange={(e) => handleInputChange(exIndex, sIndex, 'kg', e.target.value)} onFocus={(e) => e.target.select()} onBlur={(e) => e.target.style.borderColor='#27272a'} /></div>
-                                    <div style={{padding:'0 8px'}}><input type="number" style={styles.input} value={serie.reps} onChange={(e) => handleInputChange(exIndex, sIndex, 'reps', e.target.value)} onFocus={(e) => e.target.select()} onBlur={(e) => e.target.style.borderColor='#27272a'} /></div>
-                                    <div style={{padding:'0 8px'}}><input type="number" style={{...styles.input, color: '#FACC15', borderColor: '#27272a'}} value={serie.rpe} onChange={(e) => handleInputChange(exIndex, sIndex, 'rpe', e.target.value)} onFocus={(e) => e.target.select()} placeholder="-" /></div>
-                                    <div><button style={styles.checkBtn(serie.done)} onClick={() => toggleSet(exIndex, sIndex)}><Check size={22} strokeWidth={4}/></button></div>
-                                    <div><button style={styles.trashBtn} onClick={() => removeSet(exIndex, sIndex)}><Trash2 size={18}/></button></div>
+                            
+                            {sets.map((set, i) => (
+                                <div key={i} style={styles.tableRow(set.hecho)}>
+                                    <div style={{fontWeight:'bold', color: set.hecho ? '#FACC15' : 'white', textAlign:'center', fontSize:'1.1rem'}}>{i + 1}</div>
+                                    <div style={{textAlign:'center', color:'#555', fontSize:'0.9rem'}}>--</div>
+                                    
+                                    <div style={{padding:'0 8px'}}>
+                                        <input type="number" style={{...styles.input, color: set.hecho ? '#FACC15' : 'white', borderColor: set.hecho ? '#FACC15' : '#27272a'}} value={set.peso} onChange={(e) => updateSet(ej.id, i, 'peso', e.target.value)} />
+                                    </div>
+                                    <div style={{padding:'0 8px'}}>
+                                        <input type="number" style={styles.input} value={set.reps} onChange={(e) => updateSet(ej.id, i, 'reps', e.target.value)} />
+                                    </div>
+                                    <div style={{padding:'0 8px'}}>
+                                        <input type="number" style={{...styles.input, color: '#71717a'}} value={set.rpe} onChange={(e) => updateSet(ej.id, i, 'rpe', e.target.value)} />
+                                    </div>
+
+                                    <div style={{display:'flex', justifyContent:'center'}}>
+                                        <button style={styles.checkBtn(set.hecho)} onClick={() => toggleCheck(ej.id, i)}>
+                                            <Check size={20} strokeWidth={4}/>
+                                        </button>
+                                    </div>
+
+                                    <div style={{display:'flex', justifyContent:'center'}}>
+                                        {!set.hecho && (
+                                            <button onClick={() => removeSet(ej.id, i)} style={{background:'none', border:'none', color:'#333', cursor:'pointer'}}>
+                                                <Trash2 size={18}/>
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
-                        <button style={styles.addBtn} onClick={() => addSet(exIndex)}><Plus size={16}/> AÑADIR SERIE</button>
+
+                        <button style={styles.addSetBtn} onClick={() => addSet(ej.id)}>
+                            <Plus size={16}/> AÑADIR SERIE
+                        </button>
                     </div>
-                ))}
-            </div>
+                );
+            })}
 
             {/* --- MODAL 1: INFORMACIÓN TÉCNICA --- */}
             {infoExercise && (
                 <div style={styles.modalOverlay} onClick={() => setInfoExercise(null)}>
                     <div style={styles.infoModalCard} onClick={e => e.stopPropagation()}>
                         <button style={styles.closeBtn} onClick={() => setInfoExercise(null)}><X size={20}/></button>
-                        <div style={styles.modalTag}><Dumbbell size={14}/> TÉCNICA</div>
+                        <div style={styles.modalTag}><Activity size={14}/> TÉCNICA</div>
                         <h2 style={styles.infoTitle}>{infoExercise.nombre}</h2>
                         <div style={styles.infoText}>{infoExercise.instrucciones || "No hay instrucciones detalladas."}</div>
                         {infoExercise.videoUrl && (
@@ -326,7 +373,7 @@ const SesionEntrenamiento = () => {
                 </div>
             )}
 
-            {/* --- MODAL 2: FINALIZAR ENTRENAMIENTO (REEMPLAZA AL ALERT) --- */}
+            {/* --- MODAL 2: FINALIZAR ENTRENAMIENTO --- */}
             {showFinishModal && (
                 <div style={styles.modalOverlay}>
                     <div style={styles.finishModalCard}>
@@ -340,15 +387,15 @@ const SesionEntrenamiento = () => {
                         <div style={styles.statsGrid}>
                             <div style={styles.statItem}>
                                 <span style={styles.statItemLabel}>Tiempo</span>
-                                <span style={styles.statItemValue}>{formatTime(seconds)}</span>
+                                <span style={styles.statItemValue}>{formatoTiempo(tiempo)}</span>
                             </div>
                             <div style={styles.statItem}>
                                 <span style={styles.statItemLabel}>Volumen</span>
-                                <span style={styles.statItemValue}>{totalVolume}kg</span>
+                                <span style={styles.statItemValue}>{calcularVolumenTotal()}kg</span>
                             </div>
                             <div style={styles.statItem}>
                                 <span style={styles.statItemLabel}>Series</span>
-                                <span style={styles.statItemValue}>{totalSets}</span>
+                                <span style={styles.statItemValue}>{Object.values(datosSesion).flat().filter(s => s.hecho).length}</span>
                             </div>
                         </div>
 
@@ -361,9 +408,6 @@ const SesionEntrenamiento = () => {
                     </div>
                 </div>
             )}
-
         </div>
     );
-};
-
-export default SesionEntrenamiento; 
+}       
