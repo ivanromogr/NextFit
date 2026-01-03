@@ -17,7 +17,7 @@ import EditarPerfil from "./pages/cliente/EditarPerfil";
 
 // --- ZONA ENTRENADOR ---
 import MenuEntrenador from "./pages/entrenador/MenuEntrenador";
-import RutinasDeCliente from "./pages/entrenador/RutinasDeCliente"; // ✅ NUEVA RUTA IMPORTANTE
+import RutinasDeCliente from "./pages/entrenador/RutinasDeCliente"; 
 import EditarPerfilEntrenador from "./pages/entrenador/EditarPerfilEntrenador";
 
 function App() {
@@ -42,21 +42,25 @@ function App() {
         <Route path="/cliente/ejercicios" element={<ExplorarEjercicios />} />
         <Route path="/cliente/explorar" element={<ExplorarEjercicios />} />
         
-        {/* Crear y Editar */}
+        {/* Crear y Editar (Cliente) */}
         <Route path="/cliente/crear-rutina" element={<CrearEntrenamiento />} />
         <Route path="/cliente/generar-ia" element={<GenerarRutinaIA />} />
         <Route path="/cliente/editar-rutina/:rutinaId" element={<EditarRutina />} />
         <Route path="/cliente/perfil" element={<EditarPerfil />} />
-        {/* Entrenar */}
+        
+        {/* Entrenar (Cliente) */}
         <Route path="/cliente/sesion/:rutinaId" element={<SesionEntrenamiento />} />
 
         {/* --- RUTAS DEL ENTRENADOR --- */}
         <Route path="/entrenador/dashboard" element={<MenuEntrenador />} />
+        
+        {/* ✅ RUTA AÑADIDA: PERFIL ENTRENADOR */}
         <Route path="/entrenador/perfil" element={<EditarPerfilEntrenador />} />
-        {/* ✅ ESTA ES LA RUTA NUEVA PARA GESTIONAR ATLETAS */}
+        
+        {/* Gestión de Atletas */}
         <Route path="/entrenador/cliente/:clienteId/rutinas" element={<RutinasDeCliente />} />
 
-        {/* Ruta 404 (Cualquier cosa desconocida lleva al login) */}
+        {/* Ruta 404 */}
         <Route path="*" element={<Navigate to="/auth/login" replace />} />
 
       </Routes>
