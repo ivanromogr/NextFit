@@ -85,13 +85,16 @@ const EditarRutina = () => {
 
     // --- LÓGICA DE VOLVER ---
     const handleVolver = () => {
-        const entrenadorId = localStorage.getItem("entrenadorId");
-        localStorage.removeItem("clienteObjetivoId"); 
-        if (entrenadorId && entrenadorId !== "null") {
+        // Si estamos editando la rutina como entrenador para un cliente objetivo, volvemos al menú del entrenador.
+        const clienteObjetivoId = localStorage.getItem("clienteObjetivoId");
+        if (clienteObjetivoId && clienteObjetivoId !== "null") {
+            localStorage.removeItem("clienteObjetivoId");
             navigate("/entrenador/dashboard");
-        } else {
-            navigate("/cliente/dashboard");
+            return;
         }
+
+        // En caso contrario asumimos que el usuario es cliente y volvemos a su dashboard.
+        navigate("/cliente/dashboard");
     };
 
     // --- MANEJADORES DE SERIES INDIVIDUALES ---

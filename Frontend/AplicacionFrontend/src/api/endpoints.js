@@ -36,6 +36,12 @@ export const getCliente = async (id) => {
   return response.data;
 };
 
+// --- ACTUALIZAR PERFIL CLIENTE ---
+export const actualizarCliente = async (id, payload) => {
+  const response = await api.put(`/api/clientes/${id}`, payload);
+  return response.data;
+};
+
 // --- 5. ONBOARDING ---
 export const completarOnboardingCliente = async (payload) => {
   const response = await api.post("/api/clientes/onboarding", payload);
@@ -104,4 +110,16 @@ export const obtenerClientesEntrenador = async (idEntrenador) => {
 
 export const ficharCliente = async (idEntrenador, emailCliente) => {
   return api.post(`/api/entrenador/${idEntrenador}/fichar`, { email: emailCliente });
+};
+
+// --- ENTRENADOR: Obtener y actualizar perfil ---
+export const getEntrenador = async (id) => {
+  if (!id) throw new Error("ID no encontrado");
+  const response = await api.get(`/api/entrenador/${id}`);
+  return response.data;
+};
+
+export const actualizarEntrenador = async (id, payload) => {
+  const response = await api.put(`/api/entrenador/${id}`, payload);
+  return response.data;
 };

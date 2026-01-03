@@ -4,6 +4,7 @@ import { loginForm } from "../../api/endpoints";
 import GymButton from "../../components/ui/GymButton";
 import GymInput from "../../components/ui/GymInput";
 import { Mail, Lock, Zap, ArrowRight } from "lucide-react";
+import logoNextFit from '../../assets/logo-nextfit.png';
 
 export default function Login() {
   const navigate = useNavigate(); // Hook para redirigir sin recargar la página
@@ -85,19 +86,9 @@ export default function Login() {
         backdropFilter: 'blur(10px)'
       }}>
 
-        <div style={{ textAlign: 'center', marginBottom: '35px' }}>
-          <div style={{ 
-            display: 'inline-flex', padding: '12px', 
-            borderRadius: '50%', background: 'rgba(250, 204, 21, 0.1)',
-            marginBottom: '15px', border: '1px solid rgba(250, 204, 21, 0.3)'
-          }}>
-             <Zap size={32} color="#FACC15" fill="#FACC15" />
-          </div>
-          
-          <h1 style={{ margin: 0, fontSize: '2.8rem', lineHeight: 1, color: 'white', fontStyle: 'italic' }}>
-            NETX<span style={{ color: '#FACC15' }}>FIT</span>
-          </h1>
-          <p style={{ color: '#737373', fontSize: '0.9rem', marginTop: '8px', fontWeight: '500' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <img src={logoNextFit} alt="NEXTFIT" style={{ width: '320px', height: 'auto', display:'inline-block', filter: 'drop-shadow(0 0 18px rgba(250, 204, 21, 0.25))', marginBottom: '14px' }} />
+          <p style={{ color: '#737373', fontSize: '0.9rem', marginTop: '0px', fontWeight: '500' }}>
             SISTEMA DE ENTRENAMIENTO
           </p>
         </div>

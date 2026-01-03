@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+// Logo
+import logoNextFit from '../../assets/logo-nextfit.png';
 import { obtenerRutinasCliente, eliminarRutina } from "../../api/endpoints"; 
 
 // Iconos
@@ -11,6 +13,7 @@ import {
 
 export default function MenuCliente() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [rutinas, setRutinas] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -61,13 +64,16 @@ export default function MenuCliente() {
     wrapper: { display: 'flex', minHeight: '100vh', background: '#09090b', fontFamily: "'Inter', sans-serif", color: 'white' },
     
     // Sidebar
-    sidebar: { width: '280px', background: '#0c0c0e', borderRight: '1px solid #1f1f22', padding: '35px 25px', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' },
-    logo: { fontSize: '1.8rem', fontWeight: '900', color: 'white', marginBottom: '50px', display:'flex', alignItems:'center', gap:'12px', letterSpacing: '1px', fontFamily: 'sans-serif' },
-    logoIcon: { background:'#FACC15', color:'black', padding:'6px', borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'center' },
-    navItem: (active) => ({ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 18px', borderRadius: '12px', color: active ? '#FACC15' : '#a1a1aa', background: active ? 'rgba(250, 204, 21, 0.08)' : 'transparent', cursor: 'pointer', fontSize: '0.95rem', fontWeight: active ? '600' : '500', transition: 'all 0.2s ease', textDecoration: 'none' }),
+    sidebar: { width: '250px', background: '#0c0c0e', borderRight: '1px solid #1f1f22', padding: '28px 18px', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh' },
+    logo: { fontSize: '1.6rem', fontWeight: '900', color: 'white', marginBottom: '36px', display:'flex', alignItems:'center', gap:'12px', letterSpacing: '2px', fontFamily: 'sans-serif', textTransform: 'uppercase' },
+    // Imagen logo
+    logoContainer: { marginBottom: '36px', paddingLeft: '6px' },
+    logoImage: { width: '200px', height: 'auto', display: 'block', filter: 'drop-shadow(0 0 10px rgba(250, 204, 21, 0.2))' },
+    logoIcon: { background:'#FACC15', color:'black', padding:'8px', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center' },
+    navItem: (active) => ({ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '14px', color: active ? '#FACC15' : '#a1a1aa', background: active ? 'rgba(250, 204, 21, 0.12)' : 'transparent', cursor: 'pointer', fontSize: '0.95rem', fontWeight: active ? '700' : '500', transition: 'all 0.15s ease', textDecoration: 'none', border: active ? '1px solid rgba(250,204,21,0.14)' : 'none' }),
 
     // Main
-    main: { flex: 1, padding: '50px 60px', overflowY: 'auto' },
+    main: { flex: 1, padding: '50px 80px', overflowY: 'auto' },
     header: { marginBottom: '50px' },
     title: { fontSize: '2.5rem', fontWeight: '900', margin: 0, textTransform: 'uppercase', letterSpacing: '-1px', color: 'white', lineHeight: '1' },
     subtitle: { color: '#71717a', marginTop:'10px', fontSize:'1.1rem' },
@@ -134,15 +140,24 @@ export default function MenuCliente() {
   return (
     <div style={styles.wrapper}>
       <aside style={styles.sidebar}>
-        <div style={styles.logo}>
-            <div style={styles.logoIcon}><Dumbbell size={22} strokeWidth={3}/></div>
-            <span>NEXTFIT</span>
-        </div>
+        <div style={styles.logoContainer}><img src={logoNextFit} alt="NEXTFIT" style={styles.logoImage} /></div>
         <nav style={{display: 'flex', flexDirection: 'column', gap: '8px', flex: 1}}>
-            <div style={styles.navItem(true)}><LayoutGrid size={20}/> Dashboard</div>
-            <div style={styles.navItem(false)}><Calendar size={20}/> Calendario</div>
-            <div style={styles.navItem(false)}><BarChart2 size={20}/> Progreso</div>
-            <div style={styles.navItem(false)}><Settings size={20}/> Ajustes</div>
+            {
+              (() => {
+                const isDashboard = location.pathname === '/cliente/dashboard';
+                const isCalendario = location.pathname === '/cliente/explorar' || location.pathname === '/cliente/ejercicios';
+                const isProgreso = location.pathname.startsWith('/cliente/progreso');
+                const isAjustes = location.pathname.startsWith('/cliente/perfil');
+                return (
+                  <>
+                    <button style={{...styles.navItem(isDashboard), border:'none', background:'transparent', textAlign:'left'}} onClick={() => navigate('/cliente/dashboard')}><LayoutGrid size={20}/> Dashboard</button>
+                    <button style={{...styles.navItem(isCalendario), border:'none', background:'transparent', textAlign:'left'}} onClick={() => {}}><Calendar size={20}/> Calendario</button>
+                    <button style={{...styles.navItem(isProgreso), border:'none', background:'transparent', textAlign:'left'}} onClick={() => {}}><BarChart2 size={20}/> Progreso</button>
+                    <button style={{...styles.navItem(isAjustes), border:'none', background:'transparent', textAlign:'left'}} onClick={() => navigate('/cliente/perfil')}><Settings size={20}/> Ajustes</button>
+                  </>
+                )
+              })()
+            }
         </nav>
         <div style={{...styles.navItem(false), color: '#ef4444', marginTop: 'auto'}} onClick={() => {localStorage.clear(); navigate("/auth/login");}}>
             <LogOut size={20}/> Cerrar Sesión

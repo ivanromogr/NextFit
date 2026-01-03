@@ -13,10 +13,12 @@ import CrearEntrenamiento from "./components/functional/CrearEntrenamiento"; // 
 import GenerarRutinaIA from "./pages/cliente/GenerarRutinaIA";
 import SesionEntrenamiento from "./pages/cliente/SesionEntrenamiento";
 import EditarRutina from "./pages/cliente/EditarRutina";
+import EditarPerfil from "./pages/cliente/EditarPerfil";
 
 // --- ZONA ENTRENADOR ---
 import MenuEntrenador from "./pages/entrenador/MenuEntrenador";
 import RutinasDeCliente from "./pages/entrenador/RutinasDeCliente"; // ✅ NUEVA RUTA IMPORTANTE
+import EditarPerfilEntrenador from "./pages/entrenador/EditarPerfilEntrenador";
 
 function App() {
   return (
@@ -44,13 +46,13 @@ function App() {
         <Route path="/cliente/crear-rutina" element={<CrearEntrenamiento />} />
         <Route path="/cliente/generar-ia" element={<GenerarRutinaIA />} />
         <Route path="/cliente/editar-rutina/:rutinaId" element={<EditarRutina />} />
-        
+        <Route path="/cliente/perfil" element={<EditarPerfil />} />
         {/* Entrenar */}
         <Route path="/cliente/sesion/:rutinaId" element={<SesionEntrenamiento />} />
 
         {/* --- RUTAS DEL ENTRENADOR --- */}
         <Route path="/entrenador/dashboard" element={<MenuEntrenador />} />
-        
+        <Route path="/entrenador/perfil" element={<EditarPerfilEntrenador />} />
         {/* ✅ ESTA ES LA RUTA NUEVA PARA GESTIONAR ATLETAS */}
         <Route path="/entrenador/cliente/:clienteId/rutinas" element={<RutinasDeCliente />} />
 

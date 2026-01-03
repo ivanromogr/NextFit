@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // Importamos Link
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom"; 
 import { registerUser } from "../../api/endpoints";
 import GymButton from "../../components/ui/GymButton";
 import GymInput from "../../components/ui/GymInput";
 import GymCard from "../../components/ui/GymCard";
 
-import { User, Lock, Mail, Dumbbell, Trophy, ArrowRight, Zap } from "lucide-react";
+import { Dumbbell, Trophy, ArrowRight, Mail, Lock } from "lucide-react";
+// ✅ IMPORTAMOS EL LOGO
+import logoNextFit from '../../assets/logo-nextfit.png';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -15,6 +17,14 @@ export default function Register() {
   const [form, setForm] = useState({
     nombre: "", apellido: "", email: "", contraseña: "", rol: "CLIENTE",
   });
+
+  // Responsive
+  const [isNarrow, setIsNarrow] = useState(typeof window !== 'undefined' ? window.innerWidth <= 600 : false);
+  useEffect(() => {
+    const onResize = () => setIsNarrow(window.innerWidth <= 600);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const handleChange = (field) => (e) => {
     setForm({ ...form, [field]: e.target.value });
@@ -30,7 +40,6 @@ export default function Register() {
 
       if (resp && resp.status >= 200 && resp.status < 300) {
         const dataBackend = resp.data || {};
-        // Intentamos distintas keys por compatibilidad (clienteId / idCliente / id)
         let idUsuario = (form.rol === "CLIENTE") ? (dataBackend.clienteId || dataBackend.idCliente || dataBackend.id) : (dataBackend.entrenadorId || dataBackend.idEntrenador || dataBackend.id);
 
         if (idUsuario) localStorage.setItem("registration_userId", idUsuario);
@@ -41,7 +50,6 @@ export default function Register() {
 
     } catch (err) {
       if (err.response) {
-        // Errores enviados por el servidor (ej: 409 -> usuario existe)
         const data = err.response.data;
         setError(typeof data === "string" ? data : (data?.message || "Error al registrar usuario."));
       } else {
@@ -52,6 +60,19 @@ export default function Register() {
     }
   };
 
+  // --- ESTILOS DE ALINEACIÓN ---
+  const headerContainerStyle = {
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', // Centrado verticalmente para que queden a la misma altura
+      marginBottom: '40px',
+      flexDirection: isNarrow ? 'column-reverse' : 'row',
+      gap: isNarrow ? '20px' : '0'
+  };
+
+  // Amarillo original de tu app
+  const brandYellow = '#FACC15'; 
+
   return (
     <div style={{ 
       minHeight: '100vh', 
@@ -59,55 +80,75 @@ export default function Register() {
       alignItems: 'center', 
       justifyContent: 'center', 
       padding: '20px',
-      // El fondo ya viene del index.css, aquí solo aseguramos posición
+      background: '#000' 
     }}>
       
       {/* TARJETA PRINCIPAL */}
       <div style={{
         width: '100%',
-        maxWidth: '500px',
-        padding: '40px',
-        borderRadius: '20px',
-        // Fondo NEGRO SEMI-TRANSPARENTE (Glassmorphism oscuro)
-        backgroundColor: 'rgba(10, 10, 10, 0.95)', 
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.8)' // Sombra fuerte para despegarlo del fondo
+        maxWidth: '550px',
+        padding: '50px',
+        borderRadius: '30px',
+        backgroundColor: '#0a0a0a', 
+        border: '1px solid #222',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.9)'
       }}>
         
-        {/* CABECERA */}
-        <div style={{ marginBottom: '30px', textAlign: 'left' }}>
-          <h1 style={{ 
-            fontSize: '3rem', 
-            fontWeight: '900', 
-            margin: '0', 
-            fontStyle: 'italic', 
-            lineHeight: '0.9',
-            color: 'white' // 👈 IMPORTANTE: Texto blanco
-          }}>
-            ÚNETE AL <br/>
-            <span style={{ color: '#FACC15' }}>TEAM.</span>
-          </h1>
-          <p style={{ color: '#a1a1aa', marginTop: '10px', fontSize: '1rem' }}>
-            Empieza tu transformación hoy mismo.
-          </p>
+        {/* CABECERA ALINEADA */}
+        <div style={headerContainerStyle}>
+          
+          {/* TÍTULO A LA IZQUIERDA */}
+          <div style={{ flex: 1 }}>
+            <h1 style={{ 
+              fontSize: '3rem', 
+              fontWeight: '900', 
+              margin: '0', 
+              fontStyle: 'italic', 
+              lineHeight: '0.9',
+              color: 'white',
+              fontFamily: "'Teko', sans-serif",
+              textTransform: 'uppercase'
+            }}>
+              ÚNETE AL <br/>
+              <span style={{ color: brandYellow }}>TEAM.</span>
+            </h1>
+            <p style={{ color: '#666', marginTop: '10px', fontSize: '0.95rem', fontWeight:'500' }}>
+              Empieza tu transformación hoy.
+            </p>
+          </div>
+
+          {/* LOGO A LA DERECHA */}
+          <div style={{ width: isNarrow ? '100%' : '100px', display:'flex', justifyContent: isNarrow ? 'center' : 'flex-end' }}>
+            <img 
+                src={logoNextFit} 
+                alt="NEXTFIT" 
+                style={{ 
+                    width: '200%', 
+                    height: 'auto', 
+                    objectFit: 'contain',
+                    // Sombra sutil con el amarillo original
+                    filter: `drop-shadow(0 0 15px rgba(250, 204, 21, 0.2))` 
+                }} 
+            />
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
           
           {/* SELECCIÓN DE ROL */}
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', marginBottom: '10px', color: '#737373', fontSize: '0.75rem', fontWeight: '700', letterSpacing: '1px' }}>
+          <div style={{ marginBottom: '30px' }}>
+            <label style={{ display: 'block', marginBottom: '12px', color: '#444', fontSize: '0.75rem', fontWeight: '800', letterSpacing: '2px', textTransform:'uppercase' }}>
               SELECCIONA TU PERFIL
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                <GymCard 
-                 title="Atleta" 
+                 title="ATLETA" 
                  icon={Trophy} 
                  selected={form.rol === "CLIENTE"}
                  onClick={() => setForm({...form, rol: "CLIENTE"})}
                />
                <GymCard 
-                 title="Coach" 
+                 title="COACH" 
                  icon={Dumbbell} 
                  selected={form.rol === "ENTRENADOR"}
                  onClick={() => setForm({...form, rol: "ENTRENADOR"})}
@@ -115,8 +156,8 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Nombre y Apellido */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {/* INPUTS */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom:'15px' }}>
             <GymInput 
               label="Nombre" placeholder="Juan"
               value={form.nombre} onChange={handleChange("nombre")}
@@ -127,15 +168,19 @@ export default function Register() {
             />
           </div>
 
-          <GymInput 
-            label="Email" type="email" placeholder="juan@gym.com" icon={Mail}
-            value={form.email} onChange={handleChange("email")}
-          />
+          <div style={{marginBottom:'15px'}}>
+            <GymInput 
+                label="Email" type="email" placeholder="juan@gym.com" icon={Mail}
+                value={form.email} onChange={handleChange("email")}
+            />
+          </div>
 
-          <GymInput 
-            label="Contraseña" type="password" placeholder="Mínimo 6 caracteres" icon={Lock}
-            value={form.contraseña} onChange={handleChange("contraseña")}
-          />
+          <div style={{marginBottom:'30px'}}>
+            <GymInput 
+                label="Contraseña" type="password" placeholder="Mínimo 6 caracteres" icon={Lock}
+                value={form.contraseña} onChange={handleChange("contraseña")}
+            />
+          </div>
 
           {error && (
             <div style={{ 
@@ -154,18 +199,19 @@ export default function Register() {
 
         </form>
 
-        {/* LINK LOGIN ARREGLADO */}
-        <div style={{ marginTop: '24px', textAlign: 'center', borderTop: '1px solid #262626', paddingTop: '20px' }}>
-            <span style={{ color: '#737373', fontSize: '0.9rem' }}>¿Ya tienes cuenta? </span>
+        {/* FOOTER */}
+        <div style={{ marginTop: '30px', textAlign: 'center', borderTop: '1px solid #222', paddingTop: '25px' }}>
+            <span style={{ color: '#666', fontSize: '0.9rem' }}>¿Ya tienes cuenta? </span>
             <Link 
                 to="/auth/login"
                 style={{ 
-                    color: '#FACC15', 
-                    fontWeight: 'bold', 
+                    color: brandYellow, 
+                    fontWeight: '800', 
                     textDecoration: 'none', 
-                    marginLeft: '5px',
+                    marginLeft: '8px',
                     textTransform: 'uppercase',
-                    fontSize: '0.9rem'
+                    fontSize: '0.9rem',
+                    letterSpacing: '0.5px'
                 }}
             >
                 Inicia sesión aquí

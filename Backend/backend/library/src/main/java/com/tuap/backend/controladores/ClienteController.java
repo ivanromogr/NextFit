@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -72,5 +73,26 @@ public class ClienteController {
         clienteDAO.save(cliente);
 
         return ResponseEntity.ok("Perfil completado exitosamente");
+    }
+
+    // --- NUEVO: ACTUALIZAR PERFIL CLIENTE (PUT /api/clientes/{id}) ---
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarPerfil(@PathVariable UUID id, @RequestBody com.tuap.backend.dto.UpdateClienteRequest req) {
+        Cliente cliente = clienteDAO.findById(id).orElse(null);
+        if (cliente == null) return ResponseEntity.badRequest().body("Cliente no encontrado con id: " + id);
+
+        // Actualizamos solo los campos presentes
+        if (req.getNombre() != null) cliente.setNombre(req.getNombre());
+        if (req.getApellido() != null) cliente.setApellido(req.getApellido());
+        if (req.getEmail() != null) cliente.setEmail(req.getEmail());
+        if (req.getFotoPerfil() != null) cliente.setFotoPerfil(req.getFotoPerfil());
+        if (req.getPeso() != null) cliente.setPeso(req.getPeso());
+        if (req.getAltura() != null) cliente.setAltura(req.getAltura());
+        if (req.getObjetivo() != null) cliente.setObjetivo(req.getObjetivo());
+        if (req.getGenero() != null) cliente.setGenero(req.getGenero());
+        if (req.getContraseña() != null && !req.getContraseña().isEmpty()) cliente.setContraseña(req.getContraseña());
+
+        clienteDAO.save(cliente);
+        return ResponseEntity.ok("Perfil actualizado");
     }
 }
