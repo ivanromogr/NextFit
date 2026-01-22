@@ -46,6 +46,7 @@ public class RutinaRequest {
         
         private int rpe;
         private String notas;
+        private int dias;
 
         public UUID getIdEjercicio() { return idEjercicio; }
         public void setIdEjercicio(UUID idEjercicio) { this.idEjercicio = idEjercicio; }
@@ -65,5 +66,8 @@ public class RutinaRequest {
 
         public String getNotas() { return notas; }
         public void setNotas(String notas) { this.notas = notas; }
+
+        public int getDias() { return dias; }
+        public void setDias(int dias) { this.dias = dias; }
     }
 }

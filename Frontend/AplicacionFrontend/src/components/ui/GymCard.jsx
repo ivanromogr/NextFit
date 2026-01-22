@@ -5,27 +5,54 @@ export default function GymCard({ title, icon: Icon, selected, onClick }) {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    padding: '16px',
-    borderRadius: '12px',
+    padding: '14px 16px',
+    borderRadius: '14px',
     cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    
-    // Si está seleccionado: Borde Amarillo y Fondo Negro (para contraste)
-    // Si NO: Borde transparente y fondo gris oscuro
-    border: selected ? '2px solid #FACC15' : '1px solid #333',
-    backgroundColor: selected ? 'rgba(0,0,0, 0.8)' : 'rgba(255,255,255, 0.05)',
-    
-    // El texto y el icono cambian a amarillo si está seleccionado
-    color: selected ? '#FACC15' : '#a1a1aa',
-    
-    // Brillo si está seleccionado
-    boxShadow: selected ? '0 0 15px rgba(250, 204, 21, 0.15)' : 'none'
+    transition: 'transform 0.12s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease',
+    border: `1px solid ${selected ? 'rgba(250,204,21,0.55)' : 'rgba(255,255,255,0.10)'}`,
+    background: selected ? 'rgba(250,204,21,0.08)' : 'rgba(255,255,255,0.03)',
+    color: selected ? '#FACC15' : 'rgba(255,255,255,0.68)',
+    boxShadow: selected ? '0 10px 25px rgba(250,204,21,0.10)' : 'none',
+    outline: 'none',
+    userSelect: 'none',
+  };
+
+  const handleKeyDown = (e) => {
+    if (!onClick) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
   };
 
   return (
-    <div style={style} onClick={onClick}>
-      {Icon && <Icon size={24} />}
-      <span style={{ fontWeight: selected ? '700' : '500', fontSize: '1rem', textTransform: 'uppercase' }}>
+    <div
+      style={style}
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.borderColor = selected ? 'rgba(250,204,21,0.70)' : 'rgba(255,255,255,0.16)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.borderColor = selected ? 'rgba(250,204,21,0.55)' : 'rgba(255,255,255,0.10)';
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.boxShadow = selected
+          ? '0 0 0 3px rgba(250,204,21,0.22), 0 10px 25px rgba(250,204,21,0.10)'
+          : '0 0 0 3px rgba(250,204,21,0.18)';
+        e.currentTarget.style.borderColor = 'rgba(250,204,21,0.55)';
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.boxShadow = selected ? '0 10px 25px rgba(250,204,21,0.10)' : 'none';
+        e.currentTarget.style.borderColor = selected ? 'rgba(250,204,21,0.55)' : 'rgba(255,255,255,0.10)';
+      }}
+    >
+      {Icon && <Icon size={22} />}
+      <span style={{ fontWeight: selected ? 800 : 600, fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
         {title}
       </span>
     </div>

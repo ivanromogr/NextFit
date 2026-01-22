@@ -10,7 +10,7 @@ import {
 const MUSCLE_FILTERS = ["TODOS", "PECHO", "ESPALDA", "PIERNA", "HOMBRO", "BÍCEPS", "TRÍCEPS", "ABDOMINALES", "CARDIO"];
 
 const EditarRutina = () => {
-    const { rutinaId } = useParams();
+    const { rutinaId, clienteId } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     
@@ -83,19 +83,18 @@ const EditarRutina = () => {
         setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     };
 
-    // --- LÓGICA DE VOLVER ---
+    
     const handleVolver = () => {
-        // Si estamos editando la rutina como entrenador para un cliente objetivo, volvemos al menú del entrenador.
-        const clienteObjetivoId = localStorage.getItem("clienteObjetivoId");
-        if (clienteObjetivoId && clienteObjetivoId !== "null") {
-            localStorage.removeItem("clienteObjetivoId");
-            navigate("/entrenador/dashboard");
-            return;
-        }
+  // Si estamos en modo entrenador (ruta entrenador), volvemos a las rutinas del cliente
+  if (window.location.pathname.startsWith("/entrenador")) {
+    navigate(`/entrenador/cliente/${clienteId}/rutinas`);
+    return;
+  }
 
-        // En caso contrario asumimos que el usuario es cliente y volvemos a su dashboard.
-        navigate("/cliente/dashboard");
-    };
+  // Si no, es modo cliente normal
+  navigate("/cliente/dashboard");
+};
+
 
     // --- MANEJADORES DE SERIES INDIVIDUALES ---
     

@@ -41,7 +41,7 @@ public class RutinaController {
     @PostMapping("/auto")
     public ResponseEntity<?> generarRutinaAutomatica(@RequestBody GenerarRutinaRequest request) {
         try {
-            Rutina nueva = gestorRutina.generarRutinaAutomatica(request);
+            List<Rutina> nueva = gestorRutina.generarRutinaAutomatica(request);
             return ResponseEntity.ok(nueva);
         } catch (Exception e) {
             e.printStackTrace();

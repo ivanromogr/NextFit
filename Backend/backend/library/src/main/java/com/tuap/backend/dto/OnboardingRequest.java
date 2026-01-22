@@ -14,7 +14,7 @@ public class OnboardingRequest {
     private Double pesoKg;          // React envía "pesoKg"
     private String objetivo;
 
-    // Constructores (Opcional, pero recomendado)
+    
     public OnboardingRequest() {}
 
     // Getters y Setters

@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; // Importamos useNavigate
-import { loginForm } from "../../api/endpoints"; 
+import { Link, useNavigate } from "react-router-dom";
+import { loginForm } from "../../api/endpoints";
 import GymButton from "../../components/ui/GymButton";
 import GymInput from "../../components/ui/GymInput";
-import { Mail, Lock, Zap, ArrowRight } from "lucide-react";
-import logoNextFit from '../../assets/logo-nextfit.png';
+import { Mail, Lock, ArrowRight } from "lucide-react";
+import logoNextFit from "../../assets/logo-nextfit.png";
+import "../../styles/auth.css";
+
 
 export default function Login() {
-  const navigate = useNavigate(); // Hook para redirigir sin recargar la página
+  const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -18,129 +20,67 @@ export default function Login() {
     setError("");
 
     try {
-      // 1. Llamamos al endpoint de login
       const resp = await loginForm(form);
 
-      // 2. Verificamos si la respuesta es correcta (Status 200)
-      // Gracias al CustomSuccessHandler modificado, resp.data tendrá el ID y el ROL
       if (resp.status === 200 && resp.data?.id) {
-         console.log("LOGIN EXITOSO:", resp.data);
-         
-         const { role, id } = resp.data;
+        const { role, id } = resp.data;
 
-         // 3. Guardamos la sesión en LocalStorage (CRÍTICO para evitar bucles)
-         localStorage.setItem("registration_userId", id); // Backup por compatibilidad
-         
-         if (role === "cliente") {
-             localStorage.setItem("clienteId", id);
-         } else if (role === "entrenador") {
-             localStorage.setItem("entrenadorId", id);
-         }
+        localStorage.setItem("registration_userId", id);
+        if (role === "cliente") localStorage.setItem("clienteId", id);
+        else if (role === "entrenador") localStorage.setItem("entrenadorId", id);
 
-         // 4. Redirección manual según el rol
-         if (role === "entrenador") {
-            navigate("/entrenador/dashboard");
-         } else {
-            navigate("/cliente/dashboard");
-         }
-
+        navigate(role === "entrenador" ? "/entrenador/dashboard" : "/cliente/dashboard");
       } else {
-         // Si llegamos aquí, el servidor respondió 200 pero sin datos válidos
-         setError("Error: No se pudieron obtener los datos del usuario.");
+        setError("Error: No se pudieron obtener los datos del usuario.");
       }
-
     } catch (err) {
-      console.error("Error en Login:", err);
-      // Capturamos el error. Si el backend redirige a error (404/401), mostramos credenciales incorrectas.
-      // Esto pasa porque tu SecurityConfig original redirige si falla la password.
       const status = err.response?.status;
-      if (status === 401 || status === 404) {
-          setError("Credenciales incorrectas.");
-      } else {
-          setError("Error de conexión con el servidor.");
-      }
+      if (status === 401 || status === 404) setError("Credenciales incorrectas.");
+      else setError("Error de conexión con el servidor.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      padding: '20px',
-      backgroundColor: '#000' // Fondo negro simple
-    }}>
-      
-      {/* TARJETA DE LOGIN */}
-      <div style={{
-        width: '100%',
-        maxWidth: '400px',
-        padding: '40px 30px',
-        backgroundColor: 'rgba(20, 20, 20, 0.95)', 
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '20px',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
-        backdropFilter: 'blur(10px)'
-      }}>
-
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <img src={logoNextFit} alt="NEXTFIT" style={{ width: '320px', height: 'auto', display:'inline-block', filter: 'drop-shadow(0 0 18px rgba(250, 204, 21, 0.25))', marginBottom: '14px' }} />
-          <p style={{ color: '#737373', fontSize: '0.9rem', marginTop: '0px', fontWeight: '500' }}>
-            SISTEMA DE ENTRENAMIENTO
-          </p>
+    <div className="auth-root">
+      <div className="auth-card">
+        <div className="auth-header">
+          <img src={logoNextFit} alt="NEXTFIT" className="auth-logo" />
+          <p className="auth-subtitle">SISTEMA DE ENTRENAMIENTO</p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <GymInput 
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <GymInput
             label="Correo Electrónico"
             placeholder="usuario@email.com"
             value={form.email}
-            onChange={(e) => setForm({...form, email: e.target.value})}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
             icon={Mail}
+            autoComplete="email"
           />
-          
-          <GymInput 
+
+          <GymInput
             label="Clave de Acceso"
             type="password"
             placeholder="••••••••"
             value={form.password}
-            onChange={(e) => setForm({...form, password: e.target.value})}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
             icon={Lock}
+            autoComplete="current-password"
           />
 
-          {error && (
-            <div style={{ 
-              color: '#ef4444', textAlign: 'center', marginBottom: '15px', 
-              fontSize: '0.9rem', padding: '10px', background: 'rgba(239, 68, 68, 0.1)',
-              borderRadius: '8px', border: '1px solid #ef4444'
-            }}>
-              {error}
-            </div>
-          )}
+          {error && <div className="auth-error">{error}</div>}
 
-          <div style={{ marginTop: '10px' }}>
-            <GymButton fullWidth loading={loading} onClick={handleSubmit}>
-              INICIAR SESIÓN
-            </GymButton>
-          </div>
+          
+          <GymButton fullWidth loading={loading} onClick={handleSubmit}>
+            INICIAR SESIÓN
+          </GymButton>
         </form>
 
-        <div style={{ marginTop: '30px', textAlign: 'center', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <p style={{ color: '#a3a3a3', fontSize: '0.9rem', marginBottom: '10px' }}>
-            ¿Aún no eres miembro?
-          </p>
-          
-          <Link 
-            to="/registro" 
-            style={{ 
-              textDecoration: 'none', color: '#FACC15', fontWeight: 'bold', 
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              textTransform: 'uppercase', fontSize: '0.9rem', letterSpacing: '1px'
-            }}
-          >
+        <div className="auth-footer">
+          <p>¿Aún no eres miembro?</p>
+          <Link to="/registro" className="auth-link">
             Crear cuenta gratis <ArrowRight size={16} />
           </Link>
         </div>

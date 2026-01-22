@@ -196,7 +196,27 @@ export default function SesionEntrenamiento() {
         infoTitle: { fontSize: '2rem', fontWeight: '900', color: 'white', marginBottom: '20px', lineHeight: 1, textTransform: 'uppercase' },
         infoText: { color: '#a1a1aa', fontSize: '1rem', lineHeight: 1.7, marginBottom: '30px' },
         closeBtn: { position: 'absolute', top: '25px', right: '25px', background: '#1f1f22', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' },
-        ytBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', background: '#CC0000', color: 'white', textDecoration: 'none', padding: '16px', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', width: '100%', textTransform: 'uppercase', letterSpacing: '0.5px', boxShadow: '0 4px 15px rgba(204, 0, 0, 0.3)' },
+
+        // ✅ MODIFICADO: botón amarillo NextFit (antes rojo)
+        ytBtn: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "12px",
+            background: "#FACC15",
+            color: "black",
+            textDecoration: "none",
+            padding: "16px",
+            borderRadius: "12px",
+            fontWeight: "900",
+            fontSize: "1rem",
+            width: "100%",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+            boxShadow: "0 6px 18px rgba(250, 204, 21, 0.18)",
+            border: "1px solid rgba(250, 204, 21, 0.35)",
+            transition: "transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease",
+        },
 
         modalActions: { display: 'flex', gap: '15px' },
         btnCancel: { flex: 1, background: 'transparent', border: '1px solid #3f3f46', color: 'white', padding: '15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
@@ -254,7 +274,7 @@ export default function SesionEntrenamiento() {
                             <div style={{display:'flex', gap:'20px', flex: 1}}>
                                 <div style={styles.imgBox}>
                                     {ej.ejercicio.imagenUrl ? 
-                                        <img src={ej.ejercicio.imagenUrl} style={{width:'100%', height:'100%', objectFit:'cover'}}/> :
+                                        <img src={ej.ejercicio.imagenUrl} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="ejercicio" /> :
                                         <Activity color="#333"/>
                                     }
                                 </div>
@@ -323,7 +343,12 @@ export default function SesionEntrenamiento() {
                                     <div style={{textAlign:'center', color:'#555', fontSize:'0.9rem'}}>--</div>
                                     
                                     <div style={{padding:'0 8px'}}>
-                                        <input type="number" style={{...styles.input, color: set.hecho ? '#FACC15' : 'white', borderColor: set.hecho ? '#FACC15' : '#27272a'}} value={set.peso} onChange={(e) => updateSet(ej.id, i, 'peso', e.target.value)} />
+                                        <input
+                                            type="number"
+                                            style={{...styles.input, color: set.hecho ? '#FACC15' : 'white', borderColor: set.hecho ? '#FACC15' : '#27272a'}}
+                                            value={set.peso}
+                                            onChange={(e) => updateSet(ej.id, i, 'peso', e.target.value)}
+                                        />
                                     </div>
                                     <div style={{padding:'0 8px'}}>
                                         <input type="number" style={styles.input} value={set.reps} onChange={(e) => updateSet(ej.id, i, 'reps', e.target.value)} />
@@ -364,9 +389,25 @@ export default function SesionEntrenamiento() {
                         <div style={styles.modalTag}><Activity size={14}/> TÉCNICA</div>
                         <h2 style={styles.infoTitle}>{infoExercise.nombre}</h2>
                         <div style={styles.infoText}>{infoExercise.instrucciones || "No hay instrucciones detalladas."}</div>
+
                         {infoExercise.videoUrl && (
-                            <a href={infoExercise.videoUrl} target="_blank" rel="noreferrer" style={styles.ytBtn}>
-                                <Youtube size={24} fill="white"/> VER VIDEO TUTORIAL
+                            <a
+                                href={infoExercise.videoUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={styles.ytBtn}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = "translateY(-2px)";
+                                    e.currentTarget.style.filter = "brightness(1.02)";
+                                    e.currentTarget.style.boxShadow = "0 10px 26px rgba(250, 204, 21, 0.25)";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = "translateY(0)";
+                                    e.currentTarget.style.filter = "none";
+                                    e.currentTarget.style.boxShadow = "0 6px 18px rgba(250, 204, 21, 0.18)";
+                                }}
+                            >
+                                <Youtube size={24} color="black" /> VER VIDEO TUTORIAL
                             </a>
                         )}
                     </div>
@@ -410,4 +451,4 @@ export default function SesionEntrenamiento() {
             )}
         </div>
     );
-}       
+}

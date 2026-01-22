@@ -1,16 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { completarOnboardingEntrenador } from "../../api/endpoints";
 
-// Iconos Pro de Lucide
-import { 
-  ChevronLeft, Check, Dumbbell, User, Briefcase, 
-  GraduationCap, Laptop, Users, FileText, Zap, 
+// Iconos
+import {
+  ChevronLeft, Check, Dumbbell, User, Briefcase,
+  GraduationCap, Laptop, Users, FileText, Zap,
   Activity, HeartPulse, Trophy, Utensils, Swords,
-  ChevronDown 
+  ChevronDown
 } from "lucide-react";
 
-// Componentes UI Personalizados
+// Componentes UI
 import GymButton from "../../components/ui/GymButton";
 import GymInput from "../../components/ui/GymInput";
 import GymDateInput from "../../components/ui/GymDateInput";
@@ -18,7 +18,6 @@ import GymSelectionCard from "../../components/ui/GymSelectionCard";
 
 const STEPS = ["identidad", "especialidad", "experiencia", "detalles"];
 
-// LISTA DE TITULACIONES PARA EL DROPDOWN
 const LISTA_TITULACIONES = [
   "Grado en CAFD / INEF",
   "Doble Grado CAFD + Fisioterapia",
@@ -37,39 +36,47 @@ const LISTA_TITULACIONES = [
 export default function EntrenadorOnboarding() {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const [animateKey, setAnimateKey] = useState(0);
 
-  // Estado con los datos del Entrenador
   const [data, setData] = useState({
     genero: "",
     fechaNacimiento: "",
-    especialidad: [], 
+    especialidad: [],
     aniosExperiencia: "",
     modalidadTrabajo: "",
     formacion: "",
     descripcionPerfil: ""
   });
 
-  // Recuperar ID del registro previo
   useEffect(() => {
     let idRecuperado = location.state?.userId || localStorage.getItem("registration_userId");
-    if (idRecuperado) {
-        setUserId(idRecuperado);
-    } else {
-        console.warn("⚠️ Modo desarrollo: Sin ID de usuario.");
-        // Si no hay ID, podrías redirigir al registro para evitar errores
-        // navigate("/auth/register");
-    }
+    if (idRecuperado) setUserId(idRecuperado);
+    else console.warn("⚠️ Modo desarrollo: Sin ID de usuario.");
   }, [location, navigate]);
 
   const currentStep = STEPS[stepIndex];
   const totalSteps = STEPS.length;
   const progressPercent = ((stepIndex + 1) / totalSteps) * 100;
 
-  // --- LÓGICA DE SELECCIÓN MÚLTIPLE ---
+  const stepMeta = useMemo(() => {
+    switch (currentStep) {
+      case "identidad":
+        return { title: "TU PERFIL", subtitle: "Datos básicos para configurar tu ficha de entrenador." };
+      case "especialidad":
+        return { title: "TUS PUNTOS FUERTES", subtitle: "Selecciona todas las disciplinas que dominas." };
+      case "experiencia":
+        return { title: "TRAYECTORIA", subtitle: "Define cómo trabajas y tu nivel de veteranía." };
+      case "detalles":
+        return { title: "TU MARCA PERSONAL", subtitle: "Formación y una biografía potente para venderte." };
+      default:
+        return { title: "", subtitle: "" };
+    }
+  }, [currentStep]);
+
   const toggleEspecialidad = (esp) => {
     const current = data.especialidad;
     if (current.includes(esp)) {
@@ -79,30 +86,27 @@ export default function EntrenadorOnboarding() {
     }
   };
 
-  // --- VALIDACIONES DE BLOQUEO ---
   const isStepValid = () => {
     switch (currentStep) {
       case "identidad":
         return data.genero !== "" && data.fechaNacimiento !== "";
-      
       case "especialidad":
         return data.especialidad.length > 0;
-
-      case "experiencia":
+      case "experiencia": {
         const anios = parseFloat(data.aniosExperiencia);
         return !isNaN(anios) && anios >= 0 && data.modalidadTrabajo !== "";
-
+      }
       case "detalles":
         return data.formacion !== "" && data.descripcionPerfil.trim().length > 15;
-
-      default: return false;
+      default:
+        return false;
     }
   };
 
-  // --- ENVÍO DE DATOS ---
   const handleNext = async () => {
     if (stepIndex < totalSteps - 1) {
       setStepIndex(stepIndex + 1);
+      setAnimateKey((k) => k + 1);
       return;
     }
 
@@ -111,40 +115,29 @@ export default function EntrenadorOnboarding() {
     try {
       setLoading(true);
 
-      // Calcular edad real
       const hoy = new Date();
       const nacimiento = new Date(data.fechaNacimiento);
       let edadCalculada = hoy.getFullYear() - nacimiento.getFullYear();
       const m = hoy.getMonth() - nacimiento.getMonth();
-      if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
-        edadCalculada--;
-      }
+      if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) edadCalculada--;
 
       const payload = {
         idEntrenador: userId,
         genero: data.genero,
         edad: edadCalculada,
-        especialidad: data.especialidad.join(", "), 
+        especialidad: data.especialidad.join(", "),
         aniosExperiencia: parseInt(data.aniosExperiencia),
         modalidadTrabajo: data.modalidadTrabajo,
         formacion: data.formacion,
         descripcionPerfil: data.descripcionPerfil,
-        fotoPerfil: null 
+        fotoPerfil: null
       };
 
-      console.log("Enviando perfil entrenador:", payload);
       await completarOnboardingEntrenador(payload);
-      
-      // ✅ FIX CRÍTICO: GUARDAMOS TU IDENTIDAD ANTES DE SALIR
-      // Esto evita que el Dashboard te expulse al login
-      localStorage.setItem("entrenadorId", userId);
-      
-      // Limpiamos datos temporales del registro
-      localStorage.removeItem("registration_userId");
-      
-      // Redirigimos al panel principal
-      navigate("/entrenador/dashboard"); 
 
+      localStorage.setItem("entrenadorId", userId);
+      localStorage.removeItem("registration_userId");
+      navigate("/entrenador/dashboard");
     } catch (error) {
       console.error(error);
       alert("Error al guardar: " + error.message);
@@ -153,7 +146,12 @@ export default function EntrenadorOnboarding() {
     }
   };
 
-  // LISTA DE ESPECIALIDADES VISUALES
+  const goBack = () => {
+    if (stepIndex <= 0 || loading) return;
+    setStepIndex(stepIndex - 1);
+    setAnimateKey((k) => k + 1);
+  };
+
   const especialidades = [
     { id: "Musculación", icon: Dumbbell },
     { id: "CrossFit", icon: Zap },
@@ -167,230 +165,436 @@ export default function EntrenadorOnboarding() {
     { id: "Boxeo / Artes Marciales", icon: Swords },
   ];
 
+  const styles = {
+    root: {
+      minHeight: "100vh",
+      padding: "clamp(18px, 3vw, 34px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    card: {
+      width: "100%",
+      maxWidth: 720,
+      borderRadius: 28,
+      padding: "clamp(18px, 3.2vw, 34px)",
+      background:
+        "radial-gradient(circle at top left, rgba(250,204,21,0.10), transparent 55%), rgba(10,10,10,0.86)",
+      border: "1px solid rgba(255,255,255,0.10)",
+      boxShadow: "0 30px 90px rgba(0,0,0,0.65)",
+      backdropFilter: "blur(10px)",
+      display: "flex",
+      flexDirection: "column",
+      gap: 18,
+    },
+    topRow: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+    },
+    backBtn: (disabled) => ({
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      border: "1px solid rgba(255,255,255,0.10)",
+      background: disabled ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.06)",
+      color: disabled ? "rgba(255,255,255,0.25)" : "white",
+      cursor: disabled ? "default" : "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      transition: "transform .12s ease, background .12s ease, border-color .12s ease",
+      outline: "none",
+    }),
+    stepPill: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "8px 14px",
+      borderRadius: 999,
+      border: "1px solid rgba(250,204,21,0.18)",
+      background: "rgba(250,204,21,0.10)",
+      color: "#FACC15",
+      fontWeight: 900,
+      letterSpacing: 1,
+      fontFamily: "Teko, sans-serif",
+      fontSize: "1.1rem",
+      textTransform: "uppercase",
+    },
+    progressTrack: {
+      height: 6,
+      background: "rgba(255,255,255,0.10)",
+      borderRadius: 999,
+      overflow: "hidden",
+    },
+    progressFill: {
+      width: `${progressPercent}%`,
+      height: "100%",
+      background: "linear-gradient(90deg, #FACC15, #EAB308)",
+      boxShadow: "0 0 18px rgba(250, 204, 21, 0.35)",
+      transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+    },
+    title: {
+      margin: 0,
+      fontSize: "clamp(2.2rem, 4vw, 3rem)",
+      lineHeight: 1,
+      fontStyle: "italic",
+      color: "white",
+      textTransform: "uppercase",
+      fontFamily: "Teko, sans-serif",
+      letterSpacing: 1,
+    },
+    subtitle: {
+      margin: 0,
+      color: "rgba(255,255,255,0.60)",
+      fontSize: "1rem",
+      lineHeight: 1.5,
+    },
+    content: {
+      marginTop: 6,
+      display: "flex",
+      flexDirection: "column",
+      gap: 14,
+      minHeight: 320,
+    },
+    hint: {
+      marginTop: -6,
+      color: "rgba(255,255,255,0.35)",
+      fontSize: 12,
+      textAlign: "center",
+    },
+    stepWrap: { animation: "nfFadeUp .22s ease both" },
+    label: {
+      display: "block",
+      margin: "22px 0 12px",
+      color: "#a1a1aa",
+      fontSize: "0.85rem",
+      fontWeight: 700,
+      letterSpacing: "1px",
+      textTransform: "uppercase",
+    },
+    helperLegal: {
+      fontSize: "0.85rem",
+      color: "rgba(255,255,255,0.40)",
+      marginTop: -10,
+      fontStyle: "italic",
+    },
+    grid2: {
+      display: "grid",
+      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+      gap: 12,
+    },
+    gridEspecialidades: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+      gap: 12,
+    },
+    countLine: {
+      marginTop: 6,
+      textAlign: "center",
+      color: "#FACC15",
+      fontSize: "0.9rem",
+      fontWeight: 700,
+    },
+    fieldWrap: {
+      width: "100%",
+      borderRadius: 14,
+      border: "1px solid rgba(255,255,255,0.12)",
+      background: "rgba(24,24,27,0.92)",
+      overflow: "hidden",
+      transition: "border-color .18s ease, box-shadow .18s ease, background .18s ease",
+    },
+    selectWrap: { position: "relative", width: "100%" },
+    selectIconLeft: {
+      position: "absolute",
+      left: 16,
+      top: "50%",
+      transform: "translateY(-50%)",
+      pointerEvents: "none",
+      zIndex: 1,
+      color: "#FACC15",
+    },
+    selectIconRight: {
+      position: "absolute",
+      right: 16,
+      top: "50%",
+      transform: "translateY(-50%)",
+      pointerEvents: "none",
+      zIndex: 1,
+      color: "#FACC15",
+    },
+    select: {
+      width: "100%",
+      padding: 16,
+      paddingLeft: 48,
+      paddingRight: 48,
+      backgroundColor: "transparent",
+      border: "none",
+      color: "white",
+      fontSize: "1rem",
+      outline: "none",
+      appearance: "none",
+      cursor: "pointer",
+      fontFamily: "Inter, sans-serif",
+    },
+    textareaWrap: { position: "relative" },
+    textareaIcon: {
+      position: "absolute",
+      top: 16,
+      left: 16,
+      color: "#FACC15",
+      pointerEvents: "none",
+    },
+    textarea: {
+      width: "100%",
+      padding: 16,
+      paddingLeft: 48,
+      backgroundColor: "transparent",
+      border: "none",
+      color: "white",
+      fontSize: "1rem",
+      outline: "none",
+      fontFamily: "Inter, sans-serif",
+      resize: "none",
+      minHeight: 140,
+    },
+    rowBetween: { display: "flex", justifyContent: "space-between", marginTop: 6 },
+    micro: (ok) => ({ fontSize: "0.8rem", color: ok ? "rgba(255,255,255,0.60)" : "#EF4444", fontWeight: 600 }),
+    microRight: { fontSize: "0.8rem", color: "rgba(255,255,255,0.35)" },
+  };
+
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', minHeight: '100vh', padding: '24px', display: 'flex', flexDirection: 'column' }}>
-      
-      {/* HEADER */}
-      <header style={{ marginBottom: '30px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <button 
-            onClick={() => stepIndex > 0 && setStepIndex(stepIndex - 1)}
+    <div style={styles.root}>
+      <div style={styles.card}>
+        <div style={styles.topRow}>
+          <button
+            onClick={goBack}
             disabled={stepIndex === 0 || loading}
-            style={{ 
-                background: 'none', border: 'none', 
-                color: stepIndex === 0 ? '#333' : 'white', 
-                cursor: stepIndex === 0 ? 'default' : 'pointer',
-                opacity: stepIndex === 0 ? 0.5 : 1,
-                display: 'flex', alignItems: 'center'
+            style={styles.backBtn(stepIndex === 0 || loading)}
+            onMouseEnter={(e) => {
+              if (stepIndex === 0 || loading) return;
+              e.currentTarget.style.transform = "translateY(-1px)";
+              e.currentTarget.style.background = "rgba(255,255,255,0.10)";
+              e.currentTarget.style.borderColor = "rgba(250,204,21,0.18)";
             }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.10)";
+            }}
+            aria-label="Volver"
           >
-            <ChevronLeft size={32} />
+            <ChevronLeft size={24} />
           </button>
-          <span style={{ 
-              color: '#FACC15', fontFamily: 'Teko, sans-serif', 
-              fontSize: '1.4rem', letterSpacing: '1px', textTransform: 'uppercase' 
-          }}>
-            COACH PRO · PASO {stepIndex + 1}/{totalSteps}
-          </span>
-        </div>
-        
-        <div style={{ height: '4px', background: '#333', borderRadius: '2px', overflow: 'hidden' }}>
-          <div style={{ 
-              width: `${progressPercent}%`, height: '100%', background: '#FACC15', 
-              boxShadow: '0 0 10px rgba(250, 204, 21, 0.6)', 
-              transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)' 
-          }} />
-        </div>
-      </header>
 
-      {/* CONTENIDO PRINCIPAL */}
-      <main style={{ flex: 1 }}>
-        <h1 style={{ 
-            fontSize: '2.5rem', lineHeight: '1', marginBottom: '10px', 
-            fontStyle: 'italic', color: 'white', textTransform: 'uppercase',
-            fontFamily: 'Teko, sans-serif'
-        }}>
-          {currentStep === "identidad" && "TU PERFIL"}
-          {currentStep === "especialidad" && "TUS PUNTOS FUERTES"}
-          {currentStep === "experiencia" && "TRAYECTORIA"}
-          {currentStep === "detalles" && "TU MARCA PERSONAL"}
-        </h1>
-        
-        <p style={{ color: '#a3a3a3', marginBottom: '30px', fontSize: '1rem' }}>
-          {currentStep === "identidad" && "Datos básicos para configurar tu ficha de entrenador."}
-          {currentStep === "especialidad" && "Selecciona todas las disciplinas que dominas."}
-          {currentStep === "experiencia" && "Define cómo trabajas y tu nivel de veteranía."}
-          {currentStep === "detalles" && "Tu formación y una biografía potente son clave para venderte."}
-        </p>
+          <div style={styles.stepPill}>
+            COACH PRO <span style={{ opacity: 0.55 }}>·</span> PASO {stepIndex + 1}
+            <span style={{ opacity: 0.55 }}>/</span> {totalSteps}
+          </div>
+        </div>
 
-        {/* PASO 1: IDENTIDAD */}
-        {currentStep === "identidad" && (
-          <div className="animate-enter">
-            <div style={{ display: 'grid', gap: '12px', marginBottom: '24px' }}>
-                <GymSelectionCard title="Hombre" icon={User} selected={data.genero === "MASCULINO"} onClick={() => setData({ ...data, genero: "MASCULINO" })} />
-                <GymSelectionCard title="Mujer" icon={User} selected={data.genero === "FEMENINO"} onClick={() => setData({ ...data, genero: "FEMENINO" })} />
-            </div>
-            <GymDateInput 
-                label="Fecha de Nacimiento" 
-                value={data.fechaNacimiento} 
+        <div style={styles.progressTrack}>
+          <div style={styles.progressFill} />
+        </div>
+
+        <div>
+          <h1 style={styles.title}>{stepMeta.title}</h1>
+          <p style={styles.subtitle}>{stepMeta.subtitle}</p>
+        </div>
+
+        <div key={animateKey} style={{ ...styles.content, ...styles.stepWrap }}>
+          {/* PASO 1 */}
+          {currentStep === "identidad" && (
+            <>
+              <div style={styles.grid2}>
+                <GymSelectionCard
+                  title="Hombre"
+                  icon={User}
+                  selected={data.genero === "MASCULINO"}
+                  onClick={() => setData({ ...data, genero: "MASCULINO" })}
+                />
+                <GymSelectionCard
+                  title="Mujer"
+                  icon={User}
+                  selected={data.genero === "FEMENINO"}
+                  onClick={() => setData({ ...data, genero: "FEMENINO" })}
+                />
+              </div>
+
+              <GymDateInput
+                label="Fecha de Nacimiento"
+                value={data.fechaNacimiento}
                 onChange={(e) => setData({ ...data, fechaNacimiento: e.target.value })}
                 maxDate={new Date(new Date().setFullYear(new Date().getFullYear() - 18))}
-            />
-            <p style={{ fontSize: '0.85rem', color: '#525252', marginTop: '-15px', fontStyle: 'italic' }}>
+              />
+
+              <p style={styles.helperLegal}>
                 * Requisito legal: Debes ser mayor de edad (+18) para ejercer.
-            </p>
-          </div>
-        )}
+              </p>
+            </>
+          )}
 
-        {/* PASO 2: ESPECIALIDAD */}
-        {currentStep === "especialidad" && (
-          <div className="animate-enter">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {especialidades.map((esp) => (
-                  <GymSelectionCard 
-                      key={esp.id} 
-                      title={esp.id} 
-                      icon={esp.icon} 
-                      selected={data.especialidad.includes(esp.id)} 
-                      onClick={() => toggleEspecialidad(esp.id)} 
+          {/* PASO 2 */}
+          {currentStep === "especialidad" && (
+            <>
+              <div style={styles.gridEspecialidades}>
+                {especialidades.map((esp) => (
+                  <GymSelectionCard
+                    key={esp.id}
+                    title={esp.id}
+                    icon={esp.icon}
+                    selected={data.especialidad.includes(esp.id)}
+                    onClick={() => toggleEspecialidad(esp.id)}
                   />
-              ))}
-            </div>
-            <p style={{ marginTop: '15px', textAlign: 'center', color: '#FACC15', fontSize: '0.9rem' }}>
-               {data.especialidad.length === 0 
-                 ? "Selecciona al menos una" 
-                 : `${data.especialidad.length} disciplina(s) seleccionada(s)`}
-            </p>
-          </div>
-        )}
+                ))}
+              </div>
 
-        {/* PASO 3: EXPERIENCIA */}
-        {currentStep === "experiencia" && (
-          <div className="animate-enter">
-            <GymInput label="Años de Experiencia" type="number" placeholder="Ej: 5" icon={Briefcase} value={data.aniosExperiencia} onChange={(e) => setData({ ...data, aniosExperiencia: e.target.value })} />
-            <label style={{ display: 'block', margin: '24px 0 12px', color: '#a1a1aa', fontSize: '0.85rem', fontWeight: '700', letterSpacing: '1px' }}>
-                MODALIDAD DE TRABAJO PREFERIDA
-            </label>
-            <div style={{ display: 'grid', gap: '12px' }}>
-                <GymSelectionCard title="Solo Online" icon={Laptop} selected={data.modalidadTrabajo === "ONLINE"} onClick={() => setData({ ...data, modalidadTrabajo: "ONLINE" })} />
-                <GymSelectionCard title="Presencial" icon={Users} selected={data.modalidadTrabajo === "PRESENCIAL"} onClick={() => setData({ ...data, modalidadTrabajo: "PRESENCIAL" })} />
-                <GymSelectionCard title="Híbrido (Ambos)" icon={Zap} selected={data.modalidadTrabajo === "HIBRIDO"} onClick={() => setData({ ...data, modalidadTrabajo: "HIBRIDO" })} />
-            </div>
-          </div>
-        )}
+              <div style={styles.countLine}>
+                {data.especialidad.length === 0
+                  ? "Selecciona al menos una"
+                  : `${data.especialidad.length} disciplina(s) seleccionada(s)`}
+              </div>
+            </>
+          )}
 
-        {/* PASO 4: DETALLES (CON DROPDOWN Y BIO) */}
-        {currentStep === "detalles" && (
-          <div className="animate-enter">
-            
-            {/* DROPDOWN DE TITULACIÓN */}
-            <div style={{ marginBottom: '30px' }}>
-                <label style={{ 
-                    display: 'block', 
-                    color: '#a1a1aa', 
-                    fontSize: '0.85rem', 
-                    fontWeight: '700', 
-                    marginBottom: '10px', 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '1px' 
-                }}>
-                    Titulación / Formación
-                </label>
+          {/* PASO 3 */}
+          {currentStep === "experiencia" && (
+            <>
+              <GymInput
+                label="Años de Experiencia"
+                type="number"
+                placeholder="Ej: 5"
+                icon={Briefcase}
+                value={data.aniosExperiencia}
+                onChange={(e) => setData({ ...data, aniosExperiencia: e.target.value })}
+              />
 
-                <div style={{ position: 'relative', width: '100%' }}>
-                    <GraduationCap 
-                        size={20} 
-                        color="#FACC15" 
-                        style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }} 
-                    />
+              <label style={styles.label}>Modalidad de trabajo preferida</label>
+              <div style={{ display: "grid", gap: 12 }}>
+                <GymSelectionCard
+                  title="Solo Online"
+                  icon={Laptop}
+                  selected={data.modalidadTrabajo === "ONLINE"}
+                  onClick={() => setData({ ...data, modalidadTrabajo: "ONLINE" })}
+                />
+                <GymSelectionCard
+                  title="Presencial"
+                  icon={Users}
+                  selected={data.modalidadTrabajo === "PRESENCIAL"}
+                  onClick={() => setData({ ...data, modalidadTrabajo: "PRESENCIAL" })}
+                />
+                <GymSelectionCard
+                  title="Híbrido (Ambos)"
+                  icon={Zap}
+                  selected={data.modalidadTrabajo === "HIBRIDO"}
+                  onClick={() => setData({ ...data, modalidadTrabajo: "HIBRIDO" })}
+                />
+              </div>
+            </>
+          )}
 
-                    <select
-                        value={data.formacion}
-                        onChange={(e) => setData({...data, formacion: e.target.value})}
-                        style={{
-                            width: '100%',
-                            padding: '16px',
-                            paddingLeft: '48px',
-                            paddingRight: '48px',
-                            backgroundColor: '#18181b',
-                            border: '1px solid #3f3f46',
-                            borderRadius: '12px',
-                            color: data.formacion ? 'white' : '#71717a',
-                            fontSize: '1rem',
-                            outline: 'none',
-                            appearance: 'none',
-                            cursor: 'pointer',
-                            fontFamily: 'Inter, sans-serif',
-                            transition: 'border-color 0.3s'
-                        }}
-                        onFocus={(e) => { e.target.style.borderColor = '#FACC15'; e.target.style.backgroundColor = '#000'; }}
-                        onBlur={(e) => { e.target.style.borderColor = '#3f3f46'; e.target.style.backgroundColor = '#18181b'; }}
-                    >
-                        <option value="" disabled>Selecciona tu formación...</option>
-                        {LISTA_TITULACIONES.map((titulo, index) => (
-                            <option key={index} value={titulo} style={{ background: '#121214', color: 'white' }}>
-                                {titulo}
-                            </option>
-                        ))}
-                    </select>
+          {/* PASO 4 */}
+          {currentStep === "detalles" && (
+            <>
+              <label style={{ ...styles.label, marginTop: 6 }}>Titulación / Formación</label>
+              <div
+                style={styles.fieldWrap}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(250,204,21,0.55)";
+                  e.currentTarget.style.boxShadow = "0 0 0 3px rgba(250,204,21,0.12)";
+                  e.currentTarget.style.background = "rgba(24,24,27,0.96)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.background = "rgba(24,24,27,0.92)";
+                }}
+              >
+                <div style={styles.selectWrap}>
+                  <span style={styles.selectIconLeft}>
+                    <GraduationCap size={20} />
+                  </span>
 
-                    <ChevronDown 
-                        size={20} 
-                        color="#FACC15" 
-                        style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} 
-                    />
+                  <select
+                    value={data.formacion}
+                    onChange={(e) => setData({ ...data, formacion: e.target.value })}
+                    style={{
+                      ...styles.select,
+                      color: data.formacion ? "white" : "rgba(255,255,255,0.45)",
+                    }}
+                  >
+                    <option value="" disabled>
+                      Selecciona tu formación...
+                    </option>
+                    {LISTA_TITULACIONES.map((titulo, index) => (
+                      <option key={index} value={titulo} style={{ background: "#121214", color: "white" }}>
+                        {titulo}
+                      </option>
+                    ))}
+                  </select>
+
+                  <span style={styles.selectIconRight}>
+                    <ChevronDown size={20} />
+                  </span>
                 </div>
-            </div>
+              </div>
 
-            <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', marginBottom: '10px', color: '#a1a1aa', fontSize: '0.85rem', fontWeight: '700', letterSpacing: '1px' }}>
-                    BIOGRAFÍA / SOBRE TI
-                </label>
-                <div style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: '16px', left: '16px', color: '#FACC15', pointerEvents: 'none' }}>
-                        <FileText size={20} />
-                    </div>
-                    <textarea
-                        rows="6"
-                        placeholder="Hola, soy especialista en hipertrofia y ayudo a..."
-                        value={data.descripcionPerfil}
-                        onChange={(e) => setData({ ...data, descripcionPerfil: e.target.value })}
-                        style={{
-                            width: '100%',
-                            padding: '16px',
-                            paddingLeft: '48px',
-                            backgroundColor: '#18181b',
-                            border: '1px solid #3f3f46',
-                            borderRadius: '12px',
-                            color: 'white',
-                            fontSize: '1rem',
-                            outline: 'none',
-                            fontFamily: 'Inter, sans-serif',
-                            resize: 'none',
-                            transition: 'border-color 0.3s'
-                        }}
-                        onFocus={(e) => { e.target.style.borderColor = '#FACC15'; e.target.style.backgroundColor = '#000'; }}
-                        onBlur={(e) => { e.target.style.borderColor = '#3f3f46'; e.target.style.backgroundColor = '#18181b'; }}
-                    />
+              <label style={styles.label}>Biografía / Sobre ti</label>
+              <div
+                style={styles.fieldWrap}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(250,204,21,0.55)";
+                  e.currentTarget.style.boxShadow = "0 0 0 3px rgba(250,204,21,0.12)";
+                  e.currentTarget.style.background = "rgba(24,24,27,0.96)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.background = "rgba(24,24,27,0.92)";
+                }}
+              >
+                <div style={styles.textareaWrap}>
+                  <span style={styles.textareaIcon}>
+                    <FileText size={20} />
+                  </span>
+
+                  <textarea
+                    rows={6}
+                    placeholder="Hola, soy especialista en hipertrofia y ayudo a..."
+                    value={data.descripcionPerfil}
+                    onChange={(e) => setData({ ...data, descripcionPerfil: e.target.value })}
+                    style={styles.textarea}
+                  />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-                    <span style={{ fontSize: '0.8rem', color: data.descripcionPerfil.length < 15 ? '#EF4444' : '#a1a1aa' }}>
-                        {data.descripcionPerfil.length < 15 ? "Mínimo 15 caracteres" : "¡Perfecto!"}
-                    </span>
-                    <span style={{ fontSize: '0.8rem', color: '#525252' }}>{data.descripcionPerfil.length} caracteres</span>
-                </div>
-            </div>
-          </div>
-        )}
+              </div>
 
-      </main>
+              <div style={styles.rowBetween}>
+                <span style={styles.micro(data.descripcionPerfil.length >= 15)}>
+                  {data.descripcionPerfil.length < 15 ? "Mínimo 15 caracteres" : "¡Perfecto!"}
+                </span>
+                <span style={styles.microRight}>{data.descripcionPerfil.length} caracteres</span>
+              </div>
+            </>
+          )}
+        </div>
 
-      <footer style={{ marginTop: '20px' }}>
         <GymButton fullWidth disabled={!isStepValid() || loading} onClick={handleNext}>
           {loading ? "GUARDANDO..." : (stepIndex === totalSteps - 1 ? "FINALIZAR ALTA" : "SIGUIENTE")}
           {!loading && <Check size={20} />}
         </GymButton>
-      </footer>
+
+        <div style={styles.hint}>
+          {stepIndex < totalSteps - 1 ? "Completa este paso para continuar." : "Revisa tu perfil antes de finalizar."}
+        </div>
+
+        <style>{`
+          @keyframes nfFadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
+      </div>
     </div>
   );
 }

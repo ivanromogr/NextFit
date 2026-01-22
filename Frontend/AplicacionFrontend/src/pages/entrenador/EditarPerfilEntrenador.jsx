@@ -1,34 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntrenador, actualizarEntrenador } from '../../api/endpoints';
-import { User, Save, ChevronLeft, Camera, CheckCircle, AlertCircle, Briefcase, Mail, AlignLeft } from 'lucide-react';
+import {
+  User,
+  ChevronLeft,
+  Camera,
+  CheckCircle,
+  AlertCircle,
+  Briefcase,
+  Mail,
+  AlignLeft,
+  Lock,
+} from 'lucide-react';
+
+// ✅ Reutilizamos tu design system
+import GymButton from '../../components/ui/GymButton';
+import GymInput from '../../components/ui/GymInput';
+import GymSelectionCard from '../../components/ui/GymSelectionCard';
 
 const EditarPerfilEntrenador = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  
-  // Estado del formulario
-  const [form, setForm] = useState({ 
-    nombre: '', 
-    apellido: '', 
-    email: '', 
-    // Ahora soportamos múltiples especialidades
-    especialidad: [], 
-    aniosExperiencia: '', 
-    formacion: '', 
-    descripcionPerfil: '', 
-    modalidadTrabajo: '', 
-    genero: '', 
-    fotoPerfil: '', 
-    contraseña: '' 
+
+  const [form, setForm] = useState({
+    nombre: '',
+    apellido: '',
+    email: '',
+    especialidad: [],
+    aniosExperiencia: '',
+    formacion: '',
+    descripcionPerfil: '',
+    modalidadTrabajo: '',
+    genero: '',
+    fotoPerfil: '',
+    contraseña: ''
   });
 
-  // Guardamos una copia con los valores originales para detectar cambios
   const [originalForm, setOriginalForm] = useState(null);
-
   const [saving, setSaving] = useState(false);
-  
-  // ✅ Estado para Toast (Notificaciones)
+
+  // ✅ Toast
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const LISTA_TITULACIONES = [
@@ -47,61 +58,68 @@ const EditarPerfilEntrenador = () => {
   ];
 
   const LISTA_ESPECIALIDADES = [
-    "Fuerza", "Hipertrofia", "Pérdida de Peso", "CrossFit", 
+    "Fuerza", "Hipertrofia", "Pérdida de Peso", "CrossFit",
     "Cardio", "Movilidad", "Rehabilitación", "Funcional", "Calistenia"
   ];
 
-  // Lista visible que incluye opciones canónicas + cualquier especialidad adicional encontrada en el perfil
   const [visibleEspecialidades, setVisibleEspecialidades] = useState(LISTA_ESPECIALIDADES);
 
   useEffect(() => {
     const fetch = async () => {
       const id = localStorage.getItem('entrenadorId');
       if (!id) return navigate('/auth/login');
+
       try {
         const data = await getEntrenador(id);
-        // Inicializamos el formulario con los valores actuales
+
         const normalized = {
           nombre: data.nombre || '',
           apellido: data.apellido || '',
           email: data.email || '',
-          // Convertimos la cadena a array si viene como 'A, B' y la normalizamos a las opciones canónicas
           especialidad: (() => {
-            const raw = data.especialidad ? data.especialidad.split(',').map(s => s.trim()).filter(Boolean) : [];
-            const normalize = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+            const raw = data.especialidad
+              ? data.especialidad.split(',').map(s => s.trim()).filter(Boolean)
+              : [];
+
+            const normalize = s =>
+              s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+
             const mapped = raw.flatMap(r => {
               if (!r) return [];
-              // separamos por '/', '|', '-', '\\' para tokens como 'HIIT / Funcional' o 'Yoga / Pilates'
               const parts = r.split(/[/|\\-]/).map(p => p.trim()).filter(Boolean);
               const results = [];
+
               parts.forEach(part => {
-                // intentamos match exacto normalizado
                 let match = LISTA_ESPECIALIDADES.find(opt => normalize(opt) === normalize(part));
                 if (!match) {
-                  // intento por inclusión (p.ej. 'HIIT / Funcional' -> 'Funcional')
-                  match = LISTA_ESPECIALIDADES.find(opt => normalize(part).includes(normalize(opt)) || normalize(opt).includes(normalize(part)));
+                  match = LISTA_ESPECIALIDADES.find(opt =>
+                    normalize(part).includes(normalize(opt)) || normalize(opt).includes(normalize(part))
+                  );
                 }
                 if (!match) {
-                  // intento por token (palabras sueltas)
                   match = LISTA_ESPECIALIDADES.find(opt => {
                     const optTokens = normalize(opt).split(' ');
                     return optTokens.some(tok => normalize(part).includes(tok));
                   });
                 }
-                if (match) results.push(match);
-                else results.push(part);
+                results.push(match || part);
               });
+
               return results;
-            }).filter((v,i,a)=>v && a.indexOf(v)===i);
-            console.debug('Especialidades (raw -> mapped):', raw, mapped);
-            // Añadimos cualquier especialidad extra que no esté en la lista canónica para que se muestre marcada
-            const extras = mapped.filter(m => !LISTA_ESPECIALIDADES.some(opt => opt.toLowerCase() === m.toLowerCase()));
+            }).filter((v, i, a) => v && a.indexOf(v) === i);
+
+            // extras visibles
+            const extras = mapped.filter(m =>
+              !LISTA_ESPECIALIDADES.some(opt => opt.toLowerCase() === String(m).toLowerCase())
+            );
+
             if (extras.length > 0) {
               setVisibleEspecialidades(prev => {
-                const newOnes = extras.filter(e => !prev.some(p => p.toLowerCase() === e.toLowerCase()));
+                const newOnes = extras.filter(e => !prev.some(p => p.toLowerCase() === String(e).toLowerCase()));
                 return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
               });
             }
+
             return mapped;
           })(),
           aniosExperiencia: data.aniosExperiencia != null ? String(data.aniosExperiencia) : '',
@@ -112,26 +130,30 @@ const EditarPerfilEntrenador = () => {
           fotoPerfil: data.fotoPerfil || '',
           contraseña: ''
         };
+
         setForm(normalized);
         setOriginalForm(normalized);
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      }
+
       setLoading(false);
     };
+
     fetch();
   }, [navigate]);
 
   const handleChange = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
-  // Permite activar/desactivar una especialidad en el array
   const toggleEspecialidad = (esp) => {
     setForm(prev => {
       const current = Array.isArray(prev.especialidad) ? prev.especialidad : [];
-      if (current.includes(esp)) return { ...prev, especialidad: current.filter(e => e !== esp) };
+      const exists = current.some(e => String(e).toLowerCase() === String(esp).toLowerCase());
+      if (exists) return { ...prev, especialidad: current.filter(e => String(e).toLowerCase() !== String(esp).toLowerCase()) };
       return { ...prev, especialidad: [...current, esp] };
     });
   };
 
-  // --- HELPER TOAST ---
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
@@ -140,33 +162,31 @@ const EditarPerfilEntrenador = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    
+
     try {
       const id = localStorage.getItem('entrenadorId');
 
-      // Construimos payload con SOLO los campos que cambiaron (o se borraron explícitamente)
+      // Payload sólo cambios
       const payload = {};
       Object.keys(form).forEach((k) => {
-        // Password: sólo enviarla si se escribió algo
         if (k === 'contraseña') {
           if (form.contraseña && form.contraseña.trim() !== '') payload.contraseña = form.contraseña;
           return;
         }
 
-        // Especialidad: comparamos y enviamos como string joinado
         if (k === 'especialidad') {
           const curr = Array.isArray(form.especialidad) ? form.especialidad.join(', ') : (form.especialidad || '');
-          const orig = originalForm && Array.isArray(originalForm.especialidad) ? originalForm.especialidad.join(', ') : (originalForm ? (originalForm.especialidad || '') : '');
+          const orig = originalForm && Array.isArray(originalForm.especialidad)
+            ? originalForm.especialidad.join(', ')
+            : (originalForm ? (originalForm.especialidad || '') : '');
           if (curr !== orig) payload.especialidad = curr;
           return;
         }
 
         const orig = originalForm ? (originalForm[k] !== undefined ? originalForm[k] : '') : '';
         if (form[k] !== orig) {
-          // Campos numéricos: convertir a número o null si vacío
           if (k === 'aniosExperiencia' || k === 'edad') {
-            if (form[k] === '' || form[k] === null) payload[k] = null;
-            else payload[k] = Number(form[k]);
+            payload[k] = (form[k] === '' || form[k] === null) ? null : Number(form[k]);
           } else {
             payload[k] = form[k];
           }
@@ -182,7 +202,6 @@ const EditarPerfilEntrenador = () => {
       await actualizarEntrenador(id, payload);
       showToast('Perfil actualizado correctamente', 'success');
 
-      // Actualizamos originalForm para reflejar lo guardado (mantenemos especialidad como array)
       setOriginalForm(prev => {
         const merged = { ...(prev || {}), ...payload };
         if (merged.especialidad && typeof merged.especialidad === 'string') {
@@ -195,225 +214,434 @@ const EditarPerfilEntrenador = () => {
     } catch (err) {
       console.error(err);
       showToast('Error al actualizar el perfil', 'error');
-    } finally { 
-      setSaving(false); 
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading) return <div style={{height: '100vh', background: '#050505', display:'flex', justifyContent:'center', alignItems:'center', color:'#666'}}>Cargando datos...</div>;
+  if (loading) {
+    return (
+      <div style={{
+        height: '100vh',
+        background: '#09090b',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        color: 'rgba(255,255,255,0.55)',
+        fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif'
+      }}>
+        Cargando datos...
+      </div>
+    );
+  }
 
-  // --- ESTILOS TITÁN ---
   const styles = {
-    container: { minHeight: '100vh', background: '#050505', color: 'white', fontFamily: "'Inter', sans-serif", paddingBottom: '50px' },
-    
-    // Header
-    header: { 
-        position: 'sticky', top: 0, zIndex: 50, 
-        background: 'rgba(5, 5, 5, 0.95)', backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid #1a1a1a', padding: '20px 40px', 
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+    container: {
+      minHeight: '100vh',
+      background: '#09090b',
+      color: 'white',
+      fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+      paddingBottom: '60px'
     },
-    backBtn: { background: 'transparent', border: '1px solid #333', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize:'0.85rem', fontWeight:'700', padding:'10px 20px', borderRadius:'10px', transition:'all 0.2s' },
-    saveBtn: { background: '#FACC15', color: 'black', border: 'none', padding: '12px 30px', borderRadius: '10px', fontWeight: '900', cursor: 'pointer', display:'flex', alignItems:'center', gap:'10px', textTransform:'uppercase', letterSpacing:'1px', boxShadow:'0 0 25px rgba(250, 204, 21, 0.2)' },
 
-    content: { maxWidth: '1000px', margin: '40px auto', padding: '0 20px' },
-    
-    mainCard: { background: '#0a0a0a', border: '1px solid #222', borderRadius: '24px', padding: '40px', position: 'relative', overflow:'hidden' },
-    
-    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'white', marginBottom: '20px', display:'flex', alignItems:'center', gap:'10px', textTransform:'uppercase', letterSpacing:'1px' },
-    
-    // Grid System
-    grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' },
-    grid1: { display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '20px' },
+    header: {
+      position: 'sticky',
+      top: 0,
+      zIndex: 50,
+      background: 'rgba(9, 9, 11, 0.92)',
+      backdropFilter: 'blur(10px)',
+      borderBottom: '1px solid rgba(255,255,255,0.08)',
+      padding: '18px 24px',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: '12px'
+    },
 
-    // Inputs
-    inputGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
-    label: { fontSize: '0.75rem', color: '#666', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' },
-    input: { background: '#121212', border: '1px solid #333', color: 'white', padding: '14px', borderRadius: '12px', outline: 'none', fontSize: '0.95rem', transition: 'border 0.2s', width: '100%' },
-    textarea: { background: '#121212', border: '1px solid #333', color: 'white', padding: '14px', borderRadius: '12px', outline: 'none', fontSize: '0.95rem', transition: 'border 0.2s', width: '100%', minHeight: '120px', resize: 'vertical', fontFamily: "'Inter', sans-serif" },
+    headerTitle: {
+      color: 'rgba(255,255,255,0.55)',
+      fontWeight: 900,
+      fontSize: '0.8rem',
+      letterSpacing: '2px',
+      textTransform: 'uppercase',
+      whiteSpace: 'nowrap'
+    },
 
-    // Foto Section
-    photoSection: { display: 'flex', alignItems: 'center', gap: '25px', marginBottom: '40px', padding: '20px', background: '#111', borderRadius: '16px', border: '1px solid #222' },
-    avatarBox: { width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', background: '#1a1a1a', border: '2px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-    
-    // Toast
+    content: { maxWidth: '1040px', margin: '34px auto', padding: '0 18px' },
+
+    mainCard: {
+      background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)',
+      border: '1px solid rgba(255,255,255,0.10)',
+      borderRadius: '24px',
+      padding: '34px',
+      boxShadow: '0 18px 60px rgba(0,0,0,0.55)'
+    },
+
+    sectionTitle: {
+      fontSize: '0.9rem',
+      fontWeight: 900,
+      color: 'white',
+      margin: '22px 0 14px 0',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      textTransform: 'uppercase',
+      letterSpacing: '1px'
+    },
+
+    grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' },
+    grid1: { display: 'grid', gridTemplateColumns: '1fr', gap: '14px' },
+
+    divider: { height: 1, background: 'rgba(255,255,255,0.08)', margin: '22px 0' },
+
+    photoSection: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '20px',
+      marginBottom: '20px',
+      padding: '18px',
+      background: 'rgba(0,0,0,0.25)',
+      borderRadius: '18px',
+      border: '1px solid rgba(255,255,255,0.08)'
+    },
+
+    avatarBox: {
+      width: '92px',
+      height: '92px',
+      borderRadius: '18px',
+      overflow: 'hidden',
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.10)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+
+    helper: { margin: '6px 0 0 0', fontSize: '0.9rem', color: 'rgba(255,255,255,0.55)' },
+
+    // Select/textarea estilo consistente sin crear componentes nuevos
+    fieldLabel: {
+      display: 'block',
+      marginBottom: '10px',
+      color: 'rgba(255,255,255,0.55)',
+      fontSize: '0.82rem',
+      fontWeight: 800,
+      letterSpacing: '0.9px',
+      textTransform: 'uppercase',
+    },
+
+    select: {
+      width: '100%',
+      padding: '14px 14px',
+      backgroundColor: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.10)',
+      borderRadius: '14px',
+      color: '#ffffff',
+      fontSize: '1rem',
+      outline: 'none',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease',
+      fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+    },
+
+    textareaWrap: { position: 'relative' },
+    textareaIcon: { position: 'absolute', left: 14, top: 14, color: '#FACC15', pointerEvents: 'none' },
+
+    textarea: {
+      width: '100%',
+      padding: '14px 14px',
+      paddingLeft: '46px',
+      backgroundColor: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.10)',
+      borderRadius: '14px',
+      color: '#ffffff',
+      fontSize: '1rem',
+      outline: 'none',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease',
+      minHeight: '120px',
+      resize: 'vertical',
+      fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+    },
+
     toast: {
-        position: 'fixed', top: '100px', right: '40px', zIndex: 9999,
-        background: toast.type === 'success' ? '#18181b' : '#18181b',
-        border: `1px solid ${toast.type === 'success' ? '#10B981' : '#EF4444'}`,
-        padding: '16px 24px', borderRadius: '50px',
-        display: 'flex', alignItems: 'center', gap: '12px',
-        color: 'white', fontWeight: '600', fontSize: '0.9rem',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-        transform: toast.show ? 'translateX(0)' : 'translateX(100px)',
-        opacity: toast.show ? 1 : 0,
-        transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-        pointerEvents: 'none'
+      position: 'fixed',
+      top: '96px',
+      right: '18px',
+      zIndex: 9999,
+      background: '#18181b',
+      border: `1px solid ${toast.type === 'success' ? '#10B981' : '#EF4444'}`,
+      padding: '14px 18px',
+      borderRadius: '999px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      color: 'white',
+      fontWeight: 700,
+      fontSize: '0.92rem',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+      transform: toast.show ? 'translateX(0)' : 'translateX(120px)',
+      opacity: toast.show ? 1 : 0,
+      transition: 'all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+      pointerEvents: 'none'
     },
+
+    especGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+      gap: '12px'
+    },
+
+    dangerHint: {
+      marginTop: 8,
+      color: 'rgba(255,255,255,0.45)',
+      fontSize: '0.9rem'
+    }
   };
 
   return (
     <div style={styles.container}>
-        
-        {/* TOAST */}
-        <div style={styles.toast}>
-            {toast.type === 'success' ? <CheckCircle size={20} color="#10B981"/> : <AlertCircle size={20} color="#EF4444"/>}
-            {toast.message}
-        </div>
+      {/* TOAST */}
+      <div style={styles.toast}>
+        {toast.type === 'success'
+          ? <CheckCircle size={18} color="#10B981" />
+          : <AlertCircle size={18} color="#EF4444" />
+        }
+        {toast.message}
+      </div>
 
-        {/* HEADER */}
-        <div style={styles.header}>
-            <button style={styles.backBtn} onClick={() => navigate('/entrenador/dashboard')} onMouseEnter={e => e.currentTarget.style.color = 'white'} onMouseLeave={e => e.currentTarget.style.color = '#ccc'}>
-                <ChevronLeft size={18}/> CANCELAR
-            </button>
-            <div style={{color:'#666', fontWeight:'800', fontSize:'0.8rem', letterSpacing:'2px', textTransform:'uppercase'}}>PERFIL PROFESIONAL</div>
-            <button style={styles.saveBtn} onClick={handleSubmit} disabled={saving}>
-                {saving ? 'GUARDANDO...' : <><Save size={20}/> GUARDAR CAMBIOS</>}
-            </button>
-        </div>
+      {/* HEADER */}
+      <div style={styles.header}>
+        <GymButton
+          variant="secondary"
+          onClick={() => navigate('/entrenador/dashboard')}
+        >
+          <ChevronLeft size={18} /> Cancelar
+        </GymButton>
 
-        <div style={styles.content}>
-            <div style={styles.mainCard}>
-                
-                {/* SECCIÓN FOTO */}
-                <div style={styles.photoSection}>
-                    <div style={styles.avatarBox}>
-                        {form.fotoPerfil ? <img src={form.fotoPerfil} alt="avatar" style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <User size={40} color="#555"/>}
-                    </div>
-                    <div style={{flex: 1}}>
-                        <h3 style={{margin:'0 0 5px 0', fontSize:'1.1rem', fontWeight:'700'}}>Foto de Perfil</h3>
-                        <p style={{margin:'0 0 15px 0', fontSize:'0.85rem', color:'#666'}}>Se mostrará a tus atletas en su panel.</p>
-                        <div style={styles.inputGroup}>
-                            <div style={{position:'relative'}}>
-                                <Camera size={18} color="#666" style={{position:'absolute', left:'14px', top:'14px'}}/>
-                                <input 
-                                    style={{...styles.input, paddingLeft:'45px'}} 
-                                    placeholder="Pegar URL de la imagen (https://...)" 
-                                    value={form.fotoPerfil} 
-                                    onChange={e => handleChange('fotoPerfil', e.target.value)} 
-                                    onFocus={e => e.target.style.borderColor = '#FACC15'} 
-                                    onBlur={e => e.target.style.borderColor = '#333'}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div style={styles.headerTitle}>Perfil profesional</div>
 
-                {/* SECCIÓN PERSONAL */}
-                <div style={styles.sectionTitle}><User size={20} color="#FACC15"/> Datos Personales</div>
-                <div style={styles.grid2}>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Nombre</label>
-                        <input style={styles.input} placeholder="Tu nombre" value={form.nombre} onChange={e => handleChange('nombre', e.target.value)} onFocus={e => e.target.style.borderColor = '#FACC15'} onBlur={e => e.target.style.borderColor = '#333'}/>
-                    </div>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Apellido</label>
-                        <input style={styles.input} placeholder="Tu apellido" value={form.apellido} onChange={e => handleChange('apellido', e.target.value)} onFocus={e => e.target.style.borderColor = '#FACC15'} onBlur={e => e.target.style.borderColor = '#333'}/>
-                    </div>
-                </div>
-                <div style={styles.grid1}>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Correo Electrónico</label>
-                        <div style={{position:'relative'}}>
-                            <Mail size={18} color="#666" style={{position:'absolute', left:'14px', top:'14px'}}/>
-                            <input style={{...styles.input, paddingLeft:'45px'}} placeholder="email@ejemplo.com" value={form.email} onChange={e => handleChange('email', e.target.value)} onFocus={e => e.target.style.borderColor = '#FACC15'} onBlur={e => e.target.style.borderColor = '#333'}/>
-                        </div>
-                    </div>
-                </div>
+        {/* ✅ Submit real + loading */}
+        <GymButton type="submit" loading={saving} onClick={handleSubmit}>
+          Guardar cambios
+        </GymButton>
+      </div>
 
-                <div style={{height:'30px'}}></div>
+      <div style={styles.content}>
+        <form onSubmit={handleSubmit}>
+          <div style={styles.mainCard}>
+            {/* FOTO */}
+            <div style={styles.photoSection}>
+              <div style={styles.avatarBox}>
+                {form.fotoPerfil
+                  ? <img src={form.fotoPerfil} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <User size={34} color="rgba(255,255,255,0.35)" />
+                }
+              </div>
 
-                {/* SECCIÓN PROFESIONAL */}
-                <div style={styles.sectionTitle}><Briefcase size={20} color="#FACC15"/> Perfil Profesional</div>
-                
-                <div style={styles.grid2}>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Especialidades</label>
-                        <div style={{display:'flex', flexWrap:'wrap', gap:'10px'}}>
-                            {visibleEspecialidades.map(opt => {
-                                const selected = Array.isArray(form.especialidad) && form.especialidad.some(e => e.toLowerCase() === opt.toLowerCase());
-                                return (
-                                    <label key={opt} style={{display:'flex', alignItems:'center', gap:'8px', background: selected ? '#0f1720' : 'transparent', border: '1px solid #333', padding: '8px 12px', borderRadius: '12px', cursor: 'pointer'}}>
-                                        <input type="checkbox" checked={selected} onChange={() => toggleEspecialidad(opt)} />
-                                        <span style={{fontSize:'0.9rem', color:'#ccc'}}>{opt}</span>
-                                    </label>
-                                );
-                            })}
-                        </div>
-                        <div style={{marginTop:'8px', fontSize:'0.85rem', color:'#666'}}>{Array.isArray(form.especialidad) && form.especialidad.length > 0 ? form.especialidad.join(', ') : 'Selecciona tus especialidades...'}</div>
-                    </div>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Años de Experiencia</label>
-                        <input type="number" style={styles.input} placeholder="Ej: 5" value={form.aniosExperiencia} onChange={e => handleChange('aniosExperiencia', e.target.value)} onFocus={e => e.target.style.borderColor = '#FACC15'} onBlur={e => e.target.style.borderColor = '#333'}/>
-                    </div>
-                </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 900, fontSize: '1.05rem' }}>Foto de perfil</div>
+                <p style={styles.helper}>Se mostrará a tus atletas en su panel.</p>
 
-                <div style={styles.grid1}>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Formación / Titulación</label>
-                        <select style={styles.input} value={form.formacion || ''} onChange={e => handleChange('formacion', e.target.value)} onFocus={e => e.target.style.borderColor = '#FACC15'} onBlur={e => e.target.style.borderColor = '#333'}>
-                            <option value="">Selecciona tu titulación...</option>
-                            {LISTA_TITULACIONES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                    </div>
-                </div>
-
-                <div style={styles.grid2}>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Modalidad de Trabajo</label>
-                        <select style={styles.input} value={form.modalidadTrabajo || ''} onChange={e => handleChange('modalidadTrabajo', e.target.value)} onFocus={e => e.target.style.borderColor = '#FACC15'} onBlur={e => e.target.style.borderColor = '#333'}>
-                            <option value="ONLINE">100% Online</option>
-                            <option value="PRESENCIAL">Presencial</option>
-                            <option value="MIXTO">Híbrido / Mixto</option>
-                        </select>
-                    </div>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Género</label>
-                        <select style={styles.input} value={form.genero || ''} onChange={e => handleChange('genero', e.target.value)} onFocus={e => e.target.style.borderColor = '#FACC15'} onBlur={e => e.target.style.borderColor = '#333'}>
-                            <option value="">Selecciona...</option>
-                            <option value="MASCULINO">Masculino</option>
-                            <option value="FEMENINO">Femenino</option>
-                            <option value="NO_DECIR">Prefiero no decirlo</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div style={styles.grid1}>
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Biografía Pública</label>
-                        <div style={{position:'relative'}}>
-                            <AlignLeft size={18} color="#666" style={{position:'absolute', left:'14px', top:'14px'}}/>
-                            <textarea 
-                                style={{...styles.textarea, paddingLeft:'45px'}} 
-                                placeholder="Describe tu metodología, logros o filosofía de entrenamiento..." 
-                                value={form.descripcionPerfil} 
-                                onChange={e => handleChange('descripcionPerfil', e.target.value)} 
-                                onFocus={e => e.target.style.borderColor = '#FACC15'} 
-                                onBlur={e => e.target.style.borderColor = '#333'}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div style={{height:'30px', borderTop:'1px solid #222', margin:'20px 0'}}></div>
-
-                {/* SEGURIDAD */}
-                <div style={styles.sectionTitle}><User size={20} color="#ef4444"/> Seguridad</div>
-                <div style={styles.inputGroup}>
-                    <label style={styles.label}>Cambiar Contraseña</label>
-                    <input 
-                        type="password" 
-                        style={styles.input} 
-                        placeholder="Escribe para cambiar (déjalo vacío para mantener la actual)" 
-                        value={form.contraseña} 
-                        onChange={e => handleChange('contraseña', e.target.value)} 
-                        onFocus={e => e.target.style.borderColor = '#ef4444'} 
-                        onBlur={e => e.target.style.borderColor = '#333'}
-                    />
-                </div>
-
+                <GymInput
+                  label="URL de la imagen"
+                  placeholder="https://..."
+                  icon={Camera}
+                  value={form.fotoPerfil}
+                  onChange={(e) => handleChange('fotoPerfil', e.target.value)}
+                />
+              </div>
             </div>
-        </div>
+
+            {/* DATOS PERSONALES */}
+            <div style={styles.sectionTitle}><User size={18} color="#FACC15" /> Datos personales</div>
+
+            <div style={styles.grid2}>
+              <GymInput
+                label="Nombre"
+                placeholder="Tu nombre"
+                value={form.nombre}
+                onChange={(e) => handleChange('nombre', e.target.value)}
+                autoComplete="given-name"
+              />
+              <GymInput
+                label="Apellido"
+                placeholder="Tu apellido"
+                value={form.apellido}
+                onChange={(e) => handleChange('apellido', e.target.value)}
+                autoComplete="family-name"
+              />
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <GymInput
+                label="Correo electrónico"
+                placeholder="email@ejemplo.com"
+                icon={Mail}
+                value={form.email}
+                onChange={(e) => handleChange('email', e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+
+            <div style={styles.divider} />
+
+            {/* PERFIL PROFESIONAL */}
+            <div style={styles.sectionTitle}><Briefcase size={18} color="#FACC15" /> Perfil profesional</div>
+
+            <div style={{ marginBottom: 12, color: 'rgba(255,255,255,0.55)', fontSize: '0.92rem' }}>
+              Selecciona tus especialidades (puedes marcar varias).
+            </div>
+
+            {/* ✅ Especialidades con GymSelectionCard */}
+            <div style={styles.especGrid}>
+              {visibleEspecialidades.map(opt => {
+                const selected = Array.isArray(form.especialidad) &&
+                  form.especialidad.some(e => String(e).toLowerCase() === String(opt).toLowerCase());
+
+                return (
+                  <GymSelectionCard
+                    key={opt}
+                    title={opt}
+                    selected={selected}
+                    onClick={() => toggleEspecialidad(opt)}
+                  />
+                );
+              })}
+            </div>
+
+            <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.45)', fontSize: '0.88rem' }}>
+              {Array.isArray(form.especialidad) && form.especialidad.length > 0
+                ? `Seleccionadas: ${form.especialidad.join(', ')}`
+                : 'Selecciona tus especialidades...'
+              }
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <GymInput
+                label="Años de experiencia"
+                type="number"
+                placeholder="Ej: 5"
+                value={form.aniosExperiencia}
+                onChange={(e) => handleChange('aniosExperiencia', e.target.value)}
+                suffix="años"
+              />
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <label style={styles.fieldLabel}>Formación / Titulación</label>
+              <select
+                style={styles.select}
+                value={form.formacion || ''}
+                onChange={(e) => handleChange('formacion', e.target.value)}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(250,204,21,0.55)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(250,204,21,0.18)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                }}
+              >
+                <option value="">Selecciona tu titulación...</option>
+                {LISTA_TITULACIONES.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginTop: 14, ...styles.grid2 }}>
+              <div>
+                <label style={styles.fieldLabel}>Modalidad de trabajo</label>
+                <select
+                  style={styles.select}
+                  value={form.modalidadTrabajo || ''}
+                  onChange={(e) => handleChange('modalidadTrabajo', e.target.value)}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(250,204,21,0.55)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(250,204,21,0.18)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                  }}
+                >
+                  <option value="ONLINE">100% Online</option>
+                  <option value="PRESENCIAL">Presencial</option>
+                  <option value="MIXTO">Híbrido / Mixto</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={styles.fieldLabel}>Género</label>
+                <select
+                  style={styles.select}
+                  value={form.genero || ''}
+                  onChange={(e) => handleChange('genero', e.target.value)}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(250,204,21,0.55)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(250,204,21,0.18)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                  }}
+                >
+                  <option value="">Selecciona...</option>
+                  <option value="MASCULINO">Masculino</option>
+                  <option value="FEMENINO">Femenino</option>
+                  <option value="NO_DECIR">Prefiero no decirlo</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <label style={styles.fieldLabel}>Biografía pública</label>
+              <div style={styles.textareaWrap}>
+                <AlignLeft size={18} style={styles.textareaIcon} />
+                <textarea
+                  style={styles.textarea}
+                  placeholder="Describe tu metodología, logros o filosofía de entrenamiento..."
+                  value={form.descripcionPerfil}
+                  onChange={(e) => handleChange('descripcionPerfil', e.target.value)}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(250,204,21,0.55)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(250,204,21,0.18)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={styles.divider} />
+
+            {/* SEGURIDAD */}
+            <div style={styles.sectionTitle}><Lock size={18} color="#EF4444" /> Seguridad</div>
+
+            <GymInput
+              label="Cambiar contraseña"
+              type="password"
+              placeholder="Déjalo vacío para mantener la actual"
+              icon={Lock}
+              value={form.contraseña}
+              onChange={(e) => handleChange('contraseña', e.target.value)}
+              autoComplete="new-password"
+            />
+            <div style={styles.dangerHint}>
+              La contraseña solo se enviará si escribes algo.
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

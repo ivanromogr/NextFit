@@ -41,7 +41,7 @@ public class DetalleRutina {
     // Usamos Float e Integer (objetos) para permitir nulos si fuera necesario
     private Float peso; 
     private Integer rpe; // Rating of Perceived Exertion (1-10)
-
+    private int dias;
     public DetalleRutina() {}
 
     // Getters y Setters
@@ -69,4 +69,12 @@ public class DetalleRutina {
 
     public Integer getRpe() { return rpe; }
     public void setRpe(Integer rpe) { this.rpe = rpe; }
+
+    public int getDias() {
+        return dias;
+    }
+
+    public void setDias(int dias) {
+        this.dias = dias;
+    }
 }

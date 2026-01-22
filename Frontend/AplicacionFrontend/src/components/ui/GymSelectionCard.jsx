@@ -1,4 +1,3 @@
-// src/components/ui/GymSelectionCard.jsx
 import React from 'react';
 import { Check } from "lucide-react";
 
@@ -7,46 +6,76 @@ export default function GymSelectionCard({ title, icon: Icon, selected, onClick 
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '20px',
+    padding: '16px 18px',
     marginBottom: '12px',
-    borderRadius: '12px',
+    borderRadius: '16px',
     cursor: 'pointer',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'transform 0.12s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease',
     position: 'relative',
     overflow: 'hidden',
-    
-    // Estados visuales
-    backgroundColor: selected ? '#FACC15' : '#18181b',
-    border: selected ? '2px solid #FACC15' : '1px solid #333',
-    color: selected ? '#000000' : '#ffffff',
-    
-    // Sombra brillante si está activo
-    boxShadow: selected ? '0 0 20px rgba(250, 204, 21, 0.4)' : 'none',
-    transform: selected ? 'scale(1.02)' : 'scale(1)'
+    background: selected ? 'rgba(250,204,21,0.10)' : 'rgba(255,255,255,0.03)',
+    border: `1px solid ${selected ? 'rgba(250,204,21,0.55)' : 'rgba(255,255,255,0.10)'}`,
+    color: selected ? '#FFFFFF' : '#FFFFFF',
+    boxShadow: selected ? '0 12px 30px rgba(250,204,21,0.12)' : 'none',
+    outline: 'none',
+    userSelect: 'none',
+  };
+
+  const handleKeyDown = (e) => {
+    if (!onClick) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
   };
 
   return (
-    <div style={style} onClick={onClick}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-        {Icon && <Icon size={24} strokeWidth={selected ? 2.5 : 1.5} />}
-        <span style={{ 
-          fontWeight: selected ? '800' : '500', 
-          fontSize: '1rem', 
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
+    <div
+      style={style}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.borderColor = selected ? 'rgba(250,204,21,0.70)' : 'rgba(255,255,255,0.16)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.borderColor = selected ? 'rgba(250,204,21,0.55)' : 'rgba(255,255,255,0.10)';
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.boxShadow = selected
+          ? '0 0 0 3px rgba(250,204,21,0.22), 0 12px 30px rgba(250,204,21,0.12)'
+          : '0 0 0 3px rgba(250,204,21,0.18)';
+        e.currentTarget.style.borderColor = 'rgba(250,204,21,0.55)';
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.boxShadow = selected ? '0 12px 30px rgba(250,204,21,0.12)' : 'none';
+        e.currentTarget.style.borderColor = selected ? 'rgba(250,204,21,0.55)' : 'rgba(255,255,255,0.10)';
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        {Icon && <Icon size={22} strokeWidth={selected ? 2.2 : 1.6} color={selected ? '#FACC15' : 'rgba(255,255,255,0.70)'} />}
+        <span style={{ fontWeight: selected ? 900 : 650, fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.6px', color: selected ? '#FFFFFF' : 'rgba(255,255,255,0.78)' }}>
           {title}
         </span>
       </div>
-      
-      {/* Icono de Check solo si está seleccionado */}
+
       {selected && (
-        <div style={{ 
-          background: 'rgba(0,0,0,0.1)', 
-          borderRadius: '50%', 
-          padding: '4px' 
-        }}>
-          <Check size={20} strokeWidth={3} />
+        <div
+          style={{
+            background: 'rgba(250,204,21,0.18)',
+            border: '1px solid rgba(250,204,21,0.35)',
+            borderRadius: '999px',
+            padding: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          aria-label="Seleccionado"
+        >
+          <Check size={18} strokeWidth={3} color="#FACC15" />
         </div>
       )}
     </div>
