@@ -23,12 +23,14 @@ import SesionEntrenamiento from "./pages/cliente/SesionEntrenamiento";
 import EditarRutina from "./pages/cliente/EditarRutina";
 import EditarPerfil from "./pages/cliente/EditarPerfil";
 import ProgresoCliente from "./pages/cliente/ProgresoCliente";
+import CalendarioCliente from "./pages/cliente/CalendarioCliente"; // 👈 IMPORTACIÓN AÑADIDA
+
 // --- ZONA ENTRENADOR ---
 import MenuEntrenador from "./pages/entrenador/MenuEntrenador";
 import RutinasDeCliente from "./pages/entrenador/RutinasDeCliente";
 import EditarPerfilEntrenador from "./pages/entrenador/EditarPerfilEntrenador";
 
-// 👇 NUEVO: Importamos el proveedor de notificaciones
+// 👇 Importamos el proveedor de notificaciones
 import { ToastProvider } from "./context/ToastContext";
 
 function App() {
@@ -110,6 +112,7 @@ function App() {
             <Route path="perfil" element={<EditarPerfil />} />
             <Route path="sesion/:rutinaId" element={<SesionEntrenamiento />} />
             <Route path="progreso" element={<ProgresoCliente />} />
+            <Route path="calendario" element={<CalendarioCliente />} />
           </Route>
 
           {/* --- ENTRENADOR (layout + rutas anidadas) --- */}

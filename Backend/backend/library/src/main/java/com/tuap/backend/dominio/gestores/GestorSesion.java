@@ -1,8 +1,10 @@
 package com.tuap.backend.dominio.gestores;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,12 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.Ejercicio;
+import com.tuap.backend.dominio.entidades.EventoCalendario;
 import com.tuap.backend.dominio.entidades.Rutina;
 import com.tuap.backend.dominio.entidades.SerieRealizada;
 import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
 import com.tuap.backend.dto.GuardarSesionRequest;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EjercicioDAO;
+import com.tuap.backend.persistencia.EventoCalendarioDAO; 
 import com.tuap.backend.persistencia.RutinaDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
 
@@ -26,6 +30,7 @@ public class GestorSesion {
     @Autowired private ClienteDAO clienteDAO;
     @Autowired private RutinaDAO rutinaDAO;
     @Autowired private EjercicioDAO ejercicioDAO;
+    @Autowired private EventoCalendarioDAO eventoDAO; // Inyectar DAO de calendario
 
     @Transactional
     public SesionEntrenamiento guardarSesion(GuardarSesionRequest req) {
@@ -82,7 +87,33 @@ public class GestorSesion {
         sesion.setSeries(listaSeries);
         sesion.setVolumenTotal(volumenTotal);
 
-        // 5. Guardar todo en cascada
-        return sesionDAO.save(sesion);
+        // 5. Guardar Sesión
+        SesionEntrenamiento sesionGuardada = sesionDAO.save(sesion);
+
+        // 6. AUTOMATIZACIÓN CALENDARIO 
+        
+        if (req.getRutinaId() != null) {
+            try {
+                LocalDate hoy = LocalDate.now();
+                
+                // 👇 AQUÍ USAMOS EL NUEVO MÉTODO QUE NO FALLA
+                Optional<EventoCalendario> eventoOpt = eventoDAO.buscarEventoExacto(
+                    req.getClienteId(), hoy, req.getRutinaId()
+                );
+
+                if (eventoOpt.isPresent()) {
+                    EventoCalendario evento = eventoOpt.get();
+                    evento.setCompletado(true);
+                    evento.setDuracionSegundos(sesionGuardada.getDuracionSegundos());
+                    evento.setVolumenTotal(sesionGuardada.getVolumenTotal());
+                    eventoDAO.save(evento);
+                    System.out.println("Calendario actualizado: " + evento.getId());
+                }
+            } catch (Exception e) {
+                System.err.println("Error actualizando calendario: " + e.getMessage());
+            }
+        }
+
+        return sesionGuardada;
     }
 }

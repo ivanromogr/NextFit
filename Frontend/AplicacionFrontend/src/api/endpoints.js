@@ -141,14 +141,12 @@ export const obtenerHistorialCliente = async (clienteId) => {
 
 // Obtener la última vez que se hizo una rutina específica
 export const obtenerUltimaSesionRutina = async (clienteId, rutinaId) => {
-  try {
-    // Llamamos al nuevo endpoint
-    const response = await api.get(`/api/sesiones/ultima?clienteId=${clienteId}&rutinaId=${rutinaId}`);
-    return response.status === 204 ? null : response.data; // Si es 204 (No Content), devolvemos null
-  } catch (error) {
-    console.error("Error obteniendo última sesión:", error);
-    return null;
-  }
+    try {
+        const response = await api.get(`/api/sesiones/ultima?clienteId=${clienteId}&rutinaId=${rutinaId}`);
+        return response.data;
+    } catch (error) {
+        return null;
+    }
 };
 // --- 9. ESTADÍSTICAS  ---
 
@@ -184,3 +182,39 @@ export const obtenerPRs = async (clienteId) => {
         return [];
     }
 };
+
+// CALENDARIO
+export const obtenerEventosCalendario = async (clienteId, inicio, fin) => {
+    try {
+        const res = await api.get(`/api/calendario/${clienteId}?inicio=${inicio}&fin=${fin}`);
+        return res.data;
+    } catch (error) {
+        console.error("Error obteniendo calendario:", error);
+        return [];
+    }
+};
+
+export const programarRutina = async (clienteId, rutinaId, fecha) => {
+    await api.post(`/api/calendario/${clienteId}`, { rutinaId, fecha });
+};
+
+export const eliminarEventoCalendario = async (eventoId) => {
+    await api.delete(`/api/calendario/${eventoId}`);
+};
+
+// 1. Guardar el entrenamiento realizado
+export const guardarSesion = async (payload) => {
+    // Esta ruta debe coincidir con tu Backend (GestorSesion)
+    // Normalmente es POST /api/sesiones o POST /api/entrenamientos
+    const response = await api.post('/api/sesiones', payload); 
+    return response.data;
+};
+
+export const toggleCompletadoEvento = async (eventoId) => {
+    // Llama al endpoint que creamos en Java para cambiar el estado
+    await api.put(`/api/calendario/${eventoId}/toggle`);
+};
+export const moverEventoCalendario = async (eventoId, nuevaFecha) => {
+    await api.put(`/api/calendario/${eventoId}/mover`, { nuevaFecha });
+};
+

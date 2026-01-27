@@ -48,7 +48,7 @@ public class Rutina {
 
     // --- GETTERS Y SETTERS ---
 
-    // 🚨🚨🚨 ¡ESTOS DOS SON LOS QUE HACEN QUE EL FRONTEND RECIBA EL DATO! 🚨🚨🚨
+   
     public String getCreador() { 
         return creador; 
     }
