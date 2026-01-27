@@ -78,8 +78,8 @@ export default function ClienteSidebar() {
 
         <button
           style={{ ...styles.navItem(isProgreso), border: "none", background: "transparent", textAlign: "left", opacity: 0.6 }}
-          onClick={() => {}}
-          title="Próximamente"
+          onClick={() => navigate("/cliente/progreso")}
+          
         >
           <BarChart2 size={20} /> Progreso
         </button>

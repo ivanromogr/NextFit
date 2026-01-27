@@ -123,3 +123,64 @@ export const actualizarEntrenador = async (id, payload) => {
   const response = await api.put(`/api/entrenador/${id}`, payload);
   return response.data;
 };
+
+// --- 8. HISTORIAL DE ENTRENAMIENTO  ---
+
+// Guardar una sesión finalizada
+export const guardarSesionRealizada = async (payload) => {
+  // payload debe coincidir con el DTO GuardarSesionRequest de Java
+  const response = await api.post("/api/sesiones", payload);
+  return response.data;
+};
+
+// Ver historial
+export const obtenerHistorialCliente = async (clienteId) => {
+  const response = await api.get(`/api/sesiones/cliente/${clienteId}`);
+  return Array.isArray(response.data) ? response.data : [];
+};
+
+// Obtener la última vez que se hizo una rutina específica
+export const obtenerUltimaSesionRutina = async (clienteId, rutinaId) => {
+  try {
+    // Llamamos al nuevo endpoint
+    const response = await api.get(`/api/sesiones/ultima?clienteId=${clienteId}&rutinaId=${rutinaId}`);
+    return response.status === 204 ? null : response.data; // Si es 204 (No Content), devolvemos null
+  } catch (error) {
+    console.error("Error obteniendo última sesión:", error);
+    return null;
+  }
+};
+// --- 9. ESTADÍSTICAS  ---
+
+// Obtener KPIs globales (Entrenos totales, Volumen histórico, etc.)
+export const obtenerStatsGlobales = async (clienteId) => {
+  try {
+    const response = await api.get(`/api/stats/global/${clienteId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error cargando stats globales:", error);
+    return null;
+  }
+};
+
+// Obtener datos para la gráfica de un ejercicio (1RM Estimado)
+export const obtenerProgresoEjercicio = async (clienteId, ejercicioId) => {
+  try {
+    const response = await api.get(`/api/stats/ejercicio/${clienteId}/${ejercicioId}`);
+    return response.status === 204 ? null : response.data;
+  } catch (error) {
+    console.error("Error cargando progreso ejercicio:", error);
+    return null;
+  }
+};
+
+// Obtener lista de Récords Personales
+export const obtenerPRs = async (clienteId) => {
+    try {
+        const response = await api.get(`/api/stats/prs/${clienteId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error cargando PRs:", error);
+        return [];
+    }
+};

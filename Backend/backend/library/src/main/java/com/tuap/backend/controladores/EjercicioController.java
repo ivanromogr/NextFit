@@ -12,7 +12,7 @@ import com.tuap.backend.persistencia.EjercicioDAO;
 
 @RestController
 @RequestMapping("/api/ejercicios")
-// ❌ SIN @CrossOrigin
+
 public class EjercicioController {
 
     private final EjercicioDAO ejercicioDAO;
