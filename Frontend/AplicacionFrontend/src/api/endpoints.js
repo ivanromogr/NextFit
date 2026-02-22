@@ -9,6 +9,15 @@ export const api = axios.create({
   },
 });
 
+// Interceptor para inyectar el token automáticamente
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
 // --- 2. AUTENTICACIÓN (LOGIN) ---
 export const loginForm = async ({ email, password }) => {
   const params = new URLSearchParams();
@@ -89,8 +98,7 @@ export const obtenerRutinasCliente = async (idCliente) => {
   }
 };
 
-// ✅ NUEVO: ENTRENADOR: Obtener SOLO las creadas por él para ese cliente
-// Esta función es necesaria para la vista "RutinasDeCliente.jsx" del entrenador
+// ENTRENADOR: Obtener SOLO las creadas por él para ese cliente
 export const obtenerRutinasAsignadasPorEntrenador = async (idCliente) => {
   try {
       const response = await api.get(`/api/rutinas/cliente/${idCliente}/entrenador`);
@@ -116,7 +124,9 @@ export const ficharCliente = async (idEntrenador, emailCliente) => {
 export const getEntrenador = async (id) => {
   if (!id) throw new Error("ID no encontrado");
   const response = await api.get(`/api/entrenador/${id}`);
-  return response.data;
+  // El backend devuelve { entrenador: {...}, resenas: [...], valoracionMedia: 0 }
+  // Extraemos solo la propiedad entrenador
+  return response.data.entrenador || response.data;
 };
 
 export const actualizarEntrenador = async (id, payload) => {
@@ -124,11 +134,22 @@ export const actualizarEntrenador = async (id, payload) => {
   return response.data;
 };
 
+// --- DASHBOARD ENTRENADOR (NUEVO) ---
+export const obtenerDashboardResumen = async (entrenadorId) => {
+    try {
+        
+        const response = await api.get(`/api/entrenador/${entrenadorId}/dashboard-resumen`);
+        return response.data;
+    } catch (error) {
+        console.error("Error obteniendo dashboard:", error);
+        return null;
+    }
+};
+
 // --- 8. HISTORIAL DE ENTRENAMIENTO  ---
 
 // Guardar una sesión finalizada
 export const guardarSesionRealizada = async (payload) => {
-  // payload debe coincidir con el DTO GuardarSesionRequest de Java
   const response = await api.post("/api/sesiones", payload);
   return response.data;
 };
@@ -148,9 +169,10 @@ export const obtenerUltimaSesionRutina = async (clienteId, rutinaId) => {
         return null;
     }
 };
+
 // --- 9. ESTADÍSTICAS  ---
 
-// Obtener KPIs globales (Entrenos totales, Volumen histórico, etc.)
+// Obtener KPIs globales
 export const obtenerStatsGlobales = async (clienteId) => {
   try {
     const response = await api.get(`/api/stats/global/${clienteId}`);
@@ -161,7 +183,7 @@ export const obtenerStatsGlobales = async (clienteId) => {
   }
 };
 
-// Obtener datos para la gráfica de un ejercicio (1RM Estimado)
+// Obtener datos para la gráfica de un ejercicio
 export const obtenerProgresoEjercicio = async (clienteId, ejercicioId) => {
   try {
     const response = await api.get(`/api/stats/ejercicio/${clienteId}/${ejercicioId}`);
@@ -202,19 +224,47 @@ export const eliminarEventoCalendario = async (eventoId) => {
     await api.delete(`/api/calendario/${eventoId}`);
 };
 
-// 1. Guardar el entrenamiento realizado
 export const guardarSesion = async (payload) => {
-    // Esta ruta debe coincidir con tu Backend (GestorSesion)
-    // Normalmente es POST /api/sesiones o POST /api/entrenamientos
     const response = await api.post('/api/sesiones', payload); 
     return response.data;
 };
 
 export const toggleCompletadoEvento = async (eventoId) => {
-    // Llama al endpoint que creamos en Java para cambiar el estado
     await api.put(`/api/calendario/${eventoId}/toggle`);
 };
+
 export const moverEventoCalendario = async (eventoId, nuevaFecha) => {
     await api.put(`/api/calendario/${eventoId}/mover`, { nuevaFecha });
 };
 
+export const obtenerResumenDashboard = async (clienteId) => {
+    const response = await api.get(`/api/dashboard/resumen/${clienteId}`);
+    return response.data;
+};
+
+export const obtenerDetalleSesion = async (eventoId) => {
+    const response = await api.get(`/api/sesiones/evento/${eventoId}`);
+    return response.data;
+};
+
+// Obtener lista de ejercicios con historial para un cliente
+export const obtenerEjerciciosConHistorial = async (clienteId) => {
+    try {
+        const response = await api.get(`/api/stats/ejercicios/${clienteId}`);
+        return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+        console.error("Error obteniendo ejercicios con historial:", error);
+        return [];
+    }
+};
+
+// Obtener datos de progreso de un ejercicio específico
+export const obtenerDatosProgreso = async (clienteId, ejercicioId) => {
+    try {
+        const response = await api.get(`/api/stats/progreso/${clienteId}/${ejercicioId}`);
+        return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+        console.error("Error obteniendo datos de progreso:", error);
+        return [];
+    }
+};

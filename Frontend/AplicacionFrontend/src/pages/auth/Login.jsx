@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginForm } from "../../api/endpoints";
+import { useAuth } from "../../context/AuthContext";
 import GymButton from "../../components/ui/GymButton";
 import GymInput from "../../components/ui/GymInput";
 import { Mail, Lock, ArrowRight } from "lucide-react";
@@ -10,6 +11,7 @@ import "../../styles/auth.css";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -25,9 +27,11 @@ export default function Login() {
       if (resp.status === 200 && resp.data?.id) {
         const { role, id } = resp.data;
 
-        localStorage.setItem("registration_userId", id);
-        if (role === "cliente") localStorage.setItem("clienteId", id);
-        else if (role === "entrenador") localStorage.setItem("entrenadorId", id);
+        // 👇 Guardar en sessionStorage (exclusivo de esta pestaña) + Context
+        login(id, role);
+
+        // Mantener registration_userId para onboarding si es necesario
+        sessionStorage.setItem("registration_userId", id);
 
         navigate(role === "entrenador" ? "/entrenador/dashboard" : "/cliente/dashboard");
       } else {

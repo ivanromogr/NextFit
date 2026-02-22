@@ -1,19 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // 👈 Necesario para el botón volver
 import { 
     obtenerStatsGlobales, 
     obtenerProgresoEjercicio, 
     obtenerEjercicios, 
     obtenerPRs 
 } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 
 import ProgresoChart from '../../components/ui/ProgresoChart';
 import ConsistenciaChart from '../../components/ui/ConsistenciaChart';
 import DistribucionMuscularChart from '../../components/ui/DistribucionMuscularChart';
 import PersonalRecordsList from '../../components/ui/PersonalRecordsList';
 
-import { Trophy, Dumbbell, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import { Trophy, Dumbbell, Calendar, ArrowUp, ArrowDown, ArrowLeft } from 'lucide-react';
 
-export default function ProgresoCliente() {
+// 👇 1. ACEPTAMOS PROPS
+export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) {
+    const navigate = useNavigate();
+    const { userId } = useAuth();
+
+    // 👇 2. LÓGICA HÍBRIDA: Si viene prop (Entrenador), la usa. Si no, Context (Cliente).
+    const clienteId = clienteIdProp || userId;
+
     const [globalStats, setGlobalStats] = useState(null);
     const [ejercicios, setEjercicios] = useState([]);
     const [selectedEjercicio, setSelectedEjercicio] = useState("");
@@ -23,38 +32,38 @@ export default function ProgresoCliente() {
     const [loadingChart, setLoadingChart] = useState(false);
 
     useEffect(() => {
-        const clienteId = localStorage.getItem("clienteId");
         if (!clienteId) return;
 
         // 1. Cargar Estadísticas Globales
-        obtenerStatsGlobales(clienteId).then(setGlobalStats);
+        obtenerStatsGlobales(clienteId).then(setGlobalStats).catch(console.error);
 
         // 2. Cargar Récords Personales (PRs)
-        obtenerPRs(clienteId).then(setPrs);
+        obtenerPRs(clienteId).then(setPrs).catch(console.error);
 
         // 3. Cargar Lista de Ejercicios
         obtenerEjercicios().then(lista => {
-            setEjercicios(lista);
-            if (lista.length > 0) setSelectedEjercicio(lista[0].id);
-        });
-    }, []);
+            setEjercicios(lista || []);
+            if (lista && lista.length > 0) setSelectedEjercicio(lista[0].id);
+        }).catch(console.error);
+    }, [clienteId]);
 
     useEffect(() => {
-        const clienteId = localStorage.getItem("clienteId");
         if (!clienteId || !selectedEjercicio) return;
 
         setLoadingChart(true);
         obtenerProgresoEjercicio(clienteId, selectedEjercicio).then(data => {
             if (data) {
-                setChartData(data.grafica || []);
+                // Adaptamos si el backend devuelve estructura diferente
+                const datos = Array.isArray(data) ? data : (data.grafica || []);
+                setChartData(datos);
                 setPr(data.pr || 0);
             } else {
                 setChartData([]);
                 setPr(0);
             }
             setLoadingChart(false);
-        });
-    }, [selectedEjercicio]);
+        }).catch(() => setLoadingChart(false));
+    }, [selectedEjercicio, clienteId]);
 
     const renderCambioVolumen = () => {
         const cambio = globalStats?.comparativaVolumen || 0;
@@ -70,8 +79,16 @@ export default function ProgresoCliente() {
     };
 
     const styles = {
-        page: { padding: '20px', color: 'white', minHeight: '100vh', background: '#09090b', fontFamily: 'sans-serif', paddingBottom: '100px' },
-        title: { fontSize: '1.8rem', fontWeight: '900', marginBottom: '20px', textTransform: 'uppercase' },
+        page: { 
+            padding: '30px', 
+            color: 'white', 
+            minHeight: '100vh', 
+            background: isCoachMode ? '#000000' : '#09090b', // Fondo distinto para Coach
+            fontFamily: 'sans-serif', 
+            paddingBottom: '100px' 
+        },
+        header: { display: 'flex', alignItems: 'center', marginBottom: '30px', gap:'15px' },
+        title: { fontSize: '1.8rem', fontWeight: '900', textTransform: 'uppercase', margin: 0 },
         subTitle: { fontSize: '1.4rem', fontWeight: '900', marginBottom: '15px', textTransform: 'uppercase', color: '#e4e4e7' },
         
         grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '30px' },
@@ -82,10 +99,7 @@ export default function ProgresoCliente() {
 
         divider: { height: '1px', background: '#27272a', margin: '40px 0' },
         
-        // Grid para Gráficas Superiores
         topChartsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' },
-
-        // Grid para Sección Intermedia (PRs + Futuro Peso)
         midSectionGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px', marginBottom: '30px' },
 
         selectorContainer: { marginBottom: '20px' },
@@ -94,7 +108,16 @@ export default function ProgresoCliente() {
 
     return (
         <div style={styles.page}>
-            <h1 style={styles.title}>Mi Progreso</h1>
+            <div style={styles.header}>
+                {/* 3. BOTÓN VOLVER (Importante para el entrenador) */}
+                <button onClick={() => navigate(-1)} style={{background:'none', border:'none', color:'#777', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}>
+                    <ArrowLeft/> {isCoachMode ? 'VOLVER' : ''}
+                </button>
+                <div>
+                    <h1 style={styles.title}>Progreso {isCoachMode ? 'del Atleta' : ''}</h1>
+                    {isCoachMode && <span style={{color:'#FACC15', fontSize:'0.75rem', fontWeight:'bold', background:'#222', padding:'2px 8px', borderRadius:'4px'}}>VISTA ENTRENADOR</span>}
+                </div>
+            </div>
 
             {/* 1. KPIs */}
             <div style={styles.grid}>
@@ -106,7 +129,7 @@ export default function ProgresoCliente() {
                 <div style={styles.statCard}>
                     <div style={styles.iconBox}><Dumbbell size={24}/></div>
                     <div style={styles.statLabel}>Volumen Total</div>
-                    <div style={styles.statValue}>{globalStats?.volumenTotal || "0t"}</div>
+                    <div style={styles.statValue}>{globalStats?.volumenTotal || "0"} <span style={{fontSize:'1rem', color:'#555'}}>t</span></div>
                     {renderCambioVolumen()}
                 </div>
                 <div style={styles.statCard}>
@@ -131,14 +154,9 @@ export default function ProgresoCliente() {
 
             <div style={styles.divider}></div>
 
-            {/* 3. SECCIÓN DE RÉCORDS PERSONALES (NUEVO) */}
+            {/* 3. SECCIÓN DE RÉCORDS PERSONALES */}
             <div style={styles.midSectionGrid}>
                 <PersonalRecordsList prs={prs} />
-                
-                {/* Hueco para futura gráfica de peso corporal */}
-                {/* <div style={{background:'#121214', borderRadius:'16px', border:'1px dashed #333', display:'flex', alignItems:'center', justifyContent:'center', color:'#555', minHeight:'200px'}}>
-                    Próximamente: Peso Corporal ⚖️
-                </div> */}
             </div>
 
             <div style={styles.divider}></div>
@@ -146,9 +164,13 @@ export default function ProgresoCliente() {
             {/* 4. ANÁLISIS DETALLADO (1RM) */}
             <h2 style={styles.subTitle}>Análisis Detallado</h2>
             <div style={styles.selectorContainer}>
-                <select style={styles.select} value={selectedEjercicio} onChange={(e) => setSelectedEjercicio(e.target.value)}>
-                    {ejercicios.map(ej => <option key={ej.id} value={ej.id}>{ej.nombre}</option>)}
-                </select>
+                {ejercicios.length > 0 ? (
+                    <select style={styles.select} value={selectedEjercicio} onChange={(e) => setSelectedEjercicio(e.target.value)}>
+                        {ejercicios.map(ej => <option key={ej.id} value={ej.id}>{ej.nombre}</option>)}
+                    </select>
+                ) : (
+                    <div style={{color:'#777'}}>No hay datos de ejercicios.</div>
+                )}
             </div>
 
             {loadingChart ? (

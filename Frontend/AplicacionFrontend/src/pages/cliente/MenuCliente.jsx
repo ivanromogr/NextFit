@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerRutinasCliente, eliminarRutina } from "../../api/endpoints";
+import { useAuth } from "../../context/AuthContext";
 
 // Iconos
 import {
   Dumbbell,
   Sparkles,
-  PenTool,
   Play,
   MoreHorizontal,
   ArrowRight,
@@ -19,6 +19,7 @@ import {
 
 export default function MenuCliente() {
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const [rutinas, setRutinas] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,11 +32,10 @@ export default function MenuCliente() {
   const [iaPlanSelected, setIaPlanSelected] = useState(null);
 
   useEffect(() => {
-    const storedId = localStorage.getItem("clienteId");
-    if (storedId) cargarRutinas(storedId);
+    if (userId) cargarRutinas(userId);
     else navigate("/auth/login");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const handleClickOutside = () => setActiveMenu(null);
@@ -79,7 +79,7 @@ export default function MenuCliente() {
     }
   };
 
-  // ✅ helpers IA (agrupar por plan)
+  // ✅ helpers IA
   const getIAPlanKey = (rutina) => {
     const nombre = (rutina?.nombre || "").trim();
     if (nombre.toLowerCase().startsWith("día")) {
@@ -102,7 +102,7 @@ export default function MenuCliente() {
     (r) => r.creador !== "ENTRENADOR" && r.creador !== "IA"
   );
 
-  // ✅ AGRUPACIÓN IA -> 1 card por plan
+  // ✅ AGRUPACIÓN IA
   const iaPlanGroups = useMemo(() => {
     const map = new Map();
     for (const r of rutinasIA) {
@@ -127,424 +127,57 @@ export default function MenuCliente() {
     setShowIAPlanModal(true);
   };
 
-  // --- ESTILOS (solo contenido, sin sidebar) ---
   const styles = {
     main: { padding: "50px 80px", color: "white" },
     header: { marginBottom: "50px" },
-    title: {
-      fontSize: "2.5rem",
-      fontWeight: "900",
-      margin: 0,
-      textTransform: "uppercase",
-      letterSpacing: "-1px",
-      lineHeight: "1",
-    },
+    title: { fontSize: "2.5rem", fontWeight: "900", margin: 0, textTransform: "uppercase", letterSpacing: "-1px", lineHeight: "1" },
     subtitle: { color: "#71717a", marginTop: "10px", fontSize: "1.1rem" },
-
-    sectionLabel: {
-      fontSize: "0.85rem",
-      fontWeight: "700",
-      color: "#71717a",
-      textTransform: "uppercase",
-      letterSpacing: "2px",
-      marginBottom: "20px",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-    },
+    sectionLabel: { fontSize: "0.85rem", fontWeight: "700", color: "#71717a", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" },
     divider: { flex: 1, height: "1px", background: "#27272a" },
-
-    gridCoach: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
-      gap: "30px",
-      marginBottom: "50px",
-    },
-    gridActions: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-      gap: "20px",
-      marginBottom: "50px",
-    },
-
-    // ✅ MEJORA: si hay 1 card IA no se queda perdida (y si hay varias, encajan pro)
-    gridPersonal: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(360px, 460px))",
-      gap: "25px",
-      paddingBottom: "50px",
-      justifyContent: "start",
-    },
-
-    coachCard: {
-      background: "linear-gradient(145deg, #121214 0%, #0c0c0e 100%)",
-      border: "1px solid rgba(250, 204, 21, 0.3)",
-      borderRadius: "24px",
-      padding: "35px",
-      position: "relative",
-      overflow: "hidden",
-      boxShadow: "0 10px 40px -10px rgba(250, 204, 21, 0.1)",
-      transition: "transform 0.3s ease, box-shadow 0.3s ease",
-      cursor: "pointer",
-    },
-    coachBadge: {
-      position: "absolute",
-      top: "25px",
-      right: "25px",
-      background: "rgba(250, 204, 21, 0.15)",
-      color: "#FACC15",
-      padding: "6px 12px",
-      borderRadius: "50px",
-      fontSize: "0.75rem",
-      fontWeight: "800",
-      textTransform: "uppercase",
-      display: "flex",
-      alignItems: "center",
-      gap: "6px",
-    },
-    coachTitle: {
-      fontSize: "1.8rem",
-      fontWeight: "800",
-      color: "white",
-      margin: "10px 0 5px 0",
-      textTransform: "uppercase",
-    },
+    gridCoach: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "30px", marginBottom: "50px" },
+    gridPersonal: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 460px))", gap: "25px", paddingBottom: "50px", justifyContent: "start" },
+    coachCard: { background: "linear-gradient(145deg, #121214 0%, #0c0c0e 100%)", border: "1px solid rgba(250, 204, 21, 0.3)", borderRadius: "24px", padding: "35px", position: "relative", overflow: "hidden", boxShadow: "0 10px 40px -10px rgba(250, 204, 21, 0.1)", transition: "transform 0.3s ease, box-shadow 0.3s ease", cursor: "pointer" },
+    coachBadge: { position: "absolute", top: "25px", right: "25px", background: "rgba(250, 204, 21, 0.15)", color: "#FACC15", padding: "6px 12px", borderRadius: "50px", fontSize: "0.75rem", fontWeight: "800", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" },
+    coachTitle: { fontSize: "1.8rem", fontWeight: "800", color: "white", margin: "10px 0 5px 0", textTransform: "uppercase" },
     coachSub: { color: "#a1a1aa", fontSize: "0.95rem" },
-
-    btnStartCoach: {
-      marginTop: "25px",
-      width: "100%",
-      padding: "16px",
-      borderRadius: "14px",
-      background: "#FACC15",
-      color: "black",
-      fontWeight: "800",
-      border: "none",
-      cursor: "pointer",
-      fontSize: "0.95rem",
-      textTransform: "uppercase",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px",
-      boxShadow: "0 4px 15px rgba(250, 204, 21, 0.2)",
-    },
-
-    actionBtnCard: {
-      background: "#121214",
-      border: "1px solid #27272a",
-      borderRadius: "16px",
-      padding: "20px",
-      display: "flex",
-      alignItems: "center",
-      gap: "20px",
-      cursor: "pointer",
-      transition: "all 0.2s",
-      minHeight: "100px",
-    },
-    actionIcon: {
-      width: "50px",
-      height: "50px",
-      borderRadius: "12px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-
-    personalCard: {
-      background: "#121214",
-      border: "1px solid #27272a",
-      borderRadius: "20px",
-      padding: "25px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "20px",
-      transition: "all 0.2s",
-      cursor: "pointer",
-      position: "relative",
-    },
-    pill: {
-      background: "#27272a",
-      color: "#e4e4e7",
-      padding: "4px 10px",
-      borderRadius: "6px",
-      fontSize: "0.7rem",
-      fontWeight: "700",
-      textTransform: "uppercase",
-    },
-    previewText: {
-      color: "#52525b",
-      fontSize: "0.85rem",
-      lineHeight: "1.5",
-      display: "-webkit-box",
-      WebkitLineClamp: 2,
-      WebkitBoxOrient: "vertical",
-      overflow: "hidden",
-      minHeight: "2.5em",
-    },
-    btnStartPersonal: {
-      marginTop: "auto",
-      width: "100%",
-      padding: "12px",
-      borderRadius: "10px",
-      background: "#18181b",
-      color: "white",
-      fontWeight: "700",
-      border: "1px solid #27272a",
-      cursor: "pointer",
-      fontSize: "0.85rem",
-      textTransform: "uppercase",
-      transition: "background 0.2s",
-    },
-
-    menuBtn: {
-      color: "#52525b",
-      padding: "8px",
-      borderRadius: "50%",
-      cursor: "pointer",
-    },
-    dropdown: {
-      position: "absolute",
-      top: "40px",
-      right: "10px",
-      background: "#18181b",
-      border: "1px solid #27272a",
-      borderRadius: "12px",
-      padding: "6px",
-      zIndex: 10,
-      width: "150px",
-      boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-    },
-    dropdownItem: {
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      padding: "10px",
-      fontSize: "0.85rem",
-      color: "#e4e4e7",
-      borderRadius: "8px",
-      cursor: "pointer",
-    },
-
-    // ✅ Card global IA
-    iaCard: {
-      background: "linear-gradient(145deg, rgba(250,204,21,0.10) 0%, #121214 60%)",
-      border: "1px solid rgba(250, 204, 21, 0.25)",
-      borderRadius: "20px",
-      padding: "26px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "14px",
-      cursor: "pointer",
-      transition: "all 0.2s",
-      position: "relative",
-      maxWidth: "520px",
-    },
-    iaTopRow: {
-      display: "flex",
-      alignItems: "flex-start",
-      justifyContent: "space-between",
-      gap: "12px",
-    },
-    iaPill: {
-      background: "rgba(250,204,21,0.15)",
-      color: "#FACC15",
-      padding: "6px 10px",
-      borderRadius: "10px",
-      fontSize: "0.72rem",
-      fontWeight: "900",
-      textTransform: "uppercase",
-      letterSpacing: "1px",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "8px",
-    },
-    iaTitle: {
-      margin: 0,
-      fontSize: "1.25rem",
-      fontWeight: "900",
-      textTransform: "uppercase",
-    },
+    btnStartCoach: { marginTop: "25px", width: "100%", padding: "16px", borderRadius: "14px", background: "#FACC15", color: "black", fontWeight: "800", border: "none", cursor: "pointer", fontSize: "0.95rem", textTransform: "uppercase", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", boxShadow: "0 4px 15px rgba(250, 204, 21, 0.2)" },
+    personalCard: { background: "#121214", border: "1px solid #27272a", borderRadius: "20px", padding: "25px", display: "flex", flexDirection: "column", gap: "20px", transition: "all 0.2s", cursor: "pointer", position: "relative" },
+    pill: { background: "#27272a", color: "#e4e4e7", padding: "4px 10px", borderRadius: "6px", fontSize: "0.7rem", fontWeight: "700", textTransform: "uppercase" },
+    previewText: { color: "#52525b", fontSize: "0.85rem", lineHeight: "1.5", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: "2.5em" },
+    btnStartPersonal: { marginTop: "auto", width: "100%", padding: "12px", borderRadius: "10px", background: "#18181b", color: "white", fontWeight: "700", border: "1px solid #27272a", cursor: "pointer", fontSize: "0.85rem", textTransform: "uppercase", transition: "background 0.2s" },
+    menuBtn: { color: "#52525b", padding: "8px", borderRadius: "50%", cursor: "pointer" },
+    dropdown: { position: "absolute", top: "40px", right: "10px", background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", padding: "6px", zIndex: 10, width: "150px", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" },
+    dropdownItem: { display: "flex", alignItems: "center", gap: "10px", padding: "10px", fontSize: "0.85rem", color: "#e4e4e7", borderRadius: "8px", cursor: "pointer" },
+    iaCard: { background: "linear-gradient(145deg, rgba(250,204,21,0.10) 0%, #121214 60%)", border: "1px solid rgba(250, 204, 21, 0.25)", borderRadius: "20px", padding: "26px", display: "flex", flexDirection: "column", gap: "14px", cursor: "pointer", transition: "all 0.2s", position: "relative", maxWidth: "520px" },
+    iaTopRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" },
+    iaPill: { background: "rgba(250,204,21,0.15)", color: "#FACC15", padding: "6px 10px", borderRadius: "10px", fontSize: "0.72rem", fontWeight: "900", textTransform: "uppercase", letterSpacing: "1px", display: "inline-flex", alignItems: "center", gap: "8px" },
+    iaTitle: { margin: 0, fontSize: "1.25rem", fontWeight: "900", textTransform: "uppercase" },
     iaSub: { margin: 0, color: "#a1a1aa", fontSize: "0.95rem" },
-    iaBtn: {
-      marginTop: "10px",
-      width: "100%",
-      padding: "12px",
-      borderRadius: "12px",
-      background: "#FACC15",
-      color: "black",
-      fontWeight: "900",
-      border: "none",
-      cursor: "pointer",
-      textTransform: "uppercase",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px",
-    },
-
-    // ✅ NUEVO: mini-stats + barra (para que no se vea soso)
-    iaStatsRow: {
-      display: "flex",
-      gap: "10px",
-      flexWrap: "wrap",
-      marginTop: "6px",
-    },
-    iaStat: {
-      background: "rgba(255,255,255,0.04)",
-      border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: "12px",
-      padding: "10px 12px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "2px",
-      minWidth: "120px",
-    },
-    iaStatLabel: {
-      color: "#a1a1aa",
-      fontSize: "0.72rem",
-      fontWeight: "800",
-      textTransform: "uppercase",
-      letterSpacing: "1px",
-    },
-    iaStatValue: {
-      color: "white",
-      fontSize: "0.95rem",
-      fontWeight: "900",
-      textTransform: "uppercase",
-    },
-    iaBarWrap: {
-      marginTop: "10px",
-      height: "8px",
-      background: "rgba(255,255,255,0.06)",
-      borderRadius: "999px",
-      overflow: "hidden",
-      border: "1px solid rgba(255,255,255,0.06)",
-    },
-    iaBar: {
-      height: "100%",
-      background: "#FACC15",
-      boxShadow: "0 0 12px rgba(250,204,21,0.45)",
-    },
-
-    // ✅ NUEVO: placeholder cuando no hay planes IA (queda más “llenito”)
-    iaEmpty: {
-      gridColumn: "1/-1",
-      border: "1px dashed rgba(255,255,255,0.12)",
-      borderRadius: "20px",
-      padding: "26px",
-      color: "#a1a1aa",
-      background: "rgba(255,255,255,0.02)",
-      maxWidth: "520px",
-    },
-    iaEmptyTitle: {
-      color: "white",
-      fontWeight: "900",
-      textTransform: "uppercase",
-      margin: 0,
-    },
-    iaEmptySub: {
-      marginTop: "8px",
-      marginBottom: 0,
-      color: "#a1a1aa",
-      lineHeight: 1.5,
-    },
-
-    // ✅ Modales
-    modalOverlay: {
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      background: "rgba(0,0,0,0.85)",
-      backdropFilter: "blur(8px)",
-      zIndex: 100,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      padding: "16px",
-    },
-    modalCard: {
-      background: "#09090b",
-      padding: "30px",
-      borderRadius: "24px",
-      border: "1px solid #27272a",
-      width: "100%",
-      maxWidth: "520px",
-      textAlign: "left",
-      position: "relative",
-    },
-    modalBtnDelete: {
-      flex: 1,
-      background: "#ef4444",
-      color: "white",
-      padding: "14px",
-      borderRadius: "12px",
-      fontWeight: "bold",
-      border: "none",
-      cursor: "pointer",
-    },
-    modalBtnCancel: {
-      flex: 1,
-      background: "transparent",
-      color: "#a1a1aa",
-      padding: "14px",
-      borderRadius: "12px",
-      fontWeight: "bold",
-      border: "1px solid #27272a",
-      cursor: "pointer",
-    },
-
+    iaBtn: { marginTop: "10px", width: "100%", padding: "12px", borderRadius: "12px", background: "#FACC15", color: "black", fontWeight: "900", border: "none", cursor: "pointer", textTransform: "uppercase", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" },
+    iaStatsRow: { display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "6px" },
+    iaStat: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "2px", minWidth: "120px" },
+    iaStatLabel: { color: "#a1a1aa", fontSize: "0.72rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" },
+    iaStatValue: { color: "white", fontSize: "0.95rem", fontWeight: "900", textTransform: "uppercase" },
+    iaBarWrap: { marginTop: "10px", height: "8px", background: "rgba(255,255,255,0.06)", borderRadius: "999px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.06)" },
+    iaBar: { height: "100%", background: "#FACC15", boxShadow: "0 0 12px rgba(250,204,21,0.45)" },
+    modalOverlay: { position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", zIndex: 100, display: "flex", justifyContent: "center", alignItems: "center", padding: "16px" },
+    modalCard: { background: "#09090b", padding: "30px", borderRadius: "24px", border: "1px solid #27272a", width: "100%", maxWidth: "520px", textAlign: "left", position: "relative" },
+    modalBtnDelete: { flex: 1, background: "#ef4444", color: "white", padding: "14px", borderRadius: "12px", fontWeight: "bold", border: "none", cursor: "pointer" },
+    modalBtnCancel: { flex: 1, background: "transparent", color: "#a1a1aa", padding: "14px", borderRadius: "12px", fontWeight: "bold", border: "1px solid #27272a", cursor: "pointer" },
     iaList: { display: "grid", gap: "10px", marginTop: "16px" },
-    iaRow: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: "12px",
-      padding: "12px",
-      border: "1px solid #27272a",
-      borderRadius: "14px",
-      background: "#121214",
-    },
+    iaRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "12px", border: "1px solid #27272a", borderRadius: "14px", background: "#121214" },
     iaRowLeft: { display: "flex", flexDirection: "column", gap: "2px" },
-    iaRowTitle: {
-      fontWeight: "900",
-      textTransform: "uppercase",
-      fontSize: "0.95rem",
-    },
+    iaRowTitle: { fontWeight: "900", textTransform: "uppercase", fontSize: "0.95rem" },
     iaRowSub: { color: "#a1a1aa", fontSize: "0.85rem" },
-    iaRowBtn: {
-      padding: "10px 12px",
-      borderRadius: "12px",
-      background: "#18181b",
-      border: "1px solid #27272a",
-      color: "white",
-      fontWeight: "800",
-      cursor: "pointer",
-      textTransform: "uppercase",
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-    },
-    modalClose: {
-      position: "absolute",
-      top: "14px",
-      right: "14px",
-      background: "transparent",
-      border: "none",
-      color: "#a1a1aa",
-      cursor: "pointer",
-      padding: "10px",
-      borderRadius: "12px",
-    },
+    iaRowBtn: { padding: "10px 12px", borderRadius: "12px", background: "#18181b", border: "1px solid #27272a", color: "white", fontWeight: "800", cursor: "pointer", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "8px" },
+    modalClose: { position: "absolute", top: "14px", right: "14px", background: "transparent", border: "none", color: "#a1a1aa", cursor: "pointer", padding: "10px", borderRadius: "12px" },
   };
 
   return (
     <div style={styles.main}>
       <header style={styles.header}>
         <h1 style={styles.title}>Mis Entrenamientos</h1>
-        <p style={styles.subtitle}>Tu plan de acción para hoy.</p>
+        <p style={styles.subtitle}>Tu biblioteca de rutinas.</p>
       </header>
 
       {/* --- 1. ZONA COACH --- */}
@@ -562,13 +195,11 @@ export default function MenuCliente() {
                 style={styles.coachCard}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "translateY(-5px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 20px 50px -10px rgba(250, 204, 21, 0.15)";
+                  e.currentTarget.style.boxShadow = "0 20px 50px -10px rgba(250, 204, 21, 0.15)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow =
-                    "0 10px 40px -10px rgba(250, 204, 21, 0.1)";
+                  e.currentTarget.style.boxShadow = "0 10px 40px -10px rgba(250, 204, 21, 0.1)";
                 }}
               >
                 <div style={styles.coachBadge}>
@@ -576,14 +207,7 @@ export default function MenuCliente() {
                 </div>
 
                 <div style={{ marginTop: "10px" }}>
-                  <span
-                    style={{
-                      color: "#FACC15",
-                      fontSize: "0.8rem",
-                      fontWeight: "bold",
-                      textTransform: "uppercase",
-                    }}
-                  >
+                  <span style={{ color: "#FACC15", fontSize: "0.8rem", fontWeight: "bold", textTransform: "uppercase" }}>
                     {rutina.objetivo}
                   </span>
                   <h3 style={styles.coachTitle}>{rutina.nombre}</h3>
@@ -604,87 +228,18 @@ export default function MenuCliente() {
         </div>
       )}
 
-      {/* --- 2. ACCIONES --- */}
-      <div style={styles.sectionLabel}>
-        <PenTool size={16} /> Crear Nuevo <div style={styles.divider}></div>
-      </div>
-
-      <div style={styles.gridActions}>
-        <div
-          style={styles.actionBtnCard}
-          onClick={() => navigate("/cliente/generar-ia")}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "#FACC15";
-            e.currentTarget.style.background = "rgba(250, 204, 21, 0.05)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "#27272a";
-            e.currentTarget.style.background = "#121214";
-          }}
-        >
-          <div
-            style={{
-              ...styles.actionIcon,
-              background: "rgba(250, 204, 21, 0.1)",
-              color: "#FACC15",
-            }}
-          >
-            <Sparkles size={24} />
-          </div>
-          <div>
-            <div style={{ color: "white", fontWeight: "800", fontSize: "1.1rem" }}>
-              Generar con IA
-            </div>
-            <div style={{ color: "#71717a", fontSize: "0.85rem" }}>Automático</div>
-          </div>
-          <ArrowRight style={{ marginLeft: "auto", color: "#333" }} />
-        </div>
-
-        <div
-          style={styles.actionBtnCard}
-          onClick={() => navigate("/cliente/crear-rutina")}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "white";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "#27272a";
-          }}
-        >
-          <div style={{ ...styles.actionIcon, background: "#27272a", color: "white" }}>
-            <Edit size={24} />
-          </div>
-          <div>
-            <div style={{ color: "white", fontWeight: "800", fontSize: "1.1rem" }}>
-              Diseñar Manual
-            </div>
-            <div style={{ color: "#71717a", fontSize: "0.85rem" }}>A tu medida</div>
-          </div>
-          <ArrowRight style={{ marginLeft: "auto", color: "#333" }} />
-        </div>
-      </div>
-
       {/* --- 3. PERSONALES --- */}
       <div style={styles.sectionLabel}>
         <Dumbbell size={16} /> Mis Rutinas Personales <div style={styles.divider}></div>
       </div>
 
       <div style={styles.gridPersonal}>
-       
         
-
         {/* ✅ Card GLOBAL por planes IA */}
         {iaPlanGroups.map((group) => {
           const daysCount = group.items.length;
-
-          const preview =
-            group.items?.[0]?.detalles?.map((d) => d.ejercicio.nombre).join(", ") ||
-            "Pulsa para ver los días del plan.";
-
-          const totalEjercicios = group.items.reduce(
-            (acc, r) => acc + (r.detalles?.length || 0),
-            0
-          );
-
+          const preview = group.items?.[0]?.detalles?.map((d) => d.ejercicio.nombre).join(", ") || "Pulsa para ver los días del plan.";
+          const totalEjercicios = group.items.reduce((acc, r) => acc + (r.detalles?.length || 0), 0);
           const nivelLabel = (group.nivel || "").toString().replaceAll("_", " ");
           const objetivoLabel = (group.objetivo || "IA").toString().replaceAll("_", " ");
 
@@ -706,14 +261,7 @@ export default function MenuCliente() {
                 <div style={styles.iaPill}>
                   <Sparkles size={16} /> PLAN IA
                 </div>
-                <div
-                  style={{
-                    color: "#FACC15",
-                    fontWeight: "900",
-                    textTransform: "uppercase",
-                    fontSize: "0.85rem",
-                  }}
-                >
+                <div style={{ color: "#FACC15", fontWeight: "900", textTransform: "uppercase", fontSize: "0.85rem" }}>
                   {daysCount} día{daysCount !== 1 ? "s" : ""}
                 </div>
               </div>
@@ -734,25 +282,21 @@ export default function MenuCliente() {
                 ) : null}
               </p>
 
-              {/* ✅ Mini-stats (esto es lo que “llena” la card) */}
               <div style={styles.iaStatsRow}>
                 <div style={styles.iaStat}>
                   <div style={styles.iaStatLabel}>DÍAS</div>
                   <div style={styles.iaStatValue}>{daysCount}</div>
                 </div>
-
                 <div style={styles.iaStat}>
                   <div style={styles.iaStatLabel}>EJERCICIOS</div>
                   <div style={styles.iaStatValue}>{totalEjercicios}</div>
                 </div>
-
                 <div style={styles.iaStat}>
                   <div style={styles.iaStatLabel}>NIVEL</div>
                   <div style={styles.iaStatValue}>{nivelLabel || "—"}</div>
                 </div>
               </div>
 
-              {/* ✅ Barra visual (solo estética, pero se nota mucho) */}
               <div style={styles.iaBarWrap}>
                 <div
                   style={{
@@ -850,42 +394,20 @@ export default function MenuCliente() {
             </button>
           </div>
         ))}
-
-        
-      
       </div>
 
       {/* Modal Eliminar */}
       {showDeleteModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalCard}>
-            <div
-              style={{
-                background: "rgba(239, 68, 68, 0.1)",
-                padding: "20px",
-                borderRadius: "50%",
-                display: "inline-block",
-                marginBottom: "20px",
-              }}
-            >
+            <div style={{ background: "rgba(239, 68, 68, 0.1)", padding: "20px", borderRadius: "50%", display: "inline-block", marginBottom: "20px" }}>
               <AlertTriangle size={40} color="#ef4444" />
             </div>
-
-            <h3 style={{ color: "white", margin: 0, fontSize: "1.5rem" }}>
-              ¿ELIMINAR RUTINA?
-            </h3>
-
-            <p style={{ color: "#a1a1aa", margin: "15px 0 30px 0" }}>
-              Esta acción es irreversible.
-            </p>
-
+            <h3 style={{ color: "white", margin: 0, fontSize: "1.5rem" }}>¿ELIMINAR RUTINA?</h3>
+            <p style={{ color: "#a1a1aa", margin: "15px 0 30px 0" }}>Esta acción es irreversible.</p>
             <div style={{ display: "flex", gap: "15px" }}>
-              <button style={styles.modalBtnCancel} onClick={() => setShowDeleteModal(false)}>
-                CANCELAR
-              </button>
-              <button style={styles.modalBtnDelete} onClick={confirmDelete}>
-                ELIMINAR
-              </button>
+              <button style={styles.modalBtnCancel} onClick={() => setShowDeleteModal(false)}>CANCELAR</button>
+              <button style={styles.modalBtnDelete} onClick={confirmDelete}>ELIMINAR</button>
             </div>
           </div>
         </div>
@@ -902,9 +424,7 @@ export default function MenuCliente() {
             <h3 style={{ margin: 0, fontSize: "1.35rem", fontWeight: "900", textTransform: "uppercase" }}>
               {iaPlanSelected.key?.includes("|") ? `Plan ${iaPlanSelected.objetivo}` : iaPlanSelected.key}
             </h3>
-            <p style={{ marginTop: "8px", marginBottom: "0", color: "#a1a1aa" }}>
-              Selecciona el día que quieres entrenar.
-            </p>
+            <p style={{ marginTop: "8px", marginBottom: "0", color: "#a1a1aa" }}>Selecciona el día que quieres entrenar.</p>
 
             <div style={styles.iaList}>
               {iaPlanSelected.items.map((rutinaDia) => (
@@ -913,18 +433,11 @@ export default function MenuCliente() {
                     <div style={styles.iaRowTitle}>{rutinaDia.nombre}</div>
                     <div style={styles.iaRowSub}>{rutinaDia.detalles?.length || 0} ejercicios</div>
                   </div>
-
                   <button
                     style={styles.iaRowBtn}
                     onClick={() => navigate(`/cliente/sesion/${rutinaDia.id}`)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "white";
-                      e.currentTarget.style.color = "black";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "#18181b";
-                      e.currentTarget.style.color = "white";
-                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "white"; e.currentTarget.style.color = "black"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "#18181b"; e.currentTarget.style.color = "white"; }}
                   >
                     <Play size={18} /> Empezar
                   </button>
@@ -933,12 +446,7 @@ export default function MenuCliente() {
             </div>
 
             <div style={{ marginTop: "16px" }}>
-              <button
-                style={{ ...styles.modalBtnCancel, width: "100%" }}
-                onClick={() => setShowIAPlanModal(false)}
-              >
-                CERRAR
-              </button>
+              <button style={{ ...styles.modalBtnCancel, width: "100%" }} onClick={() => setShowIAPlanModal(false)}>CERRAR</button>
             </div>
           </div>
         </div>

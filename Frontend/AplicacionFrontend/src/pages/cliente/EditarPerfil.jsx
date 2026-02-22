@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCliente } from '../../api/endpoints'; // Asegúrate de que esta importación es correcta
+import { useAuth } from '../../context/AuthContext';
 import { User, Save, ChevronLeft, Camera, Mail, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import ImageUpload from '../../components/ui/ImageUpload';
 
 const EditarPerfil = () => {
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -22,10 +25,16 @@ const EditarPerfil = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const id = localStorage.getItem('clienteId');
-      if (!id) return navigate('/auth/login');
+      if (!userId) {
+        navigate('/auth/login');
+        return;
+      }
+
       try {
-        const data = await getCliente(id);
+        console.log('📡 Fetching cliente con ID:', userId);
+        const data = await getCliente(userId);
+        console.log('📦 Datos cliente recibidos:', data);
+
         setForm({
           nombre: data.nombre || '',
           apellido: data.apellido || '',
@@ -33,11 +42,15 @@ const EditarPerfil = () => {
           fotoPerfil: data.fotoPerfil || '',
           contraseña: ''
         });
-      } catch (e) { console.error(e); }
+        console.log('✅ Form cliente actualizado');
+      } catch (e) { 
+        console.error('❌ Error al cargar cliente:', e);
+        showToast('Error al cargar datos del perfil', 'error');
+      }
       setLoading(false);
     };
     fetchData();
-  }, [navigate]);
+  }, [userId]);
 
   const handleChange = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
@@ -52,20 +65,37 @@ const EditarPerfil = () => {
     setSaving(true);
     
     try {
-      const id = localStorage.getItem('clienteId');
-      
-      // Mantenemos tu fetch original si no tienes el endpoint creado aún en la librería
-      await fetch(`http://localhost:8080/api/clientes/${id}`, {
+      // 🔧 SIMPLIFICADO: Enviar todos los campos modificables
+      const payload = {
+        nombre: form.nombre || '',
+        apellido: form.apellido || '',
+        fotoPerfil: form.fotoPerfil || ''
+      };
+
+      // Agregar contraseña solo si tiene valor
+      if (form.contraseña && form.contraseña.trim() !== '') {
+        payload.contraseña = form.contraseña;
+      }
+
+      console.log('📤 Enviando payload cliente:', payload);
+
+      const response = await fetch(`http://localhost:8080/api/clientes/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify(payload)
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = typeof errorData === 'string' ? errorData : JSON.stringify(errorData);
+        throw new Error(`HTTP ${response.status}: ${errorMsg}`);
+      }
 
       showToast('Perfil actualizado correctamente', 'success');
       setTimeout(() => navigate('/cliente/dashboard'), 1500);
     } catch (err) {
-      console.error(err);
-      showToast('Error al actualizar el perfil', 'error');
+      console.error('❌ Error actualizando perfil cliente:', err);
+      showToast(`Error: ${err.message}`, 'error');
     } finally {
       setSaving(false);
     }
@@ -153,19 +183,12 @@ const EditarPerfil = () => {
                     <div style={{flex: 1}}>
                         <h3 style={{margin:'0 0 5px 0', fontSize:'1.1rem', fontWeight:'700'}}>Avatar</h3>
                         <p style={{margin:'0 0 15px 0', fontSize:'0.85rem', color:'#666'}}>Personaliza tu cuenta con una foto.</p>
-                        <div style={styles.inputGroup}>
-                            <div style={{position:'relative'}}>
-                                <Camera size={18} color="#666" style={{position:'absolute', left:'14px', top:'14px'}}/>
-                                <input 
-                                    style={{...styles.input, paddingLeft:'45px'}} 
-                                    placeholder="Pegar URL de la imagen..." 
-                                    value={form.fotoPerfil} 
-                                    onChange={e => handleChange('fotoPerfil', e.target.value)} 
-                                    onFocus={e => e.target.style.borderColor = '#FACC15'} 
-                                    onBlur={e => e.target.style.borderColor = '#333'}
-                                />
-                            </div>
-                        </div>
+                        
+                        {/* Componente de upload */}
+                        <ImageUpload 
+                          onUploadSuccess={(url) => handleChange('fotoPerfil', url)}
+                          label="Seleccionar imagen"
+                        />
                     </div>
                 </div>
 

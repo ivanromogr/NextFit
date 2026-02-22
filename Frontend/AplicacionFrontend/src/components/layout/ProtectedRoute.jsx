@@ -1,21 +1,25 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export default function ProtectedRoute({ role, children }) {
-  const entrenadorId = localStorage.getItem("entrenadorId");
-  const clienteId = localStorage.getItem("clienteId");
+  const { userId, role: userRole, loading } = useAuth();
+
+  if (loading) {
+    return <div>Cargando...</div>;
+  }
 
   // No autenticado
-  if (!entrenadorId && !clienteId) {
+  if (!userId) {
     return <Navigate to="/auth/login" replace />;
   }
 
   // Protegido por rol
-  if (role === "entrenador" && !entrenadorId) {
+  if (role === "entrenador" && userRole !== "entrenador") {
     return <Navigate to="/cliente/dashboard" replace />;
   }
 
-  if (role === "cliente" && !clienteId) {
+  if (role === "cliente" && userRole !== "cliente") {
     return <Navigate to="/entrenador/dashboard" replace />;
   }
 

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom'; // 👈 AÑADIDO useLocation
 import { 
     obtenerRutinasCliente, 
-    guardarSesion, // Asegúrate de que en endpoints.js se llame así
+    guardarSesion, 
     obtenerUltimaSesionRutina 
 } from '../../api/endpoints';
-import { useToast } from '../../context/ToastContext'; 
+import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { 
     ChevronLeft, Check, Clock, Save, MoreHorizontal, 
     Plus, Info, Trash2, X, MessageSquare, Activity,
@@ -15,8 +16,13 @@ import {
 export default function SesionEntrenamiento() {
     const { rutinaId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation(); // 👈 Hook para leer datos de navegación
     const toast = useToast();
+    const { userId } = useAuth();
     
+    // 👇 RECUPERAMOS EL ID DEL EVENTO DEL CALENDARIO (Si existe)
+    const eventoIdCalendario = location.state?.eventoId;
+
     // --- ESTADOS ---
     const [rutina, setRutina] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -42,20 +48,17 @@ export default function SesionEntrenamiento() {
     // --- CARGA DE DATOS ---
     useEffect(() => {
         const cargar = async () => {
-            const clienteId = localStorage.getItem("clienteId");
-            if (!clienteId) return navigate("/auth/login");
+            if (!userId) return navigate("/auth/login");
 
             try {
                 // 1. Obtener Rutina
-                const todas = await obtenerRutinasCliente(clienteId);
+                const todas = await obtenerRutinasCliente(userId);
                 const actual = todas.find(r => r.id === rutinaId);
                 
                 if (actual) {
                     setRutina(actual);
 
-                    // 2. Obtener Historial (Última vez que se hizo)
-                    // Nota: Si esta función no existe en tu backend todavía, 
-                    // simplemente devolverá null y no romperá nada.
+                    // 2. Obtener Historial
                     let mapaHistorial = {};
                     try {
                         const lastSession = await obtenerUltimaSesionRutina(clienteId, rutinaId);
@@ -67,7 +70,7 @@ export default function SesionEntrenamiento() {
                         console.warn("No hay historial previo o error al cargar:", err);
                     }
 
-                    // 3. Inicializar la sesión (Inputs) combinando Rutina + Historial
+                    // 3. Inicializar la sesión
                     inicializarSesion(actual.detalles, mapaHistorial);
 
                 } else {
@@ -83,7 +86,7 @@ export default function SesionEntrenamiento() {
         cargar();
     }, [rutinaId, navigate]);
 
-    // Función auxiliar: Convierte la lista plana del backend a un objeto fácil de usar
+    // Función auxiliar
     const generarMapaHistorial = (seriesPasadas) => {
         const mapa = {};
         seriesPasadas.forEach(serie => {
@@ -91,9 +94,7 @@ export default function SesionEntrenamiento() {
             if (!ejId) return;
 
             if (!mapa[ejId]) mapa[ejId] = [];
-            
-            // Ajustamos el índice (suponiendo que viene 0-based o 1-based, aquí asumimos 0-based para array)
-            const idx = serie.setIndex; // Si en BD guardas 0, 1, 2...
+            const idx = serie.setIndex;
             
             mapa[ejId][idx] = { 
                 peso: serie.peso, 
@@ -104,30 +105,22 @@ export default function SesionEntrenamiento() {
         return mapa;
     };
 
-    // 👇 AQUÍ ESTÁ LA MAGIA DEL PRE-LLENADO
+    // Inicializar inputs
     const inicializarSesion = (ejercicios, historial = {}) => {
         const estructura = {};
         
         ejercicios.forEach(ej => {
             const exerciseId = ej.ejercicio.id;
-            
-            // Buscamos si hay datos previos para este ejercicio
             const datosPreviosEjercicio = historial[exerciseId] || [];
-
-            // Creamos tantas filas como diga la rutina (seriesObjetivo)
-            // Ojo: ej.seriesObjetivo es como se llama en tu entidad DetalleRutina
             const numSeries = ej.seriesObjetivo || 3; 
 
             estructura[exerciseId] = Array(numSeries).fill(0).map((_, index) => {
-                // Miramos si existe un set anterior para este índice
                 const setPrevio = datosPreviosEjercicio[index];
-
                 return {
-                    // Si existe dato previo, lo ponemos como sugerencia. Si no, 0.
                     peso: setPrevio ? setPrevio.peso : 0,
                     reps: setPrevio ? setPrevio.reps : 0,
                     rpe:  setPrevio ? setPrevio.rpe  : 8,
-                    hecho: false // El check siempre empieza vacío en una nueva sesión
+                    hecho: false 
                 };
             });
         });
@@ -161,14 +154,11 @@ export default function SesionEntrenamiento() {
         const newSets = [...datosSesion[idEjercicio]];
         newSets[index].hecho = !newSets[index].hecho;
         setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
-        
-        // Pequeña vibración háptica si es móvil
         if (navigator.vibrate) navigator.vibrate(50);
     };
 
     const addSet = (idEjercicio) => {
         const newSets = [...datosSesion[idEjercicio]];
-        // Al añadir nuevo set, copiamos los datos del anterior para agilizar
         const ultimo = newSets[newSets.length - 1] || { peso: 0, reps: 0, rpe: 8 };
         newSets.push({ ...ultimo, hecho: false });
         setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
@@ -218,11 +208,10 @@ export default function SesionEntrenamiento() {
             
             Object.entries(datosSesion).forEach(([ejercicioId, sets]) => {
                 sets.forEach((set, index) => {
-                    // Solo enviamos series hechas o con datos
                     if (set.hecho || set.peso > 0 || set.reps > 0) {
                         seriesLimpias.push({
                             ejercicioId: ejercicioId, 
-                            setIndex: index, // 0-based
+                            setIndex: index,
                             peso: parseFloat(set.peso) || 0.0,
                             reps: parseInt(set.reps, 10) || 0,
                             rpe: parseInt(set.rpe, 10) || 0,
@@ -233,18 +222,24 @@ export default function SesionEntrenamiento() {
             });
 
             const payload = {
-                clienteId: clienteId,
+                clienteId: userId,
                 rutinaId: rutinaId, 
                 duracionSegundos: tiempo,
                 notasGenerales: notasUnificadas || "Sesión finalizada.",
+                eventoCalendarioId: eventoIdCalendario, // 👈 ¡LA CLAVE! ENVIAMOS EL ID DEL CALENDARIO
                 series: seriesLimpias
             };
 
             await guardarSesion(payload);
 
             toast.success("¡Entrenamiento guardado! 🔥");
-            // Redirigir al Calendario para que vea el TIC verde
-            navigate("/cliente/calendario"); 
+            
+            // Navegación inteligente: Volver al origen
+            if (eventoIdCalendario) {
+                navigate("/cliente/calendario"); 
+            } else {
+                navigate("/cliente/dashboard"); 
+            }
 
         } catch (error) {
             console.error("Error al guardar sesión:", error);
@@ -267,7 +262,6 @@ export default function SesionEntrenamiento() {
         statLabel: { fontSize: '0.65rem', color: '#71717a', fontWeight: 'bold', marginBottom: '4px', textTransform:'uppercase', letterSpacing:'1px' },
         statValueYellow: { fontSize: '1.2rem', fontWeight: 'bold', color: '#FACC15', display:'flex', alignItems:'center', gap:'5px' },
         statValue: { fontSize: '1.2rem', fontWeight: 'bold', color: '#fff' },
-        timerUnderline: { height:'2px', width:'30px', background:'#FACC15', marginTop:'4px' },
         
         card: { background: '#121214', borderRadius: '12px', border: '1px solid #27272a', margin: '20px', overflow: 'hidden' },
         cardHeader: { padding: '20px', borderBottom: '1px solid #222', display: 'flex', gap:'15px' },
@@ -280,7 +274,6 @@ export default function SesionEntrenamiento() {
         exTitle: { fontSize: '1.1rem', fontWeight: '900', textTransform: 'uppercase', color: '#FACC15', marginBottom: '2px' },
         imgBox: { width:'60px', height:'60px', background:'#222', borderRadius:'8px', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid #333' },
         
-        // Grid de la tabla (ajustado para que quepa todo)
         tableHeader: { display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', padding: '10px 15px', background: '#18181b', color: '#52525b', fontSize: '0.65rem', fontWeight: '900', letterSpacing:'0.5px', textAlign: 'center', textTransform:'uppercase' },
         tableRow: (hecho) => ({ display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', padding: '12px 15px', borderBottom: '1px solid #1f1f22', alignItems: 'center', background: hecho ? 'rgba(34, 197, 94, 0.05)' : 'transparent', transition:'background 0.2s' }),
         
@@ -395,14 +388,12 @@ export default function SesionEntrenamiento() {
                             </div>
                             
                             {sets.map((set, i) => {
-                                // Recuperamos dato histórico para la columna gris
                                 const datoAnterior = historialPrevio[exerciseId]?.[i]; 
 
                                 return (
                                     <div key={i} style={styles.tableRow(set.hecho)}>
                                         <div style={{fontWeight:'bold', color: set.hecho ? '#FACC15' : '#555', textAlign:'center', fontSize:'0.9rem'}}>{i + 1}</div>
                                         
-                                        {/* COLUMNA ANTERIOR (Solo Lectura) */}
                                         <div style={{textAlign:'center', color:'#52525b', fontSize:'0.75rem', fontStyle:'italic', display:'flex', flexDirection:'column', lineHeight:'1.2'}}>
                                             {datoAnterior ? (
                                                 <>
@@ -412,7 +403,6 @@ export default function SesionEntrenamiento() {
                                             ) : ("-")}
                                         </div>
                                         
-                                        {/* INPUTS EDITABLES */}
                                         <div style={{padding:'0 4px'}}>
                                             <input
                                                 type="number"
@@ -429,7 +419,6 @@ export default function SesionEntrenamiento() {
                                             <input type="number" placeholder="8" style={{...styles.input, color: '#71717a'}} value={set.rpe} onChange={(e) => updateSet(exerciseId, i, 'rpe', e.target.value)} />
                                         </div>
 
-                                        {/* CHECKBOX */}
                                         <div style={{display:'flex', justifyContent:'center', gap:'10px'}}>
                                             <button style={styles.checkBtn(set.hecho)} onClick={() => toggleCheck(exerciseId, i)}>
                                                 {set.hecho && <Check size={18} strokeWidth={4}/>}

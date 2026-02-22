@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntrenador, actualizarEntrenador } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 import {
   User,
   ChevronLeft,
@@ -11,15 +12,18 @@ import {
   Mail,
   AlignLeft,
   Lock,
+  Globe // Añadimos el icono para el Escaparate Público
 } from 'lucide-react';
 
 // ✅ Reutilizamos tu design system
 import GymButton from '../../components/ui/GymButton';
 import GymInput from '../../components/ui/GymInput';
 import GymSelectionCard from '../../components/ui/GymSelectionCard';
+import ImageUpload from '../../components/ui/ImageUpload';
 
 const EditarPerfilEntrenador = () => {
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({
@@ -33,7 +37,10 @@ const EditarPerfilEntrenador = () => {
     modalidadTrabajo: '',
     genero: '',
     fotoPerfil: '',
-    contraseña: ''
+    contraseña: '',
+    // 👇 Nuevos campos para el Escaparate
+    perfilPublico: false,
+    tarifaMensual: ''
   });
 
   const [originalForm, setOriginalForm] = useState(null);
@@ -66,11 +73,16 @@ const EditarPerfilEntrenador = () => {
 
   useEffect(() => {
     const fetch = async () => {
-      const id = localStorage.getItem('entrenadorId');
-      if (!id) return navigate('/auth/login');
+      // Si no hay userId, vuelve al login
+      if (!userId) {
+        navigate('/auth/login');
+        return;
+      }
 
       try {
-        const data = await getEntrenador(id);
+        console.log('📡 Fetching entrenador con ID:', userId);
+        const data = await getEntrenador(userId);
+        console.log('📦 Datos recibidos:', data);
 
         const normalized = {
           nombre: data.nombre || '',
@@ -108,7 +120,6 @@ const EditarPerfilEntrenador = () => {
               return results;
             }).filter((v, i, a) => v && a.indexOf(v) === i);
 
-            // extras visibles
             const extras = mapped.filter(m =>
               !LISTA_ESPECIALIDADES.some(opt => opt.toLowerCase() === String(m).toLowerCase())
             );
@@ -128,20 +139,24 @@ const EditarPerfilEntrenador = () => {
           modalidadTrabajo: data.modalidadTrabajo || 'ONLINE',
           genero: data.genero || '',
           fotoPerfil: data.fotoPerfil || '',
-          contraseña: ''
+          contraseña: '',
+          perfilPublico: data.perfilPublico || false,
+          tarifaMensual: data.tarifaMensual != null ? String(data.tarifaMensual) : ''
         };
 
+        console.log('✅ Form normalizado:', normalized);
         setForm(normalized);
         setOriginalForm(normalized);
+        setLoading(false);
       } catch (e) {
-        console.error(e);
+        console.error('❌ Error al cargar datos:', e);
+        setLoading(false);
+        showToast('Error al cargar datos del perfil', 'error');
       }
-
-      setLoading(false);
     };
 
     fetch();
-  }, [navigate]);
+  }, [userId]);
 
   const handleChange = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
@@ -164,56 +179,42 @@ const EditarPerfilEntrenador = () => {
     setSaving(true);
 
     try {
-      const id = localStorage.getItem('entrenadorId');
+      // 🔧 SIMPLIFICADO: Enviar todos los campos que se pueden editar
+      // (excluyendo email que es inmutable y contraseña que se envía solo si hay valor)
+      const payload = {
+        nombre: form.nombre || '',
+        apellido: form.apellido || '',
+        fotoPerfil: form.fotoPerfil || '',
+        especialidad: Array.isArray(form.especialidad) ? form.especialidad.join(', ') : (form.especialidad || ''),
+        aniosExperiencia: (form.aniosExperiencia === '' || form.aniosExperiencia === null) ? null : Number(form.aniosExperiencia),
+        formacion: form.formacion || '',
+        descripcionPerfil: form.descripcionPerfil || '',
+        modalidadTrabajo: form.modalidadTrabajo || 'ONLINE',
+        genero: form.genero || '',
+        perfilPublico: Boolean(form.perfilPublico),
+        tarifaMensual: (form.tarifaMensual === '' || form.tarifaMensual === null) ? null : Number(form.tarifaMensual)
+      };
 
-      // Payload sólo cambios
-      const payload = {};
-      Object.keys(form).forEach((k) => {
-        if (k === 'contraseña') {
-          if (form.contraseña && form.contraseña.trim() !== '') payload.contraseña = form.contraseña;
-          return;
-        }
-
-        if (k === 'especialidad') {
-          const curr = Array.isArray(form.especialidad) ? form.especialidad.join(', ') : (form.especialidad || '');
-          const orig = originalForm && Array.isArray(originalForm.especialidad)
-            ? originalForm.especialidad.join(', ')
-            : (originalForm ? (originalForm.especialidad || '') : '');
-          if (curr !== orig) payload.especialidad = curr;
-          return;
-        }
-
-        const orig = originalForm ? (originalForm[k] !== undefined ? originalForm[k] : '') : '';
-        if (form[k] !== orig) {
-          if (k === 'aniosExperiencia' || k === 'edad') {
-            payload[k] = (form[k] === '' || form[k] === null) ? null : Number(form[k]);
-          } else {
-            payload[k] = form[k];
-          }
-        }
-      });
-
-      if (Object.keys(payload).length === 0) {
-        showToast('No hay cambios para guardar', 'success');
-        setSaving(false);
-        return;
+      // Agregar contraseña solo si tiene valor
+      if (form.contraseña && form.contraseña.trim() !== '') {
+        payload.contraseña = form.contraseña;
       }
 
-      await actualizarEntrenador(id, payload);
+      console.log('📤 Enviando payload:', payload);
+
+      await actualizarEntrenador(userId, payload);
       showToast('Perfil actualizado correctamente', 'success');
 
-      setOriginalForm(prev => {
-        const merged = { ...(prev || {}), ...payload };
-        if (merged.especialidad && typeof merged.especialidad === 'string') {
-          merged.especialidad = merged.especialidad.split(',').map(s => s.trim()).filter(Boolean);
-        }
-        return merged;
-      });
+      // Actualizar el form original después de guardar exitosamente
+      setOriginalForm(form);
 
       setTimeout(() => navigate('/entrenador/dashboard'), 1500);
     } catch (err) {
-      console.error(err);
-      showToast('Error al actualizar el perfil', 'error');
+      console.error('❌ Error actualizando perfil:', err);
+      const serverMsg = err.response && (err.response.data || err.response.statusText) 
+        ? (typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data)) 
+        : err.message;
+      showToast(`Error al actualizar el perfil: ${serverMsg}`, 'error');
     } finally {
       setSaving(false);
     }
@@ -243,7 +244,6 @@ const EditarPerfilEntrenador = () => {
       fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
       paddingBottom: '60px'
     },
-
     header: {
       position: 'sticky',
       top: 0,
@@ -257,7 +257,6 @@ const EditarPerfilEntrenador = () => {
       alignItems: 'center',
       gap: '12px'
     },
-
     headerTitle: {
       color: 'rgba(255,255,255,0.55)',
       fontWeight: 900,
@@ -266,9 +265,7 @@ const EditarPerfilEntrenador = () => {
       textTransform: 'uppercase',
       whiteSpace: 'nowrap'
     },
-
     content: { maxWidth: '1040px', margin: '34px auto', padding: '0 18px' },
-
     mainCard: {
       background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)',
       border: '1px solid rgba(255,255,255,0.10)',
@@ -276,7 +273,6 @@ const EditarPerfilEntrenador = () => {
       padding: '34px',
       boxShadow: '0 18px 60px rgba(0,0,0,0.55)'
     },
-
     sectionTitle: {
       fontSize: '0.9rem',
       fontWeight: 900,
@@ -288,12 +284,8 @@ const EditarPerfilEntrenador = () => {
       textTransform: 'uppercase',
       letterSpacing: '1px'
     },
-
     grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' },
-    grid1: { display: 'grid', gridTemplateColumns: '1fr', gap: '14px' },
-
     divider: { height: 1, background: 'rgba(255,255,255,0.08)', margin: '22px 0' },
-
     photoSection: {
       display: 'flex',
       alignItems: 'center',
@@ -304,7 +296,6 @@ const EditarPerfilEntrenador = () => {
       borderRadius: '18px',
       border: '1px solid rgba(255,255,255,0.08)'
     },
-
     avatarBox: {
       width: '92px',
       height: '92px',
@@ -316,10 +307,7 @@ const EditarPerfilEntrenador = () => {
       alignItems: 'center',
       justifyContent: 'center'
     },
-
     helper: { margin: '6px 0 0 0', fontSize: '0.9rem', color: 'rgba(255,255,255,0.55)' },
-
-    // Select/textarea estilo consistente sin crear componentes nuevos
     fieldLabel: {
       display: 'block',
       marginBottom: '10px',
@@ -329,7 +317,6 @@ const EditarPerfilEntrenador = () => {
       letterSpacing: '0.9px',
       textTransform: 'uppercase',
     },
-
     select: {
       width: '100%',
       padding: '14px 14px',
@@ -342,10 +329,8 @@ const EditarPerfilEntrenador = () => {
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease',
       fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
     },
-
     textareaWrap: { position: 'relative' },
     textareaIcon: { position: 'absolute', left: 14, top: 14, color: '#FACC15', pointerEvents: 'none' },
-
     textarea: {
       width: '100%',
       padding: '14px 14px',
@@ -361,7 +346,6 @@ const EditarPerfilEntrenador = () => {
       resize: 'vertical',
       fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
     },
-
     toast: {
       position: 'fixed',
       top: '96px',
@@ -383,23 +367,28 @@ const EditarPerfilEntrenador = () => {
       transition: 'all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
       pointerEvents: 'none'
     },
-
     especGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
       gap: '12px'
     },
-
     dangerHint: {
       marginTop: 8,
       color: 'rgba(255,255,255,0.45)',
       fontSize: '0.9rem'
+    },
+    // 👇 Estilos para el nuevo bloque de Escaparate
+    escaparateBox: {
+      background: 'rgba(250, 204, 21, 0.03)', 
+      border: '1px solid rgba(250, 204, 21, 0.2)', 
+      borderRadius: '16px', 
+      padding: '24px',
+      marginTop: '10px'
     }
   };
 
   return (
     <div style={styles.container}>
-      {/* TOAST */}
       <div style={styles.toast}>
         {toast.type === 'success'
           ? <CheckCircle size={18} color="#10B981" />
@@ -408,18 +397,11 @@ const EditarPerfilEntrenador = () => {
         {toast.message}
       </div>
 
-      {/* HEADER */}
       <div style={styles.header}>
-        <GymButton
-          variant="secondary"
-          onClick={() => navigate('/entrenador/dashboard')}
-        >
+        <GymButton variant="secondary" onClick={() => navigate('/entrenador/dashboard')}>
           <ChevronLeft size={18} /> Cancelar
         </GymButton>
-
         <div style={styles.headerTitle}>Perfil profesional</div>
-
-        {/* ✅ Submit real + loading */}
         <GymButton type="submit" loading={saving} onClick={handleSubmit}>
           Guardar cambios
         </GymButton>
@@ -428,7 +410,7 @@ const EditarPerfilEntrenador = () => {
       <div style={styles.content}>
         <form onSubmit={handleSubmit}>
           <div style={styles.mainCard}>
-            {/* FOTO */}
+            
             <div style={styles.photoSection}>
               <div style={styles.avatarBox}>
                 {form.fotoPerfil
@@ -436,161 +418,117 @@ const EditarPerfilEntrenador = () => {
                   : <User size={34} color="rgba(255,255,255,0.35)" />
                 }
               </div>
-
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 900, fontSize: '1.05rem' }}>Foto de perfil</div>
-                <p style={styles.helper}>Se mostrará a tus atletas en su panel.</p>
-
-                <GymInput
-                  label="URL de la imagen"
-                  placeholder="https://..."
-                  icon={Camera}
-                  value={form.fotoPerfil}
-                  onChange={(e) => handleChange('fotoPerfil', e.target.value)}
+                <div style={{ fontWeight: 900, fontSize: '1.05rem', marginBottom: '8px' }}>Foto de perfil</div>
+                <p style={styles.helper}>Sube una imagen profesional o pega una URL.</p>
+                
+                {/* Componente de upload de imágenes */}
+                <ImageUpload 
+                  onUploadSuccess={(url) => handleChange('fotoPerfil', url)}
+                  label="Seleccionar imagen"
                 />
               </div>
             </div>
 
-            {/* DATOS PERSONALES */}
             <div style={styles.sectionTitle}><User size={18} color="#FACC15" /> Datos personales</div>
-
             <div style={styles.grid2}>
-              <GymInput
-                label="Nombre"
-                placeholder="Tu nombre"
-                value={form.nombre}
-                onChange={(e) => handleChange('nombre', e.target.value)}
-                autoComplete="given-name"
-              />
-              <GymInput
-                label="Apellido"
-                placeholder="Tu apellido"
-                value={form.apellido}
-                onChange={(e) => handleChange('apellido', e.target.value)}
-                autoComplete="family-name"
-              />
+              <GymInput label="Nombre" placeholder="Tu nombre" value={form.nombre} onChange={(e) => handleChange('nombre', e.target.value)} />
+              <GymInput label="Apellido" placeholder="Tu apellido" value={form.apellido} onChange={(e) => handleChange('apellido', e.target.value)} />
             </div>
-
             <div style={{ marginTop: 14 }}>
-              <GymInput
-                label="Correo electrónico"
-                placeholder="email@ejemplo.com"
-                icon={Mail}
-                value={form.email}
-                onChange={(e) => handleChange('email', e.target.value)}
-                autoComplete="email"
-              />
+              <GymInput label="Correo electrónico" placeholder="email@ejemplo.com" icon={Mail} value={form.email} onChange={(e) => handleChange('email', e.target.value)} />
             </div>
 
             <div style={styles.divider} />
 
-            {/* PERFIL PROFESIONAL */}
-            <div style={styles.sectionTitle}><Briefcase size={18} color="#FACC15" /> Perfil profesional</div>
+            {/* 👇 NUEVA SECCIÓN: ESCAPARATE PÚBLICO 👇 */}
+            <div style={styles.sectionTitle}><Globe size={18} color="#FACC15" /> Escaparate Público (Marketplace)</div>
+            <div style={styles.escaparateBox}>
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: form.perfilPublico ? '20px' : '0' }}>
+                <div>
+                  <div style={{ color: 'white', fontWeight: '800', fontSize: '1.05rem' }}>Aparecer en búsquedas</div>
+                  <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.85rem', marginTop: '4px' }}>Permite que nuevos clientes te encuentren y te contraten.</div>
+                </div>
+                
+                {/* Custom Toggle Switch */}
+                <label style={{ position: 'relative', display: 'inline-block', width: '52px', height: '28px' }}>
+                  <input 
+                    type="checkbox" 
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                    checked={form.perfilPublico}
+                    onChange={(e) => handleChange('perfilPublico', e.target.checked)}
+                  />
+                  <span style={{ 
+                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
+                    backgroundColor: form.perfilPublico ? '#FACC15' : 'rgba(255,255,255,0.1)', 
+                    borderRadius: '34px', transition: '0.3s', border: '1px solid rgba(255,255,255,0.1)' 
+                  }}>
+                    <span style={{
+                      position: 'absolute', height: '20px', width: '20px', 
+                      left: form.perfilPublico ? '27px' : '3px', bottom: '3px', 
+                      backgroundColor: form.perfilPublico ? '#000' : 'rgba(255,255,255,0.6)', 
+                      borderRadius: '50%', transition: '0.3s'
+                    }}></span>
+                  </span>
+                </label>
+              </div>
 
-            <div style={{ marginBottom: 12, color: 'rgba(255,255,255,0.55)', fontSize: '0.92rem' }}>
-              Selecciona tus especialidades (puedes marcar varias).
+              {form.perfilPublico && (
+                <div style={{ marginTop: 14 }}>
+                  <GymInput
+                    label="Tarifa Mensual (€)"
+                    type="number"
+                    placeholder="Ej: 50"
+                    value={form.tarifaMensual}
+                    onChange={(e) => handleChange('tarifaMensual', e.target.value)}
+                    suffix="€ / mes"
+                  />
+                  <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.82rem', marginTop: '8px' }}>
+                    Tus especialidades y biografía (configuradas abajo) se usarán como tu carta de presentación.
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* ✅ Especialidades con GymSelectionCard */}
+            <div style={styles.divider} />
+
+            <div style={styles.sectionTitle}><Briefcase size={18} color="#FACC15" /> Perfil profesional</div>
+            <div style={{ marginBottom: 12, color: 'rgba(255,255,255,0.55)', fontSize: '0.92rem' }}>Selecciona tus especialidades (puedes marcar varias).</div>
             <div style={styles.especGrid}>
               {visibleEspecialidades.map(opt => {
-                const selected = Array.isArray(form.especialidad) &&
-                  form.especialidad.some(e => String(e).toLowerCase() === String(opt).toLowerCase());
-
-                return (
-                  <GymSelectionCard
-                    key={opt}
-                    title={opt}
-                    selected={selected}
-                    onClick={() => toggleEspecialidad(opt)}
-                  />
-                );
+                const selected = Array.isArray(form.especialidad) && form.especialidad.some(e => String(e).toLowerCase() === String(opt).toLowerCase());
+                return <GymSelectionCard key={opt} title={opt} selected={selected} onClick={() => toggleEspecialidad(opt)} />;
               })}
             </div>
-
             <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.45)', fontSize: '0.88rem' }}>
-              {Array.isArray(form.especialidad) && form.especialidad.length > 0
-                ? `Seleccionadas: ${form.especialidad.join(', ')}`
-                : 'Selecciona tus especialidades...'
-              }
+              {Array.isArray(form.especialidad) && form.especialidad.length > 0 ? `Seleccionadas: ${form.especialidad.join(', ')}` : 'Selecciona tus especialidades...'}
             </div>
 
             <div style={{ marginTop: 14 }}>
-              <GymInput
-                label="Años de experiencia"
-                type="number"
-                placeholder="Ej: 5"
-                value={form.aniosExperiencia}
-                onChange={(e) => handleChange('aniosExperiencia', e.target.value)}
-                suffix="años"
-              />
+              <GymInput label="Años de experiencia" type="number" placeholder="Ej: 5" value={form.aniosExperiencia} onChange={(e) => handleChange('aniosExperiencia', e.target.value)} suffix="años" />
             </div>
 
             <div style={{ marginTop: 14 }}>
               <label style={styles.fieldLabel}>Formación / Titulación</label>
-              <select
-                style={styles.select}
-                value={form.formacion || ''}
-                onChange={(e) => handleChange('formacion', e.target.value)}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(250,204,21,0.55)';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(250,204,21,0.18)';
-                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
-                  e.currentTarget.style.boxShadow = 'none';
-                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
-                }}
-              >
+              <select style={styles.select} value={form.formacion || ''} onChange={(e) => handleChange('formacion', e.target.value)}>
                 <option value="">Selecciona tu titulación...</option>
-                {LISTA_TITULACIONES.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
+                {LISTA_TITULACIONES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             </div>
 
             <div style={{ marginTop: 14, ...styles.grid2 }}>
               <div>
                 <label style={styles.fieldLabel}>Modalidad de trabajo</label>
-                <select
-                  style={styles.select}
-                  value={form.modalidadTrabajo || ''}
-                  onChange={(e) => handleChange('modalidadTrabajo', e.target.value)}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(250,204,21,0.55)';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(250,204,21,0.18)';
-                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
-                  }}
-                >
+                <select style={styles.select} value={form.modalidadTrabajo || ''} onChange={(e) => handleChange('modalidadTrabajo', e.target.value)}>
                   <option value="ONLINE">100% Online</option>
                   <option value="PRESENCIAL">Presencial</option>
                   <option value="MIXTO">Híbrido / Mixto</option>
                 </select>
               </div>
-
               <div>
                 <label style={styles.fieldLabel}>Género</label>
-                <select
-                  style={styles.select}
-                  value={form.genero || ''}
-                  onChange={(e) => handleChange('genero', e.target.value)}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(250,204,21,0.55)';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(250,204,21,0.18)';
-                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
-                  }}
-                >
+                <select style={styles.select} value={form.genero || ''} onChange={(e) => handleChange('genero', e.target.value)}>
                   <option value="">Selecciona...</option>
                   <option value="MASCULINO">Masculino</option>
                   <option value="FEMENINO">Femenino</option>
@@ -608,37 +546,15 @@ const EditarPerfilEntrenador = () => {
                   placeholder="Describe tu metodología, logros o filosofía de entrenamiento..."
                   value={form.descripcionPerfil}
                   onChange={(e) => handleChange('descripcionPerfil', e.target.value)}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(250,204,21,0.55)';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(250,204,21,0.18)';
-                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
-                  }}
                 />
               </div>
             </div>
 
             <div style={styles.divider} />
 
-            {/* SEGURIDAD */}
             <div style={styles.sectionTitle}><Lock size={18} color="#EF4444" /> Seguridad</div>
-
-            <GymInput
-              label="Cambiar contraseña"
-              type="password"
-              placeholder="Déjalo vacío para mantener la actual"
-              icon={Lock}
-              value={form.contraseña}
-              onChange={(e) => handleChange('contraseña', e.target.value)}
-              autoComplete="new-password"
-            />
-            <div style={styles.dangerHint}>
-              La contraseña solo se enviará si escribes algo.
-            </div>
+            <GymInput label="Cambiar contraseña" type="password" placeholder="Déjalo vacío para mantener la actual" icon={Lock} value={form.contraseña} onChange={(e) => handleChange('contraseña', e.target.value)} autoComplete="new-password" />
+            <div style={styles.dangerHint}>La contraseña solo se enviará si escribes algo.</div>
           </div>
         </form>
       </div>
@@ -646,4 +562,4 @@ const EditarPerfilEntrenador = () => {
   );
 };
 
-export default EditarPerfilEntrenador;
+export default EditarPerfilEntrenador;  

@@ -9,6 +9,7 @@ public class GuardarSesionRequest {
     private int duracionSegundos;
     private String notasGenerales;
     private List<SerieDTO> series;
+    private UUID eventoCalendarioId;
 
     public static class SerieDTO {
         public UUID ejercicioId;
@@ -33,4 +34,7 @@ public class GuardarSesionRequest {
 
     public List<SerieDTO> getSeries() { return series; }
     public void setSeries(List<SerieDTO> series) { this.series = series; }
+    
+    public UUID getEventoCalendarioId() { return eventoCalendarioId; }
+    public void setEventoCalendarioId(UUID eventoCalendarioId) { this.eventoCalendarioId = eventoCalendarioId; }
 }

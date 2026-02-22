@@ -13,4 +13,6 @@ import com.tuap.backend.dominio.entidades.Cliente;
 public interface ClienteDAO extends JpaRepository<Cliente, UUID> {
     Optional<Cliente> findByEmail(String email);
     List<Cliente> findByEntrenadorId(UUID entrenadorId);
+    long countByEntrenador_Id(UUID entrenadorId);
 }
+

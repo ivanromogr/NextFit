@@ -1,6 +1,7 @@
 package com.tuap.backend.controladores;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuap.backend.dominio.entidades.Cliente;
@@ -34,6 +36,18 @@ public class ClienteController {
     @GetMapping("/{id}")
     public Cliente obtener(@PathVariable UUID id) {
         return clienteDAO.findById(id).orElse(null);
+    }
+    // 👇 AÑADE ESTO EN TU CONTROLADOR 👇
+    @GetMapping("/buscar")
+    public ResponseEntity<?> buscarPorEmail(@RequestParam String email) {
+        // Asumiendo que tienes un clienteRepository o usuarioRepository
+        Optional<Cliente> cliente = clienteDAO.findByEmail(email);
+        
+        if (cliente.isPresent()) {
+            return ResponseEntity.ok(cliente.get());
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
     
     @PostMapping("/onboarding")

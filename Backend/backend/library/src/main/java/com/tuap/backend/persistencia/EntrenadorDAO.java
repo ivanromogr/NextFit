@@ -1,5 +1,6 @@
 package com.tuap.backend.persistencia;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,4 +12,6 @@ import com.tuap.backend.dominio.entidades.Entrenador;
 @Repository
 public interface EntrenadorDAO extends JpaRepository<Entrenador, UUID> {
      Optional<Entrenador> findByEmail(String email);
+     List<Entrenador> findByPerfilPublicoTrue();
 }
+

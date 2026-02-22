@@ -5,11 +5,10 @@ import {
   getCliente,
   eliminarRutina,
 } from "../../api/endpoints";
-import { Dumbbell, Plus, ChevronLeft, Edit, Trash2, Calendar, User } from "lucide-react";
+// 👇 IMPORTANTE: Añadimos TrendingUp a los iconos
+import { Dumbbell, Plus, ChevronLeft, Edit, Trash2, Calendar, User, TrendingUp } from "lucide-react";
 
-// ✅ Reutilizamos GymButton
 import GymButton from "../../components/ui/GymButton";
-// ✅ FALTABA ESTE IMPORT (esto te rompía la pantalla)
 import ActionCard from "../../components/ui/ActionCard";
 
 export default function RutinasDeCliente() {
@@ -21,6 +20,11 @@ export default function RutinasDeCliente() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!clienteId) {
+      console.warn('clienteId ausente en la ruta, abortando carga de RutinasDeCliente.');
+      setLoading(false);
+      return;
+    }
     cargarDatos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clienteId]);
@@ -40,15 +44,25 @@ export default function RutinasDeCliente() {
     }
   };
 
- const handleCrearNueva = () => {
-  localStorage.setItem("clienteObjetivoId", clienteId);
-  navigate(`/entrenador/cliente/${clienteId}/crear-rutina`);
-};
+  const handleCrearNueva = () => {
+    localStorage.setItem("clienteObjetivoId", clienteId);
+    navigate(`/entrenador/cliente/${clienteId}/crear-rutina`);
+  };
 
-const handleEditar = (rutinaId) => {
-  localStorage.setItem("clienteObjetivoId", clienteId);
-  navigate(`/entrenador/cliente/${clienteId}/editar-rutina/${rutinaId}`);
-};
+  const handleEditar = (rutinaId) => {
+    localStorage.setItem("clienteObjetivoId", clienteId);
+    navigate(`/entrenador/cliente/${clienteId}/editar-rutina/${rutinaId}`);
+  };
+
+  // 👇 Navegación al Calendario
+  const handleVerCalendario = () => {
+    navigate(`/entrenador/cliente/${clienteId}/calendario`);
+  };
+
+  // 👇 NUEVO: Navegación al Progreso/Estadísticas
+  const handleVerProgreso = () => {
+    navigate(`/entrenador/cliente/${clienteId}/progreso`);
+  };
 
   const handleEliminar = async (rutinaId) => {
     if (window.confirm("¿Seguro que quieres borrar esta rutina del cliente?")) {
@@ -73,6 +87,11 @@ const handleEditar = (rutinaId) => {
       borderBottom: "1px solid rgba(255,255,255,0.08)",
       paddingBottom: "20px",
       gap: "20px",
+    },
+    headerActions: {
+        display: "flex",
+        gap: "12px",
+        alignItems: "center"
     },
     title: { fontSize: "2rem", fontWeight: "900", textTransform: "uppercase", margin: 0 },
     subTitle: { color: "rgba(255,255,255,0.55)", marginTop: "6px" },
@@ -170,9 +189,20 @@ const handleEditar = (rutinaId) => {
           </div>
         </div>
 
-        <GymButton onClick={handleCrearNueva}>
-          <Plus size={18} /> Nueva rutina
-        </GymButton>
+        {/* 👇 AQUÍ ESTÁN LOS 3 BOTONES AHORA */}
+        <div style={styles.headerActions}>
+            <GymButton variant="secondary" onClick={handleVerProgreso}>
+                <TrendingUp size={18} /> Progreso
+            </GymButton>
+
+            <GymButton variant="secondary" onClick={handleVerCalendario}>
+                <Calendar size={18} /> Calendario
+            </GymButton>
+            
+            <GymButton onClick={handleCrearNueva}>
+                <Plus size={18} /> Nueva rutina
+            </GymButton>
+        </div>
       </div>
 
       <div style={styles.grid}>
@@ -227,7 +257,6 @@ const handleEditar = (rutinaId) => {
               variant="highlight"
               onClick={handleCrearNueva}
             />
-            
           </div>
         )}
       </div>

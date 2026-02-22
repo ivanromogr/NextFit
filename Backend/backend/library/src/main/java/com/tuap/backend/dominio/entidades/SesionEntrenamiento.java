@@ -17,6 +17,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -50,6 +51,9 @@ public class SesionEntrenamiento {
     @Column(columnDefinition = "TEXT")
     private String notasGenerales;
 
+    @OneToOne
+    @JoinColumn(name = "evento_calendario_id")
+    private EventoCalendario eventoCalendario;
     // Lista de series reales
     @OneToMany(mappedBy = "sesion", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties("sesion")
@@ -76,4 +80,11 @@ public class SesionEntrenamiento {
     public void setNotasGenerales(String notasGenerales) { this.notasGenerales = notasGenerales; }
     public List<SerieRealizada> getSeries() { return series; }
     public void setSeries(List<SerieRealizada> series) { this.series = series; }
+    public EventoCalendario getEventoCalendario() {
+        return eventoCalendario;
+    }
+
+    public void setEventoCalendario(EventoCalendario eventoCalendario) {
+        this.eventoCalendario = eventoCalendario;
+    }
 }

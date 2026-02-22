@@ -29,7 +29,7 @@ export default function EntrenadorSidebar() {
     },
     logoContainer: { marginBottom: "36px", paddingLeft: "6px" },
     logoImage: {
-      width: "200px",
+      width: "160px", // Ajustado tamaño para que encaje mejor
       height: "auto",
       display: "block",
       filter: "drop-shadow(0 0 10px rgba(250, 204, 21, 0.2))",
@@ -47,16 +47,33 @@ export default function EntrenadorSidebar() {
       fontWeight: active ? "700" : "500",
       transition: "all 0.15s ease",
       textDecoration: "none",
-      border: active
-        ? "1px solid rgba(250,204,21,0.14)"
-        : "1px solid transparent",
+      border: active ? "1px solid rgba(250,204,21,0.14)" : "1px solid transparent",
+      width: "100%",
+      textAlign: "left",
+      outline: "none"
     }),
+    logoutBtn: {
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        padding: "12px 14px",
+        borderRadius: "14px",
+        color: "#ef4444",
+        background: "transparent",
+        cursor: "pointer",
+        marginTop: "auto",
+        border: "1px solid transparent",
+        width: "100%",
+        textAlign: "left",
+        fontWeight: "600",
+        fontSize: "0.95rem"
+    }
   };
 
+  // Lógica de rutas activas
   const isDashboard = location.pathname === "/entrenador/dashboard";
-  const isAtletas =
-    location.pathname === "/entrenador/dashboard" ||
-    location.pathname.startsWith("/entrenador/cliente/");
+  // Atletas está activo si es la lista o si estamos viendo el perfil de un cliente
+  const isAtletas = location.pathname === "/entrenador/atletas" || location.pathname.startsWith("/entrenador/cliente/");
   const isAgenda = location.pathname.startsWith("/entrenador/agenda");
   const isChat = location.pathname.startsWith("/entrenador/chat");
   const isPerfil = location.pathname.startsWith("/entrenador/perfil");
@@ -64,57 +81,61 @@ export default function EntrenadorSidebar() {
   return (
     <aside style={styles.sidebar}>
       <div style={styles.logoContainer}>
-        <img src={logoNextFit} alt="NEXTFIT" style={styles.logoImage} />
+        {logoNextFit ? (
+             <img src={logoNextFit} alt="NEXTFIT" style={styles.logoImage} />
+        ) : (
+             <h2 style={{color:'white'}}>NEXT<span style={{color:'#FACC15'}}>FIT</span></h2>
+        )}
       </div>
 
       <nav style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
         <button
-          style={{ ...styles.navItem(isDashboard), border: "none", background: "transparent", textAlign: "left" }}
+          style={styles.navItem(isDashboard)}
           onClick={() => navigate("/entrenador/dashboard")}
         >
           <LayoutGrid size={20} /> Dashboard
         </button>
 
         <button
-          style={{ ...styles.navItem(isAtletas), border: "none", background: "transparent", textAlign: "left" }}
-          onClick={() => navigate("/entrenador/dashboard")}
+          style={styles.navItem(isAtletas)}
+          onClick={() => navigate("/entrenador/atletas")}
         >
-          <Users size={20} /> Atletas
+          <Users size={20} /> Mis Atletas
         </button>
 
         <button
-          style={{ ...styles.navItem(isAgenda), border: "none", background: "transparent", textAlign: "left", opacity: 0.6 }}
+          style={{ ...styles.navItem(isAgenda), opacity: 0.5, cursor: "not-allowed" }}
           onClick={() => {}}
           title="Próximamente"
         >
           <Calendar size={20} /> Agenda
         </button>
 
+        {/* 👇 BOTÓN CHAT AHORA ACTIVO */}
         <button
-          style={{ ...styles.navItem(isChat), border: "none", background: "transparent", textAlign: "left", opacity: 0.6 }}
-          onClick={() => {}}
-          title="Próximamente"
+          style={styles.navItem(isChat)}
+          onClick={() => navigate("/entrenador/chat")}
         >
           <MessageSquare size={20} /> Chat
         </button>
 
         <button
-          style={{ ...styles.navItem(isPerfil), border: "none", background: "transparent", textAlign: "left" }}
+          style={styles.navItem(isPerfil)}
           onClick={() => navigate("/entrenador/perfil")}
         >
           <Settings size={20} /> Configuración
         </button>
       </nav>
 
-      <div
-        style={{ ...styles.navItem(false), color: "#ef4444", marginTop: "auto" }}
+      <button
+        style={styles.logoutBtn}
         onClick={() => {
           localStorage.clear();
           navigate("/auth/login");
         }}
       >
         <LogOut size={20} /> Cerrar Sesión
-      </div>
+      </button>
     </aside>
   );
 }

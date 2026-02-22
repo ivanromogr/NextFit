@@ -53,9 +53,41 @@ public class Entrenador {
     @Column
     private String modalidadTrabajo; // ONLINE / PRESENCIAL / MIXTO, etc.
 
+    public String getBiografia() {
+        return biografia;
+    }
+
+    public void setBiografia(String biografia) {
+        this.biografia = biografia;
+    }
+
+    public Double getTarifaMensual() {
+        return tarifaMensual;
+    }
+
+    public void setTarifaMensual(Double tarifaMensual) {
+        this.tarifaMensual = tarifaMensual;
+    }
+
+    public boolean isPerfilPublico() {
+        return perfilPublico;
+    }
+
+    public void setPerfilPublico(boolean perfilPublico) {
+        this.perfilPublico = perfilPublico;
+    }
+
     @Column
     private String fotoPerfil;
 
+    @Column(name = "biografia", columnDefinition = "TEXT")
+    private String biografia;
+
+    @Column(name = "tarifa_mensual")
+    private Double tarifaMensual;
+
+    @Column(name = "perfil_publico")
+    private boolean perfilPublico = false;
 
     @OneToMany(mappedBy = "entrenador", cascade = CascadeType.ALL)
     private List<Chat> chats;

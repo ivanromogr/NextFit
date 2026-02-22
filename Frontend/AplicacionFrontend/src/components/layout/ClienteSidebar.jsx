@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import logoNextFit from "../../assets/logo-nextfit.png"; // Asegúrate de que la ruta es correcta
+import { useAuth } from "../../context/AuthContext";
+import logoNextFit from "../../assets/logo-nextfit.png"; 
 
 import {
   LogOut,
@@ -8,11 +9,14 @@ import {
   Calendar,
   BarChart2,
   Settings,
+  MessageCircle,
+  Search // 👈 IMPORTAMOS EL ICONO PARA EL BUSCADOR
 } from "lucide-react";
 
 export default function ClienteSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
 
   const styles = {
     sidebar: {
@@ -28,7 +32,7 @@ export default function ClienteSidebar() {
     },
     logoContainer: { marginBottom: "36px", paddingLeft: "6px" },
     logoImage: {
-      width: "150px", // Ajustado un poco el tamaño para que no sea enorme
+      width: "150px", 
       height: "auto",
       display: "block",
       filter: "drop-shadow(0 0 10px rgba(250, 204, 21, 0.2))",
@@ -39,16 +43,16 @@ export default function ClienteSidebar() {
       gap: "12px",
       padding: "12px 14px",
       borderRadius: "14px",
-      color: active ? "#FACC15" : "#a1a1aa", // Amarillo si activo, gris si no
-      background: active ? "rgba(250, 204, 21, 0.12)" : "transparent", // Fondo amarillo suave si activo
+      color: active ? "#FACC15" : "#a1a1aa", 
+      background: active ? "rgba(250, 204, 21, 0.12)" : "transparent", 
       cursor: "pointer",
       fontSize: "0.95rem",
       fontWeight: active ? "700" : "500",
       transition: "all 0.15s ease",
       textDecoration: "none",
       border: active ? "1px solid rgba(250,204,21,0.14)" : "1px solid transparent",
-      width: "100%",      // Asegura que el botón ocupe el ancho
-      textAlign: "left",  // Alinea texto e icono a la izquierda
+      width: "100%",      
+      textAlign: "left",  
       outline: "none"
     }),
     logoutBtn: {
@@ -69,17 +73,18 @@ export default function ClienteSidebar() {
     }
   };
 
-  // Lógica de rutas corregida
+  // Lógica de rutas
   const isDashboard = location.pathname === "/cliente/dashboard";
-  // Ahora comprueba correctamente la ruta del calendario
   const isCalendario = location.pathname.startsWith("/cliente/calendario");
   const isProgreso = location.pathname.startsWith("/cliente/progreso");
+  const isChat = location.pathname.startsWith("/cliente/chat") || location.pathname.startsWith("/cliente/mensajes");
+  // 👇 DETECTAMOS SI ESTAMOS EN EL BUSCADOR
+  const isBuscador = location.pathname.startsWith("/cliente/entrenadores");
   const isAjustes = location.pathname.startsWith("/cliente/perfil") || location.pathname.startsWith("/cliente/ajustes");
 
   return (
     <aside style={styles.sidebar}>
       <div style={styles.logoContainer}>
-        {/* Si no carga la imagen, muestra texto alternativo */}
         {logoNextFit ? (
             <img src={logoNextFit} alt="NEXTFIT" style={styles.logoImage} />
         ) : (
@@ -92,7 +97,7 @@ export default function ClienteSidebar() {
           style={styles.navItem(isDashboard)}
           onClick={() => navigate("/cliente/dashboard")}
         >
-          <LayoutGrid size={20} /> Dashboard
+          <LayoutGrid size={20} /> Menú Principal
         </button>
 
         <button
@@ -110,6 +115,21 @@ export default function ClienteSidebar() {
         </button>
 
         <button
+          style={styles.navItem(isChat)}
+          onClick={() => navigate("/cliente/chat")}
+        >
+          <MessageCircle size={20} /> Mensajes
+        </button>
+
+        {/* 👇 NUEVO BOTÓN PARA EL MARKETPLACE */}
+        <button
+          style={styles.navItem(isBuscador)}
+          onClick={() => navigate("/cliente/entrenadores")}
+        >
+          <Search size={20} /> Buscar Entrenador
+        </button>
+
+        <button
           style={styles.navItem(isAjustes)}
           onClick={() => navigate("/cliente/perfil")}
         >
@@ -120,7 +140,7 @@ export default function ClienteSidebar() {
       <button
         style={styles.logoutBtn}
         onClick={() => {
-          localStorage.clear();
+          logout();
           navigate("/auth/login");
         }}
       >

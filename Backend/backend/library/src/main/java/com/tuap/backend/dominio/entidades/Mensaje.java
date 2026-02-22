@@ -1,81 +1,75 @@
 package com.tuap.backend.dominio.entidades;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "mensaje")
+@Table(name = "mensajes")
 public class Mensaje {
+
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
-    @Column(nullable = false)
-    private UUID chatid;
-    @Column(nullable = false)
-    private UUID remitenteid;
-    @Column(nullable = false)
+
+    private UUID remitenteId;    // ID del que escribe (Entrenador o Cliente)
+    private UUID destinatarioId; // ID del que recibe
+    @Column(name = "archivo_url")
+    private String archivoUrl;
+
+    @Column(name = "tipo_archivo")
+    private String tipoArchivo; // Guardará "IMAGEN" o "VIDEO"
+    @Column(columnDefinition = "TEXT")
     private String contenido;
-    @Column(nullable = false)
-    private Date timestamp;
 
-    public Mensaje() {
-    }
     
-    public Mensaje(UUID id, UUID chatid, UUID remitenteid, String contenido, Date timestamp) {
-        this.id = id;
-        this.chatid = chatid;
-        this.remitenteid = remitenteid;
+    private LocalDateTime fechaHora;
+    private boolean leido = false;
+
+    // Constructor vacío
+    public Mensaje() {}
+
+    // Constructor útil
+    public Mensaje(UUID remitenteId, UUID destinatarioId, String contenido) {
+        this.remitenteId = remitenteId;
+        this.destinatarioId = destinatarioId;
         this.contenido = contenido;
-        this.timestamp = timestamp;
+        this.fechaHora = LocalDateTime.now();
     }
 
+    // Getters y Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public UUID getRemitenteId() { return remitenteId; }
+    public void setRemitenteId(UUID remitenteId) { this.remitenteId = remitenteId; }
+    public UUID getDestinatarioId() { return destinatarioId; }
+    public void setDestinatarioId(UUID destinatarioId) { this.destinatarioId = destinatarioId; }
+    public String getContenido() { return contenido; }
+    public void setContenido(String contenido) { this.contenido = contenido; }
+    public LocalDateTime getFechaHora() { return fechaHora; }
+    public void setFechaHora(LocalDateTime fechaHora) { this.fechaHora = fechaHora; }
+    public boolean isLeido() { return leido; }
+    public void setLeido(boolean leido) { this.leido = leido; }
 
-    //Getters
-    public UUID getId() {
-        return id;
+    public String getArchivoUrl() {
+        return archivoUrl;
     }
 
-    public UUID getChatid() {
-        return chatid;
+    public void setArchivoUrl(String archivoUrl) {
+        this.archivoUrl = archivoUrl;
     }
 
-    public UUID getRemitenteid() {
-        return remitenteid;
+    public String getTipoArchivo() {
+        return tipoArchivo;
     }
 
-    public String getContenido() {
-        return contenido;
+    public void setTipoArchivo(String tipoArchivo) {
+        this.tipoArchivo = tipoArchivo;
     }
-
-    public Date getTimestamp() {
-        return timestamp;
-    }
-
-    //Setters
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public void setChatid(UUID chatid) {
-        this.chatid = chatid;
-    }
-
-    public void setRemitenteid(UUID remitenteid) {
-        this.remitenteid = remitenteid;
-    }
-
-    public void setContenido(String contenido) {
-        this.contenido = contenido;
-    }
-
-    public void setTimestamp(Date timestamp) {
-        this.timestamp = timestamp;
-    }
-    
-    
 }
