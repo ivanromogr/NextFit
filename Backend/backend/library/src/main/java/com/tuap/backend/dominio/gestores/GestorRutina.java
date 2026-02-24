@@ -30,10 +30,50 @@ public class GestorRutina {
     @Autowired private com.tuap.backend.persistencia.EntrenadorDAO entrenadorDAO;
 
     // =========================================================
-    //  PARTE 1: CREADOR MANUAL
+    //  PARTE 1: CREADOR MANUAL (incluyendo PLANTILLAS MAESTRAS)
     // =========================================================
     @Transactional
     public Rutina crearRutinaManual(RutinaRequest request) {
+        // ✅ Si es una PLANTILLA MAESTRA
+        if (request.getEsPlantilla() != null && request.getEsPlantilla()) {
+            Rutina plantilla = new Rutina();
+            plantilla.setNombre(request.getNombre());
+            plantilla.setDescripcion(request.getDescripcion());
+            plantilla.setObjetivo(request.getObjetivo());
+            plantilla.setNivel("Personalizado");
+            plantilla.setCreador("ENTRENADOR");
+            plantilla.setEsPlantilla(true);
+            plantilla.setEntrenadorId(request.getEntrenadorId()); // ✅ Asociamos al entrenador
+            plantilla.setCliente(null); // Una plantilla NO pertenece a un cliente específico
+            
+            plantilla = rutinaDAO.save(plantilla);
+            
+            List<DetalleRutina> detalles = new ArrayList<>();
+            if (request.getEjercicios() != null) {
+                for (RutinaRequest.EjercicioDetalleDTO d : request.getEjercicios()) {
+                    Ejercicio ej = ejercicioDAO.findById(d.getIdEjercicio())
+                            .orElseThrow(() -> new RuntimeException("Ejercicio no encontrado"));
+
+                    DetalleRutina detalle = new DetalleRutina();
+                    detalle.setRutina(plantilla);
+                    detalle.setEjercicio(ej);
+                    detalle.setSeries(d.getSeries());
+                    detalle.setRepeticiones(d.getRepeticiones());
+                    detalle.setPeso(d.getPeso());
+                    detalle.setRpe(d.getRpe());
+                    detalle.setNotas(d.getNotas());
+                    detalle.setDias(1);
+
+                    detalles.add(detalle);
+                }
+            }
+
+            detalleRutinaDAO.saveAll(detalles);
+            plantilla.setDetalles(detalles);
+            return plantilla;
+        }
+        
+        // ✅ Si es una RUTINA NORMAL
         Cliente cliente = clienteDAO.findById(request.getIdCliente())
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
@@ -43,6 +83,7 @@ public class GestorRutina {
         rutina.setDescripcion(request.getDescripcion());
         rutina.setObjetivo(request.getObjetivo());
         rutina.setNivel("Personalizado");
+        rutina.setEsPlantilla(false); // No es plantilla
 
         // ✅ Guardamos quién crea la rutina
         if (request.getCreador() != null && !request.getCreador().isBlank()) {
@@ -65,29 +106,23 @@ public class GestorRutina {
         rutina = rutinaDAO.save(rutina);
 
         List<DetalleRutina> detalles = new ArrayList<>();
-        for (RutinaRequest.EjercicioDetalleDTO d : request.getEjercicios()) {
-            Ejercicio ej = ejercicioDAO.findById(d.getIdEjercicio())
-                    .orElseThrow(() -> new RuntimeException("Ejercicio no encontrado"));
+        if (request.getEjercicios() != null) {
+            for (RutinaRequest.EjercicioDetalleDTO d : request.getEjercicios()) {
+                Ejercicio ej = ejercicioDAO.findById(d.getIdEjercicio())
+                        .orElseThrow(() -> new RuntimeException("Ejercicio no encontrado"));
 
-            DetalleRutina detalle = new DetalleRutina();
-            detalle.setRutina(rutina);
-            detalle.setEjercicio(ej);
-            detalle.setSeries(d.getSeries());
-            detalle.setRepeticiones(d.getRepeticiones());
-            detalle.setPeso(d.getPeso());
-            detalle.setRpe(d.getRpe());
-            detalle.setNotas(d.getNotas());
-
-            // ✅ IMPORTANTE: quitamos d.getDias() porque tu DTO NO lo tiene (era tu error)
-            // Si tu entidad DetalleRutina exige un "dias", lo dejamos fijo a 1 para rutinas manuales
-            try {
-                // Si existe el campo en tu entidad, genial:
+                DetalleRutina detalle = new DetalleRutina();
+                detalle.setRutina(rutina);
+                detalle.setEjercicio(ej);
+                detalle.setSeries(d.getSeries());
+                detalle.setRepeticiones(d.getRepeticiones());
+                detalle.setPeso(d.getPeso());
+                detalle.setRpe(d.getRpe());
+                detalle.setNotas(d.getNotas());
                 detalle.setDias(1);
-            } catch (Exception ignore) {
-                // Si tu entidad NO tiene dias, no pasa nada
-            }
 
-            detalles.add(detalle);
+                detalles.add(detalle);
+            }
         }
 
         detalleRutinaDAO.saveAll(detalles);

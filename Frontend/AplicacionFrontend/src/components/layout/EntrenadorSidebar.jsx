@@ -9,6 +9,7 @@ import {
   Calendar,
   MessageSquare,
   Settings,
+  Copy // 👇 AQUÍ ESTÁ EL ICONO IMPORTADO
 } from "lucide-react";
 
 export default function EntrenadorSidebar() {
@@ -29,7 +30,7 @@ export default function EntrenadorSidebar() {
     },
     logoContainer: { marginBottom: "36px", paddingLeft: "6px" },
     logoImage: {
-      width: "160px", // Ajustado tamaño para que encaje mejor
+      width: "160px",
       height: "auto",
       display: "block",
       filter: "drop-shadow(0 0 10px rgba(250, 204, 21, 0.2))",
@@ -72,10 +73,10 @@ export default function EntrenadorSidebar() {
 
   // Lógica de rutas activas
   const isDashboard = location.pathname === "/entrenador/dashboard";
-  // Atletas está activo si es la lista o si estamos viendo el perfil de un cliente
   const isAtletas = location.pathname === "/entrenador/atletas" || location.pathname.startsWith("/entrenador/cliente/");
   const isAgenda = location.pathname.startsWith("/entrenador/agenda");
   const isChat = location.pathname.startsWith("/entrenador/chat");
+  const isPlantillas = location.pathname.startsWith("/entrenador/plantillas"); // 👇 NUEVA LÓGICA ACTIVA
   const isPerfil = location.pathname.startsWith("/entrenador/perfil");
 
   return (
@@ -103,20 +104,27 @@ export default function EntrenadorSidebar() {
           <Users size={20} /> Mis Atletas
         </button>
 
+        {/* 👇 AGENDA ACTIVADA */}
         <button
-          style={{ ...styles.navItem(isAgenda), opacity: 0.5, cursor: "not-allowed" }}
-          onClick={() => {}}
-          title="Próximamente"
+          style={styles.navItem(isAgenda)}
+          onClick={() => navigate('/entrenador/agenda')}
         >
           <Calendar size={20} /> Agenda
         </button>
 
-        {/* 👇 BOTÓN CHAT AHORA ACTIVO */}
         <button
           style={styles.navItem(isChat)}
           onClick={() => navigate("/entrenador/chat")}
         >
           <MessageSquare size={20} /> Chat
+        </button>
+
+        {/* 👇 BOTÓN BIBLIOTECA ESTILIZADO */}
+        <button 
+          style={styles.navItem(isPlantillas)}
+          onClick={() => navigate('/entrenador/plantillas')}
+        >
+           <Copy size={20} /> Biblioteca
         </button>
 
         <button

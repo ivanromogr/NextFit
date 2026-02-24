@@ -31,7 +31,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         const noLeidos = mensajes.filter(m => m.remitenteId === destinatarioId && !m.leido);
-        // Sólo marcamos como leídos si la pestaña está visible y la ventana tiene foco.
+            // Sólo marcamos como leídos si la pestaña está visible y la ventana tiene foco.
         const isVisible = typeof document !== 'undefined' && document.visibilityState === 'visible' && document.hasFocus && document.hasFocus();
         if (noLeidos.length > 0 && stompClientRef.current && conectado && isVisible) {
             // Enviamos ack de lectura al backend

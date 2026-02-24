@@ -12,6 +12,10 @@ public class RutinaRequest {
     
     // ✅ 1. CAMPO NUEVO PARA SOLUCIONAR EL PRIMER ERROR
     private String creador; 
+    
+    // ✅ 2. CAMPOS PARA PLANTILLAS MAESTRAS
+    private Boolean esPlantilla;
+    private UUID entrenadorId;
 
     private List<EjercicioDetalleDTO> ejercicios;
 
@@ -31,6 +35,13 @@ public class RutinaRequest {
     // ✅ Getter y Setter para Creador (¡ESTO ES LO QUE FALTABA!)
     public String getCreador() { return creador; }
     public void setCreador(String creador) { this.creador = creador; }
+    
+    // ✅ Getters y Setters para plantillas
+    public Boolean getEsPlantilla() { return esPlantilla; }
+    public void setEsPlantilla(Boolean esPlantilla) { this.esPlantilla = esPlantilla; }
+    
+    public UUID getEntrenadorId() { return entrenadorId; }
+    public void setEntrenadorId(UUID entrenadorId) { this.entrenadorId = entrenadorId; }
 
     public List<EjercicioDetalleDTO> getEjercicios() { return ejercicios; }
     public void setEjercicios(List<EjercicioDetalleDTO> ejercicios) { this.ejercicios = ejercicios; }

@@ -257,6 +257,21 @@ export const obtenerEjerciciosConHistorial = async (clienteId) => {
         return [];
     }
 };
+export const obtenerPlantillasEntrenador = async (entrenadorId) => {
+  try {
+      const response = await api.get(`/api/rutinas/plantillas/${entrenadorId}`);
+      return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+      console.error("Error obteniendo plantillas:", error);
+      return [];
+  }
+};
+
+// 2. Clonar una plantilla a un cliente
+export const clonarPlantilla = async (plantillaId, clienteId) => {
+  const response = await api.post(`/api/rutinas/clonar/${plantillaId}/cliente/${clienteId}`);
+  return response.data;
+};
 
 // Obtener datos de progreso de un ejercicio específico
 export const obtenerDatosProgreso = async (clienteId, ejercicioId) => {

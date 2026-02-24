@@ -3,7 +3,7 @@ package com.tuap.backend.dominio.entidades;
 import java.util.List;
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties; // Importante para evitar bucles JSON
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties; 
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -56,16 +56,22 @@ public class Cliente {
     @Column(nullable = false)
     private String genero;
 
+    // ✅ IMPLEMENTACIÓN PRO: Evitamos bucles en todas las listas bidireccionales
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties("cliente")
     private List<Progreso> progresos;
 
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties("cliente")
     private List<Chat> chats;
 
-    // ✅ NUEVA RELACIÓN: Entrenador (Puede ser null si no tiene entrenador asignado)
+    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties({"cliente", "detalles"})
+    private List<Rutina> rutinas;
+
     @ManyToOne
     @JoinColumn(name = "entrenador_id")
-    @JsonIgnoreProperties("clientes") // Evita bucle infinito al pedir datos del entrenador
+    @JsonIgnoreProperties("clientes") 
     private Entrenador entrenador;
 
     
@@ -127,10 +133,12 @@ public class Cliente {
     public List<Chat> getChats() { return chats; }
     public void setChats(List<Chat> chats) { this.chats = chats; }
 
+    public List<Rutina> getRutinas() { return rutinas; }
+    public void setRutinas(List<Rutina> rutinas) { this.rutinas = rutinas; }
+
     public String getGenero() { return genero; }
     public void setGenero(String genero) { this.genero = genero; }
 
-    // ✅ Getters/Setters para Entrenador
     public Entrenador getEntrenador() { return entrenador; }
     public void setEntrenador(Entrenador entrenador) { this.entrenador = entrenador; }
 }

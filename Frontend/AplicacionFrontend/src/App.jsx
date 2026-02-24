@@ -38,6 +38,9 @@ import EditarPerfilEntrenador from "./pages/entrenador/EditarPerfilEntrenador";
 import VistaProgresoEntrenador from "./pages/entrenador/VistaProgresoEntrenador";
 import GestionAtletas from "./pages/entrenador/GestionAtletas";
 import ChatPage from "./pages/entrenador/ChatPage"; 
+// 👇 NUEVA IMPORTACIÓN DE LA AGENDA GLOBAL
+import AgendaEntrenador from "./pages/entrenador/AgendaEntrenador"; 
+import PlantillasEntrenador from "./pages/entrenador/PlantillasEntrenador";
 
 // Contextos
 import { ToastProvider } from "./context/ToastContext";
@@ -98,6 +101,8 @@ function App() {
               }
             >
               <Route path="dashboard" element={<MenuEntrenador />} />
+              {/* 👇 NUEVA RUTA DE LA AGENDA GLOBAL */}
+              <Route path="agenda" element={<AgendaEntrenador />} />
               <Route path="chat" element={<ChatPage />} />
               <Route path="atletas" element={<GestionAtletas />} />
               <Route path="perfil" element={<EditarPerfilEntrenador />} />
@@ -106,6 +111,10 @@ function App() {
               <Route path="cliente/:clienteId/rutinas" element={<RutinasDeCliente />} />
               <Route path="cliente/:clienteId/crear-rutina" element={<CrearEntrenamiento />} />
               <Route path="cliente/:clienteId/editar-rutina/:rutinaId" element={<EditarRutina />} />
+              <Route path="plantillas" element={<PlantillasEntrenador />} />
+              <Route path="plantillas/crear" element={<CrearEntrenamiento isTemplate={true} />} />
+              <Route path="plantillas/editar/:rutinaId" element={<EditarRutina isTemplate={true} />} />
+
             </Route>
 
             {/* Fallback para rutas no encontradas */}

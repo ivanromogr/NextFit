@@ -32,12 +32,20 @@ public class Rutina {
     private String descripcion;
     private String nivel;
 
-    // ✅ Campo correcto
     @Column(nullable = false)
     private String creador; 
 
-    @ManyToOne
-    @JoinColumn(name = "cliente_id", nullable = false)
+    // --- CAMPOS PARA PLANTILLAS MAESTRAS ---
+    @Column(name = "es_plantilla")
+    private Boolean esPlantilla = false;
+
+    @Column(name = "entrenador_id", columnDefinition = "BINARY(16)")
+    private UUID entrenadorId;
+
+    // ✅ IMPLEMENTACIÓN PRO: Cortamos todas las ramas que causan recursión en el Cliente
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "cliente_id", nullable = true)
+    @JsonIgnoreProperties({"rutinas", "entrenador", "chats", "progresos", "hibernateLazyInitializer", "handler"})
     private Cliente cliente;
 
     @OneToMany(mappedBy = "rutina", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
@@ -47,16 +55,6 @@ public class Rutina {
     public Rutina() {}
 
     // --- GETTERS Y SETTERS ---
-
-   
-    public String getCreador() { 
-        return creador; 
-    }
-
-    public void setCreador(String creador) { 
-        this.creador = creador; 
-    }
-    // -------------------------------------------------------------------------
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -73,8 +71,17 @@ public class Rutina {
     public String getNivel() { return nivel; }
     public void setNivel(String nivel) { this.nivel = nivel; }
 
+    public String getCreador() { return creador; }
+    public void setCreador(String creador) { this.creador = creador; }
+
     public Cliente getCliente() { return cliente; }
     public void setCliente(Cliente cliente) { this.cliente = cliente; }
+
+    public boolean isEsPlantilla() { return esPlantilla; }
+    public void setEsPlantilla(boolean esPlantilla) { this.esPlantilla = esPlantilla; }
+
+    public UUID getEntrenadorId() { return entrenadorId; }
+    public void setEntrenadorId(UUID entrenadorId) { this.entrenadorId = entrenadorId; }
 
     public List<DetalleRutina> getDetalles() { return detalles; }
     public void setDetalles(List<DetalleRutina> detalles) { 

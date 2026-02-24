@@ -10,7 +10,13 @@ import com.tuap.backend.dominio.entidades.Rutina;
 
 @Repository
 public interface RutinaDAO extends JpaRepository<Rutina, UUID> {
-    // Buscar rutinas por cliente (filtrado real para evitar mostrar rutinas de otros usuarios)
-    java.util.List<Rutina> findByClienteId(java.util.UUID clienteId);
+    
+    // Buscar rutinas por cliente
+    List<Rutina> findByClienteId(UUID clienteId);
+    
+    // Método derivado para buscar por cliente y creador (ENTRENADOR/CLIENTE/IA)
     List<Rutina> findByClienteIdAndCreador(UUID clienteId, String creador);
+    
+    // --- NUEVO: Buscar las plantillas de un entrenador ---
+    List<Rutina> findByEntrenadorIdAndEsPlantillaTrue(UUID entrenadorId);
 }
