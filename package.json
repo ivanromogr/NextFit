@@ -1,5 +1,9 @@
 {
   "dependencies": {
-    "lucide-react": "^0.562.0"
+    "emoji-picker-react": "^4.18.0",
+    "expo": "^54.0.33",
+    "lucide-react": "^0.562.0",
+    "sockjs-client": "^1.6.1",
+    "undefined": "react-navigation/stack"
   }
 }

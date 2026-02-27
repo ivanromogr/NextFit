@@ -70,7 +70,7 @@ public class SecurityConfig {
         
         // ⚠️ SEGURIDAD: Especificamos EXACTAMENTE quién puede entrar. Nada de "*"
         configuration.setAllowedOrigins(List.of("http://localhost:5173")); 
-        
+        configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept"));
         configuration.setAllowCredentials(true); // Permite cookies y sesión
