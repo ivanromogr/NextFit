@@ -9,10 +9,12 @@ import {
     User
 } from 'lucide-react-native';
 
-// ✅ Importamos las dos pantallas reales que ya hemos programado
+// ✅ Importamos las pantallas reales
 import DashboardClienteScreen from '../screens/DashboardScreen';
 import CalendarioClienteScreen from '../screens/Cliente/CalendarioClienteScreen';
 import PerfilScreen from '../screens/Cliente/EditarPerfilCliente';
+// ✅ Importamos la nueva pantalla de Progreso
+import ProgresoClienteScreen from '../screens/Cliente/ProgresoClienteScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -42,14 +44,15 @@ export default function ClienteTabNavigator() {
             />
             <Tab.Screen
                 name="Calendario"
-                component={CalendarioClienteScreen} // ✅ Ahora sí apunta a la pantalla real
+                component={CalendarioClienteScreen} 
                 options={{
                     tabBarIcon: ({ color }) => <Calendar color={color} size={24} />,
                 }}
             />
+            {/* ✅ Pestaña de Progreso conectada a la pantalla real */}
             <Tab.Screen
                 name="Progreso"
-                component={DashboardClienteScreen} // 🚧 Provisional hasta que la creemos
+                component={ProgresoClienteScreen} 
                 options={{
                     tabBarIcon: ({ color }) => <BarChart2 color={color} size={24} />,
                 }}
