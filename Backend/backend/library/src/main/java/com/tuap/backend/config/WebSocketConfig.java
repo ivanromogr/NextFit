@@ -12,15 +12,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic"); // Donde se envían los mensajes públicos/privados
-        config.setApplicationDestinationPrefixes("/app"); // Prefijo para enviar mensajes desde el cliente
+        // Prefijo para los mensajes que el servidor envía al cliente (suscripciones)
+        config.enableSimpleBroker("/topic"); 
+        
+        // Prefijo para los mensajes que el cliente envía al servidor (@MessageMapping)
+        config.setApplicationDestinationPrefixes("/app"); 
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Punto de conexión del socket (importante para React)
+        // ✅ SOLUCIÓN: Eliminamos .withSockJS() para permitir WebSockets nativos
+        // Esto es lo que React Native y @stomp/stompjs necesitan
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*") // Permite conexión desde localhost:3000
-                .withSockJS(); // Habilita SockJS por si el navegador no soporta WS nativo
+                .setAllowedOriginPatterns("*"); 
     }
 }

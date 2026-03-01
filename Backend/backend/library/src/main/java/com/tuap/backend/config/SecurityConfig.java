@@ -31,55 +31,48 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            // 1. Desactivar CSRF (común en APIs REST que no usan vistas HTML servidor)
-            .csrf(AbstractHttpConfigurer::disable)
-            
-            // 2. Configurar CORS usando el Bean definido abajo
-            .cors(Customizer.withDefaults()) 
-
-            // 3. Reglas de Autorización
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/login", "/register").permitAll() // Endpoints públicos
-                .anyRequest().permitAll() // 🔓 AHORA MISMO TODO ABIERTO (Para desarrollo)
-            )
-
-            // 4. Login Form
-            .formLogin(form -> form
-                .loginPage("/login")
-                .successHandler(customSuccessHandler)
-                .permitAll()
-            )
-
-            // 5. Logout
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login")
-                .permitAll()
-            );
-
-        return http.build();
-    }
-
-    // ✅ CONFIGURACIÓN CORS PROFESIONAL (CENTRALIZADA)
-    // Esto reemplaza cualquier otro archivo de configuración de CORS
-    @Bean
-    UrlBasedCorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(AbstractHttpConfigurer::disable)
+        .cors(Customizer.withDefaults()) 
+        .authorizeHttpRequests(auth -> auth
+            // ✅ Permitimos explícitamente el endpoint del socket y auth
+            .requestMatchers("/api/auth/**", "/login", "/register", "/ws/**").permitAll() 
+            .anyRequest().permitAll()
+        )
+        // ✅ IMPORTANTE para WebSockets: 
+        // Si en algún momento usaras iframes o SockJS, esto evita bloqueos de seguridad
+        .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
         
-        // ⚠️ SEGURIDAD: Especificamos EXACTAMENTE quién puede entrar. Nada de "*"
-        configuration.setAllowedOrigins(List.of("http://localhost:5173")); 
-        configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept"));
-        configuration.setAllowCredentials(true); // Permite cookies y sesión
-        configuration.setMaxAge(3600L); // Cache de preflight request (1 hora)
+        .formLogin(form -> form
+            .loginPage("/login")
+            .successHandler(customSuccessHandler)
+            .permitAll()
+        )
+        .logout(logout -> logout
+            .logoutUrl("/logout")
+            .logoutSuccessUrl("/login")
+            .permitAll()
+        );
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+    return http.build();
+}
+
+@Bean
+UrlBasedCorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+    
+    // ✅ Para React Native, lo más profesional es usar OriginPatterns en lugar de Origins fijos
+    configuration.setAllowedOriginPatterns(List.of("*")); 
+    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    configuration.setAllowedHeaders(List.of("*")); // Permitimos todos los headers para evitar líos con STOMP
+    configuration.setAllowCredentials(true); 
+    configuration.setMaxAge(3600L);
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+}
 
     @Bean
     public AuthenticationManager authManager(HttpSecurity http) throws Exception {

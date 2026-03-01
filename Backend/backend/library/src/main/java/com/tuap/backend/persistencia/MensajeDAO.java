@@ -18,11 +18,12 @@ public interface MensajeDAO extends JpaRepository<Mensaje, UUID> {
            "ORDER BY m.fechaHora ASC")
     List<Mensaje> findChatHistory(@Param("usuario1") UUID usuario1, @Param("usuario2") UUID usuario2);
     
-    @Query(value = "SELECT DISTINCT remitente_id FROM mensajes WHERE destinatario_id = :usuarioId " +
-                   "UNION " +
-                   "SELECT DISTINCT destinatario_id FROM mensajes WHERE remitente_id = :usuarioId", 
-           nativeQuery = true)
-    List<UUID> findContactosIds(@Param("usuarioId") UUID usuarioId);
+    @Query("SELECT DISTINCT CASE " +
+       "  WHEN m.remitenteId = :usuarioId THEN m.destinatarioId " +
+       "  ELSE m.remitenteId END " +
+       "FROM Mensaje m " +
+       "WHERE m.remitenteId = :usuarioId OR m.destinatarioId = :usuarioId")
+List<UUID> findContactosIds(@Param("usuarioId") UUID usuarioId);
     
     // Contar mensajes no leídos para un usuario
     long countByDestinatarioIdAndLeidoFalse(UUID destinatarioId);

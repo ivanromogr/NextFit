@@ -6,6 +6,7 @@ import {
     BarChart2,
     Search,
     Settings,
+        MessageSquare,
     User
 } from 'lucide-react-native';
 
@@ -15,6 +16,7 @@ import CalendarioClienteScreen from '../screens/Cliente/CalendarioClienteScreen'
 import PerfilScreen from '../screens/Cliente/EditarPerfilCliente';
 // ✅ Importamos la nueva pantalla de Progreso
 import ProgresoClienteScreen from '../screens/Cliente/ProgresoClienteScreen';
+import ChatClienteScreen from '../screens/Cliente/ChatClienteScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -44,17 +46,17 @@ export default function ClienteTabNavigator() {
             />
             <Tab.Screen
                 name="Calendario"
-                component={CalendarioClienteScreen} 
+                component={CalendarioClienteScreen}
                 options={{
                     tabBarIcon: ({ color }) => <Calendar color={color} size={24} />,
                 }}
             />
             {/* ✅ Pestaña de Progreso conectada a la pantalla real */}
             <Tab.Screen
-                name="Progreso"
-                component={ProgresoClienteScreen} 
+                name="Chat"
+                component={ChatClienteScreen} // 🚧 Crea este archivo o usa un placeholder
                 options={{
-                    tabBarIcon: ({ color }) => <BarChart2 color={color} size={24} />,
+                    tabBarIcon: ({ color }) => <MessageSquare color={color} size={24} />,
                 }}
             />
             <Tab.Screen

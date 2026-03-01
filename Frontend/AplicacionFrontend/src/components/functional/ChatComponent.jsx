@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import SockJS from 'sockjs-client';
-import Stomp from 'stompjs';
+import { Client } from '@stomp/stompjs';
 import { Send, User, MoreVertical, Phone, CheckCheck, Paperclip, Smile, X, Image as ImageIcon, Film } from 'lucide-react'; 
 import EmojiPicker from 'emoji-picker-react'; 
 import { api } from '../../api/endpoints'; 
@@ -22,31 +21,29 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     useEffect(() => {
         setMensajes([]); 
         cargarHistorial();
-        if (stompClientRef.current) { stompClientRef.current.disconnect(); isConnected.current = false; }
+        if (stompClientRef.current) { stompClientRef.current.deactivate(); isConnected.current = false; }
         conectarWebSocket();
-        return () => { if (stompClientRef.current) stompClientRef.current.disconnect(); isConnected.current = false; };
+        return () => { if (stompClientRef.current) stompClientRef.current.deactivate(); isConnected.current = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [usuarioId, destinatarioId]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         const noLeidos = mensajes.filter(m => m.remitenteId === destinatarioId && !m.leido);
-            // Sólo marcamos como leídos si la pestaña está visible y la ventana tiene foco.
+        
         const isVisible = typeof document !== 'undefined' && document.visibilityState === 'visible' && document.hasFocus && document.hasFocus();
-        if (noLeidos.length > 0 && stompClientRef.current && conectado && isVisible) {
-            // Enviamos ack de lectura al backend
-            stompClientRef.current.send("/app/chat/leer", {}, JSON.stringify({ remitenteId: destinatarioId, destinatarioId: usuarioId }));
-            // Marcamos localmente como leídos para actualización inmediata
+        
+        if (noLeidos.length > 0 && stompClientRef.current?.connected && isVisible) {
+            stompClientRef.current.publish({
+                destination: "/app/chat/leer",
+                body: JSON.stringify({ remitenteId: destinatarioId, destinatarioId: usuarioId })
+            });
             setMensajes(prev => prev.map(m => (m.remitenteId === destinatarioId && !m.leido) ? { ...m, leido: true } : m));
         }
     }, [mensajes, destinatarioId, usuarioId, conectado]);
 
-    // Enviar un saludo inicial automáticamente si corresponde (por ejemplo, venimos desde PerfilPublico)
     useEffect(() => {
-        if (!conectado) return;
-        if (!autoGreet) return;
-        if (!stompClientRef.current) return;
-        if (mensajes.length > 0) return; // no enviamos si ya hay historial
+        if (!conectado || !autoGreet || !stompClientRef.current || mensajes.length > 0) return;
 
         const saludo = greetingMessage && greetingMessage.trim() !== '' ? greetingMessage : 'Hola, encantado. Me gustaría iniciar la transformación.';
 
@@ -58,14 +55,16 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         };
 
         try {
-            stompClientRef.current.send('/app/chat', {}, JSON.stringify(mensaje));
+            stompClientRef.current.publish({
+                destination: "/app/chat",
+                body: JSON.stringify(mensaje)
+            });
             if (typeof onAutoGreetSent === 'function') {
                 onAutoGreetSent();
             }
         } catch (err) {
             console.error('Error enviando saludo automático', err);
         }
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [conectado, autoGreet, destinatarioId, usuarioId]);
 
@@ -79,28 +78,39 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const conectarWebSocket = () => {
         if (isConnected.current) return;
         isConnected.current = true;
-        const socket = new SockJS('http://localhost:8080/ws');
-        const client = Stomp.over(socket);
-        client.debug = null;
+        
+        const client = new Client({
+            brokerURL: 'ws://localhost:8080/ws', // ✅ Puedes dejar localhost en la web
+            reconnectDelay: 5000,
+            onConnect: () => {
+                setConectado(true);
+                stompClientRef.current = client;
+                
+                client.subscribe(`/topic/mensajes/${usuarioId}`, (payload) => {
+                    const mensajeRecibido = JSON.parse(payload.body);
+                    if (mensajeRecibido.remitenteId === destinatarioId || mensajeRecibido.remitenteId === usuarioId) {
+                        setMensajes((prev) => {
+                            const index = prev.findIndex(m => m.id === mensajeRecibido.id);
+                            if (index !== -1) {
+                                const actualizados = [...prev];
+                                actualizados[index] = mensajeRecibido;
+                                return actualizados;
+                            }
+                            return [...prev, mensajeRecibido];
+                        });
+                    }
+                });
+            },
+            onDisconnect: () => {
+                setConectado(false);
+                isConnected.current = false;
+            },
+            onStompError: (frame) => {
+                console.error('Error STOMP en Web: ' + frame.headers['message']);
+            }
+        });
 
-        client.connect({}, () => {
-            setConectado(true);
-            stompClientRef.current = client;
-            client.subscribe(`/topic/mensajes/${usuarioId}`, (payload) => {
-                const mensajeRecibido = JSON.parse(payload.body);
-                if (mensajeRecibido.remitenteId === destinatarioId || mensajeRecibido.remitenteId === usuarioId) {
-                    setMensajes((prev) => {
-                        const index = prev.findIndex(m => m.id === mensajeRecibido.id);
-                        if (index !== -1) {
-                            const actualizados = [...prev];
-                            actualizados[index] = mensajeRecibido;
-                            return actualizados;
-                        }
-                        return [...prev, mensajeRecibido];
-                    });
-                }
-            });
-        }, () => { setConectado(false); isConnected.current = false; });
+        client.activate();
     };
 
     const handleEmojiClick = (emojiObject) => {
@@ -123,7 +133,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const enviarMensaje = async (e) => {
         e.preventDefault();
         if (!nuevoMensaje.trim() && !archivoAdjunto) return;
-        if (!stompClientRef.current) return;
+        if (!stompClientRef.current?.connected) return;
 
         let archivoUrlFinal = null;
         let tipoArchivoFinal = null;
@@ -133,7 +143,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             const formData = new FormData();
             formData.append("file", archivoAdjunto);
             try {
-                // Si aún no tienes el backend de subida de fotos listo, esto dará error y se enviará solo el texto.
                 const res = await api.post('/api/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
                 archivoUrlFinal = res.data.url; 
                 tipoArchivoFinal = archivoAdjunto.type.startsWith('video') ? 'VIDEO' : 'IMAGEN';
@@ -150,7 +159,11 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             archivoUrl: archivoUrlFinal, tipoArchivo: tipoArchivoFinal
         };
         
-        stompClientRef.current.send("/app/chat", {}, JSON.stringify(mensaje));
+        stompClientRef.current.publish({
+            destination: "/app/chat",
+            body: JSON.stringify(mensaje)
+        });
+        
         setNuevoMensaje("");
         cancelarAdjunto();
         setShowEmojiPicker(false);
@@ -166,8 +179,24 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         return fecha.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
-    const esSoloEmojis = (texto) => {
-        if (!texto) return false;
+    // ✅ LIMPIADOR DE URLs PARA LA WEB
+    const formatearUrlMedia = (url) => {
+    if (!url) return null;
+
+    // Si la URL ya viene con http (de mensajes antiguos), la limpiamos
+    if (url.startsWith('http')) {
+        // Si estás en la web, asegúrate de que apunte a localhost para que el navegador no se bloquee
+        return url.replace('192.168.1.62', 'localhost');
+    }
+
+    // Si es la nueva ruta relativa que envía el Java (/api/upload/...)
+    const base = "http://localhost:8080";
+    return `${base}${url}`;
+    };
+
+    // ✅ REVISIÓN: emojis gigantes solo si no hay foto
+    const esSoloEmojis = (texto, url) => {
+        if (!texto || url) return false; 
         const textoLimpio = texto.replace(/\s/g, ''); 
         if (textoLimpio.length === 0 || textoLimpio.length > 15) return false; 
         if (/[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,!?¿¡]/.test(textoLimpio)) return false;
@@ -185,7 +214,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         
         bubbleRow: { display: 'flex', flexDirection: 'column', width: '100%' },
         
-        // Textos enviados (Tinte amarillo)
         bubbleMe: { 
             alignSelf: 'flex-end', 
             background: 'rgba(250, 204, 21, 0.08)', 
@@ -198,7 +226,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             boxShadow: '0 2px 5px rgba(0,0,0,0.2)' 
         },
         
-        // Textos recibidos (Gris oscuro)
         bubbleThem: { 
             alignSelf: 'flex-start', 
             background: '#18181b', 
@@ -264,8 +291,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     const fechaAnterior = i > 0 ? formatearFechaSeparador(mensajes[i-1].fechaHora) : null;
                     const mostrarFecha = fechaActual !== fechaAnterior;
                     
-                    // Comprobamos si es un mensaje de SOLO EMOJIS
-                    const soloEmoji = esSoloEmojis(msg.contenido) && !msg.archivoUrl;
+                    const soloEmoji = esSoloEmojis(msg.contenido, msg.archivoUrl);
 
                     return (
                         <React.Fragment key={msg.id || i}>
@@ -278,7 +304,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                             <div style={styles.bubbleRow}>
                                 <div style={{
                                     ...(esMio ? styles.bubbleMe : styles.bubbleThem),
-                                    // LA MAGIA DE LOS EMOJIS: Si es solo emoji, quitamos el fondo y el borde
                                     ...(soloEmoji ? { 
                                         background: 'transparent', 
                                         boxShadow: 'none', 
@@ -287,18 +312,32 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                                     } : {})
                                 }}>
                                     
+                                    {/* ✅ MEDIA CON RUTAS LIMPIAS */}
                                     {msg.archivoUrl && (
                                         msg.tipoArchivo === 'VIDEO' ? (
-                                            <video src={msg.archivoUrl} controls style={styles.mediaContent} />
+                                            <video 
+                                                controls 
+                                                style={{ ...styles.mediaContent, backgroundColor: '#000' }}
+                                                preload="metadata"
+                                                playsInline
+                                            >
+                                                {/* Le pasamos el source explícito para que el navegador no se pierda */}
+                                                <source src={formatearUrlMedia(msg.archivoUrl)} type="video/mp4" />
+                                                <source src={formatearUrlMedia(msg.archivoUrl)} type="video/webm" />
+                                                Tu navegador no soporta la reproducción de este vídeo.
+                                            </video>
                                         ) : (
-                                            <img src={msg.archivoUrl} alt="Adjunto" style={styles.mediaContent} />
+                                            <img 
+                                                src={formatearUrlMedia(msg.archivoUrl)} 
+                                                alt="Adjunto" 
+                                                style={styles.mediaContent} 
+                                            />
                                         )
                                     )}
 
                                     {msg.contenido && (
                                         <span style={{
                                             ...styles.mensajeTexto,
-                                            // Hacemos el texto (emoji) gigante
                                             ...(soloEmoji ? { fontSize: '3.5rem', lineHeight: '1' } : {})
                                         }}>
                                             {msg.contenido}
@@ -307,12 +346,10 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                                     
                                     <div style={{
                                         ...(esMio ? styles.timeMe : styles.timeThem),
-                                        // Aclaramos la hora si el emoji está sobre el fondo negro para que se vea
                                         ...(soloEmoji && esMio ? { color: '#a1a1aa' } : {})
                                     }}>
                                         {new Date(msg.fechaHora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                         
-                                        {/* LOS FAMOSOS PALITOS: Solo se pintan si "esMio" es true */}
                                         {esMio && (
                                             <CheckCheck 
                                                 size={14} 
@@ -368,4 +405,4 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             </div>
         </div>
     );
-}
+}   

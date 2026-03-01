@@ -1,5 +1,9 @@
 import axios from "axios";
 import api from "./api";
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+// ✅ AQUÍ ESTÁ LA MAGIA: Exportamos 'api' para que el Chat y otras pantallas puedan usarlo
+export { api };
 
 // --- 1. CONFIGURACIÓN AXIOS (ya exportada desde api.js) ---
 // El api ya está configurado en api.js con baseURL: "http://192.168.1.62:8080/api"
@@ -268,5 +272,76 @@ export const obtenerDatosProgreso = async (clienteId, ejercicioId) => {
     } catch (error) {
         console.error("Error obteniendo datos de progreso:", error);
         return [];
+    }
+};
+// --- 10. CHAT ---
+export const obtenerContactosChat = async (usuarioId) => {
+    try {
+      console.log("🔥 Pidiendo contactos para el ID:", usuarioId);
+        const response = await api.get(`/chat/contactos?usuarioId=${usuarioId}`);
+        return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+        console.error("Error obteniendo contactos de chat:", error);
+        return [];
+    }
+};
+
+export const buscarUsuarioPorEmail = async (email) => {
+    const response = await api.get(`/clientes/buscar?email=${email}`);
+    return response.data;
+};
+
+export const obtenerHistorialChat = async (usuario1, usuario2) => {
+    try {
+        const response = await api.get(`/chat/historial?usuario1=${usuario1}&usuario2=${usuario2}`);
+        return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+        console.error("Error obteniendo historial de chat:", error);
+        return [];
+    }
+};
+
+
+// --- 11. SUBIDA DE ARCHIVOS (MULTIMEDIA) ---
+export const subirArchivoAdjunto = async (archivo) => {
+    // 1. Preparamos el archivo
+    const formData = new FormData();
+    const fileUri = Platform.OS === 'ios' ? archivo.uri.replace('file://', '') : archivo.uri;
+
+    formData.append("file", {
+        uri: fileUri,
+        name: archivo.fileName || archivo.uri.split('/').pop() || 'imagen.jpg',
+        type: archivo.type === 'video' ? 'video/mp4' : 'image/jpeg'
+    });
+
+    try {
+        // 2. Cogemos tu token a mano porque no estamos usando Axios
+        const token = await AsyncStorage.getItem('token'); 
+
+        // 3. Hacemos la llamada con FETCH NATIVO directo a tu PC
+        const response = await fetch('http://192.168.1.62:8080/api/upload', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}` 
+                // FETCH es inteligente y pone el Content-Type y el boundary él solo
+            },
+            body: formData
+        });
+
+        // 4. Comprobamos si el servidor nos da el OK
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ Error del servidor: ${response.status} - ${errorText}`);
+            throw new Error(`Error ${response.status} al subir archivo`);
+        }
+
+        // 5. Devolvemos la URL que nos da Spring Boot
+        const data = await response.json();
+        return data;
+
+    } catch (error) {
+        console.error("❌ Fallo crítico en subida nativa:", error);
+        throw error;
     }
 };
