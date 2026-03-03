@@ -3,20 +3,22 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
     LayoutGrid,
     Calendar,
-    BarChart2,
     Search,
-    Settings,
-        MessageSquare,
-    User
+    MessageSquare,
+    User,
+    Settings
 } from 'lucide-react-native';
 
 // ✅ Importamos las pantallas reales
 import DashboardClienteScreen from '../screens/DashboardScreen';
 import CalendarioClienteScreen from '../screens/Cliente/CalendarioClienteScreen';
 import PerfilScreen from '../screens/Cliente/EditarPerfilCliente';
-// ✅ Importamos la nueva pantalla de Progreso
 import ProgresoClienteScreen from '../screens/Cliente/ProgresoClienteScreen';
 import ChatClienteScreen from '../screens/Cliente/ChatClienteScreen';
+
+// 🔥 LA CLAVE ESTÁ AQUÍ: Hemos cambiado 'Cliente' por 'Entrenador' porque ahí es donde lo moviste
+
+import ExplorarEntrenadores from '../screens/Cliente/ExplorarEntrenadores';
 
 const Tab = createBottomTabNavigator();
 
@@ -26,18 +28,18 @@ export default function ClienteTabNavigator() {
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: '#0c0c0e', // El color oscuro de tu sidebar
+                    backgroundColor: '#0c0c0e',
                     borderTopColor: '#1f1f22',
                     height: 65,
                     paddingBottom: 10,
-                    paddingTop: 8, // Un poco de espacio extra arriba de los iconos
+                    paddingTop: 8,
                 },
-                tabBarActiveTintColor: '#FACC15', // Tu amarillo NextFit
-                tabBarInactiveTintColor: '#a1a1aa', // Tu gris web
+                tabBarActiveTintColor: '#FACC15',
+                tabBarInactiveTintColor: '#a1a1aa',
             }}
         >
             <Tab.Screen
-                name="Inicio" // Le ponemos "Inicio" como nombre principal
+                name="Inicio"
                 component={DashboardClienteScreen}
                 options={{
                     tabBarLabel: 'Inicio',
@@ -51,29 +53,31 @@ export default function ClienteTabNavigator() {
                     tabBarIcon: ({ color }) => <Calendar color={color} size={24} />,
                 }}
             />
-            {/* ✅ Pestaña de Progreso conectada a la pantalla real */}
+            
             <Tab.Screen
                 name="Chat"
-                component={ChatClienteScreen} // 🚧 Crea este archivo o usa un placeholder
+                component={ChatClienteScreen}
                 options={{
                     tabBarIcon: ({ color }) => <MessageSquare color={color} size={24} />,
                 }}
             />
+
+            {/* ✅ Ahora apuntará al archivo correcto en la carpeta Entrenador */}
             <Tab.Screen
                 name="Entrenadores"
-                component={DashboardClienteScreen} // 🚧 Provisional hasta que la creemos
+                component={ExplorarEntrenadores}
                 options={{
+                    tabBarLabel: 'Explorar',
                     tabBarIcon: ({ color }) => <Search color={color} size={24} />,
                 }}
             />
 
-            {/* ✅ Esta es la clave: Se debe llamar "Perfil" para que el botón del Dashboard la encuentre */}
             <Tab.Screen
                 name="Perfil"
-                component={PerfilScreen} // Aquí cargamos la pantalla con el botón de Cerrar Sesión
+                component={PerfilScreen}
                 options={{
                     tabBarLabel: 'Perfil',
-                    tabBarIcon: ({ color }) => <Settings color={color} size={24} />,
+                    tabBarIcon: ({ color }) => <User color={color} size={24} />,
                 }}
             />
         </Tab.Navigator>

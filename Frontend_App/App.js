@@ -6,7 +6,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 // Contexto de Autenticación
 import { AuthProvider, useAuth } from './src/components/context/AuthContext';
 
-// Pantallas Públicas (Sin Sesión)
+// Pantallas Públicas
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import ClienteOnboardingScreen from './src/screens/Cliente/ClienteOnboardingScreen'; 
@@ -15,16 +15,18 @@ import EntrenadorOnboardingScreen from './src/screens/Entrenador/EntrenadorOnboa
 // Navegación Principal y Perfiles
 import ClienteTabNavigator from './src/navigation/ClienteTabNavigator';
 import EditarPerfilCliente from './src/screens/Cliente/EditarPerfilCliente'; 
-
-// ✅ Pantalla de Progreso (Ahora accesible desde el Dashboard)
 import ProgresoClienteScreen from './src/screens/Cliente/ProgresoClienteScreen';
+
+// ✅ IMPORTACIONES CORREGIDAS
+import EntrenadorPerfilScreen from './src/screens/Entrenador/EntrenadorPerfilScreen'; 
+// Según tu imagen b0f270, el archivo está en la carpeta Cliente:
+import PantallaChatIndividual from './src/screens/Cliente/PantallaChatIndividual'; 
 
 const Stack = createStackNavigator();
 
 function RootNavigation() {
   const { isAuthenticated, loading } = useAuth();
 
-  // Pantalla de carga mientras se verifica el token/sesión
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -36,7 +38,6 @@ function RootNavigation() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!isAuthenticated() ? (
-        // ❌ FLUJO PÚBLICO
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Registro" component={RegisterScreen} />
@@ -44,20 +45,20 @@ function RootNavigation() {
           <Stack.Screen name="EntrenadorOnboarding" component={EntrenadorOnboardingScreen} />
         </>
       ) : (
-        // ✅ FLUJO PRIVADO
         <>
-          {/* Menú Inferior (Inicio, Calendario, Chat, Entrenadores, Perfil) */}
           <Stack.Screen name="ClienteTabs" component={ClienteTabNavigator} />
-          
-          {/* Pantallas Full-Screen (Se abren encima del menú inferior) */}
           <Stack.Screen name="EditarPerfilCliente" component={EditarPerfilCliente} />
-          
-          {/* ✅ Progreso: Ahora se abre al pulsar "Estadísticas" en el Dashboard */}
           <Stack.Screen name="ProgresoCliente" component={ProgresoClienteScreen} />
           
-          {/* 🚧 Marcadores para futuras funcionalidades */}
-          {/* <Stack.Screen name="SesionActiva" component={SesionActiva} /> */}
-          {/* <Stack.Screen name="CrearRutina" component={CrearRutina} /> */}
+          <Stack.Screen 
+            name="EntrenadorPerfil" 
+            component={EntrenadorPerfilScreen} 
+          />
+
+          <Stack.Screen 
+            name="PantallaChatIndividual" 
+            component={PantallaChatIndividual} 
+          />
         </>
       )}
     </Stack.Navigator>
@@ -75,10 +76,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: { 
-    flex: 1, 
-    backgroundColor: '#09090b', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
+  loadingContainer: { flex: 1, backgroundColor: '#09090b', justifyContent: 'center', alignItems: 'center' },
 });
