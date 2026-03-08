@@ -11,7 +11,8 @@ import {
     Platform,
     ActivityIndicator,
     Image,
-    Keyboard
+    Keyboard,
+    Modal // ✅ AÑADIMOS MODAL PARA LA PANTALLA COMPLETA
 } from 'react-native';
 import { Send, Paperclip, CheckCheck, X, Image as ImageIcon, Smile, Film } from 'lucide-react-native';
 import { Client } from '@stomp/stompjs';
@@ -21,11 +22,8 @@ import { es } from 'date-fns/locale';
 import EmojiPicker from 'rn-emoji-keyboard';
 import 'react-native-get-random-values';
 
-// ✅ IMPORTAMOS IMAGE PICKER
 import * as ImagePicker from 'expo-image-picker';
-
-// ⚠️ Asegúrate de que 'api' (tu instancia de axios) está exportada en endpoints.js
-import { obtenerHistorialChat, api } from '../../api/endpoints';
+import { obtenerHistorialChat, api, getImageUrl } from '../../api/endpoints';
 
 export default function ChatComponent({ usuarioId, destinatarioId, nombreDestinatario }) {
     const [mensajes, setMensajes] = useState([]);
@@ -35,9 +33,11 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     
     const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
     
-    // ✅ NUEVOS ESTADOS PARA MULTIMEDIA
     const [archivoAdjunto, setArchivoAdjunto] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
+    
+    // ✅ ESTADO PARA CONTROLAR LA IMAGEN A PANTALLA COMPLETA
+    const [imagenSeleccionada, setImagenSeleccionada] = useState(null);
     
     const clientRef = useRef(null);
     const flatListRef = useRef(null);
@@ -94,13 +94,11 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         clientRef.current = client;
     };
 
-    // ✅ FUNCIÓN PARA ABRIR LA GALERÍA
     const seleccionarArchivo = async () => {
-        // Pedimos permiso y abrimos la galería
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.All, // Permite fotos y vídeos
-            allowsEditing: false, // 🔥 Permite enviar directamente sin recortar
-            quality: 0.8, // Comprime un poco para que no pese 10MB
+            mediaTypes: ImagePicker.MediaTypeOptions.All, 
+            allowsEditing: false, 
+            quality: 0.8, 
         });
 
         if (!result.canceled) {
@@ -114,7 +112,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         setArchivoAdjunto(null);
     };
 
-    // ✅ FUNCIÓN ENVIAR MODIFICADA
     const enviarMensaje = async () => {
         if ((!nuevoMensaje.trim() && !archivoAdjunto) || !clientRef.current?.connected || isUploading) {
             return;
@@ -123,33 +120,38 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         let archivoUrlFinal = null;
         let tipoArchivoFinal = null;
 
-        // Si hay archivo, lo subimos al servidor
         if (archivoAdjunto) {
             setIsUploading(true);
             const formData = new FormData();
             
-            // Limpiamos la ruta para iOS/Android
-            const fileUri = Platform.OS === 'ios' ? archivoAdjunto.uri.replace('file://', '') : archivoAdjunto.uri;
+            const localUri = archivoAdjunto.uri;
+            const filename = archivoAdjunto.fileName || localUri.split('/').pop() || 'imagen.jpg';
+            const match = /\.(\w+)$/.exec(filename);
+            const tipoArchivo = archivoAdjunto.type === 'video' ? 'video/mp4' : (match ? `image/${match[1].toLowerCase()}` : `image/jpeg`);
 
             formData.append("file", {
-                uri: fileUri,
-                name: archivoAdjunto.fileName || archivoAdjunto.uri.split('/').pop() || 'imagen.jpg',
-                type: archivoAdjunto.type === 'video' ? 'video/mp4' : 'image/jpeg'
+                uri: localUri,
+                name: filename,
+                type: tipoArchivo
             });
 
             try {
                 const res = await api.post('/upload', formData, { 
                     headers: {
+                        'Content-Type': 'multipart/form-data',
                         'Accept': 'application/json'
-                    } 
+                    },
+                    transformRequest: (data, headers) => {
+                        return formData; 
+                    },
                 });
                 
-                archivoUrlFinal = res.data.url; 
+                archivoUrlFinal = typeof res.data === 'string' ? res.data : res.data.url || res.data.fileUrl; 
                 tipoArchivoFinal = archivoAdjunto.type === 'video' ? 'VIDEO' : 'IMAGEN';
             } catch (error) {
                 console.error("Error subiendo archivo:", error);
                 setIsUploading(false);
-                return; // Cortamos el envío si la foto falla
+                return; 
             }
             setIsUploading(false);
         }
@@ -203,25 +205,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         return format(d, "d 'de' MMMM", { locale: es });
     };
 
-    // ✅ LIMPIADOR DE URLs PARA EL MÓVIL (Corrige los cuadrados grises)
-    const formatearUrlImagen = (url) => {
-        if (!url) return null;
-        
-        // Si el backend te devuelve 'localhost', lo cambiamos por la IP de tu PC
-        if (url.includes('localhost')) {
-            return url.replace('localhost', '192.168.1.62');
-        }
-        
-        // Si el backend te devuelve una ruta relativa (ej: /uploads/foto.jpg)
-        if (!url.startsWith('http')) {
-            const barra = url.startsWith('/') ? '' : '/';
-            return `http://192.168.1.62:8080${barra}${url}`;
-        }
-        
-        return url;
-    };
-
-    // ✅ RENDERIZADO DEL MENSAJE
     const renderMensaje = ({ item, index }) => {
         const esMio = item.remitenteId === usuarioId;
         const soloEmoji = esSoloEmojis(item.contenido, item.archivoUrl);
@@ -243,26 +226,27 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     item.archivoUrl && { paddingHorizontal: 6, paddingVertical: 6 } 
                 ]}>
                     
-                    {/* ✅ IMAGEN RENDERIZADA CON LA URL CORREGIDA */}
+                    {/* ✅ IMAGEN RENDERIZADA Y CON BOTÓN PARA AMPLIAR */}
                     {item.archivoUrl && (
                         item.tipoArchivo === 'VIDEO' ? (
                             <Video
-                                source={{ uri: formatearUrlImagen(item.archivoUrl) }}
+                                source={{ uri: getImageUrl(item.archivoUrl) }}
                                 style={styles.mediaImage}
-                                useNativeControls // Te pone los botones de play/pausa del móvil
+                                useNativeControls 
                                 resizeMode={ResizeMode.COVER}
                                 isLooping={false}
                             />
                         ) : (
-                            <Image 
-                                source={{ uri: formatearUrlImagen(item.archivoUrl) }} 
-                                style={styles.mediaImage} 
-                                resizeMode="cover"
-                            />
+                            <TouchableOpacity activeOpacity={0.8} onPress={() => setImagenSeleccionada(getImageUrl(item.archivoUrl))}>
+                                <Image 
+                                    source={{ uri: getImageUrl(item.archivoUrl) }} 
+                                    style={styles.mediaImage} 
+                                    resizeMode="cover"
+                                />
+                            </TouchableOpacity>
                         )
                     )}
 
-                    {/* RENDERIZAR EL TEXTO */}
                     {item.contenido ? (
                         <Text style={[
                             styles.text, 
@@ -312,7 +296,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             )}
 
             <View style={styles.inputContainer}>
-                {/* ✅ VISTA PREVIA DEL ARCHIVO ADJUNTO */}
                 {archivoAdjunto && (
                     <View style={styles.previewBox}>
                         <View style={styles.previewInfo}>
@@ -373,6 +356,26 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     search: { background: '#27272a', text: '#ffffff', placeholder: '#71717a' }
                 }}
             />
+
+            {/* ✅ MODAL PARA VER LA IMAGEN EN PANTALLA COMPLETA */}
+            <Modal visible={!!imagenSeleccionada} transparent={true} animationType="fade">
+                <View style={styles.fullScreenModal}>
+                    <TouchableOpacity 
+                        style={styles.closeModalBtn} 
+                        onPress={() => setImagenSeleccionada(null)}
+                    >
+                        <X size={28} color="#ffffff" />
+                    </TouchableOpacity>
+                    {imagenSeleccionada && (
+                        <Image 
+                            source={{ uri: imagenSeleccionada }} 
+                            style={styles.fullScreenImage} 
+                            resizeMode="contain" 
+                        />
+                    )}
+                </View>
+            </Modal>
+
         </KeyboardAvoidingView>
     );
 }
@@ -390,7 +393,6 @@ const styles = StyleSheet.create({
     bubbleThem: { alignSelf: 'flex-start', backgroundColor: '#18181b', borderTopLeftRadius: 18, borderTopRightRadius: 18, borderBottomRightRadius: 18, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#3f3f46' },
     bubbleEmoji: { backgroundColor: 'transparent', borderWidth: 0, shadowOpacity: 0, elevation: 0 },
     
-    // ✅ ESTILOS PARA LA IMAGEN EN LA BURBUJA
     mediaImage: { width: 220, height: 220, borderRadius: 14, backgroundColor: '#1f1f22' },
     
     text: { fontSize: 15, lineHeight: 22, fontWeight: '400' },
@@ -401,10 +403,9 @@ const styles = StyleSheet.create({
     checkIcon: { marginLeft: 4, marginTop: 1 },
     emojiCheckBg: { backgroundColor: 'rgba(0,0,0,0.5)', padding: 2, borderRadius: 10, marginLeft: 6, marginTop: -10 },
 
-    // ZONA INFERIOR (Contenedor general para agrupar vista previa e input)
+    // ZONA INFERIOR
     inputContainer: { backgroundColor: '#09090b', borderTopWidth: 1, borderTopColor: '#1f1f22' },
     
-    // ✅ VISTA PREVIA DEL ARCHIVO ADJUNTO
     previewBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#121214', borderBottomWidth: 1, borderBottomColor: '#1f1f22' },
     previewInfo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     previewThumb: { width: 36, height: 36, borderRadius: 6, backgroundColor: '#27272a' },
@@ -416,5 +417,10 @@ const styles = StyleSheet.create({
     emojiBtn: { padding: 4 },
     iconBtn: { padding: 8, paddingBottom: 10 },
     sendBtn: { backgroundColor: '#FACC15', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
-    sendBtnDisabled: { backgroundColor: '#27272a', opacity: 0.6 }
+    sendBtnDisabled: { backgroundColor: '#27272a', opacity: 0.6 },
+
+    // ✅ ESTILOS PARA LA PANTALLA COMPLETA
+    fullScreenModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+    closeModalBtn: { position: 'absolute', top: Platform.OS === 'ios' ? 60 : 40, right: 20, zIndex: 10, padding: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20 },
+    fullScreenImage: { width: '100%', height: '100%' }
 });

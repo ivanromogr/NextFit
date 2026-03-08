@@ -9,6 +9,22 @@ export { api };
 const BASE_URL_NATIVA = "http://192.168.1.26:8080";
 
 // ==========================================
+// 💡 HELPER PROFESIONAL DE IMÁGENES
+// ==========================================
+// Centraliza la construcción de URLs. Así, si tu backend devuelve "/uploads/foto.jpg",
+// esto lo convierte en "http://192.168.1.26:8080/uploads/foto.jpg" para que el móvil lo vea.
+export const getImageUrl = (path) => {
+  if (!path) return null;
+  // Si ya es una URL completa (ej. de Amazon S3 o Google Cloud), la devuelve tal cual
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+  // Si es una ruta local del backend, le añadimos la IP base
+  return `${BASE_URL_NATIVA}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
+
+// ==========================================
 // 1. AUTENTICACIÓN Y REGISTRO
 // ==========================================
 
@@ -54,7 +70,6 @@ export const getEntrenador = async (id) => {
   console.log("📡 GET PERFIL LLAMANDO A:", api.defaults.baseURL + url);
   
   const response = await api.get(url);
-  // ✅ Metemos el número de clientes dentro del objeto entrenador para usarlo en la pantalla
   const entrenadorData = response.data.entrenador || response.data;
   if (response.data.numeroClientes !== undefined) {
       entrenadorData.numeroClientes = response.data.numeroClientes;
@@ -65,7 +80,6 @@ export const getEntrenador = async (id) => {
 
 export const getReviewsEntrenador = async (entrenadorId) => {
   const url = `/entrenador/${entrenadorId}/reviews`;
-  console.log("📡 GET REVIEWS LLAMANDO A:", api.defaults.baseURL + url);
   return api.get(url);
 };
 
@@ -74,7 +88,6 @@ export const ficharEntrenador = async (entrenadorId) => {
   return response.data;
 };
 
-// ✅ CORRECCIÓN: Se actualiza el payload a 'estrellas' en lugar de rating
 export const postReview = async (payload) => {
   return api.post(`/entrenador/${payload.entrenadorId}/resena`, {
       estrellas: payload.rating, 
@@ -114,6 +127,7 @@ export const generarRutinaAuto = (payload) => api.post("/rutinas/auto", payload)
 export const guardarRutinaManual = (payload) => api.post("/rutinas/manual", payload);
 export const eliminarRutina = (id) => api.delete(`/rutinas/${id}`);
 export const actualizarRutina = (id, payload) => api.put(`/rutinas/${id}`, payload);
+
 // ==========================================
 // 5. CALENDARIO Y SESIONES
 // ==========================================
@@ -135,7 +149,6 @@ export const obtenerUltimaSesionRutina = async (clienteId, rutinaId) => {
     const response = await api.get(`/sesiones/ultima?clienteId=${clienteId}&rutinaId=${rutinaId}`);
     return response.data;
   } catch (error) {
-   
     return null; 
   }
 };
@@ -196,26 +209,22 @@ export const obtenerHistorialChat = async (usuario1, usuario2) => {
 // 8. MULTIMEDIA (UPLOAD)
 // ==========================================
 
-export const subirArchivoAdjunto = async (archivo) => {
-  const formData = new FormData();
-  const fileUri = Platform.OS === 'ios' ? archivo.uri.replace('file://', '') : archivo.uri;
-
-  formData.append("file", {
-    uri: fileUri,
-    name: archivo.fileName || archivo.uri.split('/').pop() || 'imagen.jpg',
-    type: archivo.type === 'video' ? 'video/mp4' : 'image/jpeg'
-  });
-
-  const token = await AsyncStorage.getItem('token'); 
-  const response = await fetch(`${BASE_URL_NATIVA}/api/upload`, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}` 
-    },
-    body: formData
-  });
-
-  if (!response.ok) throw new Error("Fallo en la subida del archivo");
-  return await response.json();
+// ✅ FUNCIÓN CORREGIDA PARA REACT NATIVE 
+export const subirArchivoAdjunto = async (formData) => {
+  try {
+    const response = await api.post('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Accept': 'application/json',
+      },
+      // Esto previene que axios modifique el formData internamente en RN
+      transformRequest: (data, headers) => {
+        return formData; 
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error al subir archivo a /api/upload:", error.response?.data || error.message);
+    throw error;
+  }
 };

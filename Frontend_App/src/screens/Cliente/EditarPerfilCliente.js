@@ -8,21 +8,24 @@ import {
   TextInput,
   Image,
   ActivityIndicator,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { getCliente, actualizarCliente } from '../../api/endpoints'; 
+import * as ImagePicker from 'expo-image-picker';
+// 👇 AQUÍ ESTÁ LA CORRECCIÓN: Hemos añadido getImageUrl a la importación
+import { getCliente, actualizarCliente, subirArchivoAdjunto, getImageUrl } from '../../api/endpoints'; 
 import { useAuth } from '../../components/context/AuthContext';
 import { User, Save, ChevronLeft, Camera, Mail, Lock, LogOut } from 'lucide-react-native';
 
 export default function PerfilScreen() {
   const navigation = useNavigation();
-  const { userId, logout } = useAuth(); // Sacamos el logout del contexto
+  const { userId, logout } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   
-  // Estados para los inputs y sus focos (para el diseño)
   const [form, setForm] = useState({ 
     nombre: '', 
     apellido: '', 
@@ -71,7 +74,6 @@ export default function PerfilScreen() {
         payload.contraseña = form.contraseña;
       }
 
-      // Usamos la función de tu endpoints.js en lugar de un fetch raw
       await actualizarCliente(userId, payload);
       
       Alert.alert('¡Éxito!', 'Perfil actualizado correctamente', [
@@ -86,7 +88,6 @@ export default function PerfilScreen() {
     }
   };
 
-  // ✅ FUNCIÓN PARA CERRAR SESIÓN
   const handleLogout = () => {
     Alert.alert(
       "Cerrar Sesión",
@@ -97,16 +98,65 @@ export default function PerfilScreen() {
           text: "Salir", 
           style: "destructive", 
           onPress: async () => {
-            await logout(); // Borra el AsyncStorage
-            // No hace falta navegar, el App.js detectará que no hay sesión y mostrará el Login
+            await logout(); 
           } 
         }
       ]
     );
   };
 
-  const handleCambiarFoto = () => {
-    Alert.alert('Info', 'La subida de imágenes desde la galería se implementará pronto con expo-image-picker.');
+  // ==========================================
+  // 📸 LÓGICA PARA CAMBIAR FOTO DE PERFIL 
+  // ==========================================
+  const handleCambiarFoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso', 'Necesitamos acceso a tu galería para cambiar la foto.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true, 
+      aspect: [1, 1],
+      quality: 0.7, 
+    });
+
+    if (!result.canceled) {
+      setUploadingImage(true);
+      try {
+        const asset = result.assets[0];
+        const localUri = asset.uri;
+        const filename = localUri.split('/').pop() || 'perfil.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const tipoArchivo = match ? `image/${match[1].toLowerCase()}` : `image/jpeg`;
+
+        const formData = new FormData();
+        formData.append('file', {
+          uri: localUri, 
+          name: filename,
+          type: tipoArchivo
+        });
+
+        // 1. Subimos al servidor y recibimos la respuesta
+        const respuestaBackend = await subirArchivoAdjunto(formData);
+        
+        // 2. Extraemos la ruta (dependiendo de si tu backend devuelve un String o un JSON)
+        const rutaRelativa = typeof respuestaBackend === 'string' ? respuestaBackend : respuestaBackend.url || respuestaBackend.fileUrl;
+
+        // 3. Usamos el Helper global para construir la URL completa
+        const urlFinal = getImageUrl(rutaRelativa);
+
+        if (urlFinal) {
+          setForm(prev => ({ ...prev, fotoPerfil: urlFinal }));
+        }
+      } catch (error) {
+        console.error('Error al subir la imagen:', error);
+        Alert.alert('Error', 'Hubo un problema al subir la foto al servidor.');
+      } finally {
+        setUploadingImage(false);
+      }
+    }
   };
 
   if (loading) {
@@ -120,7 +170,6 @@ export default function PerfilScreen() {
   return (
     <View style={styles.container}>
         
-      {/* HEADER FIJO */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft size={20} color="white" />
@@ -128,7 +177,7 @@ export default function PerfilScreen() {
         
         <Text style={styles.headerTitle}>PERFIL ATLETA</Text>
         
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit} disabled={saving}>
+        <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit} disabled={saving || uploadingImage}>
           {saving ? (
             <ActivityIndicator size="small" color="#0A0A0A" />
           ) : (
@@ -143,27 +192,39 @@ export default function PerfilScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.mainCard}>
             
-          {/* SECCIÓN FOTO */}
           <View style={styles.photoSection}>
             <View style={styles.avatarBox}>
               {form.fotoPerfil ? (
-                <Image source={{ uri: form.fotoPerfil }} style={styles.avatarImg} />
+                // 👇 Usamos getImageUrl aquí también para cargar la foto correctamente al abrir la pantalla
+                <Image source={{ uri: getImageUrl(form.fotoPerfil) }} style={styles.avatarImg} />
               ) : (
                 <User size={35} color="#555" />
               )}
+              
+              {uploadingImage && (
+                <View style={styles.uploadingOverlay}>
+                  <ActivityIndicator size="small" color="#FACC15" />
+                </View>
+              )}
             </View>
+            
             <View style={styles.photoInfo}>
               <Text style={styles.photoTitle}>Avatar</Text>
               <Text style={styles.photoSub}>Personaliza tu cuenta con una foto.</Text>
               
-              <TouchableOpacity style={styles.uploadBtn} onPress={handleCambiarFoto}>
+              <TouchableOpacity 
+                style={[styles.uploadBtn, uploadingImage && { opacity: 0.5 }]} 
+                onPress={handleCambiarFoto}
+                disabled={uploadingImage}
+              >
                 <Camera size={16} color="white" />
-                <Text style={styles.uploadBtnText}>Cambiar imagen</Text>
+                <Text style={styles.uploadBtnText}>
+                  {uploadingImage ? 'Subiendo...' : 'Cambiar imagen'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* DATOS PERSONALES */}
           <View style={styles.sectionHeader}>
             <User size={20} color="#FACC15" />
             <Text style={styles.sectionTitle}>Datos Personales</Text>
@@ -196,7 +257,6 @@ export default function PerfilScreen() {
             </View>
           </View>
 
-          {/* CUENTA */}
           <View style={styles.inputGroupFull}>
             <Text style={styles.label}>Correo Electrónico</Text>
             <View style={styles.inputIconWrapper}>
@@ -217,7 +277,6 @@ export default function PerfilScreen() {
 
           <View style={styles.divider} />
 
-          {/* SEGURIDAD */}
           <View style={styles.sectionHeader}>
             <Lock size={20} color="#ef4444" />
             <Text style={[styles.sectionTitle, { color: '#ef4444' }]}>Seguridad</Text>
@@ -238,7 +297,6 @@ export default function PerfilScreen() {
 
           <View style={styles.divider} />
 
-          {/* BOTOÓN DE CERRAR SESIÓN */}
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
             <LogOut size={20} color="#ef4444" />
             <Text style={styles.logoutBtnText}>CERRAR SESIÓN</Text>
@@ -268,8 +326,9 @@ const styles = StyleSheet.create({
   mainCard: { backgroundColor: '#0a0a0a', borderWidth: 1, borderColor: '#222', borderRadius: 24, padding: 20 },
   
   photoSection: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 30, padding: 15, backgroundColor: '#111', borderRadius: 16, borderWidth: 1, borderColor: '#222' },
-  avatarBox: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#1a1a1a', borderWidth: 2, borderColor: '#333', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarBox: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#1a1a1a', borderWidth: 2, borderColor: '#333', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' },
   avatarImg: { width: '100%', height: '100%' },
+  uploadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   photoInfo: { flex: 1 },
   photoTitle: { color: 'white', fontSize: 16, fontWeight: '700', marginBottom: 2 },
   photoSub: { color: '#666', fontSize: 12, marginBottom: 10 },

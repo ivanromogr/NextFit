@@ -1,46 +1,39 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom'; // 👈 AÑADIDO useLocation
-import { 
-    obtenerRutinasCliente, 
-    guardarSesion, 
-    obtenerUltimaSesionRutina 
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import {
+    obtenerRutinasCliente,
+    guardarSesionRealizada, // <-- Cambiado para coincidir con tu endpoint
+    obtenerUltimaSesionRutina
 } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { 
-    ChevronLeft, Check, Clock, Save, MoreHorizontal, 
+import {
+    ChevronLeft, Check, Clock, Save, MoreHorizontal,
     Plus, Info, Trash2, X, MessageSquare, Activity,
-    Trophy, Youtube 
+    Trophy, Youtube
 } from 'lucide-react';
 
 export default function SesionEntrenamiento() {
     const { rutinaId } = useParams();
     const navigate = useNavigate();
-    const location = useLocation(); // 👈 Hook para leer datos de navegación
+    const location = useLocation();
     const toast = useToast();
     const { userId } = useAuth();
-    
-    // 👇 RECUPERAMOS EL ID DEL EVENTO DEL CALENDARIO (Si existe)
+
     const eventoIdCalendario = location.state?.eventoId;
 
     // --- ESTADOS ---
     const [rutina, setRutina] = useState(null);
     const [loading, setLoading] = useState(true);
-    
-    // Datos de la sesión actual (Inputs editables)
+
     const [datosSesion, setDatosSesion] = useState({});
     const [notasSesion, setNotasSesion] = useState({});
-    
-    // Datos visuales (Columna "Anterior" - Solo lectura)
-    const [historialPrevio, setHistorialPrevio] = useState({}); 
+    const [historialPrevio, setHistorialPrevio] = useState({});
 
     const [editandoNotaId, setEditandoNotaId] = useState(null);
-
-    // Modales
     const [infoExercise, setInfoExercise] = useState(null);
     const [showFinishModal, setShowFinishModal] = useState(false);
 
-    // Cronómetro
     const [tiempo, setTiempo] = useState(0);
     const [timerActivo, setTimerActivo] = useState(true);
     const timerRef = useRef(null);
@@ -54,39 +47,39 @@ export default function SesionEntrenamiento() {
                 // 1. Obtener Rutina
                 const todas = await obtenerRutinasCliente(userId);
                 const actual = todas.find(r => r.id === rutinaId);
-                
+
                 if (actual) {
                     setRutina(actual);
 
-                    // 2. Obtener Historial
+                    // 2. Obtener Historial de la última sesión
                     let mapaHistorial = {};
                     try {
-                        const lastSession = await obtenerUltimaSesionRutina(clienteId, rutinaId);
+                        const lastSession = await obtenerUltimaSesionRutina(userId, rutinaId);
                         if (lastSession && lastSession.series) {
                             mapaHistorial = generarMapaHistorial(lastSession.series);
                             setHistorialPrevio(mapaHistorial);
                         }
                     } catch (err) {
-                        console.warn("No hay historial previo o error al cargar:", err);
+                        console.log("Primera vez haciendo esta rutina o error:", err);
                     }
 
-                    // 3. Inicializar la sesión
-                    inicializarSesion(actual.detalles, mapaHistorial);
+                    // 3. Inicializar la sesión (con o sin historial)
+                    inicializarSesion(actual.detalles || [], mapaHistorial);
 
                 } else {
                     navigate("/cliente/dashboard");
                 }
-            } catch (e) { 
-                console.error(e); 
+            } catch (e) {
+                console.error(e);
                 toast.error("Error al cargar la rutina");
-            } finally { 
-                setLoading(false); 
+            } finally {
+                setLoading(false);
             }
         };
         cargar();
-    }, [rutinaId, navigate]);
+    }, [rutinaId, navigate, userId]);
 
-    // Función auxiliar
+    // Generar un mapa fácil de leer por ID de ejercicio y número de serie
     const generarMapaHistorial = (seriesPasadas) => {
         const mapa = {};
         seriesPasadas.forEach(serie => {
@@ -95,32 +88,34 @@ export default function SesionEntrenamiento() {
 
             if (!mapa[ejId]) mapa[ejId] = [];
             const idx = serie.setIndex;
-            
-            mapa[ejId][idx] = { 
-                peso: serie.peso, 
+
+            mapa[ejId][idx] = {
+                peso: serie.peso,
                 reps: serie.reps,
-                rpe: serie.rpe 
+                rpe: serie.rpe
             };
         });
         return mapa;
     };
 
-    // Inicializar inputs
+    // Inicializar inputs con sobrecarga progresiva
     const inicializarSesion = (ejercicios, historial = {}) => {
         const estructura = {};
-        
+
         ejercicios.forEach(ej => {
             const exerciseId = ej.ejercicio.id;
             const datosPreviosEjercicio = historial[exerciseId] || [];
-            const numSeries = ej.seriesObjetivo || 3; 
+            const numSeries = ej.series || ej.seriesObjetivo || 3;
 
             estructura[exerciseId] = Array(numSeries).fill(0).map((_, index) => {
                 const setPrevio = datosPreviosEjercicio[index];
+
+                // ✅ MAGIA: Si hay un set previo, lo ponemos como valor por defecto para que no tenga que escribirlo si repite el mismo peso
                 return {
-                    peso: setPrevio ? setPrevio.peso : 0,
-                    reps: setPrevio ? setPrevio.reps : 0,
-                    rpe:  setPrevio ? setPrevio.rpe  : 8,
-                    hecho: false 
+                    peso: setPrevio ? setPrevio.peso : (ej.peso || 0),
+                    reps: setPrevio ? setPrevio.reps : (ej.repeticiones || 0),
+                    rpe: setPrevio ? setPrevio.rpe : (ej.rpe || 8),
+                    hecho: false
                 };
             });
         });
@@ -154,7 +149,7 @@ export default function SesionEntrenamiento() {
         const newSets = [...datosSesion[idEjercicio]];
         newSets[index].hecho = !newSets[index].hecho;
         setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
-        if (navigator.vibrate) navigator.vibrate(50);
+        if (navigator.vibrate && newSets[index].hecho) navigator.vibrate(50);
     };
 
     const addSet = (idEjercicio) => {
@@ -180,20 +175,18 @@ export default function SesionEntrenamiento() {
     const calcularVolumenTotal = () => {
         let volumen = 0;
         Object.values(datosSesion).forEach(sets => {
-            sets.forEach(s => { if(s.hecho) volumen += (parseFloat(s.peso)||0) * (parseFloat(s.reps)||0); });
+            sets.forEach(s => { if (s.hecho) volumen += (parseFloat(s.peso) || 0) * (parseFloat(s.reps) || 0); });
         });
         return volumen;
     };
 
     const handleTerminarClick = () => {
-        setTimerActivo(false); 
+        setTimerActivo(false);
         setShowFinishModal(true);
     };
 
     const confirmFinish = async () => {
-        const clienteId = localStorage.getItem("clienteId");
-        
-        if (!clienteId) {
+        if (!userId) {
             toast.error("Error: Sesión caducada.");
             return;
         }
@@ -205,12 +198,12 @@ export default function SesionEntrenamiento() {
                 .join(" | ");
 
             const seriesLimpias = [];
-            
             Object.entries(datosSesion).forEach(([ejercicioId, sets]) => {
                 sets.forEach((set, index) => {
-                    if (set.hecho || set.peso > 0 || set.reps > 0) {
+                    // Guardamos si está hecho o si tiene algún dato metido (para no perder el progreso si se le olvida darle al check)
+                    if (set.hecho || parseFloat(set.peso) > 0 || parseInt(set.reps) > 0) {
                         seriesLimpias.push({
-                            ejercicioId: ejercicioId, 
+                            ejercicioId: ejercicioId,
                             setIndex: index,
                             peso: parseFloat(set.peso) || 0.0,
                             reps: parseInt(set.reps, 10) || 0,
@@ -223,33 +216,33 @@ export default function SesionEntrenamiento() {
 
             const payload = {
                 clienteId: userId,
-                rutinaId: rutinaId, 
+                rutinaId: rutinaId,
                 duracionSegundos: tiempo,
                 notasGenerales: notasUnificadas || "Sesión finalizada.",
-                eventoCalendarioId: eventoIdCalendario, // 👈 ¡LA CLAVE! ENVIAMOS EL ID DEL CALENDARIO
+                eventoCalendarioId: eventoIdCalendario,
                 series: seriesLimpias
             };
 
-            await guardarSesion(payload);
+            await guardarSesionRealizada(payload); // <-- Usamos la función de endpoints.js
 
             toast.success("¡Entrenamiento guardado! 🔥");
-            
-            // Navegación inteligente: Volver al origen
+
             if (eventoIdCalendario) {
-                navigate("/cliente/calendario"); 
+                navigate("/cliente/calendario");
             } else {
-                navigate("/cliente/dashboard"); 
+                navigate("/cliente/dashboard");
             }
 
         } catch (error) {
             console.error("Error al guardar sesión:", error);
             toast.error("Hubo un error al guardar la sesión.");
+            setTimerActivo(true);
         }
     };
 
     const cancelFinish = () => {
         setShowFinishModal(false);
-        setTimerActivo(true); 
+        setTimerActivo(true);
     };
 
     // --- ESTILOS ---
@@ -257,34 +250,34 @@ export default function SesionEntrenamiento() {
         page: { background: '#09090b', minHeight: '100vh', color: 'white', fontFamily: 'sans-serif', paddingBottom: '100px' },
         topBar: { position: 'sticky', top: 0, background: '#09090b', zIndex: 50, borderBottom: '1px solid #222', padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
         headerTitle: { fontSize: '1.1rem', fontWeight: '900', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '10px' },
-        statsBar: { display: 'flex', justifyContent:'space-around', padding: '20px 0', background:'#0c0c0e', borderBottom:'1px solid #1f1f22' },
-        statItem: { display: 'flex', flexDirection: 'column', alignItems:'center' },
-        statLabel: { fontSize: '0.65rem', color: '#71717a', fontWeight: 'bold', marginBottom: '4px', textTransform:'uppercase', letterSpacing:'1px' },
-        statValueYellow: { fontSize: '1.2rem', fontWeight: 'bold', color: '#FACC15', display:'flex', alignItems:'center', gap:'5px' },
+        statsBar: { display: 'flex', justifyContent: 'space-around', padding: '20px 0', background: '#0c0c0e', borderBottom: '1px solid #1f1f22' },
+        statItem: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
+        statLabel: { fontSize: '0.65rem', color: '#71717a', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' },
+        statValueYellow: { fontSize: '1.2rem', fontWeight: 'bold', color: '#FACC15', display: 'flex', alignItems: 'center', gap: '5px' },
         statValue: { fontSize: '1.2rem', fontWeight: 'bold', color: '#fff' },
-        
+
         card: { background: '#121214', borderRadius: '12px', border: '1px solid #27272a', margin: '20px', overflow: 'hidden' },
-        cardHeader: { padding: '20px', borderBottom: '1px solid #222', display: 'flex', gap:'15px' },
+        cardHeader: { padding: '20px', borderBottom: '1px solid #222', display: 'flex', gap: '15px' },
         noteWrapper: { marginTop: '8px' },
         notePlaceholder: { color: '#71717a', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontStyle: 'italic' },
-        noteDisplay: { color: '#ccc', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background:'rgba(255,255,255,0.05)', padding:'6px 10px', borderRadius:'6px' },
-        noteInput: { width: '100%', background: '#09090b', border: '1px solid #333', color: 'white', padding: '8px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', resize: 'none', minHeight:'60px' },
-        btnSaveNote: { background: '#FACC15', color: 'black', border: 'none', padding: '4px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize:'0.7rem', marginTop:'5px' },
-        
+        noteDisplay: { color: '#ccc', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '6px' },
+        noteInput: { width: '100%', background: '#09090b', border: '1px solid #333', color: 'white', padding: '8px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', resize: 'none', minHeight: '60px' },
+        btnSaveNote: { background: '#FACC15', color: 'black', border: 'none', padding: '4px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.7rem', marginTop: '5px' },
+
         exTitle: { fontSize: '1.1rem', fontWeight: '900', textTransform: 'uppercase', color: '#FACC15', marginBottom: '2px' },
-        imgBox: { width:'60px', height:'60px', background:'#222', borderRadius:'8px', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid #333' },
-        
-        tableHeader: { display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', padding: '10px 15px', background: '#18181b', color: '#52525b', fontSize: '0.65rem', fontWeight: '900', letterSpacing:'0.5px', textAlign: 'center', textTransform:'uppercase' },
-        tableRow: (hecho) => ({ display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', padding: '12px 15px', borderBottom: '1px solid #1f1f22', alignItems: 'center', background: hecho ? 'rgba(34, 197, 94, 0.05)' : 'transparent', transition:'background 0.2s' }),
-        
-        input: { width: '100%', background: '#09090b', border: '1px solid #333', color: 'white', padding: '8px 4px', borderRadius: '6px', textAlign: 'center', fontWeight: 'bold', outline: 'none', fontSize:'0.95rem' },
-        checkBtn: (hecho) => ({ width: '32px', height: '32px', borderRadius: '50%', background: hecho ? '#22c55e' : 'transparent', border: hecho ? 'none' : '2px solid #3f3f46', color: hecho ? 'black' : '#3f3f46', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition:'all 0.2s' }),
-        
-        addSetBtn: { width: '100%', padding: '15px', background: 'transparent', border: 'none', color: '#71717a', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', borderTop: '1px solid #222', textTransform:'uppercase', letterSpacing:'1px' },
-        
-        finishBtn: { background: '#FACC15', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '20px', fontWeight: '800', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing:'0.5px' },
-        iconBtn: { background:'transparent', border:'none', color:'#71717a', width:'30px', height:'30px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' },
-        
+        imgBox: { width: '60px', height: '60px', background: '#222', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #333' },
+
+        tableHeader: { display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', padding: '10px 15px', background: '#18181b', color: '#52525b', fontSize: '0.65rem', fontWeight: '900', letterSpacing: '0.5px', textAlign: 'center', textTransform: 'uppercase' },
+        tableRow: (hecho) => ({ display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', padding: '12px 15px', borderBottom: '1px solid #1f1f22', alignItems: 'center', background: hecho ? 'rgba(34, 197, 94, 0.05)' : 'transparent', transition: 'background 0.2s' }),
+
+        input: { width: '100%', background: '#09090b', border: '1px solid #333', color: 'white', padding: '8px 4px', borderRadius: '6px', textAlign: 'center', fontWeight: 'bold', outline: 'none', fontSize: '0.95rem' },
+        checkBtn: (hecho) => ({ width: '32px', height: '32px', borderRadius: '50%', background: hecho ? '#FACC15' : 'transparent', border: hecho ? 'none' : '2px solid #3f3f46', color: hecho ? 'black' : '#3f3f46', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }),
+
+        addSetBtn: { width: '100%', padding: '15px', background: 'transparent', border: 'none', color: '#71717a', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', borderTop: '1px solid #222', textTransform: 'uppercase', letterSpacing: '1px' },
+
+        finishBtn: { background: '#FACC15', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '20px', fontWeight: '800', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' },
+        iconBtn: { background: 'transparent', border: 'none', color: '#71717a', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+
         modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(5px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' },
         finishModalCard: { background: '#121212', borderRadius: '20px', width: '90%', maxWidth: '400px', padding: '30px', textAlign: 'center', border: '1px solid #333', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' },
         finishTitle: { fontSize: '1.6rem', fontWeight: '900', color: 'white', margin: '15px 0 5px 0', textTransform: 'uppercase' },
@@ -292,19 +285,19 @@ export default function SesionEntrenamiento() {
         statsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '30px', background: '#18181b', padding: '15px', borderRadius: '12px', border: '1px solid #27272a' },
         statItemLabel: { fontSize: '0.65rem', color: '#71717a', fontWeight: '700', textTransform: 'uppercase' },
         statItemValue: { fontSize: '1.1rem', color: '#FACC15', fontWeight: '900', marginTop: '4px' },
-        
-        infoModalCard: { background: '#121212', borderRadius: '20px', width: '90%', maxWidth: '500px', padding: '30px', position: 'relative', border: '1px solid #333', maxHeight:'80vh', overflowY:'auto' },
+
+        infoModalCard: { background: '#121212', borderRadius: '20px', width: '90%', maxWidth: '500px', padding: '30px', position: 'relative', border: '1px solid #333', maxHeight: '80vh', overflowY: 'auto' },
         modalTag: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(250, 204, 21, 0.1)', color: '#FACC15', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '15px' },
         infoTitle: { fontSize: '1.6rem', fontWeight: '900', color: 'white', marginBottom: '15px', lineHeight: 1, textTransform: 'uppercase' },
         infoText: { color: '#a1a1aa', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '25px' },
         closeBtn: { position: 'absolute', top: '20px', right: '20px', background: '#1f1f22', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' },
-        ytBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", background: "#FACC15", color: "black", textDecoration: "none", padding: "12px", borderRadius: "8px", fontWeight: "900", fontSize: "0.9rem", width: "100%", textTransform: "uppercase", marginTop:'10px' },
+        ytBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", background: "#FACC15", color: "black", textDecoration: "none", padding: "12px", borderRadius: "8px", fontWeight: "900", fontSize: "0.9rem", width: "100%", textTransform: "uppercase", marginTop: '10px' },
         modalActions: { display: 'flex', gap: '10px' },
-        btnCancel: { flex: 1, background: 'transparent', border: '1px solid #3f3f46', color: 'white', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize:'0.8rem' },
-        btnConfirm: { flex: 1, background: '#FACC15', border: 'none', color: 'black', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase', fontSize:'0.8rem' },
+        btnCancel: { flex: 1, background: 'transparent', border: '1px solid #3f3f46', color: 'white', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' },
+        btnConfirm: { flex: 1, background: '#FACC15', border: 'none', color: 'black', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem' },
     };
 
-    if (loading) return <div style={{...styles.page, display:'flex', justifyContent:'center', alignItems:'center'}}>Cargando...</div>;
+    if (loading) return <div style={{ ...styles.page, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando...</div>;
 
     return (
         <div style={styles.page}>
@@ -313,12 +306,12 @@ export default function SesionEntrenamiento() {
             {/* HEADER */}
             <div style={styles.topBar}>
                 <div style={styles.headerTitle}>
-                    <button onClick={() => navigate(-1)} style={{background:'none', border:'none', color:'white', cursor:'pointer', marginRight:'5px'}}><ChevronLeft/></button>
-                    <span style={{maxWidth:'200px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{rutina?.nombre}</span>
+                    <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', marginRight: '5px' }}><ChevronLeft /></button>
+                    <span style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rutina?.nombre}</span>
                 </div>
-                <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
-                    <div style={{display:'flex', alignItems:'center', gap:'6px', background:'#18181b', padding:'6px 12px', borderRadius:'20px', border:'1px solid #27272a', fontSize:'0.9rem', fontWeight:'bold', color:'#FACC15'}}>
-                        <Clock size={16}/> {formatoTiempo(tiempo)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#18181b', padding: '6px 12px', borderRadius: '20px', border: '1px solid #27272a', fontSize: '0.9rem', fontWeight: 'bold', color: '#FACC15' }}>
+                        <Clock size={16} /> {formatoTiempo(tiempo)}
                     </div>
                     <button style={styles.finishBtn} onClick={handleTerminarClick}>TERMINAR</button>
                 </div>
@@ -332,11 +325,11 @@ export default function SesionEntrenamiento() {
                 </div>
                 <div style={styles.statItem}>
                     <span style={styles.statLabel}>VOLUMEN</span>
-                    <span style={styles.statValue}>{calcularVolumenTotal()} <span style={{fontSize:'0.8rem', color:'#555'}}>kg</span></span>
+                    <span style={styles.statValue}>{calcularVolumenTotal()} <span style={{ fontSize: '0.8rem', color: '#555' }}>kg</span></span>
                 </div>
                 <div style={styles.statItem}>
                     <span style={styles.statLabel}>INTENSIDAD</span>
-                    <span style={styles.statValueYellow}><Activity size={16}/></span>
+                    <span style={styles.statValueYellow}><Activity size={16} /></span>
                 </div>
             </div>
 
@@ -351,12 +344,12 @@ export default function SesionEntrenamiento() {
                     <div key={ej.id} style={styles.card}>
                         <div style={styles.cardHeader}>
                             <div style={styles.imgBox}>
-                                {ej.ejercicio.imagenUrl ? 
-                                    <img src={ej.ejercicio.imagenUrl} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="ejercicio" /> :
-                                    <Activity color="#555"/>
+                                {ej.ejercicio.imagenUrl ?
+                                    <img src={ej.ejercicio.imagenUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="ejercicio" /> :
+                                    <Activity color="#555" />
                                 }
                             </div>
-                            <div style={{flex:1}}>
+                            <div style={{ flex: 1 }}>
                                 <div style={styles.exTitle}>{ej.ejercicio.nombre}</div>
                                 <div style={styles.noteWrapper}>
                                     {editando ? (
@@ -366,13 +359,13 @@ export default function SesionEntrenamiento() {
                                         </div>
                                     ) : (
                                         <div onClick={() => setEditandoNotaId(exerciseId)}>
-                                            {notaActual ? (<div style={styles.noteDisplay}><MessageSquare size={12} color="#FACC15"/>{notaActual}</div>) : (<div style={styles.notePlaceholder}><Plus size={12}/> Nota</div>)}
+                                            {notaActual ? (<div style={styles.noteDisplay}><MessageSquare size={12} color="#FACC15" />{notaActual}</div>) : (<div style={styles.notePlaceholder}><Plus size={12} /> Nota</div>)}
                                         </div>
                                     )}
                                 </div>
                             </div>
-                            <div style={{display:'flex', flexDirection:'column', gap:'5px'}}>
-                                <button style={styles.iconBtn} onClick={() => setInfoExercise(ej.ejercicio)}><Info size={18}/></button>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                <button style={styles.iconBtn} onClick={() => setInfoExercise(ej.ejercicio)}><Info size={18} /></button>
                             </div>
                         </div>
 
@@ -386,46 +379,45 @@ export default function SesionEntrenamiento() {
                                 <div>RPE</div>
                                 <div>OK</div>
                             </div>
-                            
+
                             {sets.map((set, i) => {
-                                const datoAnterior = historialPrevio[exerciseId]?.[i]; 
+                                const datoAnterior = historialPrevio[exerciseId]?.[i];
 
                                 return (
                                     <div key={i} style={styles.tableRow(set.hecho)}>
-                                        <div style={{fontWeight:'bold', color: set.hecho ? '#FACC15' : '#555', textAlign:'center', fontSize:'0.9rem'}}>{i + 1}</div>
-                                        
-                                        <div style={{textAlign:'center', color:'#52525b', fontSize:'0.75rem', fontStyle:'italic', display:'flex', flexDirection:'column', lineHeight:'1.2'}}>
+                                        <div style={{ fontWeight: 'bold', color: set.hecho ? '#FACC15' : '#555', textAlign: 'center', fontSize: '0.9rem' }}>{i + 1}</div>
+
+                                        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', lineHeight: '1.2', fontStyle: 'italic' }}>
                                             {datoAnterior ? (
                                                 <>
-                                                    <span style={{fontWeight:'bold'}}>{datoAnterior.peso}kg</span>
-                                                    <span>x{datoAnterior.reps}</span>
+                                                    <span style={{ fontWeight: '900', color: '#6b829e', fontSize: '0.9rem' }}>{datoAnterior.peso}kg</span>
+                                                    <span style={{ color: '#666', fontSize: '0.85rem' }}>x{datoAnterior.reps}</span>
                                                 </>
-                                            ) : ("-")}
+                                            ) : (<span style={{ color: '#444' }}>-</span>)}
                                         </div>
-                                        
-                                        <div style={{padding:'0 4px'}}>
+
+                                        <div style={{ padding: '0 4px' }}>
                                             <input
                                                 type="number"
-                                                placeholder={datoAnterior ? datoAnterior.peso : "0"}
-                                                style={{...styles.input, color: set.hecho ? '#FACC15' : 'white', borderColor: set.hecho ? '#FACC15' : '#27272a'}}
+                                                style={{ ...styles.input, color: set.hecho ? '#FACC15' : 'white', borderColor: set.hecho ? '#FACC15' : '#27272a' }}
                                                 value={set.peso}
                                                 onChange={(e) => updateSet(exerciseId, i, 'peso', e.target.value)}
                                             />
                                         </div>
-                                        <div style={{padding:'0 4px'}}>
-                                            <input type="number" placeholder={datoAnterior ? datoAnterior.reps : "0"} style={styles.input} value={set.reps} onChange={(e) => updateSet(exerciseId, i, 'reps', e.target.value)} />
+                                        <div style={{ padding: '0 4px' }}>
+                                            <input type="number" style={{ ...styles.input, color: set.hecho ? '#FACC15' : 'white' }} value={set.reps} onChange={(e) => updateSet(exerciseId, i, 'reps', e.target.value)} />
                                         </div>
-                                        <div style={{padding:'0 4px'}}>
-                                            <input type="number" placeholder="8" style={{...styles.input, color: '#71717a'}} value={set.rpe} onChange={(e) => updateSet(exerciseId, i, 'rpe', e.target.value)} />
+                                        <div style={{ padding: '0 4px' }}>
+                                            <input type="number" style={{ ...styles.input, color: '#71717a' }} value={set.rpe} onChange={(e) => updateSet(exerciseId, i, 'rpe', e.target.value)} />
                                         </div>
 
-                                        <div style={{display:'flex', justifyContent:'center', gap:'10px'}}>
+                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                                             <button style={styles.checkBtn(set.hecho)} onClick={() => toggleCheck(exerciseId, i)}>
-                                                {set.hecho && <Check size={18} strokeWidth={4}/>}
+                                                {set.hecho && <Check size={18} strokeWidth={4} />}
                                             </button>
                                             {!set.hecho && (
-                                                <button onClick={() => removeSet(exerciseId, i)} style={{background:'none', border:'none', color:'#333', cursor:'pointer', padding:0}}>
-                                                    <Trash2 size={16}/>
+                                                <button onClick={() => removeSet(exerciseId, i)} style={{ background: 'none', border: 'none', color: '#333', cursor: 'pointer', padding: 0 }}>
+                                                    <Trash2 size={16} />
                                                 </button>
                                             )}
                                         </div>
@@ -435,7 +427,7 @@ export default function SesionEntrenamiento() {
                         </div>
 
                         <button style={styles.addSetBtn} onClick={() => addSet(exerciseId)}>
-                            <Plus size={14}/> AÑADIR SERIE
+                            <Plus size={14} /> AÑADIR SERIE
                         </button>
                     </div>
                 );
@@ -445,8 +437,8 @@ export default function SesionEntrenamiento() {
             {infoExercise && (
                 <div style={styles.modalOverlay} onClick={() => setInfoExercise(null)}>
                     <div style={styles.infoModalCard} onClick={e => e.stopPropagation()}>
-                        <button style={styles.closeBtn} onClick={() => setInfoExercise(null)}><X size={18}/></button>
-                        <div style={styles.modalTag}><Activity size={12}/> TÉCNICA</div>
+                        <button style={styles.closeBtn} onClick={() => setInfoExercise(null)}><X size={18} /></button>
+                        <div style={styles.modalTag}><Activity size={12} /> TÉCNICA</div>
                         <h2 style={styles.infoTitle}>{infoExercise.nombre}</h2>
                         <div style={styles.infoText}>{infoExercise.instrucciones || "No hay instrucciones detalladas para este ejercicio."}</div>
                         {infoExercise.videoUrl && (
@@ -461,7 +453,7 @@ export default function SesionEntrenamiento() {
             {showFinishModal && (
                 <div style={styles.modalOverlay}>
                     <div style={styles.finishModalCard}>
-                        <div style={{display:'inline-block', background:'rgba(250, 204, 21, 0.1)', padding:'15px', borderRadius:'50%', marginBottom:'10px'}}>
+                        <div style={{ display: 'inline-block', background: 'rgba(250, 204, 21, 0.1)', padding: '15px', borderRadius: '50%', marginBottom: '10px' }}>
                             <Trophy size={40} color="#FACC15" />
                         </div>
                         <h2 style={styles.finishTitle}>¡Sesión Completada!</h2>
@@ -474,7 +466,7 @@ export default function SesionEntrenamiento() {
                         <div style={styles.modalActions}>
                             <button style={styles.btnCancel} onClick={cancelFinish}>SEGUIR</button>
                             <button style={styles.btnConfirm} onClick={confirmFinish}>
-                                <Save size={16} style={{marginRight:6}}/> GUARDAR
+                                <Save size={16} style={{ marginRight: 6 }} /> GUARDAR
                             </button>
                         </div>
                     </div>

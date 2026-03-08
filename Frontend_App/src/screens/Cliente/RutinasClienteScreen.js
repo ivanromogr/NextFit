@@ -1,10 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
   ActivityIndicator, RefreshControl, Platform
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { Dumbbell, Play, Plus, Activity, Edit3, User } from 'lucide-react-native';
+import { Dumbbell, Play, Plus, Activity, Edit3, User, Sparkles, ChevronDown, ChevronUp } from 'lucide-react-native';
 
 import { obtenerRutinasCliente } from '../../api/endpoints';
 import { useAuth } from '../../components/context/AuthContext';
@@ -16,9 +16,9 @@ export default function RutinasClienteScreen() {
   const [rutinas, setRutinas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
-  // Nuevo estado para controlar qué pestaña vemos
   const [filtroActivo, setFiltroActivo] = useState('propias'); // 'propias' | 'asignadas'
+  
+  const [carpetasExpandidas, setCarpetasExpandidas] = useState({});
 
   const cargarRutinas = async () => {
     try {
@@ -46,13 +46,68 @@ export default function RutinasClienteScreen() {
     cargarRutinas();
   };
 
-  // Filtrado de rutinas según la pestaña seleccionada
-  const rutinasPropias = rutinas.filter(r => r.creador !== 'ENTRENADOR');
-  const rutinasAsignadas = rutinas.filter(r => r.creador === 'ENTRENADOR');
-  const dataAMostrar = filtroActivo === 'propias' ? rutinasPropias : rutinasAsignadas;
+  const toggleCarpeta = (key) => {
+    setCarpetasExpandidas(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
-  const renderRutina = ({ item }) => (
-    <View style={styles.card}>
+  // ==========================================
+  // 🧠 LÓGICA DE AGRUPACIÓN (IGUAL QUE LA WEB)
+  // ==========================================
+  const getIAPlanKey = (rutina) => {
+    const nombre = (rutina?.nombre || "").trim();
+    if (nombre.toLowerCase().startsWith("día")) {
+      const parts = nombre.split(" - ");
+      if (parts.length >= 2) return parts.slice(1).join(" - ").trim();
+    }
+    return `${rutina?.objetivo || "PLAN"}|${rutina?.nivel || ""}`.trim();
+  };
+
+  const parseDiaNumero = (rutina) => {
+    const nombre = (rutina?.nombre || "").toLowerCase();
+    const match = nombre.match(/día\s*(\d+)/i);
+    return match ? parseInt(match[1], 10) : 9999;
+  };
+
+  // 1. Separamos por creador
+  const rutinasAsignadas = rutinas.filter(r => r.creador === 'ENTRENADOR');
+  const rutinasPropiasNoIA = rutinas.filter(r => r.creador !== 'ENTRENADOR' && r.creador !== 'IA');
+  const rutinasIA = rutinas.filter(r => r.creador === 'IA');
+
+  // 2. Agrupamos las de IA
+  const iaPlanGroups = useMemo(() => {
+    const map = new Map();
+    for (const r of rutinasIA) {
+      const key = getIAPlanKey(r);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(r);
+    }
+    for (const [k, arr] of map.entries()) {
+      arr.sort((a, b) => parseDiaNumero(a) - parseDiaNumero(b));
+      map.set(k, arr);
+    }
+    return Array.from(map.entries()).map(([key, items]) => ({
+      isFolder: true,
+      key,
+      items,
+      objetivo: items?.[0]?.objetivo || "IA",
+      nivel: items?.[0]?.nivel || "",
+      id: `folder_${key}`
+    }));
+  }, [rutinasIA]);
+
+  // 3. Montamos la lista final a mostrar según el filtro
+  const dataAMostrar = useMemo(() => {
+    if (filtroActivo === 'asignadas') return rutinasAsignadas;
+    // Si son propias, juntamos los Grupos IA y las rutinas sueltas
+    return [...iaPlanGroups, ...rutinasPropiasNoIA];
+  }, [filtroActivo, rutinasAsignadas, rutinasPropiasNoIA, iaPlanGroups]);
+
+
+  // ==========================================
+  // 🎨 RENDERIZADO (TARJETA RUTINA NORMAL)
+  // ==========================================
+  const renderRutinaIndividual = (item, isInsideFolder = false) => (
+    <View key={item.id} style={[styles.card, isInsideFolder && styles.cardInsideFolder]}>
       <View style={styles.cardHeader}>
         <View style={{flex: 1}}>
           <Text style={styles.title}>{item.nombre}</Text>
@@ -75,7 +130,6 @@ export default function RutinasClienteScreen() {
         </View>
       </View>
 
-      {/* FOOTER DE LA TARJETA: Botón Editar + Botón Iniciar */}
       <View style={styles.cardFooter}>
         {filtroActivo === 'propias' ? (
           <TouchableOpacity 
@@ -85,7 +139,6 @@ export default function RutinasClienteScreen() {
             <Edit3 size={18} color="#a1a1aa" />
           </TouchableOpacity>
         ) : (
-          // Etiqueta de Entrenador (Para rutinas asignadas)
           <View style={styles.coachBadge}>
             <User size={14} color="#a1a1aa" />
             <Text style={styles.coachBadgeText}>Por Coach</Text>
@@ -105,6 +158,89 @@ export default function RutinasClienteScreen() {
       </View>
     </View>
   );
+
+  // ==========================================
+  // 📁 RENDERIZADO (TARJETA PLAN IA / GRUPO)
+  // ==========================================
+  const renderItem = ({ item }) => {
+    
+    // Si es un grupo IA (Carpeta)
+    if (item.isFolder) {
+      const isExpanded = carpetasExpandidas[item.key];
+      const daysCount = item.items.length;
+      const totalEjercicios = item.items.reduce((acc, r) => acc + (r.detalles?.length || 0), 0);
+      const nivelLabel = (item.nivel || "").toString().replace(/_/g, " ");
+      const objetivoLabel = (item.objetivo || "IA").toString().replace(/_/g, " ");
+      const title = item.key?.includes("|") ? `Plan ${objetivoLabel}` : item.key;
+      const preview = item.items?.[0]?.detalles?.map((d) => d.ejercicio.nombre).join(", ") || "Sin ejercicios previos";
+
+      return (
+        <View style={styles.iaContainer}>
+          <TouchableOpacity 
+            style={styles.iaCard} 
+            activeOpacity={0.8}
+            onPress={() => toggleCarpeta(item.key)}
+          >
+            {/* Cabecera Tarjeta IA */}
+            <View style={styles.iaTopRow}>
+              <View style={styles.iaPill}>
+                <Sparkles size={14} color="#FACC15" />
+                <Text style={styles.iaPillText}>PLAN IA</Text>
+              </View>
+              <Text style={styles.iaDaysText}>{daysCount} DÍAS</Text>
+            </View>
+
+            <Text style={styles.iaTitle}>{title}</Text>
+            
+            <Text style={styles.iaSub}>
+              Objetivo: <Text style={{color: 'white', fontWeight: '800'}}>{objetivoLabel}</Text>
+              {nivelLabel ? <Text> · Nivel: <Text style={{color: 'white', fontWeight: '800'}}>{nivelLabel}</Text></Text> : ''}
+            </Text>
+
+            {/* Grid Estadísticas */}
+            <View style={styles.iaStatsRow}>
+              <View style={styles.iaStatBox}>
+                <Text style={styles.iaStatLabel}>DÍAS</Text>
+                <Text style={styles.iaStatValue}>{daysCount}</Text>
+              </View>
+              <View style={styles.iaStatBox}>
+                <Text style={styles.iaStatLabel}>EJERCICIOS</Text>
+                <Text style={styles.iaStatValue}>{totalEjercicios}</Text>
+              </View>
+              <View style={styles.iaStatBox}>
+                <Text style={styles.iaStatLabel}>NIVEL</Text>
+                <Text style={styles.iaStatValue}>{nivelLabel || "—"}</Text>
+              </View>
+            </View>
+
+            {/* Barra Visual */}
+            <View style={styles.iaBarBg}>
+              <View style={[styles.iaBarFill, { width: `${Math.min(100, 20 + daysCount * 15)}%` }]} />
+            </View>
+
+            <Text style={styles.iaPreviewText} numberOfLines={1}>{preview}</Text>
+
+            {/* Botón Ver Días */}
+            <View style={styles.iaBtn}>
+              <Text style={styles.iaBtnText}>{isExpanded ? 'OCULTAR DÍAS' : 'VER DÍAS DEL PLAN'}</Text>
+              {isExpanded ? <ChevronUp size={18} color="black"/> : <ChevronDown size={18} color="black"/>}
+            </View>
+          </TouchableOpacity>
+
+          {/* Días Desplegados */}
+          {isExpanded && (
+            <View style={styles.folderContent}>
+              <View style={styles.folderLine} />
+              {item.items.map(rutina => renderRutinaIndividual(rutina, true))}
+            </View>
+          )}
+        </View>
+      );
+    }
+    
+    // Si es una rutina normal no agrupada
+    return renderRutinaIndividual(item, false);
+  };
 
   if (loading && !refreshing) {
     return (
@@ -127,7 +263,7 @@ export default function RutinasClienteScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* SELECTOR DE PESTAÑAS (TABS) */}
+      {/* SELECTOR DE PESTAÑAS */}
       <View style={styles.tabContainer}>
         <TouchableOpacity 
           style={[styles.tabBtn, filtroActivo === 'propias' && styles.tabBtnActive]}
@@ -147,37 +283,27 @@ export default function RutinasClienteScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* LISTA DE RUTINAS */}
+      {/* LISTA */}
       <FlatList
         data={dataAMostrar}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderRutina}
+        keyExtractor={(item) => item.id?.toString() || item.key}
+        renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FACC15" />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FACC15" />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <View style={styles.emptyIconWrap}>
               <Dumbbell size={40} color="#FACC15" />
             </View>
             <Text style={styles.emptyTitle}>
-              {filtroActivo === 'propias' ? "No tienes rutinas propias" : "No tienes rutinas asignadas"}
+              {filtroActivo === 'propias' ? "No tienes rutinas" : "No tienes planes asignados"}
             </Text>
             <Text style={styles.emptySub}>
               {filtroActivo === 'propias' 
-                ? "Crea tu primer plan de entrenamiento personalizado."
+                ? "Usa la IA o crea tu primer plan."
                 : "Cuando tu entrenador te asigne un plan, aparecerá aquí."}
             </Text>
-            {filtroActivo === 'propias' && (
-              <TouchableOpacity 
-                style={styles.emptyBtn}
-                onPress={() => navigation.navigate('CrearRutina', { isTemplate: false })}
-              >
-                <Text style={styles.emptyBtnText}>Crear Rutina</Text>
-              </TouchableOpacity>
-            )}
           </View>
         }
       />
@@ -189,19 +315,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#050505' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#050505' },
   
-  header: { 
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
-    paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingHorizontal: 20, paddingBottom: 15,
-    backgroundColor: '#0a0a0a'
-  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingHorizontal: 20, paddingBottom: 15, backgroundColor: '#0a0a0a' },
   headerTitle: { color: 'white', fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
   addBtn: { backgroundColor: '#FACC15', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
 
-  // DISEÑO DE TABS
-  tabContainer: { 
-    flexDirection: 'row', backgroundColor: '#121214', marginHorizontal: 20, marginBottom: 15, 
-    borderRadius: 12, padding: 4, borderWidth: 1, borderColor: '#1f1f22'
-  },
+  tabContainer: { flexDirection: 'row', backgroundColor: '#121214', marginHorizontal: 20, marginBottom: 15, borderRadius: 12, padding: 4, borderWidth: 1, borderColor: '#1f1f22' },
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
   tabBtnActive: { backgroundColor: '#27272a' },
   tabText: { color: '#71717a', fontSize: 13, fontWeight: '700' },
@@ -209,8 +327,44 @@ const styles = StyleSheet.create({
 
   listContent: { paddingHorizontal: 20, paddingBottom: 100 },
 
-  // DISEÑO DE TARJETA
+  // ==========================
+  // TARJETA PLAN IA (IDÉNTICA A LA WEB)
+  // ==========================
+  iaContainer: { marginBottom: 20 },
+  iaCard: { backgroundColor: '#0a0a0a', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: 'rgba(250, 204, 21, 0.3)', overflow: 'hidden' },
+  iaTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  iaPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(250, 204, 21, 0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  iaPillText: { color: '#FACC15', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  iaDaysText: { color: '#FACC15', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
+  
+  iaTitle: { color: 'white', fontSize: 20, fontWeight: '900', textTransform: 'uppercase', letterSpacing: -0.5, marginBottom: 5 },
+  iaSub: { color: '#a1a1aa', fontSize: 13, marginBottom: 15 },
+  
+  iaStatsRow: { flexDirection: 'row', gap: 10, marginBottom: 15 },
+  iaStatBox: { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#1f1f22' },
+  iaStatLabel: { color: '#a1a1aa', fontSize: 10, fontWeight: '800', marginBottom: 4 },
+  iaStatValue: { color: 'white', fontSize: 16, fontWeight: '900' },
+  
+  iaBarBg: { height: 6, backgroundColor: '#1f1f22', borderRadius: 3, marginBottom: 15 },
+  iaBarFill: { height: '100%', backgroundColor: '#FACC15', borderRadius: 3 },
+  
+  iaPreviewText: { color: '#52525b', fontSize: 12, marginBottom: 20 },
+  
+  iaBtn: { backgroundColor: '#FACC15', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, gap: 8 },
+  iaBtnText: { color: '#0A0A0A', fontSize: 14, fontWeight: '900', letterSpacing: 0.5 },
+
+  // ==========================
+  // CARPETA DESPLEGABLE
+  // ==========================
+  folderContent: { paddingLeft: 15, paddingTop: 15, position: 'relative' },
+  folderLine: { position: 'absolute', left: 25, top: 0, bottom: 20, width: 2, backgroundColor: '#27272a', zIndex: -1, borderBottomLeftRadius: 10 },
+
+  // ==========================
+  // TARJETA RUTINA NORMAL (Y ANIDADA)
+  // ==========================
   card: { backgroundColor: '#0a0a0a', borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1, borderColor: '#1f1f22' },
+  cardInsideFolder: { backgroundColor: '#121214', borderWidth: 1, borderColor: '#27272a', marginLeft: 20, padding: 16, borderRadius: 16 },
+  
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   title: { color: 'white', fontSize: 17, fontWeight: '900', textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 },
   subtitle: { color: '#71717a', fontSize: 13, lineHeight: 18 },
@@ -219,7 +373,6 @@ const styles = StyleSheet.create({
   tag: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#18181b', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   tagText: { color: '#a1a1aa', fontSize: 11, fontWeight: '800' },
 
-  // FOOTER DE TARJETA (Botones)
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#18181b', paddingTop: 15 },
   editBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#18181b', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#27272a' },
   coachBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -233,6 +386,4 @@ const styles = StyleSheet.create({
   emptyIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(250, 204, 21, 0.05)', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   emptyTitle: { color: 'white', fontSize: 18, fontWeight: '900', marginBottom: 8 },
   emptySub: { color: '#71717a', fontSize: 14, textAlign: 'center', marginBottom: 30, lineHeight: 22 },
-  emptyBtn: { backgroundColor: '#1A1A1A', paddingVertical: 14, paddingHorizontal: 30, borderRadius: 14, borderWidth: 1, borderColor: '#333' },
-  emptyBtnText: { color: 'white', fontWeight: '800', fontSize: 14 }
 });
