@@ -77,6 +77,15 @@ public class EntrenadorController {
             return ResponseEntity.internalServerError().body("Error interno al obtener los atletas: " + e.getMessage());
         }
     }
+    @GetMapping("/{id}/reviews")
+    public ResponseEntity<?> getReviewsEntrenador(@PathVariable UUID id) {
+        try {
+            List<Resena> listaResenas = resenaDAO.findByEntrenadorIdOrderByFechaDesc(id);
+            return ResponseEntity.ok(listaResenas);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al obtener las reseñas: " + e.getMessage());
+        }
+    }
 
     // --- 2. DASHBOARD RESUMEN ---
     @GetMapping("/{entrenadorId}/dashboard-resumen")
@@ -132,11 +141,17 @@ public class EntrenadorController {
 
             Double media = resenaDAO.calcularMediaPorEntrenador(id);
             List<Resena> listaResenas = resenaDAO.findByEntrenadorIdOrderByFechaDesc(id);
+            
+            // ✅ NUEVO: Contamos los clientes reales de la base de datos
+            long totalClientes = clienteDAO.countByEntrenador_Id(id); 
 
             Map<String, Object> respuesta = new HashMap<>();
             respuesta.put("entrenador", ent);
             respuesta.put("valoracionMedia", media != null ? Math.round(media * 10.0) / 10.0 : 0.0);
             respuesta.put("resenas", listaResenas);
+            
+            // ✅ NUEVO: Lo enviamos en la respuesta
+            respuesta.put("numeroClientes", totalClientes); 
 
             return ResponseEntity.ok(respuesta);
         } catch (Exception e) {
@@ -234,7 +249,7 @@ public class EntrenadorController {
         
         return ResponseEntity.ok(filtrados);
     }
-
+   
     // --- 7. VINCULAR CLIENTE POR EMAIL ---
     @PostMapping("/{id}/fichar")
     public ResponseEntity<?> ficharCliente(

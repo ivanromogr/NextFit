@@ -67,7 +67,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
 
     const conectarWebSocket = () => {
         const client = new Client({
-            brokerURL: 'ws://192.168.1.62:8080/ws', 
+            brokerURL: 'ws://192.168.1.26:8080/ws', 
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
@@ -296,7 +296,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         <KeyboardAvoidingView 
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.container}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
         >
             {loading ? (
                 <View style={styles.center}><ActivityIndicator color="#FACC15" /></View>

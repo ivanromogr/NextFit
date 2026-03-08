@@ -51,14 +51,36 @@ public class DashboardController {
                 .findFirst()
                 .orElse(null);
 
-        // 5. Construir Respuesta JSON
+        // ==========================================
+        // 🎯 5. LÓGICA DE LA RACHA (STREAK)
+        // ==========================================
+        List<EventoCalendario> eventosHistorial = eventoDAO.findByClienteIdAndFechaLessThanEqualOrderByFechaDesc(clienteId, hoy);
+        int racha = 0;
+
+        for (EventoCalendario evento : eventosHistorial) {
+            if (evento.isCompletado()) {
+                racha++; // Si lo hizo, suma 1
+            } else {
+                if (evento.getFecha().isBefore(hoy)) {
+                    // Si el entreno es de AYER o antes y no se hizo, se rompe la racha
+                    break;
+                }
+                // Si es de HOY y no está completado, no pasa nada, la racha sigue viva
+            }
+        }
+
+        // ==========================================
+        // 6. Construir Respuesta JSON
+        // ==========================================
         Map<String, Object> response = new HashMap<>();
         response.put("entrenosHechos", entrenosHechos);
-        // Si no hay nada programado, ponemos objetivo base de 4 para que la barra no se rompa
         response.put("entrenosObjetivo", entrenosTotal > 0 ? entrenosTotal : 4); 
         response.put("volumenSemana", volumenSemana);
         
-        // Enviamos datos del evento de hoy para la tarjeta gigante
+        // 👇 AÑADIMOS LA RACHA AL JSON 👇
+        response.put("rachaActual", racha);
+        
+        // Enviamos datos del evento de hoy
         if (eventoHoy != null) {
             Map<String, Object> hoyMap = new HashMap<>();
             hoyMap.put("id", eventoHoy.getId());

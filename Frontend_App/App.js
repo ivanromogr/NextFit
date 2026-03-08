@@ -16,12 +16,13 @@ import EntrenadorOnboardingScreen from './src/screens/Entrenador/EntrenadorOnboa
 import ClienteTabNavigator from './src/navigation/ClienteTabNavigator';
 import EditarPerfilCliente from './src/screens/Cliente/EditarPerfilCliente'; 
 import ProgresoClienteScreen from './src/screens/Cliente/ProgresoClienteScreen';
-
-// ✅ IMPORTACIONES CORREGIDAS
+import CrearRutinaScreen from './src/components/functional/CrearRutinaScreen';
+import RutinasClienteScreen from './src/screens/Cliente/RutinasClienteScreen';
+import EditarRutinaScreen from './src/screens/Cliente/EditarRutinaScreen';
 import EntrenadorPerfilScreen from './src/screens/Entrenador/EntrenadorPerfilScreen'; 
 // Según tu imagen b0f270, el archivo está en la carpeta Cliente:
 import PantallaChatIndividual from './src/screens/Cliente/PantallaChatIndividual'; 
-
+import PantallaSesionEntrenamiento from './src/screens/Cliente/PantallaSesionEntrenamiento';
 const Stack = createStackNavigator();
 
 function RootNavigation() {
@@ -49,7 +50,10 @@ function RootNavigation() {
           <Stack.Screen name="ClienteTabs" component={ClienteTabNavigator} />
           <Stack.Screen name="EditarPerfilCliente" component={EditarPerfilCliente} />
           <Stack.Screen name="ProgresoCliente" component={ProgresoClienteScreen} />
-          
+          <Stack.Screen name="CrearRutina" component={CrearRutinaScreen} />
+          <Stack.Screen name="PantallaSesionEntrenamiento" component={PantallaSesionEntrenamiento} />
+          <Stack.Screen name="Rutinas" component={RutinasClienteScreen} />
+          <Stack.Screen name="EditarRutina" component={EditarRutinaScreen} />
           <Stack.Screen 
             name="EntrenadorPerfil" 
             component={EntrenadorPerfilScreen} 

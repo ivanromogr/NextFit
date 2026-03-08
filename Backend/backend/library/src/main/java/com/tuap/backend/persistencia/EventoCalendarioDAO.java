@@ -15,7 +15,7 @@ public interface EventoCalendarioDAO extends JpaRepository<EventoCalendario, UUI
     
     // Obtener eventos para pintar el calendario
     List<EventoCalendario> findByClienteIdAndFechaBetween(UUID clienteId, LocalDate inicio, LocalDate fin);
-
+    List<EventoCalendario> findByClienteIdAndFechaLessThanEqualOrderByFechaDesc(UUID clienteId, LocalDate fecha);
     
     @Query("SELECT e FROM EventoCalendario e WHERE e.cliente.id = :clienteId AND e.fecha = :fecha AND e.rutina.id = :rutinaId")
     Optional<EventoCalendario> buscarEventoExacto(

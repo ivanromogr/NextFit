@@ -113,7 +113,7 @@ export const obtenerRutinasCliente = async (idCliente) => {
 export const generarRutinaAuto = (payload) => api.post("/rutinas/auto", payload);
 export const guardarRutinaManual = (payload) => api.post("/rutinas/manual", payload);
 export const eliminarRutina = (id) => api.delete(`/rutinas/${id}`);
-
+export const actualizarRutina = (id, payload) => api.put(`/rutinas/${id}`, payload);
 // ==========================================
 // 5. CALENDARIO Y SESIONES
 // ==========================================
@@ -130,6 +130,15 @@ export const guardarSesionRealizada = async (payload) => {
   const response = await api.post("/sesiones", payload);
   return response.data;
 };
+export const obtenerUltimaSesionRutina = async (clienteId, rutinaId) => {
+  try {
+    const response = await api.get(`/sesiones/ultima?clienteId=${clienteId}&rutinaId=${rutinaId}`);
+    return response.data;
+  } catch (error) {
+   
+    return null; 
+  }
+};
 
 // ==========================================
 // 6. ESTADÍSTICAS Y PROGRESO
@@ -143,6 +152,15 @@ export const obtenerStatsGlobales = async (clienteId) => {
 export const obtenerProgresoEjercicio = async (clienteId, ejercicioId) => {
   const response = await api.get(`/stats/ejercicio/${clienteId}/${ejercicioId}`);
   return response.status === 204 ? null : response.data;
+};
+export const obtenerPRs = async (clienteId) => {
+  try {
+    const response = await api.get(`/stats/prs/${clienteId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error cargando PRs:", error);
+    return [];
+  }
 };
 
 export const obtenerResumenDashboard = async (clienteId) => {
