@@ -14,6 +14,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock, ArrowRight, Trophy, Dumbbell } from 'lucide-react-native'; 
 import { api } from '../api/api';
 
+// ✅ IMPORTAMOS ASYNCSTORAGE PARA BLINDAR EL ID
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 // Componentes UI reutilizables
 import GymButton from '../components/ui/GymButton';
 import GymInput from '../components/ui/GymInput';
@@ -62,14 +65,24 @@ export default function RegisterScreen() {
     setError("");
 
     try {
-      // Mandamos los datos tal cual los espera tu backend
       const resp = await api.post('/register', form);
 
       if (resp.status >= 200 && resp.status < 300) {
-        // ✅ ¡Registro exitoso! Extraemos el ID generado por el backend
-        const nuevoUserId = resp.data?.id; 
+        
+        // ✅ AHORA SÍ: Usamos exactamente la misma lógica que en tu React Web
+        const dataBackend = resp.data || {};
+        const nuevoUserId = (form.rol === "CLIENTE")
+          ? (dataBackend.clienteId || dataBackend.idCliente || dataBackend.id)
+          : (dataBackend.entrenadorId || dataBackend.idEntrenador || dataBackend.id);
 
-        // ✅ Derivamos al Onboarding correcto según el rol seleccionado
+        if (nuevoUserId) {
+            // Guardamos el ID en la memoria para que el Onboarding lo lea
+            await AsyncStorage.setItem("registration_userId", String(nuevoUserId));
+        } else {
+            console.warn("⚠️ Ojo: No se encontró el ID en la respuesta:", dataBackend);
+        }
+
+        // Derivamos al Onboarding correcto
         if (form.rol === "CLIENTE") {
           navigation.navigate('ClienteOnboarding', { userId: nuevoUserId });
         } else {
@@ -152,6 +165,7 @@ export default function RegisterScreen() {
               value={form.email}
               onChangeText={(val) => handleChange("email", val)}
               keyboardType="email-address"
+              autoCapitalize="none"
             />
 
             <GymInput
@@ -209,7 +223,7 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 35,
     paddingHorizontal: 25,
-    width: '100%', // ✅ Corregido para que no se salga de los bordes laterales
+    width: '100%',
     maxWidth: 450,
   },
   header: {

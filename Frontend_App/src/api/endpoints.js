@@ -228,3 +228,36 @@ export const subirArchivoAdjunto = async (formData) => {
     throw error;
   }
 };
+// ==========================================
+// 9. PANEL ENTRENADOR (DASHBOARD Y GESTIÓN)
+// ==========================================
+
+export const obtenerClientesEntrenador = async (entrenadorId) => {
+  try {
+    const response = await api.get(`/entrenador/${entrenadorId}/clientes`);
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error en obtenerClientesEntrenador:", error);
+    return [];
+  }
+};
+
+export const obtenerDashboardResumen = async (entrenadorId) => {
+  try {
+    const response = await api.get(`/entrenador/${entrenadorId}/dashboard-resumen`);
+    return response.data;
+  } catch (error) {
+    console.error("Error en obtenerDashboardResumen:", error);
+    return null;
+  }
+};
+
+export const ficharCliente = async (entrenadorId, emailCliente) => {
+  try {
+      const response = await api.post(`/entrenador/${entrenadorId}/fichar`, { email: emailCliente });
+      return response.data;
+  } catch (error) {
+      console.error("Error en ficharCliente:", error);
+      throw error;
+  }
+};
