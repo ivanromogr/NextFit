@@ -37,48 +37,44 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      // ✅ Enviamos el objeto JSON limpio. 
-      // Se incluyen 'email' y 'username' para asegurar compatibilidad con tu controlador de Java.
+      // ✅ 1. LA MAGIA: Limpiamos los malditos espacios y mayúsculas del teclado móvil
+      const cleanEmail = email.trim().toLowerCase();
+
       const loginData = {
-        username: email,
+        username: cleanEmail,
         password: password,
-        email: email
+        email: cleanEmail
       };
 
-      // Serializamos a application/x-www-form-urlencoded para Spring Security
       const body = new URLSearchParams(loginData).toString();
-
-      // Realizamos la petición POST al endpoint /login
-      // 2. Petición POST al endpoint de login (Spring Security usa /login sin prefijo /api)
       const AUTH_HOST = 'http://192.168.1.26:8080';
-      const resp = await axios.post(`${AUTH_HOST}/login`, body, {
-         headers: {
-           "Content-Type": "application/x-www-form-urlencoded"
-         }
-       });
 
-      // Verificamos la respuesta exitosa (status 200) y que contenga el ID
-      if (resp.status === 200 && resp.data?.id) {
-        const { rol, id } = resp.data;
-        // Guardamos la sesión en el contexto global
-        await login(id, rol);
-        // La redirección al Dashboard es automática gracias al RootNavigation en App.js
+      const resp = await axios.post(`${AUTH_HOST}/login`, body, {
+         headers: { "Content-Type": "application/x-www-form-urlencoded" }
+      });
+
+      if (resp.status >= 200 && resp.status < 300) {
+        // 👇 ESTE ES EL CHIVATO CLAVE
+        console.log("👀 DATOS REALES DEL LOGIN:", resp.data);
+
+        // Intentamos cazar el rol y el ID vengan como vengan
+        const rawRole = resp.data.rol || resp.data.role || resp.data.tipo || '';
+        const role = rawRole.toUpperCase();
+        const id = resp.data.id || resp.data.usuarioId || resp.data.entrenadorId;
+        
+        console.log("💾 GUARDANDO EN MEMORIA -> ID:", id, " | ROLE:", role);
+        
+        await login(id, role);
       }
     } catch (err) {
-      console.log("Error status:", err.response?.status);
-      
-      if (err.response?.status === 404) {
-        // 🚨 Este es el error que estabas viendo
-        // Indica que el servidor responde pero la ruta /login no está mapeada correctamente.
+      // ✅ 2. Atrapamos la redirección 404 y la traducimos para el usuario
+      if (err.response?.status === 404 || err.response?.status === 401) {
         Alert.alert(
-          'Servidor no encontrado', 
-          'El móvil conecta, pero la ruta no existe. Si el registro funciona, revisa si tu login en Java usa el prefijo /api.'
+          'Acceso denegado', 
+          'Correo o contraseña incorrectos. Comprueba que no haya espacios al final.'
         );
-      } else if (err.response?.status === 401) {
-        Alert.alert('Acceso denegado', 'Correo o contraseña incorrectos.');
       } else {
-        // Manejo de errores de red o tiempo de espera
-        Alert.alert('Error', 'No se pudo conectar con el servidor. Revisa tu conexión Wi-Fi.');
+        Alert.alert('Error', 'No se pudo conectar con el servidor.');
       }
     } finally {
       setLoading(false);
