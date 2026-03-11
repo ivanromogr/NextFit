@@ -7,6 +7,7 @@ import { Users, Calendar, Dumbbell, MessageCircle, User } from 'lucide-react-nat
 import DashboardEntrenadorScreen from '../screens/Entrenador/DashboardEntrenadorScreen';
 import EntrenadorPerfilScreen from '../screens/Entrenador/EntrenadorPerfilScreen';
 import ChatsEntrenadorScreen from '../screens/Entrenador/ChatsEntrenadorScreen';
+import AgendaEntrenadorScreen from '../screens/Entrenador/AgendaEntrenadorScreen';
 // 🚧 PANTALLAS PENDIENTES (Se cambiarán según las vayas creando)
 // import AgendaEntrenadorScreen from '../screens/Entrenador/AgendaEntrenadorScreen';
 // import PlantillasEntrenadorScreen from '../screens/Entrenador/PlantillasEntrenadorScreen';
@@ -44,7 +45,7 @@ export default function EntrenadorTabNavigator() {
 
             <Tab.Screen 
                 name="AgendaEntrenador" 
-                component={DummyScreen} 
+                component={AgendaEntrenadorScreen} 
                 options={{
                     tabBarLabel: 'Agenda',
                     tabBarIcon: ({ color, focused }) => (

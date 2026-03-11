@@ -15,7 +15,7 @@ import CalendarioClienteScreen from '../screens/Cliente/CalendarioClienteScreen'
 import PerfilScreen from '../screens/Cliente/EditarPerfilCliente';
 import ProgresoClienteScreen from '../screens/Cliente/ProgresoClienteScreen';
 import ChatClienteScreen from '../screens/Cliente/ChatClienteScreen';
-
+import AgendaEntrenadorScreen from '../screens/Entrenador/AgendaEntrenadorScreen';
 // 🔥 LA CLAVE ESTÁ AQUÍ: Hemos cambiado 'Cliente' por 'Entrenador' porque ahí es donde lo moviste
 
 import ExplorarEntrenadores from '../screens/Cliente/ExplorarEntrenadores';

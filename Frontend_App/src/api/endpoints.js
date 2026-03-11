@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // ✅ Exportamos 'api' para uso global (Chat, WebSocket, etc.)
 export { api };
 
-const BASE_URL_NATIVA = "http://192.168.1.26:8080";
+const BASE_URL_NATIVA = "http://192.168.1.24:8080";
 
 // ==========================================
 // 💡 HELPER PROFESIONAL DE IMÁGENES
@@ -140,6 +140,23 @@ export const obtenerEventosCalendario = async (clienteId, inicio, fin) => {
 export const programarRutina = (clienteId, rutinaId, fecha) => 
   api.post(`/calendario/${clienteId}`, { rutinaId, fecha });
 
+// ✅ AÑADIDO: Eliminar evento de la agenda
+export const eliminarEventoCalendario = async (eventoId) => {
+  const response = await api.delete(`/calendario/${eventoId}`);
+  return response.data;
+};
+
+// ✅ AÑADIDO: Cambiar el estado del evento a Completado/Pendiente
+export const toggleCompletadoEvento = async (eventoId) => {
+  try {
+      const response = await api.put(`/calendario/${eventoId}/toggle`);
+      return response.data;
+  } catch (error) {
+      console.error("Error al cambiar estado del evento:", error);
+      throw error;
+  }
+};
+
 export const guardarSesionRealizada = async (payload) => {
   const response = await api.post("/sesiones", payload);
   return response.data;
@@ -209,7 +226,6 @@ export const obtenerHistorialChat = async (usuario1, usuario2) => {
 // 8. MULTIMEDIA (UPLOAD)
 // ==========================================
 
-// ✅ FUNCIÓN CORREGIDA PARA REACT NATIVE 
 export const subirArchivoAdjunto = async (formData) => {
   try {
     const response = await api.post('/upload', formData, {
@@ -217,7 +233,6 @@ export const subirArchivoAdjunto = async (formData) => {
         'Content-Type': 'multipart/form-data',
         'Accept': 'application/json',
       },
-      // Esto previene que axios modifique el formData internamente en RN
       transformRequest: (data, headers) => {
         return formData; 
       },

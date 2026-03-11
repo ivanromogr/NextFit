@@ -8,7 +8,8 @@ import {
   ScrollView,
   Alert,
   SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform
 } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { format } from 'date-fns';
@@ -22,7 +23,7 @@ import {
 import { useAuth } from '../../components/context/AuthContext';
 
 import { 
-  Dumbbell, Check, X, Clock, Activity, AlertTriangle, PlusCircle, AlertCircle, Trash2, Plus 
+  Dumbbell, Check, X, Clock, Activity, AlertTriangle, PlusCircle, AlertCircle, Trash2, Plus, ChevronLeft
 } from 'lucide-react-native';
 
 // Configurar idioma español
@@ -39,7 +40,8 @@ export default function CalendarioClienteScreen({ route }) {
   const navigation = useNavigation();
   const { userId } = useAuth();
   
-  const clienteIdProp = route?.params?.clienteId;
+  // ✅ DETECCIÓN DEL MODO ENTRENADOR
+  const clienteIdProp = route?.params?.clienteIdProp;
   const isCoachMode = !!clienteIdProp;
   const clienteId = clienteIdProp || userId;
 
@@ -81,7 +83,6 @@ export default function CalendarioClienteScreen({ route }) {
     ? rutinas.filter(r => r.creador === 'ENTRENADOR') 
     : rutinas;
 
-  // ✅ LÓGICA DE COLORES ACTUALIZADA (AMARILLO PARA PENDIENTES)
   const getMarkedDates = () => {
     let marks = {};
     const eventsByDate = {};
@@ -96,33 +97,25 @@ export default function CalendarioClienteScreen({ route }) {
       const isSaltado = evs.some(e => e.estado === 'SALTADO');
       const isCompletado = evs.every(e => e.estado === 'COMPLETADO');
 
-      // POR DEFECTO: Si hay entreno y no está hecho ni saltado, es AMARILLO (Pendiente/Futuro)
       let bgColor = '#FACC15'; 
-      let textColor = '#0A0A0A'; // Negro para que destaque en el amarillo
+      let textColor = '#0A0A0A'; 
 
       if (isSaltado) {
-        bgColor = '#ef4444'; // Rojo
+        bgColor = '#ef4444';
         textColor = 'white';
       } else if (isCompletado) {
-        bgColor = '#4ade80'; // Verde
-        textColor = '#052e16'; // Verde oscuro
+        bgColor = '#4ade80';
+        textColor = '#052e16';
       }
 
       marks[fecha] = {
         customStyles: {
-          container: {
-            backgroundColor: bgColor,
-            borderRadius: 14,
-          },
-          text: {
-            color: textColor,
-            fontWeight: 'bold'
-          }
+          container: { backgroundColor: bgColor, borderRadius: 14 },
+          text: { color: textColor, fontWeight: 'bold' }
         }
       };
     });
 
-    // Estilo para el día SELECCIONADO por el usuario
     if (selectedDate) {
       const hasEvent = !!marks[selectedDate];
       const existingContainer = marks[selectedDate]?.customStyles?.container || {};
@@ -133,10 +126,8 @@ export default function CalendarioClienteScreen({ route }) {
         customStyles: {
           container: {
             ...existingContainer,
-            // Si el día está vacío, fondo transparente. Si tiene evento, mantenemos su color.
             backgroundColor: hasEvent ? existingContainer.backgroundColor : 'transparent',
             borderWidth: 2,
-            // Si tiene evento, le ponemos un anillo blanco para resaltarlo. Si está vacío, anillo amarillo.
             borderColor: hasEvent ? 'white' : '#FACC15',
             borderRadius: 14,
           },
@@ -169,7 +160,7 @@ export default function CalendarioClienteScreen({ route }) {
   const handleBorrarClick = (eventoId) => {
     Alert.alert(
       "¿Eliminar Entrenamiento?",
-      "Desaparecerá de tu agenda.",
+      "Desaparecerá de la agenda.",
       [
         { text: "Cancelar", style: "cancel" },
         { 
@@ -212,11 +203,22 @@ export default function CalendarioClienteScreen({ route }) {
   return (
     <SafeAreaView style={styles.root}>
       
-      {/* CABECERA */}
+      {/* ✅ CABECERA ADAPTATIVA (ENTRENADOR / CLIENTE) */}
       <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.title}>TU CALENDARIO</Text>
-          <Text style={styles.subtitle}>Planifica tus entrenamientos.</Text>
+        {isCoachMode && (
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <ChevronLeft size={24} color="white" />
+          </TouchableOpacity>
+        )}
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.title}>CALENDARIO</Text>
+          {isCoachMode ? (
+            <View style={styles.coachBadge}>
+              <Text style={styles.coachBadgeText}>VISTA ENTRENADOR</Text>
+            </View>
+          ) : (
+            <Text style={styles.subtitle}>Planifica tus entrenamientos.</Text>
+          )}
         </View>
       </View>
 
@@ -306,20 +308,19 @@ export default function CalendarioClienteScreen({ route }) {
                 <AlertCircle size={28} color="rgba(255,255,255,0.3)" />
               </View>
               <Text style={styles.emptyTextTitle}>Día libre</Text>
-              <Text style={styles.emptyTextSub}>No hay entrenamientos programados para hoy. Disfruta de tu descanso o añade una rutina.</Text>
+              <Text style={styles.emptyTextSub}>No hay entrenamientos programados para hoy.</Text>
             </View>
           )}
 
-          {!isCoachMode && (
-            <TouchableOpacity 
-              style={styles.inlineAddBtn} 
-              activeOpacity={0.8}
-              onPress={() => setShowModalAdd(true)}
-            >
-              <Plus size={20} color="#0A0A0A" />
-              <Text style={styles.inlineAddBtnText}>PROGRAMAR RUTINA</Text>
-            </TouchableOpacity>
-          )}
+          {/* ✅ EL ENTRENADOR TAMBIÉN PUEDE AÑADIR RUTINAS AL CALENDARIO DEL CLIENTE */}
+          <TouchableOpacity 
+            style={styles.inlineAddBtn} 
+            activeOpacity={0.8}
+            onPress={() => setShowModalAdd(true)}
+          >
+            <Plus size={20} color="#0A0A0A" />
+            <Text style={styles.inlineAddBtnText}>PROGRAMAR RUTINA</Text>
+          </TouchableOpacity>
 
         </View>
 
@@ -338,7 +339,7 @@ export default function CalendarioClienteScreen({ route }) {
             </View>
 
             <Text style={styles.modalSubtitle}>
-              Selecciona qué rutina quieres hacer el {selectedDate && format(new Date(selectedDate), 'd de MMMM', { locale: es })}.
+              Selecciona qué rutina programar para el {selectedDate && format(new Date(selectedDate), 'd de MMMM', { locale: es })}.
             </Text>
 
             <ScrollView style={{maxHeight: 450}} showsVerticalScrollIndicator={false}>
@@ -363,13 +364,16 @@ export default function CalendarioClienteScreen({ route }) {
                 <View style={styles.emptyState}>
                   <AlertCircle size={32} color="rgba(255,255,255,0.2)" style={{marginBottom:15}}/>
                   <Text style={styles.emptyTitle}>Sin rutinas</Text>
-                  <Text style={styles.emptySub}>Aún no tienes rutinas en tu biblioteca.</Text>
-                  <TouchableOpacity 
-                    style={styles.emptyBtn}
-                    onPress={() => { setShowModalAdd(false); navigation.navigate('CrearRutina'); }}
-                  >
-                    <Text style={styles.emptyBtnText}>CREAR MI PRIMERA RUTINA</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.emptySub}>Crea una rutina primero para poder programarla.</Text>
+                  
+                  {isCoachMode && (
+                      <TouchableOpacity 
+                        style={styles.emptyBtn}
+                        onPress={() => { setShowModalAdd(false); navigation.navigate('CrearRutina', { atletaId: clienteId }); }}
+                      >
+                        <Text style={styles.emptyBtnText}>CREAR RUTINA PARA EL CLIENTE</Text>
+                      </TouchableOpacity>
+                  )}
                 </View>
               )}
             </ScrollView>
@@ -384,10 +388,14 @@ export default function CalendarioClienteScreen({ route }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#09090b' },
   
-  headerRow: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 15 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: Platform.OS === 'android' ? 40 : 20, paddingBottom: 15 },
+  backBtn: { marginRight: 15, padding: 5, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10 },
+  headerTextWrap: { flex: 1 },
   title: { fontSize: 32, fontWeight: '900', color: 'white', fontStyle: 'italic', letterSpacing: -0.5 },
   subtitle: { color: 'rgba(255,255,255,0.5)', fontSize: 15, fontWeight: '500', marginTop: 4 },
-  
+  coachBadge: { backgroundColor: 'rgba(250, 204, 21, 0.1)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginTop: 4 },
+  coachBadgeText: { color: '#FACC15', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+
   scrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
   
   calendarCard: {

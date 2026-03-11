@@ -72,7 +72,7 @@ export default function ChatsEntrenadorScreen() {
 
     const conectarSocketGlobal = () => {
         // ⚠️ RECUERDA PONER TU IP AQUÍ (ej: 192.168.1.X)
-        const socket = new SockJS('http://192.168.1.26:8080/ws'); 
+        const socket = new SockJS('http://192.168.1.24:8080/ws'); 
         const client = Stomp.over(socket);
         client.debug = null;
 

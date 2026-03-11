@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
     View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, 
     ActivityIndicator, SafeAreaView, StatusBar, Modal, TextInput, Platform, Alert 
@@ -75,15 +75,17 @@ export default function DashboardEntrenadorScreen() {
         }
     };
 
+    // ✅ NAVEGACIÓN CORREGIDA 1: Ver Progreso del Atleta
     const handleGestionar = (idCliente) => {
-        // En móvil, pasamos el ID por los parámetros de navegación en vez de localStorage
-        navigation.navigate('RutinasDeCliente', { clienteId: idCliente }); 
+        navigation.navigate('GestionarAtleta', { id: idCliente });
     };
 
+    // ✅ NAVEGACIÓN CORREGIDA 2: Chat Individual
     const handleChat = (cliente) => {
         navigation.navigate('PantallaChatIndividual', {
             destinatarioId: cliente.id,
-            nombreDestinatario: `${cliente.nombre} ${cliente.apellido}`
+            nombreDestinatario: `${cliente.nombre} ${cliente.apellido}`,
+            fotoDestinatario: cliente.fotoPerfil // Opcional, pero queda mejor
         });
     };
 
@@ -112,7 +114,9 @@ export default function DashboardEntrenadorScreen() {
                         <TouchableOpacity style={styles.bellBox}>
                             <Bell size={20} color="white" />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('PerfilEntrenador')}>
+                        
+                        {/* ✅ NAVEGACIÓN CORREGIDA 3: Tu Perfil */}
+                        <TouchableOpacity onPress={() => navigation.navigate('EntrenadorPerfil')}>
                             {perfil.fotoPerfil ? (
                                 <Image source={{ uri: perfil.fotoPerfil }} style={styles.avatarImg} />
                             ) : (
@@ -232,7 +236,8 @@ export default function DashboardEntrenadorScreen() {
                             <TouchableOpacity 
                                 key={item.id || idx} 
                                 style={styles.feedItem}
-                                onPress={() => navigation.navigate('CalendarioClienteView', { clienteId: item.clienteId })}
+                                // ✅ NAVEGACIÓN CORREGIDA 4: Ir a rutinas desde el feed
+                                onPress={() => handleGestionar(item.clienteId)}
                             >
                                 <View style={styles.feedIcon}>
                                     {item.foto ? (

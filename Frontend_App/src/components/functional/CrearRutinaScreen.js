@@ -17,12 +17,28 @@ const MUSCULOS = ["Todos", "Pecho", "Espalda", "Piernas", "Hombros", "Brazos", "
 export default function CrearRutinaScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { userId, userRole } = useAuth();
   
-  const { clienteIdProp, rutinaInicial, isTemplate: inicialIsTemplate = false } = route.params || {};
+  // ✅ 1. CORRECCIÓN CLAVE: Extraemos 'user' en lugar de 'userRole'
+  const { userId, user } = useAuth();
+  
+  // Verificamos si es entrenador (cubrimos 'role' y 'rol' por si acaso)
+  const esEntrenador = user?.role === 'ENTRENADOR' || user?.rol === 'ENTRENADOR';
+  
+ const { clienteIdProp, atletaId, rutinaInicial, isTemplate: inicialIsTemplate = false } = route.params || {};
 
   // --- ESTADO DE NAVEGACIÓN ---
-  const [viewMode, setViewMode] = useState(rutinaInicial || inicialIsTemplate ? 'manual' : 'selector');
+  // Si es entrenador, empieza directamente en modo manual
+  const [viewMode, setViewMode] = useState(
+      esEntrenador || rutinaInicial || inicialIsTemplate ? 'manual' : 'selector'
+  );
+  
+  // ✅ 2. SEGURO ADICIONAL: Si el contexto tarda 1 milisegundo en cargar, lo forzamos al modo manual
+  useEffect(() => {
+      if (esEntrenador && viewMode !== 'manual') {
+          setViewMode('manual');
+      }
+  }, [esEntrenador]);
+
   const [loadingIA, setLoadingIA] = useState(false);
 
   // --- ESTADOS FORMULARIO IA ---
@@ -72,9 +88,6 @@ export default function CrearRutinaScreen() {
   // ==========================================
   // LÓGICA: ARQUITECTO IA
   // ==========================================
-  // ==========================================
-  // LÓGICA: ARQUITECTO IA
-  // ==========================================
   const handleGenerarIA = async () => {
     if (!aiObjetivo || !aiNivel || !aiDias) {
       return Alert.alert("Faltan datos", "Por favor, selecciona todas las opciones para que la IA pueda diseñar tu plan.");
@@ -82,29 +95,24 @@ export default function CrearRutinaScreen() {
 
     setLoadingIA(true);
     try {
-      // 💡 PREPARAMOS EL PAQUETE (Mandamos varias opciones por si acaso)
       const payload = {
-        idCliente: userId,       // En la creación manual usamos idCliente, probamos este primero
-        clienteId: userId,       // Lo dejamos también por si acaso
+        idCliente: userId,       
+        clienteId: userId,       
         objetivo: aiObjetivo,
         nivel: aiNivel,
         diasSemana: aiDias,
-        dias: aiDias             // Por si tu backend lo llama "dias" a secas
+        dias: aiDias             
       };
       
       console.log("🤖 Enviando datos a la IA:", payload);
-      
       await generarRutinaAuto(payload);
       
       Alert.alert("¡Plan Creado! 🧠", "La IA ha diseñado tu rutina con éxito.", [
         { text: "Ver mis rutinas", onPress: () => navigation.navigate("Rutinas") }
       ]);
     } catch (error) {
-      // 🕵️‍♂️ CAPTURAMOS EL ERROR EXACTO DE JAVA
       const mensajeErrorJava = error.response?.data?.message || JSON.stringify(error.response?.data) || error.message;
-      
       console.error("❌ Error devuelto por Java:", mensajeErrorJava);
-      
       Alert.alert(
         "Error del Servidor (400)", 
         typeof mensajeErrorJava === 'string' ? mensajeErrorJava : "Error desconocido, revisa la consola."
@@ -153,10 +161,10 @@ export default function CrearRutinaScreen() {
       nombre: nombreRutina,
       descripcion: descripcionRutina,
       objetivo: isTemplate ? "Plantilla Maestra" : "Personalizado",
-      creador: userRole === 'ENTRENADOR' ? "ENTRENADOR" : "CLIENTE",
+      creador: esEntrenador ? "ENTRENADOR" : "CLIENTE",
       esPlantilla: isTemplate,
-      entrenadorId: userRole === 'ENTRENADOR' ? userId : undefined,
-      idCliente: !isTemplate ? (clienteIdProp || userId) : undefined,
+      entrenadorId: esEntrenador ? userId : undefined,
+      idCliente: !isTemplate ? (clienteIdProp || atletaId || userId) : undefined,
       ejercicios: ejerciciosSeleccionados.map(e => ({
         idEjercicio: e.idEjercicio,
         series: parseInt(e.series) || 0,
@@ -183,9 +191,9 @@ export default function CrearRutinaScreen() {
   };
 
   // ==========================================
-  // VISTA 1: SELECTOR INICIAL
+  // VISTA 1: SELECTOR INICIAL (Solo para Clientes)
   // ==========================================
-  if (viewMode === 'selector') {
+  if (viewMode === 'selector' && !esEntrenador) {
     return (
       <View style={styles.container}>
         <View style={styles.topBarSimple}>
@@ -219,9 +227,9 @@ export default function CrearRutinaScreen() {
   }
 
   // ==========================================
-  // VISTA 2: ARQUITECTO IA (DISEÑO MEJORADO)
+  // VISTA 2: ARQUITECTO IA 
   // ==========================================
-  if (viewMode === 'ia') {
+  if (viewMode === 'ia' && !esEntrenador) {
     return (
       <View style={styles.container}>
         <View style={styles.topBarSimple}>
@@ -232,7 +240,6 @@ export default function CrearRutinaScreen() {
 
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
           
-          {/* HEADER ARQUITECTO */}
           <View style={styles.iaHeader}>
             <View style={styles.iaIconBubble}>
                 <Brain size={36} color="#FACC15" />
@@ -241,7 +248,7 @@ export default function CrearRutinaScreen() {
             <Text style={styles.iaSub}>Diseña tu plan de entrenamiento inteligente en segundos.</Text>
           </View>
 
-          {/* 1. OBJETIVO (Tarjetas Grandes) */}
+          {/* 1. OBJETIVO */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.circleNumber}><Text style={styles.numberText}>1</Text></View>
@@ -266,7 +273,7 @@ export default function CrearRutinaScreen() {
             </ScrollView>
           </View>
 
-          {/* 2. EXPERIENCIA (Lista con Check) */}
+          {/* 2. EXPERIENCIA */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.circleNumber}><Text style={styles.numberText}>2</Text></View>
@@ -297,7 +304,7 @@ export default function CrearRutinaScreen() {
             </View>
           </View>
 
-          {/* 3. DISPONIBILIDAD (Grid con Check) */}
+          {/* 3. DISPONIBILIDAD */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.circleNumber}><Text style={styles.numberText}>3</Text></View>
@@ -337,7 +344,6 @@ export default function CrearRutinaScreen() {
 
         </ScrollView>
 
-        {/* BOTÓN FLOTANTE */}
         <View style={styles.bottomFixed}>
           <TouchableOpacity style={styles.btnGenerar} onPress={handleGenerarIA} disabled={loadingIA}>
             {loadingIA ? (
@@ -361,7 +367,18 @@ export default function CrearRutinaScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => setViewMode('selector')} style={styles.iconBtn}>
+        <TouchableOpacity 
+          // ✅ 3. CORRECCIÓN CLAVE DE NAVEGACIÓN
+          // Si es entrenador, no vuelve al selector, sale de la pantalla por completo
+          onPress={() => {
+              if (esEntrenador || rutinaInicial) {
+                  navigation.goBack();
+              } else {
+                  setViewMode('selector');
+              }
+          }} 
+          style={styles.iconBtn}
+        >
           <ChevronLeft color="white" size={28} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{isTemplate ? "PLANTILLA" : "NUEVA RUTINA"}</Text>
@@ -390,7 +407,7 @@ export default function CrearRutinaScreen() {
               onChangeText={setDescripcionRutina}
             />
             
-            {userRole === 'ENTRENADOR' && (
+            {esEntrenador && (
                <TouchableOpacity 
                 style={[styles.templateToggle, isTemplate && styles.templateToggleActive]} 
                 onPress={() => setIsTemplate(!isTemplate)}

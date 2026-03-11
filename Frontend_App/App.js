@@ -16,7 +16,7 @@ import EntrenadorOnboardingScreen from './src/screens/Entrenador/EntrenadorOnboa
 import ClienteTabNavigator from './src/navigation/ClienteTabNavigator';
 // ✅ IMPORTAMOS EL NUEVO MENÚ DE ENTRENADOR
 import EntrenadorTabNavigator from './src/navigation/EntrenadorTabNavigator'; 
-
+import GestionarAtletaScreen from './src/screens/Entrenador/GestionarAtletaScreen';
 import EditarPerfilCliente from './src/screens/Cliente/EditarPerfilCliente'; 
 import ProgresoClienteScreen from './src/screens/Cliente/ProgresoClienteScreen';
 import CrearRutinaScreen from './src/components/functional/CrearRutinaScreen';
@@ -24,6 +24,7 @@ import RutinasClienteScreen from './src/screens/Cliente/RutinasClienteScreen';
 import EditarRutinaScreen from './src/screens/Cliente/EditarRutinaScreen';
 import EntrenadorPerfilScreen from './src/screens/Entrenador/EntrenadorPerfilScreen'; 
 import PantallaChatIndividual from './src/screens/Cliente/PantallaChatIndividual'; 
+import CalendarioClienteScreen from './src/screens/Cliente/CalendarioClienteScreen';
 import PantallaSesionEntrenamiento from './src/screens/Cliente/PantallaSesionEntrenamiento';
 import EditarPerfilEntrenadorScreen from './src/screens/Entrenador/EditarPerfilEntrenadorScreen';
 const Stack = createStackNavigator();
@@ -65,9 +66,12 @@ function RootNavigation() {
           <Stack.Screen name="PantallaSesionEntrenamiento" component={PantallaSesionEntrenamiento} />
           <Stack.Screen name="Rutinas" component={RutinasClienteScreen} />
           <Stack.Screen name="EditarRutina" component={EditarRutinaScreen} />
+          <Stack.Screen name="GestionarAtleta" component={GestionarAtletaScreen} />
           <Stack.Screen name="EntrenadorPerfil" component={EntrenadorPerfilScreen} />
           <Stack.Screen name="PantallaChatIndividual" component={PantallaChatIndividual} />
           <Stack.Screen name="EditarPerfilEntrenador" component={EditarPerfilEntrenadorScreen} />
+          <Stack.Screen name="CalendarioCliente" component={CalendarioClienteScreen} />
+          
         
         </>
       )}
