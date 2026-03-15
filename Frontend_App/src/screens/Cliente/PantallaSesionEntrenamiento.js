@@ -7,10 +7,16 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   ChevronLeft, Check, Clock, Save, Plus, Info, Trash2, X,
-  MessageSquare, Dumbbell, Activity, Trophy, Youtube, Image as ImageIcon
+  MessageSquare, Dumbbell, Activity, Trophy, Youtube, Image as ImageIcon, Eye
 } from 'lucide-react-native';
 
-import { obtenerRutinasCliente, guardarSesionRealizada, obtenerUltimaSesionRutina } from '../../api/endpoints';
+// 🔥 IMPORTAMOS obtenerRutinasAsignadasPorEntrenador PARA QUE NO DE ERROR
+import { 
+  obtenerRutinasCliente, 
+  guardarSesionRealizada, 
+  obtenerUltimaSesionRutina, 
+  obtenerRutinasAsignadasPorEntrenador 
+} from '../../api/endpoints';
 import { useAuth } from '../../components/context/AuthContext';
 
 export default function PantallaSesionEntrenamiento() {
@@ -18,7 +24,10 @@ export default function PantallaSesionEntrenamiento() {
   const route = useRoute();
   const { userId } = useAuth();
 
-  const { rutinaId, eventoIdCalendario, nombre } = route.params || {};
+  const { rutinaId, eventoIdCalendario, nombre, isReadOnly, clienteId: coachClienteId } = route.params || {};
+  
+  // Si estamos en modo Coach, usamos el ID del cliente que nos pasan. Si no, nuestro propio ID.
+  const targetUserId = isReadOnly && coachClienteId ? coachClienteId : userId;
 
   const [rutina, setRutina] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,50 +41,67 @@ export default function PantallaSesionEntrenamiento() {
   const [showFinishModal, setShowFinishModal] = useState(false);
 
   const [tiempo, setTiempo] = useState(0);
-  const [timerActivo, setTimerActivo] = useState(true);
+  const [timerActivo, setTimerActivo] = useState(!isReadOnly); 
   const timerRef = useRef(null);
 
   // --- CARGA DE DATOS ---
   useEffect(() => {
     const cargar = async () => {
-      if (!userId || !rutinaId) {
-        Alert.alert("Error", "No se encontró la rutina.");
+      if (!targetUserId || !rutinaId) {
+        Alert.alert("Error", "No se encontró la información de la rutina.");
         navigation.goBack();
         return;
       }
 
       try {
-        const todas = await obtenerRutinasCliente(userId);
-        const actual = todas.find(r => r.id === rutinaId);
+        // 1. Buscamos en las rutinas del cliente
+        let todas = await obtenerRutinasCliente(targetUserId);
+        let actual = todas.find(r => r.id === rutinaId);
+
+        // 2. 🔥 SI NO ESTÁ, BUSCAMOS EN LAS RUTINAS ASIGNADAS POR EL ENTRENADOR
+        if (!actual) {
+          try {
+            const asignadas = await obtenerRutinasAsignadasPorEntrenador(targetUserId);
+            actual = asignadas.find(r => r.id === rutinaId);
+          } catch (errorBusqueda) {
+            console.log("No se encontraron rutinas asignadas.");
+          }
+        }
 
         if (actual) {
           setRutina(actual);
 
           let mapaHistorial = {};
           try {
-            const lastSession = await obtenerUltimaSesionRutina(userId, rutinaId);
-            if (lastSession && lastSession.series) {
-              mapaHistorial = generarMapaHistorial(lastSession.series);
-              setHistorialPrevio(mapaHistorial);
+            const lastSession = await obtenerUltimaSesionRutina(targetUserId, rutinaId);
+            if (lastSession) {
+               if(isReadOnly && lastSession.duracionSegundos) {
+                  setTiempo(lastSession.duracionSegundos);
+               }
+               if (lastSession.series) {
+                 mapaHistorial = generarMapaHistorial(lastSession.series);
+                 setHistorialPrevio(mapaHistorial);
+               }
             }
           } catch (err) {
-            console.log("No hay historial previo para esta rutina.");
+            console.log("No hay historial para esta rutina.");
           }
 
-          inicializarSesion(actual.detalles || [], mapaHistorial);
+          inicializarSesion(actual.detalles || [], mapaHistorial, isReadOnly);
         } else {
-          Alert.alert("Aviso", "Rutina no encontrada");
+          Alert.alert("Aviso", "Rutina no encontrada. Comprueba la conexión o si la rutina fue borrada.");
           navigation.goBack();
         }
       } catch (e) {
         console.error(e);
         Alert.alert("Error", "No se pudo cargar el entrenamiento.");
+        navigation.goBack();
       } finally {
         setLoading(false);
       }
     };
     cargar();
-  }, [rutinaId, userId]);
+  }, [rutinaId, targetUserId, isReadOnly]);
 
   const generarMapaHistorial = (seriesPasadas) => {
     const mapa = {};
@@ -89,12 +115,12 @@ export default function PantallaSesionEntrenamiento() {
     return mapa;
   };
 
-  const inicializarSesion = (ejercicios, historial = {}) => {
+  const inicializarSesion = (ejercicios, historial = {}, readOnly = false) => {
     const estructura = {};
     ejercicios.forEach(ej => {
       const exerciseId = ej.ejercicio.id;
       const datosPreviosEjercicio = historial[exerciseId] || [];
-      const numSeries = ej.series || 3;
+      const numSeries = readOnly && datosPreviosEjercicio.length > 0 ? datosPreviosEjercicio.length : (ej.series || 3);
 
       estructura[exerciseId] = Array(numSeries).fill(0).map((_, index) => {
         const setPrevio = datosPreviosEjercicio[index];
@@ -102,7 +128,7 @@ export default function PantallaSesionEntrenamiento() {
           peso: setPrevio ? setPrevio.peso.toString() : ej.peso?.toString() || "0",
           reps: setPrevio ? setPrevio.reps.toString() : ej.repeticiones?.toString() || "0",
           rpe: setPrevio ? setPrevio.rpe?.toString() : ej.rpe?.toString() || "8",
-          hecho: false
+          hecho: readOnly ? (setPrevio != null) : false 
         };
       });
     });
@@ -110,13 +136,13 @@ export default function PantallaSesionEntrenamiento() {
   };
 
   useEffect(() => {
-    if (timerActivo) {
+    if (timerActivo && !isReadOnly) {
       timerRef.current = setInterval(() => setTiempo(t => t + 1), 1000);
     } else {
       clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
-  }, [timerActivo]);
+  }, [timerActivo, isReadOnly]);
 
   const formatoTiempo = (segundos) => {
     const m = Math.floor(segundos / 60);
@@ -125,12 +151,14 @@ export default function PantallaSesionEntrenamiento() {
   };
 
   const updateSet = (idEjercicio, index, campo, valor) => {
+    if (isReadOnly) return;
     const newSets = [...datosSesion[idEjercicio]];
     newSets[index][campo] = valor;
     setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
   };
 
   const toggleCheck = (idEjercicio, index) => {
+    if (isReadOnly) return;
     const newSets = [...datosSesion[idEjercicio]];
     newSets[index].hecho = !newSets[index].hecho;
     setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
@@ -138,6 +166,7 @@ export default function PantallaSesionEntrenamiento() {
   };
 
   const addSet = (idEjercicio) => {
+    if (isReadOnly) return;
     const newSets = [...datosSesion[idEjercicio]];
     const ultimo = newSets[newSets.length - 1] || { peso: "0", reps: "0", rpe: "8" };
     newSets.push({ ...ultimo, hecho: false });
@@ -145,6 +174,7 @@ export default function PantallaSesionEntrenamiento() {
   };
 
   const removeSet = (idEjercicio, index) => {
+    if (isReadOnly) return;
     const newSets = datosSesion[idEjercicio].filter((_, i) => i !== index);
     setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
   };
@@ -153,13 +183,16 @@ export default function PantallaSesionEntrenamiento() {
     let volumen = 0;
     Object.values(datosSesion).forEach(sets => {
       sets.forEach(s => {
-        if (s.hecho) volumen += (parseFloat(s.peso) || 0) * (parseFloat(s.reps) || 0);
+        if (isReadOnly || s.hecho) {
+          volumen += (parseFloat(s.peso) || 0) * (parseFloat(s.reps) || 0);
+        }
       });
     });
     return volumen;
   };
 
   const handleTerminarClick = () => {
+    if (isReadOnly) return;
     setTimerActivo(false);
     setShowFinishModal(true);
   };
@@ -223,10 +256,22 @@ export default function PantallaSesionEntrenamiento() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ChevronLeft color="white" size={28} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{rutina?.nombre || nombre}</Text>
-        <TouchableOpacity style={styles.finishBtn} onPress={handleTerminarClick}>
-          <Text style={styles.finishBtnText}>TERMINAR</Text>
-        </TouchableOpacity>
+        
+        <View style={{flex: 1, marginHorizontal: 15}}>
+          <Text style={styles.headerTitle} numberOfLines={1}>{rutina?.nombre || nombre}</Text>
+          {isReadOnly && (
+             <View style={{flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4}}>
+               <Eye size={12} color="#FACC15"/>
+               <Text style={{color: '#FACC15', fontSize: 10, fontWeight: '800', letterSpacing: 1}}>MODO OBSERVADOR</Text>
+             </View>
+          )}
+        </View>
+
+        {!isReadOnly && (
+          <TouchableOpacity style={styles.finishBtn} onPress={handleTerminarClick}>
+            <Text style={styles.finishBtnText}>TERMINAR</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.statsBar}>
@@ -236,7 +281,9 @@ export default function PantallaSesionEntrenamiento() {
         </View>
         <View style={styles.statItem}>
           <Activity size={18} color="#FACC15" />
-          <Text style={styles.statValue}>{Object.values(datosSesion).flat().filter(s => s.hecho).length} sets</Text>
+          <Text style={styles.statValue}>
+            {isReadOnly ? Object.values(datosSesion).flat().length : Object.values(datosSesion).flat().filter(s => s.hecho).length} sets
+          </Text>
         </View>
         <View style={styles.statItem}>
           <Dumbbell size={18} color="#FACC15" />
@@ -266,7 +313,8 @@ export default function PantallaSesionEntrenamiento() {
 
                   <View style={{ flex: 1, paddingLeft: 15 }}>
                     <Text style={styles.exTitle}>{ej.ejercicio.nombre}</Text>
-                    {editando ? (
+                    
+                    {editando && !isReadOnly ? (
                       <View style={styles.noteInputWrap}>
                         <TextInput
                           style={styles.noteInput}
@@ -282,10 +330,14 @@ export default function PantallaSesionEntrenamiento() {
                         </TouchableOpacity>
                       </View>
                     ) : (
-                      <TouchableOpacity style={styles.noteDisplay} onPress={() => setEditandoNotaId(exerciseId)}>
+                      <TouchableOpacity 
+                        style={styles.noteDisplay} 
+                        onPress={() => !isReadOnly && setEditandoNotaId(exerciseId)}
+                        disabled={isReadOnly}
+                      >
                         <MessageSquare size={14} color={notaActual ? "#FACC15" : "#777"} />
                         <Text style={[styles.noteText, { color: notaActual ? "#ccc" : "#777" }]}>
-                          {notaActual || "Añadir nota"}
+                          {notaActual || (isReadOnly ? "Sin notas" : "Añadir nota")}
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -298,71 +350,71 @@ export default function PantallaSesionEntrenamiento() {
 
                <View style={styles.tableHeader}>
                   <Text style={[styles.thText, { width: 30 }]}>SET</Text>
-                  <Text style={[styles.thText, { width: 60, textAlign: 'center' }]}>PREV</Text>
+                  {!isReadOnly && <Text style={[styles.thText, { width: 60, textAlign: 'center' }]}>PREV</Text>}
                   <Text style={[styles.thText, { flex: 1 }]}>KG</Text>
                   <Text style={[styles.thText, { flex: 1 }]}>REPS</Text>
                   <Text style={[styles.thText, { width: 65, textAlign: 'center' }]}>OK</Text>
                 </View>
 
-                {/* FILAS DE SERIES */}
                 {sets.map((set, i) => {
                   const datoAnterior = historialPrevio[exerciseId]?.[i];
 
                   return (
-                    <View key={i} style={[styles.tableRow, set.hecho && styles.tableRowHecho]}>
-                      <Text style={[styles.tdIndex, set.hecho && { color: '#FACC15' }]}>{i + 1}</Text>
+                    <View key={i} style={[styles.tableRow, (set.hecho || isReadOnly) && styles.tableRowHecho]}>
+                      <Text style={[styles.tdIndex, (set.hecho || isReadOnly) && { color: '#FACC15' }]}>{i + 1}</Text>
 
-                      <View style={{ width: 60, alignItems: 'center', justifyContent: 'center' }}>
-                        {datoAnterior ? (
-                          <View style={{ alignItems: 'center' }}>
-                            <Text style={styles.tdPrevBold}>{datoAnterior.peso}kg</Text>
-                            <Text style={styles.tdPrevReps}>x{datoAnterior.reps}</Text>
-                          </View>
-                        ) : (
-                          <Text style={styles.tdPrev}>-</Text>
-                        )}
-                      </View>
+                      {!isReadOnly && (
+                        <View style={{ width: 60, alignItems: 'center', justifyContent: 'center' }}>
+                          {datoAnterior ? (
+                            <View style={{ alignItems: 'center' }}>
+                              <Text style={styles.tdPrevBold}>{datoAnterior.peso}kg</Text>
+                              <Text style={styles.tdPrevReps}>x{datoAnterior.reps}</Text>
+                            </View>
+                          ) : (
+                            <Text style={styles.tdPrev}>-</Text>
+                          )}
+                        </View>
+                      )}
 
                       <View style={{ flex: 1, paddingHorizontal: 6 }}>
                         <TextInput
-                          style={[styles.inputGrid, set.hecho && styles.inputGridHecho]}
+                          style={[styles.inputGrid, (set.hecho || isReadOnly) && styles.inputGridHecho]}
                           keyboardType="numeric"
                           placeholder="0"
                           placeholderTextColor="#444"
                           value={set.peso}
                           onChangeText={(v) => updateSet(exerciseId, i, 'peso', v)}
+                          editable={!isReadOnly} 
                         />
                       </View>
 
                       <View style={{ flex: 1, paddingHorizontal: 6 }}>
                         <TextInput
-                          style={[styles.inputGrid, set.hecho && styles.inputGridHecho]}
+                          style={[styles.inputGrid, (set.hecho || isReadOnly) && styles.inputGridHecho]}
                           keyboardType="numeric"
                           placeholder="0"
                           placeholderTextColor="#444"
                           value={set.reps}
                           onChangeText={(v) => updateSet(exerciseId, i, 'reps', v)}
+                          editable={!isReadOnly} 
                         />
                       </View>
 
-                      {/* ✅ ZONA DE BOTONES: BASURA + CHECK */}
                       <View style={{ width: 65, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-                        
-                        {/* Icono de borrar: Solo sale si no está hecho y hay más de 1 serie */}
-                        {!set.hecho && sets.length > 1 ? (
+                        {!set.hecho && sets.length > 1 && !isReadOnly ? (
                           <TouchableOpacity onPress={() => removeSet(exerciseId, i)} style={{ padding: 2 }}>
                             <Trash2 size={18} color="#ef4444" opacity={0.8} />
                           </TouchableOpacity>
                         ) : (
-                           <View style={{ width: 22 }} /> /* Espaciador para que el check no se mueva */
+                           <View style={{ width: 22 }} />
                         )}
 
-                        {set.hecho ? (
-                          <TouchableOpacity style={styles.checkBtnActive} onPress={() => toggleCheck(exerciseId, i)}>
+                        {set.hecho || isReadOnly ? (
+                          <TouchableOpacity style={styles.checkBtnActive} onPress={() => toggleCheck(exerciseId, i)} disabled={isReadOnly}>
                             <Check size={20} color="black" strokeWidth={3} />
                           </TouchableOpacity>
                         ) : (
-                          <TouchableOpacity style={styles.checkBtn} onPress={() => toggleCheck(exerciseId, i)}>
+                          <TouchableOpacity style={styles.checkBtn} onPress={() => toggleCheck(exerciseId, i)} disabled={isReadOnly}>
                             <View style={styles.checkInner} />
                           </TouchableOpacity>
                         )}
@@ -372,10 +424,12 @@ export default function PantallaSesionEntrenamiento() {
                   );
                 })}
 
-                <TouchableOpacity style={styles.addSetBtn} onPress={() => addSet(exerciseId)}>
-                  <Plus size={18} color="#FACC15" />
-                  <Text style={styles.addSetText}>AÑADIR SERIE</Text>
-                </TouchableOpacity>
+                {!isReadOnly && (
+                  <TouchableOpacity style={styles.addSetBtn} onPress={() => addSet(exerciseId)}>
+                    <Plus size={18} color="#FACC15" />
+                    <Text style={styles.addSetText}>AÑADIR SERIE</Text>
+                  </TouchableOpacity>
+                )}
 
               </View>
             );
@@ -383,7 +437,6 @@ export default function PantallaSesionEntrenamiento() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* MODALES */}
       <Modal visible={!!infoExercise} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.infoModalCard}>
@@ -460,7 +513,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0a0a', borderBottomWidth: 1, borderBottomColor: '#1A1A1A'
   },
   backBtn: { padding: 5 },
-  headerTitle: { flex: 1, color: 'white', fontWeight: '900', fontSize: 18, marginHorizontal: 15, textTransform: 'uppercase', letterSpacing: 0.5 },
+  headerTitle: { color: 'white', fontWeight: '900', fontSize: 18, textTransform: 'uppercase', letterSpacing: 0.5 },
   finishBtn: { backgroundColor: '#FACC15', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 20 },
   finishBtnText: { color: '#0A0A0A', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
 

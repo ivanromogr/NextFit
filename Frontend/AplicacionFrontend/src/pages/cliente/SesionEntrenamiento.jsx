@@ -4,14 +4,14 @@ import {
     obtenerRutinasCliente,
     guardarSesionRealizada, 
     obtenerUltimaSesionRutina,
-    toggleCompletadoEvento
+    obtenerRutinasAsignadasPorEntrenador // 🔥 IMPORTADO
 } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import {
-    ChevronLeft, Check, Clock, Save, MoreHorizontal,
+    ChevronLeft, Check, Clock, Save,
     Plus, Info, Trash2, X, MessageSquare, Activity,
-    Trophy, Youtube
+    Trophy, Youtube, Eye // 🔥 IMPORTADO EL OJO
 } from 'lucide-react';
 
 export default function SesionEntrenamiento() {
@@ -21,7 +21,12 @@ export default function SesionEntrenamiento() {
     const toast = useToast();
     const { userId } = useAuth();
 
+    // ✅ RECOGIENDO LOS DATOS DEL MODO LECTURA
     const eventoIdCalendario = location.state?.eventoId;
+    const isReadOnly = location.state?.isReadOnly || false;
+    const coachClienteId = location.state?.clienteId;
+    
+    const targetUserId = isReadOnly && coachClienteId ? coachClienteId : userId;
 
     // --- ESTADOS ---
     const [rutina, setRutina] = useState(null);
@@ -36,51 +41,64 @@ export default function SesionEntrenamiento() {
     const [showFinishModal, setShowFinishModal] = useState(false);
 
     const [tiempo, setTiempo] = useState(0);
-    const [timerActivo, setTimerActivo] = useState(true);
+    const [timerActivo, setTimerActivo] = useState(!isReadOnly); // 🛑 Timer apagado en lectura
     const timerRef = useRef(null);
 
     // --- CARGA DE DATOS ---
     useEffect(() => {
         const cargar = async () => {
-            if (!userId) return navigate("/auth/login");
+            if (!targetUserId) return navigate("/auth/login");
 
             try {
-                // 1. Obtener Rutina
-                const todas = await obtenerRutinasCliente(userId);
-                const actual = todas.find(r => r.id === rutinaId);
+                // 1. Buscamos la Rutina en el cliente
+                let todas = await obtenerRutinasCliente(targetUserId);
+                let actual = todas.find(r => r.id === rutinaId);
+
+                // 2. Si no está, la buscamos en las rutinas asignadas
+                if (!actual) {
+                    try {
+                        const asignadas = await obtenerRutinasAsignadasPorEntrenador(targetUserId, userId);
+                        actual = asignadas.find(r => r.id === rutinaId);
+                    } catch(err) {}
+                }
 
                 if (actual) {
                     setRutina(actual);
 
-                    // 2. Obtener Historial de la última sesión
+                    // 3. Obtener Historial de la última sesión (o de ESE día)
                     let mapaHistorial = {};
                     try {
-                        const lastSession = await obtenerUltimaSesionRutina(userId, rutinaId);
-                        if (lastSession && lastSession.series) {
-                            mapaHistorial = generarMapaHistorial(lastSession.series);
-                            setHistorialPrevio(mapaHistorial);
+                        const lastSession = await obtenerUltimaSesionRutina(targetUserId, rutinaId);
+                        if (lastSession) {
+                            if (isReadOnly && lastSession.duracionSegundos) {
+                                setTiempo(lastSession.duracionSegundos);
+                            }
+                            if (lastSession.series) {
+                                mapaHistorial = generarMapaHistorial(lastSession.series);
+                                setHistorialPrevio(mapaHistorial);
+                            }
                         }
                     } catch (err) {
                         console.log("Primera vez haciendo esta rutina o error:", err);
                     }
 
-                    // 3. Inicializar la sesión (con o sin historial)
-                    inicializarSesion(actual.detalles || [], mapaHistorial);
+                    inicializarSesion(actual.detalles || [], mapaHistorial, isReadOnly);
 
                 } else {
-                    navigate("/cliente/dashboard");
+                    toast.error("Rutina no encontrada.");
+                    navigate(-1);
                 }
             } catch (e) {
                 console.error(e);
                 toast.error("Error al cargar la rutina");
+                navigate(-1);
             } finally {
                 setLoading(false);
             }
         };
         cargar();
-    }, [rutinaId, navigate, userId]);
+    }, [rutinaId, navigate, targetUserId, isReadOnly, userId, toast]);
 
-    // Generar un mapa fácil de leer por ID de ejercicio y número de serie
     const generarMapaHistorial = (seriesPasadas) => {
         const mapa = {};
         seriesPasadas.forEach(serie => {
@@ -99,24 +117,24 @@ export default function SesionEntrenamiento() {
         return mapa;
     };
 
-    // Inicializar inputs con sobrecarga progresiva
-    const inicializarSesion = (ejercicios, historial = {}) => {
+    // ✅ INICIALIZAMOS SESIÓN SEGÚN EL MODO
+    const inicializarSesion = (ejercicios, historial = {}, readOnly = false) => {
         const estructura = {};
 
         ejercicios.forEach(ej => {
             const exerciseId = ej.ejercicio.id;
             const datosPreviosEjercicio = historial[exerciseId] || [];
-            const numSeries = ej.series || ej.seriesObjetivo || 3;
+            
+            // En modo lectura mostramos el número de series exactas que hizo
+            const numSeries = readOnly && datosPreviosEjercicio.length > 0 ? datosPreviosEjercicio.length : (ej.series || ej.seriesObjetivo || 3);
 
             estructura[exerciseId] = Array(numSeries).fill(0).map((_, index) => {
                 const setPrevio = datosPreviosEjercicio[index];
-
-                // ✅ MAGIA: Si hay un set previo, lo ponemos como valor por defecto para que no tenga que escribirlo si repite el mismo peso
                 return {
                     peso: setPrevio ? setPrevio.peso : (ej.peso || 0),
                     reps: setPrevio ? setPrevio.reps : (ej.repeticiones || 0),
                     rpe: setPrevio ? setPrevio.rpe : (ej.rpe || 8),
-                    hecho: false
+                    hecho: readOnly ? true : false // 🛑 Si es modo lectura forzamos que esté "hecho" para que salga el tick
                 };
             });
         });
@@ -125,13 +143,13 @@ export default function SesionEntrenamiento() {
 
     // --- CRONÓMETRO ---
     useEffect(() => {
-        if (timerActivo) {
+        if (timerActivo && !isReadOnly) {
             timerRef.current = setInterval(() => setTiempo(t => t + 1), 1000);
         } else {
             clearInterval(timerRef.current);
         }
         return () => clearInterval(timerRef.current);
-    }, [timerActivo]);
+    }, [timerActivo, isReadOnly]);
 
     const formatoTiempo = (segundos) => {
         const m = Math.floor(segundos / 60);
@@ -139,14 +157,16 @@ export default function SesionEntrenamiento() {
         return `${m}min ${s < 10 ? '0' : ''}${s}s`;
     };
 
-    // --- LÓGICA DE SETS ---
+    // --- LÓGICA DE SETS (BLOQUEADA SI ES LECTURA) ---
     const updateSet = (idEjercicio, index, campo, valor) => {
+        if (isReadOnly) return;
         const newSets = [...datosSesion[idEjercicio]];
         newSets[index][campo] = valor;
         setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
     };
 
     const toggleCheck = (idEjercicio, index) => {
+        if (isReadOnly) return;
         const newSets = [...datosSesion[idEjercicio]];
         newSets[index].hecho = !newSets[index].hecho;
         setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
@@ -154,6 +174,7 @@ export default function SesionEntrenamiento() {
     };
 
     const addSet = (idEjercicio) => {
+        if (isReadOnly) return;
         const newSets = [...datosSesion[idEjercicio]];
         const ultimo = newSets[newSets.length - 1] || { peso: 0, reps: 0, rpe: 8 };
         newSets.push({ ...ultimo, hecho: false });
@@ -161,12 +182,13 @@ export default function SesionEntrenamiento() {
     };
 
     const removeSet = (idEjercicio, index) => {
+        if (isReadOnly) return;
         const newSets = datosSesion[idEjercicio].filter((_, i) => i !== index);
         setDatosSesion({ ...datosSesion, [idEjercicio]: newSets });
     };
 
-    // --- LÓGICA DE NOTAS ---
     const guardarNotaEnEstado = (idEjercicio, texto) => {
+        if (isReadOnly) return;
         setNotasSesion({ ...notasSesion, [idEjercicio]: texto });
     };
 
@@ -176,12 +198,15 @@ export default function SesionEntrenamiento() {
     const calcularVolumenTotal = () => {
         let volumen = 0;
         Object.values(datosSesion).forEach(sets => {
-            sets.forEach(s => { if (s.hecho) volumen += (parseFloat(s.peso) || 0) * (parseFloat(s.reps) || 0); });
+            sets.forEach(s => { 
+                if (isReadOnly || s.hecho) volumen += (parseFloat(s.peso) || 0) * (parseFloat(s.reps) || 0); 
+            });
         });
         return volumen;
     };
 
     const handleTerminarClick = () => {
+        if (isReadOnly) return;
         setTimerActivo(false);
         setShowFinishModal(true);
     };
@@ -219,16 +244,14 @@ export default function SesionEntrenamiento() {
                 rutinaId: rutinaId,
                 duracionSegundos: tiempo,
                 notasGenerales: notasUnificadas || "Sesión finalizada.",
-                eventoCalendarioId: eventoIdCalendario, // Le mandamos el ID para que Java sepa qué día es
+                eventoCalendarioId: eventoIdCalendario, 
                 series: seriesLimpias
             };
 
-            // ✅ 1. Guardamos la sesión. (Java se encarga automáticamente de poner el calendario en verde)
             await guardarSesionRealizada(payload); 
 
             toast.success("¡Entrenamiento guardado! 🔥");
 
-            // ✅ 2. Redirigimos
             if (eventoIdCalendario) {
                 navigate("/cliente/calendario");
             } else {
@@ -247,7 +270,7 @@ export default function SesionEntrenamiento() {
         setTimerActivo(true);
     };
 
-    // --- ESTILOS ---
+    // --- ESTILOS (100% IGUALES A TU VERSIÓN LIMPIA) ---
     const styles = {
         page: { background: '#09090b', minHeight: '100vh', color: 'white', fontFamily: 'sans-serif', paddingBottom: '100px' },
         topBar: { position: 'sticky', top: 0, background: '#09090b', zIndex: 50, borderBottom: '1px solid #222', padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
@@ -261,19 +284,21 @@ export default function SesionEntrenamiento() {
         card: { background: '#121214', borderRadius: '12px', border: '1px solid #27272a', margin: '20px', overflow: 'hidden' },
         cardHeader: { padding: '20px', borderBottom: '1px solid #222', display: 'flex', gap: '15px' },
         noteWrapper: { marginTop: '8px' },
-        notePlaceholder: { color: '#71717a', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontStyle: 'italic' },
-        noteDisplay: { color: '#ccc', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '6px' },
+        notePlaceholder: { color: '#71717a', fontSize: '0.85rem', cursor: isReadOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontStyle: 'italic' },
+        noteDisplay: { color: '#ccc', fontSize: '0.85rem', cursor: isReadOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '6px', width: 'fit-content' },
         noteInput: { width: '100%', background: '#09090b', border: '1px solid #333', color: 'white', padding: '8px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', resize: 'none', minHeight: '60px' },
         btnSaveNote: { background: '#FACC15', color: 'black', border: 'none', padding: '4px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.7rem', marginTop: '5px' },
 
         exTitle: { fontSize: '1.1rem', fontWeight: '900', textTransform: 'uppercase', color: '#FACC15', marginBottom: '2px' },
         imgBox: { width: '60px', height: '60px', background: '#222', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #333' },
 
+        // ✅ TABLA Y GRID INTACTOS COMO EN LA VERSIÓN "LIMPIA"
         tableHeader: { display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', padding: '10px 15px', background: '#18181b', color: '#52525b', fontSize: '0.65rem', fontWeight: '900', letterSpacing: '0.5px', textAlign: 'center', textTransform: 'uppercase' },
         tableRow: (hecho) => ({ display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', padding: '12px 15px', borderBottom: '1px solid #1f1f22', alignItems: 'center', background: hecho ? 'rgba(34, 197, 94, 0.05)' : 'transparent', transition: 'background 0.2s' }),
 
+        // ✅ INPUT INTACTO (Fondo oscuro, sin bordes amarillos)
         input: { width: '100%', background: '#09090b', border: '1px solid #333', color: 'white', padding: '8px 4px', borderRadius: '6px', textAlign: 'center', fontWeight: 'bold', outline: 'none', fontSize: '0.95rem' },
-        checkBtn: (hecho) => ({ width: '32px', height: '32px', borderRadius: '50%', background: hecho ? '#FACC15' : 'transparent', border: hecho ? 'none' : '2px solid #3f3f46', color: hecho ? 'black' : '#3f3f46', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }),
+        checkBtn: (hecho) => ({ width: '32px', height: '32px', borderRadius: '50%', background: hecho ? '#FACC15' : 'transparent', border: hecho ? 'none' : '2px solid #3f3f46', color: hecho ? 'black' : '#3f3f46', cursor: isReadOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }),
 
         addSetBtn: { width: '100%', padding: '15px', background: 'transparent', border: 'none', color: '#71717a', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', borderTop: '1px solid #222', textTransform: 'uppercase', letterSpacing: '1px' },
 
@@ -309,13 +334,22 @@ export default function SesionEntrenamiento() {
             <div style={styles.topBar}>
                 <div style={styles.headerTitle}>
                     <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', marginRight: '5px' }}><ChevronLeft /></button>
-                    <span style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rutina?.nombre}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rutina?.nombre}</span>
+                        {/* ✅ MODO OBSERVADOR INDICADOR */}
+                        {isReadOnly && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px', color: '#FACC15', fontSize: '0.65rem', letterSpacing: '1px' }}>
+                                <Eye size={12} /> MODO OBSERVADOR
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#18181b', padding: '6px 12px', borderRadius: '20px', border: '1px solid #27272a', fontSize: '0.9rem', fontWeight: 'bold', color: '#FACC15' }}>
                         <Clock size={16} /> {formatoTiempo(tiempo)}
                     </div>
-                    <button style={styles.finishBtn} onClick={handleTerminarClick}>TERMINAR</button>
+                    {/* ✅ OCULTAMOS TERMINAR EN MODO LECTURA */}
+                    {!isReadOnly && <button style={styles.finishBtn} onClick={handleTerminarClick}>TERMINAR</button>}
                 </div>
             </div>
 
@@ -323,7 +357,9 @@ export default function SesionEntrenamiento() {
             <div style={styles.statsBar}>
                 <div style={styles.statItem}>
                     <span style={styles.statLabel}>SERIES</span>
-                    <span style={styles.statValue}>{Object.values(datosSesion).flat().filter(s => s.hecho).length}</span>
+                    <span style={styles.statValue}>
+                        {isReadOnly ? Object.values(datosSesion).flat().length : Object.values(datosSesion).flat().filter(s => s.hecho).length}
+                    </span>
                 </div>
                 <div style={styles.statItem}>
                     <span style={styles.statLabel}>VOLUMEN</span>
@@ -354,14 +390,18 @@ export default function SesionEntrenamiento() {
                             <div style={{ flex: 1 }}>
                                 <div style={styles.exTitle}>{ej.ejercicio.nombre}</div>
                                 <div style={styles.noteWrapper}>
-                                    {editando ? (
+                                    {editando && !isReadOnly ? (
                                         <div>
                                             <textarea autoFocus placeholder="Notas..." style={styles.noteInput} value={notaActual} onChange={(e) => guardarNotaEnEstado(exerciseId, e.target.value)} onBlur={finalizarEdicionNota} />
                                             <button style={styles.btnSaveNote} onMouseDown={finalizarEdicionNota}>OK</button>
                                         </div>
                                     ) : (
-                                        <div onClick={() => setEditandoNotaId(exerciseId)}>
-                                            {notaActual ? (<div style={styles.noteDisplay}><MessageSquare size={12} color="#FACC15" />{notaActual}</div>) : (<div style={styles.notePlaceholder}><Plus size={12} /> Nota</div>)}
+                                        <div onClick={() => !isReadOnly && setEditandoNotaId(exerciseId)}>
+                                            {notaActual ? (
+                                                <div style={styles.noteDisplay}><MessageSquare size={12} color="#FACC15" />{notaActual}</div>
+                                            ) : (
+                                                <div style={styles.notePlaceholder}><Plus size={12} /> {isReadOnly ? "Sin notas" : "Nota"}</div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -386,8 +426,9 @@ export default function SesionEntrenamiento() {
                                 const datoAnterior = historialPrevio[exerciseId]?.[i];
 
                                 return (
-                                    <div key={i} style={styles.tableRow(set.hecho)}>
-                                        <div style={{ fontWeight: 'bold', color: set.hecho ? '#FACC15' : '#555', textAlign: 'center', fontSize: '0.9rem' }}>{i + 1}</div>
+                                    // 🛑 Forzamos el color de fondo como querías (rgba(34, 197, 94, 0.05) si está completado o en lectura)
+                                    <div key={i} style={styles.tableRow(set.hecho || isReadOnly)}>
+                                        <div style={{ fontWeight: 'bold', color: (set.hecho || isReadOnly) ? '#FACC15' : '#555', textAlign: 'center', fontSize: '0.9rem' }}>{i + 1}</div>
 
                                         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', lineHeight: '1.2', fontStyle: 'italic' }}>
                                             {datoAnterior ? (
@@ -401,23 +442,39 @@ export default function SesionEntrenamiento() {
                                         <div style={{ padding: '0 4px' }}>
                                             <input
                                                 type="number"
-                                                style={{ ...styles.input, color: set.hecho ? '#FACC15' : 'white', borderColor: set.hecho ? '#FACC15' : '#27272a' }}
+                                                // ✅ HEMOS QUITADO EL BORDE Y TEXTO AMARILLO. Vuelve a ser blanco con borde gris.
+                                                style={styles.input}
                                                 value={set.peso}
                                                 onChange={(e) => updateSet(exerciseId, i, 'peso', e.target.value)}
+                                                disabled={isReadOnly}
                                             />
                                         </div>
                                         <div style={{ padding: '0 4px' }}>
-                                            <input type="number" style={{ ...styles.input, color: set.hecho ? '#FACC15' : 'white' }} value={set.reps} onChange={(e) => updateSet(exerciseId, i, 'reps', e.target.value)} />
+                                            <input 
+                                                type="number" 
+                                                style={styles.input} 
+                                                value={set.reps} 
+                                                onChange={(e) => updateSet(exerciseId, i, 'reps', e.target.value)} 
+                                                disabled={isReadOnly} 
+                                            />
                                         </div>
                                         <div style={{ padding: '0 4px' }}>
-                                            <input type="number" style={{ ...styles.input, color: '#71717a' }} value={set.rpe} onChange={(e) => updateSet(exerciseId, i, 'rpe', e.target.value)} />
+                                            <input 
+                                                type="number" 
+                                                style={{ ...styles.input, color: '#71717a' }} 
+                                                value={set.rpe} 
+                                                onChange={(e) => updateSet(exerciseId, i, 'rpe', e.target.value)} 
+                                                disabled={isReadOnly} 
+                                            />
                                         </div>
 
                                         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                                            <button style={styles.checkBtn(set.hecho)} onClick={() => toggleCheck(exerciseId, i)}>
-                                                {set.hecho && <Check size={18} strokeWidth={4} />}
+                                            <button style={styles.checkBtn(set.hecho || isReadOnly)} onClick={() => toggleCheck(exerciseId, i)} disabled={isReadOnly}>
+                                                {(set.hecho || isReadOnly) && <Check size={18} strokeWidth={4} />}
                                             </button>
-                                            {!set.hecho && (
+                                            
+                                            {/* ✅ Ocultamos la papelera en modo lectura para mantener el alineamiento */}
+                                            {!set.hecho && !isReadOnly && (
                                                 <button onClick={() => removeSet(exerciseId, i)} style={{ background: 'none', border: 'none', color: '#333', cursor: 'pointer', padding: 0 }}>
                                                     <Trash2 size={16} />
                                                 </button>
@@ -428,14 +485,17 @@ export default function SesionEntrenamiento() {
                             })}
                         </div>
 
-                        <button style={styles.addSetBtn} onClick={() => addSet(exerciseId)}>
-                            <Plus size={14} /> AÑADIR SERIE
-                        </button>
+                        {/* ✅ Ocultar Añadir Serie en modo lectura */}
+                        {!isReadOnly && (
+                            <button style={styles.addSetBtn} onClick={() => addSet(exerciseId)}>
+                                <Plus size={14} /> AÑADIR SERIE
+                            </button>
+                        )}
                     </div>
                 );
             })}
 
-            {/* MODALES */}
+            {/* MODALES RESTANTES */}
             {infoExercise && (
                 <div style={styles.modalOverlay} onClick={() => setInfoExercise(null)}>
                     <div style={styles.infoModalCard} onClick={e => e.stopPropagation()}>

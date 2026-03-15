@@ -18,21 +18,16 @@ export default function CrearRutinaScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   
-  // ✅ 1. CORRECCIÓN CLAVE: Extraemos 'user' en lugar de 'userRole'
   const { userId, user } = useAuth();
-  
-  // Verificamos si es entrenador (cubrimos 'role' y 'rol' por si acaso)
-  const esEntrenador = user?.role === 'ENTRENADOR' || user?.rol === 'ENTRENADOR';
-  
- const { clienteIdProp, atletaId, rutinaInicial, isTemplate: inicialIsTemplate = false } = route.params || {};
+  const { clienteIdProp, atletaId, rutinaInicial, isTemplate: inicialIsTemplate = false } = route.params || {};
 
-  // --- ESTADO DE NAVEGACIÓN ---
-  // Si es entrenador, empieza directamente en modo manual
+  // ✅ BLINDAJE 1: Detectamos que es entrenador si tiene el rol, o si viene de la pantalla de un atleta
+  const esEntrenador = user?.role === 'ENTRENADOR' || user?.rol === 'ENTRENADOR' || !!atletaId || !!clienteIdProp;
+  
   const [viewMode, setViewMode] = useState(
       esEntrenador || rutinaInicial || inicialIsTemplate ? 'manual' : 'selector'
   );
   
-  // ✅ 2. SEGURO ADICIONAL: Si el contexto tarda 1 milisegundo en cargar, lo forzamos al modo manual
   useEffect(() => {
       if (esEntrenador && viewMode !== 'manual') {
           setViewMode('manual');
@@ -58,7 +53,6 @@ export default function CrearRutinaScreen() {
   const [listaEjercicios, setListaEjercicios] = useState([]);
   const [loadingEjercicios, setLoadingEjercicios] = useState(false);
 
-  // --- CARGAR BIBLIOTECA (Modo Manual) ---
   useEffect(() => {
     if (viewMode === 'manual') {
       const delayDebounce = setTimeout(() => {
@@ -85,9 +79,6 @@ export default function CrearRutinaScreen() {
     }
   };
 
-  // ==========================================
-  // LÓGICA: ARQUITECTO IA
-  // ==========================================
   const handleGenerarIA = async () => {
     if (!aiObjetivo || !aiNivel || !aiDias) {
       return Alert.alert("Faltan datos", "Por favor, selecciona todas las opciones para que la IA pueda diseñar tu plan.");
@@ -101,10 +92,9 @@ export default function CrearRutinaScreen() {
         objetivo: aiObjetivo,
         nivel: aiNivel,
         diasSemana: aiDias,
-        dias: aiDias             
+        dias: aiDias            
       };
       
-      console.log("🤖 Enviando datos a la IA:", payload);
       await generarRutinaAuto(payload);
       
       Alert.alert("¡Plan Creado! 🧠", "La IA ha diseñado tu rutina con éxito.", [
@@ -112,7 +102,6 @@ export default function CrearRutinaScreen() {
       ]);
     } catch (error) {
       const mensajeErrorJava = error.response?.data?.message || JSON.stringify(error.response?.data) || error.message;
-      console.error("❌ Error devuelto por Java:", mensajeErrorJava);
       Alert.alert(
         "Error del Servidor (400)", 
         typeof mensajeErrorJava === 'string' ? mensajeErrorJava : "Error desconocido, revisa la consola."
@@ -122,9 +111,6 @@ export default function CrearRutinaScreen() {
     }
   };
 
-  // ==========================================
-  // LÓGICA: MODO MANUAL
-  // ==========================================
   const agregarAlWorkout = (ej) => {
     const nuevo = {
       idEjercicio: ej.id,
@@ -157,36 +143,57 @@ export default function CrearRutinaScreen() {
     if (!nombreRutina.trim()) return Alert.alert("Falta información", "Dale un nombre a tu rutina.");
     if (ejerciciosSeleccionados.length === 0) return Alert.alert("Rutina vacía", "Añade al menos un ejercicio.");
 
+    const isEditing = rutinaInicial && rutinaInicial.id;
+
+    // 1. Formato exacto de tu WEB para CREAR
+    const formatoCrear = ejerciciosSeleccionados.map(e => ({
+      idEjercicio: e.idEjercicio, 
+      series: parseInt(e.series) || 0,
+      repeticiones: parseInt(e.reps) || 0,
+      peso: parseFloat(e.peso) || 0,
+      rpe: parseInt(e.rpe) || 0,
+      notas: e.notas || "",
+      dias: 1
+    }));
+
+    // 2. Formato exacto de tu WEB para EDITAR
+    const formatoEditar = ejerciciosSeleccionados.map(e => ({
+      ejercicio: { id: e.idEjercicio }, // 👈 Crucial para el PUT
+      idEjercicio: e.idEjercicio,
+      series: parseInt(e.series) || 0,
+      repeticiones: parseInt(e.reps) || 0,
+      peso: parseFloat(e.peso) || 0,
+      rpe: parseInt(e.rpe) || 0,
+      notas: e.notas || ""
+    }));
+
     const payload = {
       nombre: nombreRutina,
       descripcion: descripcionRutina,
       objetivo: isTemplate ? "Plantilla Maestra" : "Personalizado",
-      creador: esEntrenador ? "ENTRENADOR" : "CLIENTE",
+      creador: isTemplate || clienteIdProp || atletaId ? "ENTRENADOR" : "CLIENTE",
       esPlantilla: isTemplate,
-      entrenadorId: esEntrenador ? userId : undefined,
+      entrenadorId: isTemplate ? userId : undefined,
       idCliente: !isTemplate ? (clienteIdProp || atletaId || userId) : undefined,
-      ejercicios: ejerciciosSeleccionados.map(e => ({
-        idEjercicio: e.idEjercicio,
-        series: parseInt(e.series) || 0,
-        repeticiones: parseInt(e.reps) || 0,
-        peso: parseFloat(e.peso) || 0,
-        rpe: parseInt(e.rpe) || 0,
-        notas: e.notas || "",
-        dias: 1
-      }))
+      
+      // ✅ MAGIA: Usamos la palabra correcta según lo que estemos haciendo
+      ejercicios: isEditing ? formatoEditar : formatoCrear,
+      detalles: isEditing ? formatoEditar : undefined
     };
 
+    // Limpiamos los campos undefined (Igual que en la web)
     Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
     try {
-      await guardarRutinaManual(payload);
-      Alert.alert("¡Hecho!", isTemplate ? "Plantilla guardada" : "Rutina creada con éxito", [
-        { text: "Genial", onPress: () => navigation.goBack() }
-      ]);
+      if (isEditing) {
+        await actualizarRutina(rutinaInicial.id, payload);
+        Alert.alert("¡Actualizada!", "La rutina se ha modificado correctamente.", [{ text: "OK", onPress: () => navigation.goBack() }]);
+      } else {
+        await guardarRutinaManual(payload);
+        Alert.alert("¡Hecho!", "Rutina creada con éxito", [{ text: "OK", onPress: () => navigation.goBack() }]);
+      }
     } catch (error) {
-      const mensajeError = error.response?.data?.message || error.response?.data || error.message;
-      console.error("❌ Error de Java:", mensajeError);
-      Alert.alert("Error al guardar", typeof mensajeError === 'string' ? mensajeError : "Revisa la consola de tu PC.");
+      Alert.alert("Error al guardar", "Revisa tu conexión.");
     }
   };
 
@@ -335,7 +342,7 @@ export default function CrearRutinaScreen() {
               <TouchableOpacity style={[styles.iaCardGrid, aiDias === 6 && styles.iaCardActive]} onPress={() => setAiDias(6)}>
                 <View>
                     <Text style={[styles.iaCardTitleRow, aiDias === 6 && styles.iaTextActive]}>6 DÍAS</Text>
-                    <Text style={styles.iaCardSub}>PPL (Push/Pull/Legs)</Text>
+                    <Text style={styles.iaCardSub}>PPL</Text>
                 </View>
                 {aiDias === 6 && <CheckCircle2 size={20} color="#FACC15"/>}
               </TouchableOpacity>
@@ -356,7 +363,6 @@ export default function CrearRutinaScreen() {
             )}
           </TouchableOpacity>
         </View>
-
       </View>
     );
   }
@@ -368,8 +374,6 @@ export default function CrearRutinaScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity 
-          // ✅ 3. CORRECCIÓN CLAVE DE NAVEGACIÓN
-          // Si es entrenador, no vuelve al selector, sale de la pantalla por completo
           onPress={() => {
               if (esEntrenador || rutinaInicial) {
                   navigation.goBack();
@@ -600,7 +604,7 @@ const styles = StyleSheet.create({
   optionTitle: { color: 'white', fontSize: 20, fontWeight: '900', textTransform: 'uppercase', marginBottom: 10 },
   optionDesc: { color: '#777', fontSize: 14, textAlign: 'center', lineHeight: 22, paddingHorizontal: 20 },
 
-  // === PANTALLA 2: ARQUITECTO IA (ESTILOS MEJORADOS) ===
+  // === PANTALLA 2: ARQUITECTO IA ===
   iaHeader: { alignItems: 'center', marginBottom: 40, marginTop: 10 },
   iaIconBubble: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(250, 204, 21, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 15, borderWidth: 1, borderColor: 'rgba(250, 204, 21, 0.3)' },
   iaTitle: { color: 'white', fontSize: 32, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 },
@@ -612,31 +616,24 @@ const styles = StyleSheet.create({
   numberText: { color: '#FACC15', fontSize: 12, fontWeight: '900' },
   sectionTitle: { color: '#FACC15', fontSize: 13, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
 
-  // Estilos comunes para tarjetas activas
   iaCardActive: { borderColor: '#FACC15', backgroundColor: 'rgba(250, 204, 21, 0.05)' },
   iaTextActive: { color: '#FACC15' },
   iaCardSub: { color: '#777', fontSize: 12, marginTop: 2 },
 
-  // 1. Tarjetas Grandes (Objetivo)
   iaCardLarge: { backgroundColor: '#121214', width: 160, height: 160, borderRadius: 24, padding: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#222' },
   iaCardTitle: { color: 'white', fontWeight: '900', fontSize: 16, textTransform: 'uppercase' },
 
-  // 2. Tarjetas Fila (Experiencia)
   iaCardRow: { backgroundColor: '#121214', borderRadius: 20, padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 2, borderColor: '#222' },
   iaCardTitleRow: { color: 'white', fontWeight: '900', fontSize: 16, textTransform: 'uppercase' },
 
-  // 3. Grid (Días)
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   iaCardGrid: { backgroundColor: '#121214', borderRadius: 20, padding: 20, width: '48%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 2, borderColor: '#222' },
 
-  // Botón Inferior
   bottomFixed: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: Platform.OS === 'ios' ? 40 : 20, backgroundColor: 'rgba(5,5,5,0.95)', borderTopWidth: 1, borderTopColor: '#1A1A1A' },
   btnGenerar: { backgroundColor: '#FACC15', paddingVertical: 18, borderRadius: 16, alignItems: 'center', shadowColor: "#FACC15", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
   btnGenerarText: { color: '#0A0A0A', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
 
-  // ==========================================
-
-  // PANTALLA 3: MODO MANUAL (Tus estilos originales)
+  // PANTALLA 3: MODO MANUAL
   cardInfo: { padding: 20 },
   inputNombre: { color: 'white', fontSize: 28, fontWeight: '800', marginBottom: 5 },
   inputDesc: { color: '#888', fontSize: 15, minHeight: 40, marginBottom: 15 },

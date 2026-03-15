@@ -158,23 +158,26 @@ export default function EditarRutinaScreen() {
     if (detalles.length === 0) return Alert.alert("Rutina vacía", "Añade al menos un ejercicio.");
 
     try {
+      // ✅ CALCADO DE TU VERSIÓN WEB Y BLINDADO
       const listaProcesada = detalles.map(d => {
         const totalSets = d.sets.length;
         const firstSet = d.sets[0] || { reps: "0", peso: "0", rpe: "0" };
 
         return {
-          ejercicio: { id: d.ejercicio.id }, 
-          idEjercicio: d.ejercicio.id, 
+          ejercicio: { id: d.ejercicio?.id }, // 👈 La etiqueta que pide Java (Protegida contra nulos)
+          idEjercicio: d.ejercicio?.id, 
           series: totalSets,
           repeticiones: parseInt(firstSet.reps) || 0,
           peso: parseFloat(firstSet.peso) || 0,
           rpe: parseInt(firstSet.rpe) || 0,
-          notas: d.notas
+          notas: d.notas || "",
+          dias: 1 // 👈 Añadido igual que en la web por si Java lo exige
         };
       });
 
       const payload = { 
         ...rutinaData, 
+        id: rutinaId, // 👈 Añadimos el ID en la raíz por si el PUT lo valida
         detalles: listaProcesada, 
         ejercicios: listaProcesada
       };
@@ -185,7 +188,6 @@ export default function EditarRutinaScreen() {
         { text: "OK", onPress: () => navigation.goBack() }
       ]);
     } catch (error) {
-      console.error("Error al guardar:", error);
       Alert.alert("Error", "No se pudo actualizar la rutina.");
     }
   };

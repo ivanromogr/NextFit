@@ -1,29 +1,100 @@
 import React, { useEffect, useState } from 'react';
-import { X, Clock, Activity, FileText, Dumbbell, Calendar, User } from 'lucide-react';
-import { obtenerDetalleSesion } from '../../api/endpoints';
+import { X, Clock, Activity, FileText, Dumbbell, Calendar } from 'lucide-react';
+import { obtenerEventosCalendario, obtenerUltimaSesionRutina } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
+import { useParams } from 'react-router-dom';
 
 export default function VisorSesion({ eventoId, onClose }) {
     const [sesion, setSesion] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { userId } = useAuth();
+    const params = useParams();
+    
+    const idDeLaUrl = params.id || params.clienteId; 
+    const targetUserId = idDeLaUrl || userId;
 
     useEffect(() => {
-        const cargar = async () => {
-            if (!eventoId) return;
+        const cargarData = async () => {
+            if (!eventoId || !targetUserId) return;
+            setLoading(true);
             try {
-                const data = await obtenerDetalleSesion(eventoId);
-                setSesion(data);
+                // 1. Buscamos TODOS los eventos de este mes para el usuario, para pescar el nuestro
+                const fechaHoy = new Date();
+                const start = `${fechaHoy.getFullYear()}-01-01`; // Rango amplio
+                const end = `${fechaHoy.getFullYear()}-12-31`;
+                
+                const todosLosEventos = await obtenerEventosCalendario(targetUserId, start, end, userId);
+                const miEvento = todosLosEventos.find(e => e.id === eventoId);
+
+                if (!miEvento) {
+                    throw new Error("Evento no encontrado en el calendario");
+                }
+
+                // 2. Ahora que tenemos el evento y sabemos qué rutina es, pedimos el historial
+                // Nota: Tu backend debe tener un endpoint que devuelva la sesión exacta por su ID. 
+                // Por ahora usamos la última sesión como hicimos en la otra pantalla, asumiendo que es esa.
+                const lastSession = await obtenerUltimaSesionRutina(targetUserId, miEvento.rutinaId);
+                
+                if (!lastSession) {
+                     throw new Error("No hay registros de series para esta sesión");
+                }
+
+                // 3. Transformamos la respuesta "cruda" del backend al formato que espera este diseño
+                const sessionReformateada = {
+                    fecha: miEvento.fecha,
+                    duracion: lastSession.duracionSegundos || 0,
+                    volumenTotal: 0,
+                    notas: lastSession.notasGenerales || "",
+                    ejercicios: []
+                };
+
+                let volumenGlobal = 0;
+                const mapaEjercicios = {};
+
+                // Agrupamos las series sueltas por Ejercicio
+                if (lastSession.series && Array.isArray(lastSession.series)) {
+                     lastSession.series.forEach(s => {
+                         const ejName = s.ejercicioNombre || (s.ejercicio && s.ejercicio.nombre) || "Ejercicio Desconocido";
+                         
+                         if (!mapaEjercicios[ejName]) {
+                             mapaEjercicios[ejName] = [];
+                         }
+                         
+                         mapaEjercicios[ejName].push({
+                             kilos: parseFloat(s.peso) || 0,
+                             repes: parseInt(s.reps) || 0,
+                             rpe: parseInt(s.rpe) || 0
+                         });
+
+                         volumenGlobal += (parseFloat(s.peso) || 0) * (parseInt(s.reps) || 0);
+                     });
+                }
+
+                // Convertimos el mapa en un Array para que lo lea el .map del diseño
+                for (const [nombre, seriesArray] of Object.entries(mapaEjercicios)) {
+                     sessionReformateada.ejercicios.push({
+                         nombre: nombre,
+                         series: seriesArray
+                     });
+                }
+
+                sessionReformateada.volumenTotal = volumenGlobal;
+
+                setSesion(sessionReformateada);
+
             } catch (error) {
-                console.error("Error cargando sesión", error);
+                console.error("Error reconstruyendo la sesión:", error);
             } finally {
                 setLoading(false);
             }
         };
-        cargar();
+
+        cargarData();
         
         // Bloquear scroll del body cuando está abierto
         document.body.style.overflow = 'hidden';
         return () => document.body.style.overflow = 'unset';
-    }, [eventoId]);
+    }, [eventoId, targetUserId, userId]);
 
     const formatTiempo = (seg) => {
         if (!seg) return "0 min";
@@ -46,9 +117,8 @@ export default function VisorSesion({ eventoId, onClose }) {
             backdropFilter: 'blur(4px)', zIndex: 999, display: 'flex', justifyContent: 'flex-end',
             transition: 'opacity 0.3s'
         },
-        // EL PANEL LATERAL 👇
         drawer: {
-            width: '100%', maxWidth: '600px', // Mucho más ancho
+            width: '100%', maxWidth: '600px', 
             height: '100%', 
             background: '#09090b', 
             borderLeft: '1px solid #27272a',
@@ -64,7 +134,6 @@ export default function VisorSesion({ eventoId, onClose }) {
         content: {
             flex: 1, overflowY: 'auto', padding: '30px',
         },
-        // ESTADÍSTICAS GRANDES
         statsGrid: {
             display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '20px'
         },
@@ -75,7 +144,6 @@ export default function VisorSesion({ eventoId, onClose }) {
         statLabel: { fontSize: '0.7rem', color: '#71717a', fontWeight: '800', textTransform: 'uppercase', marginBottom: '5px' },
         statValue: { fontSize: '1.2rem', color: 'white', fontWeight: '900' },
 
-        // TARJETA DE EJERCICIO
         ejercicioCard: {
             background: '#121214', borderRadius: '16px', border: '1px solid #27272a', marginBottom: '25px', overflow: 'hidden'
         },
@@ -85,12 +153,10 @@ export default function VisorSesion({ eventoId, onClose }) {
         },
         ejTitle: { fontSize: '1rem', fontWeight: 'bold', color: 'white', textTransform: 'uppercase' },
         
-        // TABLA DE SERIES
         table: { width: '100%', borderCollapse: 'collapse' },
-        th: { textAlign: 'left', color: '#52525b', fontSize: '0.7rem', padding: '10px 20px', fontWeight: '800', textTransform: 'uppercase' },
-        td: { padding: '12px 20px', borderBottom: '1px solid #1f1f22', color: '#d4d4d8', fontSize: '0.9rem' },
+        th: { textAlign: 'center', color: '#52525b', fontSize: '0.7rem', padding: '10px 20px', fontWeight: '800', textTransform: 'uppercase' },
+        td: { padding: '12px 20px', borderBottom: '1px solid #1f1f22', color: '#d4d4d8', fontSize: '0.9rem', textAlign: 'center' },
         
-        // NOTAS
         notesBox: {
             marginTop: '10px', padding: '20px', background: 'rgba(250, 204, 21, 0.05)', 
             border: '1px solid rgba(250, 204, 21, 0.2)', borderRadius: '12px', color: '#e4e4e7'
@@ -104,7 +170,6 @@ export default function VisorSesion({ eventoId, onClose }) {
 
     return (
         <div style={styles.overlay} onClick={onClose}>
-            {/* Animación CSS inyectada */}
             <style>{`
                 @keyframes slideIn {
                     from { transform: translateX(100%); }
@@ -129,7 +194,7 @@ export default function VisorSesion({ eventoId, onClose }) {
 
                 {loading ? (
                     <div style={{height:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'#555'}}>
-                        Cargando datos...
+                        Cargando datos del atleta...
                     </div>
                 ) : sesion ? (
                     <div style={styles.content}>
@@ -159,7 +224,7 @@ export default function VisorSesion({ eventoId, onClose }) {
                             </div>
                         </div>
 
-                        <div style={{height:'30px'}}></div> {/* Espaciador */}
+                        <div style={{height:'30px'}}></div>
 
                         {/* 3. NOTAS GENERALES */}
                         {sesion.notas && (
@@ -187,7 +252,7 @@ export default function VisorSesion({ eventoId, onClose }) {
                                 <table style={styles.table}>
                                     <thead>
                                         <tr>
-                                            <th style={styles.th}>Serie</th>
+                                            <th style={{...styles.th, textAlign: 'left'}}>Serie</th>
                                             <th style={styles.th}>Kilos</th>
                                             <th style={styles.th}>Reps</th>
                                             <th style={styles.th}>RPE</th>
@@ -196,11 +261,11 @@ export default function VisorSesion({ eventoId, onClose }) {
                                     <tbody>
                                         {ej.series.map((serie, sIdx) => (
                                             <tr key={sIdx}>
-                                                <td style={{...styles.td, fontWeight:'bold', color:'#555'}}>#{sIdx + 1}</td>
-                                                <td style={{...styles.td, fontWeight:'bold', color:'white'}}>{serie.kilos} kg</td>
-                                                <td style={styles.td}>{serie.repes}</td>
+                                                <td style={{...styles.td, fontWeight:'bold', color:'#555', textAlign: 'left'}}>#{sIdx + 1}</td>
+                                                <td style={{...styles.td, fontWeight:'bold', color:'#FACC15'}}>{serie.kilos} kg</td>
+                                                <td style={{...styles.td, color: 'white', fontWeight: 'bold'}}>{serie.repes}</td>
                                                 <td style={styles.td}>
-                                                    {serie.rpe > 0 ? <span style={{background:'#27272a', padding:'2px 6px', borderRadius:'4px', fontSize:'0.75rem'}}>RPE {serie.rpe}</span> : '-'}
+                                                    {serie.rpe > 0 ? <span style={{background:'#27272a', padding:'4px 8px', borderRadius:'4px', fontSize:'0.75rem', fontWeight: 'bold', color: 'white'}}>RPE {serie.rpe}</span> : <span style={{color: '#444'}}>-</span>}
                                                 </td>
                                             </tr>
                                         ))}
@@ -211,7 +276,7 @@ export default function VisorSesion({ eventoId, onClose }) {
                     </div>
                 ) : (
                     <div style={{padding:'40px', textAlign:'center', color:'#555'}}>
-                        No se encontraron datos.
+                        No se encontraron datos para este entrenamiento.
                     </div>
                 )}
             </div>

@@ -114,6 +114,7 @@ function App() {
               <Route path="plantillas" element={<PlantillasEntrenador />} />
               <Route path="plantillas/crear" element={<CrearEntrenamiento isTemplate={true} />} />
               <Route path="plantillas/editar/:rutinaId" element={<EditarRutina isTemplate={true} />} />
+              <Route path="/entrenador/cliente/:clienteId/sesion/:rutinaId" element={<SesionEntrenamiento />} />  
 
             </Route>
 

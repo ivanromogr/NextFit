@@ -56,18 +56,7 @@ export default function EntrenadorTabNavigator() {
                 }} 
             />
 
-            <Tab.Screen 
-                name="PlantillasEntrenador" 
-                component={DummyScreen} 
-                options={{
-                    tabBarLabel: 'Plantillas',
-                    tabBarIcon: ({ color, focused }) => (
-                        <View style={focused ? styles.iconFocused : null}>
-                            <Dumbbell size={24} color={color} />
-                        </View>
-                    ),
-                }} 
-            />
+           
 
             <Tab.Screen 
                 name="ChatsEntrenador" 

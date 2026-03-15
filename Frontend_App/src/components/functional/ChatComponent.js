@@ -67,7 +67,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
 
     const conectarWebSocket = () => {
         const client = new Client({
-            brokerURL: 'ws://192.168.1.24:8080/ws', 
+            brokerURL: 'ws://192.168.1.30:8080/ws', 
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,

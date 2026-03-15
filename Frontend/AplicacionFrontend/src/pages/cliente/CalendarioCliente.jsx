@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, 
-  eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths 
+    format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, 
+    eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths 
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
-  ChevronLeft, ChevronRight, Trash2, Dumbbell, Check, X, 
-  Clock, Activity, ArrowLeft, AlertCircle, AlertTriangle, Plus, PlusCircle
+    ChevronLeft, ChevronRight, Trash2, Dumbbell, Check, X, 
+    Clock, Activity, ArrowLeft, AlertCircle, AlertTriangle, Plus, PlusCircle
 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom'; // ✅ AÑADIDO useParams
+import { useNavigate, useParams } from 'react-router-dom'; 
 import { 
     obtenerEventosCalendario, programarRutina, eliminarEventoCalendario, 
     obtenerRutinasCliente, obtenerRutinasAsignadasPorEntrenador, 
@@ -16,11 +16,13 @@ import {
 } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+
+// 🔥 VOLVEMOS A IMPORTAR TU PANEL LATERAL
 import ModalResultados from '../../components/functional/ModalResultados';
 
 export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }) {
     const navigate = useNavigate();
-    const params = useParams(); // ✅ Cazamos el ID de la URL
+    const params = useParams(); 
     const toast = useToast();
     const { userId } = useAuth();
     
@@ -39,7 +41,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedRutina, setSelectedRutina] = useState("");
     
-    // Resultados sesión
+    // 🔥 ESTADOS DEL PANEL LATERAL RESTAURADOS
     const [showResultadosModal, setShowResultadosModal] = useState(false);
     const [selectedEventoId, setSelectedEventoId] = useState(null);
     
@@ -54,9 +56,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         if (!clienteId) return;
         cargarEventos();
         
-        // Carga de rutinas filtradas
         if (modoEntrenador) {
-            // ✅ AHORA SÍ: Le pasamos el clienteId y TU userId
             obtenerRutinasAsignadasPorEntrenador(clienteId, userId).then(data => setRutinas(data || []));
         } else {
             obtenerRutinasCliente(clienteId).then(data => setRutinas(data || []));
@@ -67,7 +67,6 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         const start = format(startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 }), 'yyyy-MM-dd');
         const end = format(endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 }), 'yyyy-MM-dd');
         
-        // Enviamos tu ID para el filtro estricto de privacidad
         const idFiltroEntrenador = modoEntrenador ? userId : null;
         const data = await obtenerEventosCalendario(clienteId, start, end, idFiltroEntrenador);
         
@@ -118,7 +117,6 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             const fechaStr = format(selectedDate, 'yyyy-MM-dd');
             const idEntrenador = modoEntrenador ? userId : undefined;
             
-            // Enviamos la firma a Java
             await programarRutina(clienteId, selectedRutina, fechaStr, idEntrenador);
             
             toast.success(modoEntrenador ? "Rutina asignada" : "Rutina programada");
@@ -135,7 +133,6 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             const fechaStr = format(selectedDate, 'yyyy-MM-dd');
             const idEntrenador = modoEntrenador ? userId : undefined;
             
-            // Enviamos la firma a Java
             await programarRutina(clienteId, rutinaId, fechaStr, idEntrenador);
             
             toast.success("¡Añadido al calendario!");
@@ -176,12 +173,13 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         }
     };
 
-   const irAEntrenar = (rutinaId, eventoId) => {
+    // 🔥 LA MAGIA RESTAURADA: ABRE EL PANEL LATERAL 🔥
+    const irAEntrenar = (rutinaId, eventoId) => {
         if (modoEntrenador) {
             const ev = eventos.find(e => e.id === eventoId);
             if (ev && ev.estado === 'COMPLETADO') {
                 setSelectedEventoId(eventoId);
-                setShowResultadosModal(true);
+                setShowResultadosModal(true); // Abre el panel derecho
             } else {
                 navigate(`/entrenador/cliente/${clienteId}/editar-rutina/${rutinaId}`);
             }
@@ -287,11 +285,10 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
                             onMouseLeave={() => setHoveredDate(null)}
                             onDragOver={handleDragOver}
                             onDrop={(e) => handleDrop(e, day)}
-                            onClick={() => esMismoMes && handleDayClick(day)} // Clic para abrir modal inteligente
+                            onClick={() => esMismoMes && handleDayClick(day)} 
                         >
                             <div style={styles.dateNum(esHoy, isHovered)}>{format(day, 'd')}</div>
                             
-                            {/* Hover State: Si está vacío y paso el ratón */}
                             {isHovered && eventosDia.length === 0 && (
                                 <div style={styles.addHoverBtn}><Plus size={16} strokeWidth={3}/> AÑADIR</div>
                             )}
@@ -332,7 +329,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
                 })}
             </div>
 
-            {/* MODAL INTELIGENTE (CERO FRICCIÓN) */}
+            {/* MODAL SELECCIONAR RUTINA */}
             {showModal && (
                 <div style={styles.modalOverlay} onClick={() => setShowModal(false)}>
                     <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
@@ -413,7 +410,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
                 </div>
             )}
 
-            {/* MODAL 3: VISOR DE RESULTADOS */}
+            {/* 🔥 MODAL 3: TU VISOR LATERAL RESTAURADO 🔥 */}
             {showResultadosModal && (
                 <ModalResultados eventoId={selectedEventoId} onClose={() => setShowResultadosModal(false)} />
             )}

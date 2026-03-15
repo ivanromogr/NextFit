@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, Image, TouchableOpacity,
     ActivityIndicator, SafeAreaView, StatusBar, Modal, TextInput, Alert,
@@ -6,9 +6,10 @@ import {
 } from 'react-native';
 import {
     ChevronLeft, Star, Zap, ShieldCheck, Target, Users,
-    CheckCircle2, MessageSquareText, X, Send, GraduationCap, Award, BookOpen
+    CheckCircle2, MessageSquareText, X, Send, GraduationCap, Award,
+    Edit, LogOut, Settings
 } from 'lucide-react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../components/context/AuthContext';
 import { getEntrenador, getReviewsEntrenador, postReview, ficharEntrenador } from '../../api/endpoints';
 
@@ -17,8 +18,13 @@ const { width } = Dimensions.get('window');
 export default function EntrenadorPerfilScreen() {
     const navigation = useNavigation();
     const route = useRoute();
-    const { user } = useAuth();
-    const { id } = route.params;
+    const { user, logout } = useAuth(); // ✅ Añadimos logout
+
+    // 💡 LA MAGIA: ¿Qué ID cargamos? Si viene por params lo usamos, si no, usamos el del usuario logueado.
+    const targetId = route.params?.id || user?.id;
+
+    // 💡 LA CONDICIÓN: ¿Es el propio entrenador viendo su perfil?
+    const isOwner = user?.role === 'ENTRENADOR' && targetId === user?.id;
 
     const [entrenador, setEntrenador] = useState(null);
     const [reviews, setReviews] = useState([]);
@@ -29,17 +35,20 @@ export default function EntrenadorPerfilScreen() {
     const [comentario, setComentario] = useState("");
     const [enviando, setEnviando] = useState(false);
 
-    useEffect(() => {
-        if (id) cargarTodo();
-        else setLoading(false);
-    }, [id]);
+    // ✅ Usamos useFocusEffect para que los datos se recarguen si vuelves de "Editar Perfil"
+    useFocusEffect(
+        useCallback(() => {
+            if (targetId) cargarTodo();
+            else setLoading(false);
+        }, [targetId])
+    );
 
     const cargarTodo = async () => {
         try {
             setLoading(true);
             const [dataEntrenador, resReviews] = await Promise.all([
-                getEntrenador(id),
-                getReviewsEntrenador(id)
+                getEntrenador(targetId),
+                getReviewsEntrenador(targetId)
             ]);
             setEntrenador(dataEntrenador);
             setReviews(resReviews?.data || []);
@@ -78,7 +87,7 @@ export default function EntrenadorPerfilScreen() {
         setEnviando(true);
         try {
             await postReview({
-                entrenadorId: id,
+                entrenadorId: targetId,
                 clienteId: user.id,
                 rating,
                 comentario
@@ -93,9 +102,24 @@ export default function EntrenadorPerfilScreen() {
         }
     };
 
-    if (loading) return (
-        <View style={styles.center}><ActivityIndicator size="large" color="#FACC15" /></View>
-    );
+    const handleCerrarSesion = () => {
+        Alert.alert(
+            "Cerrar Sesión",
+            "¿Estás seguro de que quieres salir de tu cuenta?",
+            [
+                { text: "Cancelar", style: "cancel" },
+                { 
+                    text: "Sí, salir", 
+                    style: "destructive",
+                    onPress: async () => {
+                        await logout();
+                    }
+                }
+            ]
+        );
+    };
+
+    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#FACC15" /></View>;
 
     if (!entrenador) return (
         <View style={styles.center}>
@@ -112,7 +136,8 @@ export default function EntrenadorPerfilScreen() {
         <View style={styles.container}>
             <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+            {/* Ajustamos el padding del ScrollView dependiendo de si hay footer fijo (cliente) o no (dueño) */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: isOwner ? 40 : 120 }}>
                 
                 {/* --- HERO HEADER --- */}
                 <View style={styles.heroContainer}>
@@ -123,11 +148,23 @@ export default function EntrenadorPerfilScreen() {
                     )}
                     <View style={styles.heroGradient} />
 
+                    {/* Botón de Atrás (Izquierda) */}
                     <SafeAreaView style={styles.floatingHeader}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWrapper}>
-                            <ChevronLeft color="#fff" size={24} />
-                        </TouchableOpacity>
+                        {navigation.canGoBack() && (
+                            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtnWrapper}>
+                                <ChevronLeft color="#fff" size={24} />
+                            </TouchableOpacity>
+                        )}
                     </SafeAreaView>
+
+                    {/* Botón de Ajustes (Derecha) - SOLO PARA EL DUEÑO */}
+                    {isOwner && (
+                        <SafeAreaView style={styles.floatingHeaderRight}>
+                            <TouchableOpacity onPress={() => navigation.navigate('EditarPerfilEntrenador')} style={styles.iconBtnWrapper}>
+                                <Settings color="#fff" size={24} />
+                            </TouchableOpacity>
+                        </SafeAreaView>
+                    )}
                 </View>
 
                 {/* --- INFORMACIÓN PRINCIPAL --- */}
@@ -139,14 +176,10 @@ export default function EntrenadorPerfilScreen() {
                         <ShieldCheck size={24} color="#10b981" fill="rgba(16, 185, 129, 0.2)" style={{ marginTop: 4 }} />
                     </View>
 
-                    {/* ✅ TÍTULO ACADÉMICO DESTACADO AQUÍ */}
                     {entrenador?.tituloAcademico && (
-                        <Text style={styles.mainAcademicTitle}>
-                            {entrenador.tituloAcademico}
-                        </Text>
+                        <Text style={styles.mainAcademicTitle}>{entrenador.tituloAcademico}</Text>
                     )}
 
-                    {/* ✅ ETIQUETAS (Sin "PREMIUM") */}
                     <View style={styles.badgesRow}>
                         <View style={styles.badgePrimary}>
                             <Text style={styles.badgePrimaryText}>{entrenador?.modalidadTrabajo || 'ONLINE'}</Text>
@@ -157,7 +190,6 @@ export default function EntrenadorPerfilScreen() {
                         </View>
                     </View>
 
-                    {/* Stats Flotantes */}
                     <View style={styles.statsCard}>
                         <View style={styles.statBox}>
                             <Text style={styles.statValue}>{ratingAvg}</Text>
@@ -175,17 +207,29 @@ export default function EntrenadorPerfilScreen() {
                         </View>
                     </View>
 
+                    {/* --- BOTONES DE ACCIÓN (SOLO DUEÑO) --- */}
+                    {isOwner && (
+                        <View style={styles.actionButtonsContainer}>
+                            <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditarPerfilEntrenador')}>
+                                <Edit size={20} color="#000" />
+                                <Text style={styles.editButtonText}>EDITAR PERFIL</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.logoutButton} onPress={handleCerrarSesion}>
+                                <LogOut size={20} color="#EF4444" />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
                     {/* --- FORMACIÓN Y ESPECIALIDAD --- */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>FORMACIÓN Y ENFOQUE</Text>
                         <View style={styles.credentialsList}>
-                            
-                            {entrenador?.titulacion && (
+                            {(entrenador?.titulacion || entrenador?.formacion) && (
                                 <View style={styles.credentialItem}>
                                     <View style={styles.iconWrap}><GraduationCap size={20} color="#FACC15" /></View>
                                     <View style={styles.credentialTextWrap}>
                                         <Text style={styles.credentialTitle}>Certificación Oficial</Text>
-                                        <Text style={styles.credentialValue}>{entrenador.titulacion}</Text>
+                                        <Text style={styles.credentialValue}>{entrenador.titulacion || entrenador.formacion}</Text>
                                     </View>
                                 </View>
                             )}
@@ -200,13 +244,12 @@ export default function EntrenadorPerfilScreen() {
                                 </View>
                             )}
                             
-                            {/* Fallback si no tiene nada */}
-                            {!entrenador?.titulacion && !entrenador?.especialidad && (
+                            {!entrenador?.titulacion && !entrenador?.formacion && !entrenador?.especialidad && (
                                 <View style={styles.credentialItem}>
                                     <View style={styles.iconWrap}><Award size={20} color="#FACC15" /></View>
                                     <View style={styles.credentialTextWrap}>
-                                        <Text style={styles.credentialTitle}>Coach Verificado</Text>
-                                        <Text style={styles.credentialValue}>Profesional apto para entrenamientos</Text>
+                                        <Text style={styles.credentialTitle}>{isOwner ? "Coach Registrado" : "Coach Verificado"}</Text>
+                                        <Text style={styles.credentialValue}>{isOwner ? "Añade tu formación al editar" : "Profesional apto"}</Text>
                                     </View>
                                 </View>
                             )}
@@ -217,23 +260,27 @@ export default function EntrenadorPerfilScreen() {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>METODOLOGÍA DE TRABAJO</Text>
                         <Text style={styles.bioText}>
-                            {entrenador?.descripcionPerfil || "Enfoque 100% personalizado basado en la evidencia científica actual, biomecánica aplicada y resultados sostenibles a largo plazo."}
+                            {entrenador?.descripcionPerfil || "Enfoque 100% personalizado basado en la evidencia científica actual."}
                         </Text>
                     </View>
 
                     {/* --- TESTIMONIOS --- */}
                     <View style={styles.section}>
                         <View style={styles.reviewHeader}>
-                            <Text style={styles.sectionTitle}>TESTIMONIOS</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(true)}>
-                                <Text style={styles.writeReviewText}>+ Escribir</Text>
-                            </TouchableOpacity>
+                            <Text style={styles.sectionTitle}>{isOwner ? "MIS TESTIMONIOS" : "TESTIMONIOS"}</Text>
+                            
+                            {/* Mostrar botón de escribir reseña SOLO a clientes */}
+                            {!isOwner && (
+                                <TouchableOpacity onPress={() => setModalVisible(true)}>
+                                    <Text style={styles.writeReviewText}>+ Escribir</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
 
                         {reviews.length === 0 ? (
                             <View style={styles.emptyReviewBox}>
                                 <MessageSquareText color="#3f3f46" size={30} />
-                                <Text style={styles.emptyReviewText}>Sé el primero en valorar a este coach.</Text>
+                                <Text style={styles.emptyReviewText}>{isOwner ? "Aún no tienes valoraciones." : "Sé el primero en valorar a este coach."}</Text>
                             </View>
                         ) : (
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.reviewsScroll}>
@@ -254,20 +301,22 @@ export default function EntrenadorPerfilScreen() {
                 </View>
             </ScrollView>
 
-            {/* --- STICKY FOOTER PARA COMPRAR --- */}
-            <View style={styles.stickyFooter}>
-                <View>
-                    <Text style={styles.priceLabel}>Transformación Elite</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                        <Text style={styles.priceValue}>{entrenador?.tarifaMensual || '20'}€</Text>
-                        <Text style={styles.pricePeriod}>/mes</Text>
+            {/* --- STICKY FOOTER PARA COMPRAR (SOLO CLIENTES) --- */}
+            {!isOwner && (
+                <View style={styles.stickyFooter}>
+                    <View>
+                        <Text style={styles.priceLabel}>Transformación Elite</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                            <Text style={styles.priceValue}>{entrenador?.tarifaMensual || '20'}€</Text>
+                            <Text style={styles.pricePeriod}>/mes</Text>
+                        </View>
                     </View>
+                    <TouchableOpacity style={styles.ctaButton} onPress={handleFichar}>
+                        <Zap size={20} color="#000" fill="#000" />
+                        <Text style={styles.ctaButtonText}>EMPEZAR YA</Text>
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.ctaButton} onPress={handleFichar}>
-                    <Zap size={20} color="#000" fill="#000" />
-                    <Text style={styles.ctaButtonText}>EMPEZAR YA</Text>
-                </TouchableOpacity>
-            </View>
+            )}
 
             {/* --- MODAL PARA ESCRIBIR RESEÑA --- */}
             <Modal visible={modalVisible} animationType="slide" transparent>
@@ -308,44 +357,45 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#050505' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#050505' },
 
-    // Hero Image
     heroContainer: { width: '100%', height: 420, position: 'relative' },
     heroImage: { width: '100%', height: '100%', resizeMode: 'cover' },
     heroPlaceholder: { width: '100%', height: '100%', backgroundColor: '#121214', justifyContent: 'center', alignItems: 'center' },
     heroGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 200, backgroundColor: 'transparent', 
         shadowColor: '#050505', shadowOffset: { width: 0, height: 100 }, shadowOpacity: 1, shadowRadius: 50, elevation: 10 },
+    
+    // Header flotante (botones arriba)
     floatingHeader: { position: 'absolute', top: Platform.OS === 'ios' ? 20 : 40, left: 20 },
-    backBtnWrapper: { backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 20, backdropFilter: 'blur(10px)' },
+    floatingHeaderRight: { position: 'absolute', top: Platform.OS === 'ios' ? 20 : 40, right: 20 },
+    iconBtnWrapper: { backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)' },
 
-    // Main Content
     mainContent: { flex: 1, paddingHorizontal: 24, marginTop: -60 },
     nameHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
     name: { color: 'white', fontSize: 32, fontWeight: '900', letterSpacing: -1, lineHeight: 36, flex: 1, textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10 },
-    
-    // Título Académico destacado
     mainAcademicTitle: { color: '#FACC15', fontSize: 15, fontWeight: '800', marginTop: 4, letterSpacing: 0.5, textTransform: 'uppercase', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5 },
 
-    // Badges 
     badgesRow: { flexDirection: 'row', gap: 10, marginTop: 15, marginBottom: 25 },
     badgePrimary: { backgroundColor: '#FACC15', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
     badgePrimaryText: { color: '#000', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
     badgeVerified: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#10b981' },
     badgeVerifiedText: { color: '#10b981', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
 
-    // Stats Card 
-    statsCard: { flexDirection: 'row', backgroundColor: '#121214', borderRadius: 20, paddingVertical: 20, borderWidth: 1, borderColor: '#1f1f22', marginBottom: 35 },
+    statsCard: { flexDirection: 'row', backgroundColor: '#121214', borderRadius: 20, paddingVertical: 20, borderWidth: 1, borderColor: '#1f1f22', marginBottom: 25 },
     statBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     statValue: { color: '#fff', fontSize: 22, fontWeight: '900' },
     statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
     statLabel: { color: '#a1a1aa', fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginTop: 2 },
     statDivider: { width: 1, backgroundColor: '#1f1f22', height: '60%', alignSelf: 'center' },
 
-    // Sections
+    // ✅ Botones Dueño
+    actionButtonsContainer: { flexDirection: 'row', gap: 12, marginBottom: 35 },
+    editButton: { flex: 1, backgroundColor: '#FACC15', paddingVertical: 14, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+    editButtonText: { color: '#000', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
+    logoutButton: { backgroundColor: 'rgba(239, 68, 68, 0.1)', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.3)' },
+
     section: { marginBottom: 35 },
     sectionTitle: { color: 'white', fontSize: 14, fontWeight: '900', letterSpacing: 1, marginBottom: 15 },
     bioText: { color: '#a1a1aa', fontSize: 15, lineHeight: 24 },
 
-    // Credentials List
     credentialsList: { gap: 12 },
     credentialItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0a0a0a', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#1f1f22' },
     iconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(250, 204, 21, 0.1)', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
@@ -353,7 +403,6 @@ const styles = StyleSheet.create({
     credentialTitle: { color: '#71717a', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginBottom: 2 },
     credentialValue: { color: 'white', fontSize: 15, fontWeight: '700' },
 
-    // Reviews
     reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
     writeReviewText: { color: '#FACC15', fontSize: 13, fontWeight: '800' },
     reviewsScroll: { paddingRight: 20, gap: 15 },
@@ -363,7 +412,6 @@ const styles = StyleSheet.create({
     emptyReviewBox: { alignItems: 'center', justifyContent: 'center', padding: 30, backgroundColor: '#0a0a0a', borderRadius: 20, borderWidth: 1, borderColor: '#1f1f22', borderStyle: 'dashed' },
     emptyReviewText: { color: '#71717a', marginTop: 10, fontSize: 14, fontWeight: '600' },
 
-    // Sticky Footer
     stickyFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#0a0a0a', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 15, paddingBottom: Platform.OS === 'ios' ? 35 : 20, borderTopWidth: 1, borderTopColor: '#1f1f22' },
     priceLabel: { color: '#71717a', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
     priceValue: { color: 'white', fontSize: 28, fontWeight: '900', letterSpacing: -1 },
@@ -371,7 +419,6 @@ const styles = StyleSheet.create({
     ctaButton: { backgroundColor: '#FACC15', flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 24, borderRadius: 16, gap: 8 },
     ctaButtonText: { color: '#000', fontSize: 14, fontWeight: '900', letterSpacing: 0.5 },
 
-    // Modal
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#121214', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 25, minHeight: 450, paddingBottom: Platform.OS === 'ios' ? 40 : 25, borderWidth: 1, borderColor: '#1f1f22' },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },

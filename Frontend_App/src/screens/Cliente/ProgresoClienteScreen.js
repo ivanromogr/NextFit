@@ -23,7 +23,8 @@ import { LineChart, BarChart } from 'react-native-gifted-charts';
 import { 
   obtenerStatsGlobales, 
   obtenerProgresoEjercicio, 
-  obtenerEjercicios, 
+  obtenerEjerciciosConHistorial,
+  obtenerEjercicios,
   obtenerPRs 
 } from '../../api/endpoints';
 
@@ -36,11 +37,13 @@ const { width, height } = Dimensions.get('window');
 export default function ProgresoClienteScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { userId } = useAuth();
+  const { userId } = useAuth(); 
 
-  const clienteIdProp = route.params?.clienteId;
-  const isCoachMode = !!clienteIdProp;
-  const clienteId = clienteIdProp || userId;
+  const clienteIdNav = route.params?.clienteIdProp || route.params?.clienteId;
+  const isCoachMode = route.params?.isCoachMode || !!clienteIdNav;
+  
+  const clienteId = clienteIdNav || userId;
+  const entrenadorFiltroId = isCoachMode ? userId : null;
 
   const [globalStats, setGlobalStats] = useState(null);
   const [ejercicios, setEjercicios] = useState([]);
@@ -49,6 +52,9 @@ export default function ProgresoClienteScreen() {
   const [pr, setPr] = useState(0);
   const [prs, setPrs] = useState([]); 
   
+  // ✅ ESTADO PARA EL TOGGLE DE CONSISTENCIA
+  const [vistaConsistencia, setVistaConsistencia] = useState('dias');
+
   const [loading, setLoading] = useState(true);
   const [loadingChart, setLoadingChart] = useState(false);
   const [modalVisible, setModalVisible] = useState(false); 
@@ -58,17 +64,22 @@ export default function ProgresoClienteScreen() {
 
     const cargarDatos = async () => {
       try {
-        const [statsData, prsData, ejerciciosData] = await Promise.all([
-          obtenerStatsGlobales(clienteId),
-          obtenerPRs(clienteId),
+        setLoading(true);
+        const [statsData, prsData, ejerciciosHistorial, ejerciciosBase] = await Promise.all([
+          obtenerStatsGlobales(clienteId, entrenadorFiltroId),
+          obtenerPRs(clienteId, entrenadorFiltroId),
+          obtenerEjerciciosConHistorial(clienteId, entrenadorFiltroId),
           obtenerEjercicios()
         ]);
 
         if (statsData) setGlobalStats(statsData);
         if (prsData) setPrs(prsData);
-        if (ejerciciosData && ejerciciosData.length > 0) {
-          setEjercicios(ejerciciosData);
-          setSelectedEjercicio(ejerciciosData[0]); 
+        
+        const listaFinalEjercicios = ejerciciosHistorial.length > 0 ? ejerciciosHistorial : ejerciciosBase;
+
+        if (listaFinalEjercicios && listaFinalEjercicios.length > 0) {
+          setEjercicios(listaFinalEjercicios);
+          setSelectedEjercicio(listaFinalEjercicios[0]); 
         }
       } catch (error) {
         console.error("Error cargando progreso:", error);
@@ -84,7 +95,7 @@ export default function ProgresoClienteScreen() {
     if (!clienteId || !selectedEjercicio) return;
 
     setLoadingChart(true);
-    obtenerProgresoEjercicio(clienteId, selectedEjercicio.id)
+    obtenerProgresoEjercicio(clienteId, selectedEjercicio.id, entrenadorFiltroId)
       .then(data => {
         if (data) {
           const datos = Array.isArray(data) ? data : (data.grafica || []);
@@ -122,66 +133,9 @@ export default function ProgresoClienteScreen() {
     };
   });
 
-  // ✅ Escalado matemático perfecto para evitar decimales en el eje Y
   const maxValReal = formattedLineData.length > 0 ? Math.max(...formattedLineData.map(d => d.value)) : 10;
-  const stepLine = Math.max(Math.ceil(maxValReal / 4), 5); // Como mínimo salta de 5 en 5 kg
+  const stepLine = Math.max(Math.ceil(maxValReal / 4), 5);
   const maxLineValue = stepLine * 4;
-
-  // ==========================================
-  // 📊 LÓGICA DE GRÁFICA DE BARRAS (CONSISTENCIA)
-  // ==========================================
-  const rawConsistencia = globalStats?.graficaSemanal || globalStats?.graficaDiaria || [];
-  
-  let consistenciaData = rawConsistencia.map((item) => {
-    let labelFinal = '';
-    let valorNumerico = 0;
-
-    if (Array.isArray(item)) {
-        labelFinal = String(item[0]);
-        valorNumerico = Number(item[1]) || 0;
-    } else if (item && typeof item === 'object') {
-        valorNumerico = Number(item.entrenos ?? item.valor ?? item.count ?? item.value ?? item.total ?? 0);
-        if (valorNumerico === 0) {
-            const numVal = Object.values(item).find(v => typeof v === 'number');
-            if (numVal !== undefined) valorNumerico = numVal;
-        }
-
-        let rawDate = item.fecha ?? item.etiqueta ?? item.dia ?? item.day;
-        if (!rawDate) rawDate = Object.values(item).find(v => typeof v === 'string' && isNaN(Number(v))) || '';
-
-        // Transformamos la fecha real en "LUN", "MAR", etc.
-        if (Array.isArray(rawDate)) { 
-            const d = new Date(rawDate[0], rawDate[1]-1, rawDate[2]||1);
-            if (!isNaN(d)) labelFinal = format(d, 'eee', {locale: es}).toUpperCase();
-        } else if (typeof rawDate === 'string' && rawDate.includes('-')) {
-            const d = new Date(rawDate);
-            if (!isNaN(d)) labelFinal = format(d, 'eee', {locale: es}).toUpperCase();
-        } else {
-            labelFinal = String(rawDate).substring(0,3).toUpperCase();
-        }
-    }
-
-    return {
-        label: labelFinal || '---',
-        value: valorNumerico,
-        frontColor: '#FACC15',
-        topLabelComponent: () => (
-            valorNumerico > 0 ? <Text style={{color: 'white', fontSize: 11, marginBottom: 4, fontWeight: '900'}}>{valorNumerico}</Text> : null
-        )
-    };
-  });
-
-  // ✅ Si el backend no manda datos de esta semana, pintamos la semana vacía (L-D)
-  if (consistenciaData.length === 0 || consistenciaData.every(d => d.label === '---')) {
-      consistenciaData = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'].map(dia => ({
-          label: dia, value: 0, frontColor: '#FACC15'
-      }));
-  }
-
-  // Escalado perfecto para las barras sin decimales
-  const maxBarValReal = Math.max(...consistenciaData.map(d => d.value), 3);
-  const stepBar = Math.max(Math.ceil(maxBarValReal / 3), 1);
-  const maxBarValue = stepBar * 3;
 
   // ==========================================
   // 💪 LÓGICA DE BALANCE MUSCULAR
@@ -267,44 +221,157 @@ export default function ProgresoClienteScreen() {
 
         <View style={styles.divider} />
 
-        {/* 2. CONSISTENCIA SEMANAL */}
-        <View style={styles.sectionHeader}>
-          <BarChart2 size={20} color="#FACC15" />
-          <View>
+        {/* 2. CONSISTENCIA (DISEÑO PÍLDORAS CON TOGGLE) */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionTitleWrap}>
+            <BarChart2 size={20} color="#FACC15" />
             <Text style={styles.sectionTitle}>CONSISTENCIA</Text>
-            <Text style={styles.sectionSubtitle}>Días entrenados esta semana</Text>
+          </View>
+          
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity 
+              style={[styles.toggleBtn, vistaConsistencia === 'dias' && styles.toggleBtnActive]}
+              onPress={() => setVistaConsistencia('dias')}
+            >
+              <Text style={[styles.toggleText, vistaConsistencia === 'dias' && styles.toggleTextActive]}>Días</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.toggleBtn, vistaConsistencia === 'semanas' && styles.toggleBtnActive]}
+              onPress={() => setVistaConsistencia('semanas')}
+            >
+              <Text style={[styles.toggleText, vistaConsistencia === 'semanas' && styles.toggleTextActive]}>Semanas</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.chartCard}>
-          <BarChart
-            data={consistenciaData}
-            barWidth={24}
-            spacing={20}
-            roundedTop
-            barBorderRadius={6}
-            frontColor="#FACC15"
-            yAxisThickness={0}
-            xAxisThickness={1}
-            xAxisColor="rgba(255,255,255,0.1)"
-            hideRules
-            yAxisTextStyle={{color: 'rgba(255,255,255,0.4)', fontSize: 11}}
-            xAxisLabelTextStyle={{color: 'rgba(255,255,255,0.6)', fontSize: 10, textAlign: 'center'}}
-            height={160}
-            isAnimated
-            maxValue={maxBarValue}
-            stepValue={stepBar}
-            noOfSections={3}
-            yAxisLabelSuffix=" d" // Añade la 'd' de días/entrenos
-          />
+          {/* ✅ CONTENEDOR CON MARGEN PARA QUE NO SE CORTE EL "LUN" */}
+          <View style={{ marginLeft: 5 }}>
+            <BarChart
+              data={
+                (() => {
+                  let dataFinal = [];
+
+                  if (vistaConsistencia === 'dias') {
+                    // ✅ VISTA DÍAS: 7 píldoras estáticas
+                    dataFinal = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'].map(dia => ({
+                      label: dia,
+                      value: 1, 
+                      frontColor: '#1a1a1c', // Apagado
+                      topLabelComponent: null
+                    }));
+
+                    const rawDias = globalStats?.graficaDiaria?.length 
+                      ? globalStats.graficaDiaria 
+                      : (globalStats?.graficaSemanal || []);
+
+                    rawDias.forEach(item => {
+                      let labelStr = String(item.fecha ?? item.etiqueta ?? item.dia ?? item.day ?? (Array.isArray(item) ? item[0] : ''));
+                      let valNum = Number(item.entrenos ?? item.valor ?? item.count ?? item.value ?? item.total ?? (Array.isArray(item) ? item[1] : 0));
+                      if (valNum === 0 && Object.values(item).some(v => typeof v === 'number' && v > 0)) valNum = 1;
+
+                      let diaIndex = -1;
+                      const textStr = labelStr.toUpperCase();
+                      
+                      // Traductor nuclear de fechas para que no falle nunca
+                      if (textStr.includes('LUN')) diaIndex = 0;
+                      else if (textStr.includes('MAR')) diaIndex = 1;
+                      else if (textStr.includes('MI')) diaIndex = 2;
+                      else if (textStr.includes('JUE')) diaIndex = 3;
+                      else if (textStr.includes('VIE')) diaIndex = 4;
+                      else if (textStr.includes('SÁB') || textStr.includes('SAB')) diaIndex = 5;
+                      else if (textStr.includes('DOM')) diaIndex = 6;
+                      else if (labelStr.match(/^\d{4}-\d{2}-\d{2}$/)) { // Formato YYYY-MM-DD
+                          const parts = labelStr.split('-');
+                          const d = new Date(parts[0], parts[1] - 1, parts[2]);
+                          let jsDay = d.getDay();
+                          diaIndex = jsDay === 0 ? 6 : jsDay - 1;
+                      } else if (Array.isArray(item.fecha)) { // Formato [2024, 10, 15]
+                          const d = new Date(item.fecha[0], item.fecha[1] - 1, item.fecha[2] || 1);
+                          let jsDay = d.getDay();
+                          diaIndex = jsDay === 0 ? 6 : jsDay - 1;
+                      }
+
+                      // 🔥 SI ENCUENTRA EL DÍA Y HAY DATO, LO ILUMINA DE AMARILLO
+                      if (diaIndex >= 0 && diaIndex < 7 && valNum > 0) {
+                        dataFinal[diaIndex].frontColor = '#FACC15'; 
+                        dataFinal[diaIndex].topLabelComponent = () => (
+                          <Text style={{color: '#FACC15', fontSize: 16, marginBottom: 2, fontWeight: '900'}}>✓</Text>
+                        );
+                      }
+                    });
+
+                  } else {
+                    // ✅ VISTA SEMANAS: Plantilla de 4 semanas con contexto brutal
+                    const etiquetasSemanas = ['Sem -3', 'Sem -2', 'Pasada', 'Actual'];
+                    
+                    dataFinal = etiquetasSemanas.map(label => ({
+                        label: label,
+                        value: 1,
+                        frontColor: '#1a1a1c', // Gris por defecto
+                        topLabelComponent: null
+                    }));
+
+                    const rawSemanas = globalStats?.graficaMensual?.length 
+                      ? globalStats.graficaMensual 
+                      : (globalStats?.graficaSemanal || []);
+
+                    // Llenamos desde la semana actual hacia atrás
+                    let offset = 3; // Empezamos en 'Actual'
+                    const reversedSemanas = [...rawSemanas].reverse();
+
+                    reversedSemanas.forEach(item => {
+                      if (offset >= 0) {
+                        let valNum = Number(item.entrenos ?? item.valor ?? item.count ?? item.value ?? item.total ?? (Array.isArray(item) ? item[1] : 0));
+                        if (valNum === 0 && Object.values(item).some(v => typeof v === 'number' && v > 0)) valNum = 1;
+
+                        if (valNum > 0) {
+                            dataFinal[offset].frontColor = '#FACC15';
+                            dataFinal[offset].topLabelComponent = () => (
+                                <Text style={{color: '#FACC15', fontSize: 14, marginBottom: 2, fontWeight: '900'}}>{valNum}</Text>
+                            );
+                        }
+                        offset--;
+                      }
+                    });
+                  }
+
+                  return dataFinal;
+                })()
+              }
+              barWidth={vistaConsistencia === 'dias' ? 22 : 36} // Píldoras más gordas en semanas
+              spacing={vistaConsistencia === 'dias' ? 18 : 30}
+              initialSpacing={10} 
+              roundedTop
+              roundedBottom 
+              barBorderRadius={18}
+              yAxisThickness={0}
+              xAxisThickness={0} 
+              hideRules
+              hideYAxisText 
+              xAxisLabelTextStyle={{color: 'rgba(255,255,255,0.6)', fontSize: 10, textAlign: 'center'}}
+              height={100} 
+              maxValue={1.3} 
+              isAnimated={false} 
+            />
+          </View>
+          
+          {/* Leyenda explicativa para que tenga sentido */}
+          <Text style={styles.legendText}>
+            {vistaConsistencia === 'dias' 
+              ? "El check (✓) indica los días que ha completado tu entrenamiento." 
+              : "Número de entrenamientos completados en las últimas 4 semanas."}
+          </Text>
         </View>
 
         <View style={styles.divider} />
 
         {/* 3. BALANCE MUSCULAR */}
-        <View style={styles.sectionHeader}>
-          <Activity size={20} color="#FACC15" />
-          <Text style={styles.sectionTitle}>BALANCE MUSCULAR</Text>
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionTitleWrap}>
+            <Activity size={20} color="#FACC15" />
+            <Text style={styles.sectionTitle}>BALANCE MUSCULAR</Text>
+          </View>
         </View>
 
         <View style={styles.chartCard}>
@@ -329,11 +396,10 @@ export default function ProgresoClienteScreen() {
         <View style={styles.divider} />
 
         {/* 4. ANÁLISIS 1RM */}
-        <View style={styles.sectionHeader}>
-          <Flame size={20} color="#FACC15" />
-          <View>
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionTitleWrap}>
+            <Flame size={20} color="#FACC15" />
             <Text style={styles.sectionTitle}>FUERZA ESTIMADA (1RM)</Text>
-            <Text style={styles.sectionSubtitle}>Evolución de carga máxima</Text>
           </View>
         </View>
 
@@ -381,7 +447,7 @@ export default function ProgresoClienteScreen() {
                     maxValue={maxLineValue}
                     stepValue={stepLine}
                     noOfSections={4}
-                    yAxisLabelSuffix=" kg" // La magia que limpia el texto izquierdo
+                    yAxisLabelSuffix=" kg" 
                     isAnimated
                   />
                 </View>
@@ -393,9 +459,11 @@ export default function ProgresoClienteScreen() {
         <View style={styles.divider} />
 
         {/* 5. RÉCORDS PERSONALES */}
-        <View style={styles.sectionHeader}>
-          <Trophy size={20} color="#FACC15" />
-          <Text style={styles.sectionTitle}>RÉCORDS PERSONALES</Text>
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionTitleWrap}>
+            <Trophy size={20} color="#FACC15" />
+            <Text style={styles.sectionTitle}>RÉCORDS PERSONALES</Text>
+          </View>
         </View>
         <View style={styles.prsContainer}>
           {prs.length > 0 ? (
@@ -466,11 +534,21 @@ const styles = StyleSheet.create({
   trendText: { fontSize: 12, fontWeight: '800' },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 35 },
   
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  sectionTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sectionTitle: { color: 'white', fontSize: 16, fontWeight: '900', letterSpacing: 0.5 },
-  sectionSubtitle: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '500', marginTop: 2 },
   
+  toggleContainer: { flexDirection: 'row', backgroundColor: '#0c0c0e', borderRadius: 8, padding: 4, borderWidth: 1, borderColor: '#222' },
+  toggleBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 },
+  toggleBtnActive: { backgroundColor: '#222' },
+  toggleText: { color: '#666', fontSize: 12, fontWeight: '700' },
+  toggleTextActive: { color: '#FACC15' },
+
   chartCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 25, paddingBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 20, overflow: 'hidden' },
+  
+  // ✅ NUEVO: Estilo para la leyenda de contexto
+  legendText: { color: 'rgba(255,255,255,0.4)', fontSize: 11, textAlign: 'center', marginTop: 15, fontStyle: 'italic' },
+
   chartRecord: { color: 'white', fontSize: 16, fontWeight: '800', marginBottom: 25 },
   
   muscleRow: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 15 },

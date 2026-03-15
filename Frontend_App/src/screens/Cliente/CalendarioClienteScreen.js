@@ -17,9 +17,14 @@ import { es } from 'date-fns/locale';
 import { useNavigation } from '@react-navigation/native';
 
 import { 
-  obtenerEventosCalendario, programarRutina, eliminarEventoCalendario, 
-  obtenerRutinasCliente, toggleCompletadoEvento 
+  obtenerEventosCalendario, 
+  programarRutina, 
+  eliminarEventoCalendario, 
+  obtenerRutinasCliente, 
+  obtenerRutinasAsignadasPorEntrenador, // ✅ AHORA SÍ IMPORTADA
+  toggleCompletadoEvento 
 } from '../../api/endpoints';
+
 import { useAuth } from '../../components/context/AuthContext';
 
 import { 
@@ -40,7 +45,7 @@ export default function CalendarioClienteScreen({ route }) {
   const navigation = useNavigation();
   const { userId } = useAuth();
   
-  // ✅ DETECCIÓN DEL MODO ENTRENADOR
+  // DETECCIÓN DEL MODO ENTRENADOR
   const clienteIdProp = route?.params?.clienteIdProp;
   const isCoachMode = !!clienteIdProp;
   const clienteId = clienteIdProp || userId;
@@ -67,8 +72,14 @@ export default function CalendarioClienteScreen({ route }) {
       const start = `${year}-${month}-01`;
       const end = `${year}-${month}-${ultimoDia}`; 
 
-      const dataEventos = await obtenerEventosCalendario(clienteId, start, end);
-      const dataRutinas = await obtenerRutinasCliente(clienteId);
+      // 1. Si es modo entrenador, le pasamos nuestro ID a Java para que filtre el calendario
+      const idFiltroEntrenador = isCoachMode ? userId : null;
+      const dataEventos = await obtenerEventosCalendario(clienteId, start, end, idFiltroEntrenador);
+      
+      // 2. Si es entrenador, solo carga SUS rutinas creadas. Si es cliente, carga todas.
+      const dataRutinas = isCoachMode 
+        ? await obtenerRutinasAsignadasPorEntrenador(clienteId)
+        : await obtenerRutinasCliente(clienteId);
       
       setEventos(dataEventos || []);
       setRutinas(dataRutinas || []);
@@ -79,9 +90,8 @@ export default function CalendarioClienteScreen({ route }) {
     }
   };
 
-  const rutinasDisponibles = isCoachMode 
-    ? rutinas.filter(r => r.creador === 'ENTRENADOR') 
-    : rutinas;
+  // ✅ EL BACKEND YA NOS DA LAS RUTINAS CORRECTAS, ASÍ QUE NO FILTRAMOS A MANO
+  const rutinasDisponibles = rutinas;
 
   const getMarkedDates = () => {
     let marks = {};
@@ -149,10 +159,18 @@ export default function CalendarioClienteScreen({ route }) {
 
   const handleRutinaRapida = async (rutinaId) => {
     try {
-      await programarRutina(clienteId, rutinaId, selectedDate);
+      const fechaFormateada = format(new Date(selectedDate), 'yyyy-MM-dd');
+      
+      // ✅ Pasamos el userId (que es tu ID de entrenador) si estamos en modo Coach
+      const idEntrenador = isCoachMode ? userId : undefined;
+      
+      await programarRutina(clienteId, rutinaId, fechaFormateada, idEntrenador);
+      
       setShowModalAdd(false);
-      cargarTodo(currentMonth); 
+      setTimeout(() => cargarTodo(currentMonth), 300);
+      Alert.alert("¡Hecho!", "Entrenamiento programado con éxito.");
     } catch (error) {
+      console.error(error);
       Alert.alert("Error", "No se pudo programar la rutina.");
     }
   };
@@ -186,11 +204,24 @@ export default function CalendarioClienteScreen({ route }) {
 
   const irAEntrenar = (rutinaId, eventoId, estado) => {
     if (isCoachMode) {
-      if (estado === 'COMPLETADO') Alert.alert("Info", "Visualizar resultados del atleta (En desarrollo)");
-      else Alert.alert("Info", "Este entrenamiento aún está pendiente.");
+      if (estado === 'COMPLETADO') {
+        navigation.navigate('PantallaSesionEntrenamiento', { 
+          rutinaId: rutinaId, 
+          eventoIdCalendario: eventoId, 
+          isReadOnly: true,
+          clienteId: clienteId // 🔥 ESTO ES LO QUE FALTABA PARA QUE BUSQUE EN EL ATLETA
+        });
+      } else {
+        Alert.alert("Info", "Este entrenamiento aún está pendiente de realizar por el atleta.");
+      }
       return;
     }
-    navigation.navigate('SesionActiva', { rutinaId, eventoId }); 
+    
+    // Flujo normal si eres el Atleta
+    navigation.navigate('PantallaSesionEntrenamiento', { 
+      rutinaId: rutinaId, 
+      eventoIdCalendario: eventoId 
+    }); 
   };
 
   const formatDuracion = (seg) => {
@@ -203,7 +234,6 @@ export default function CalendarioClienteScreen({ route }) {
   return (
     <SafeAreaView style={styles.root}>
       
-      {/* ✅ CABECERA ADAPTATIVA (ENTRENADOR / CLIENTE) */}
       <View style={styles.headerRow}>
         {isCoachMode && (
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -224,7 +254,6 @@ export default function CalendarioClienteScreen({ route }) {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* CALENDARIO */}
         <View style={styles.calendarCard}>
           <Calendar
             current={currentMonth}
@@ -251,7 +280,6 @@ export default function CalendarioClienteScreen({ route }) {
 
         {loading && <ActivityIndicator size="large" color="#FACC15" style={{marginVertical: 20}}/>}
 
-        {/* ZONA DE AGENDA INFERIOR */}
         <View style={styles.agendaSection}>
           <View style={styles.agendaHeader}>
             <Text style={styles.agendaDateText}>
@@ -312,7 +340,6 @@ export default function CalendarioClienteScreen({ route }) {
             </View>
           )}
 
-          {/* ✅ EL ENTRENADOR TAMBIÉN PUEDE AÑADIR RUTINAS AL CALENDARIO DEL CLIENTE */}
           <TouchableOpacity 
             style={styles.inlineAddBtn} 
             activeOpacity={0.8}

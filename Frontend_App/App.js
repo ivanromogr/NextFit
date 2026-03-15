@@ -27,6 +27,8 @@ import PantallaChatIndividual from './src/screens/Cliente/PantallaChatIndividual
 import CalendarioClienteScreen from './src/screens/Cliente/CalendarioClienteScreen';
 import PantallaSesionEntrenamiento from './src/screens/Cliente/PantallaSesionEntrenamiento';
 import EditarPerfilEntrenadorScreen from './src/screens/Entrenador/EditarPerfilEntrenadorScreen';
+import PlantillasEntrenadorScreen from './src/screens/Entrenador/PlantillasEntrenadorScreen';
+import GestionAtletas from './src/screens/Entrenador/GestionAtletas';
 const Stack = createStackNavigator();
 
 function RootNavigation() {
@@ -71,7 +73,8 @@ function RootNavigation() {
           <Stack.Screen name="PantallaChatIndividual" component={PantallaChatIndividual} />
           <Stack.Screen name="EditarPerfilEntrenador" component={EditarPerfilEntrenadorScreen} />
           <Stack.Screen name="CalendarioCliente" component={CalendarioClienteScreen} />
-          
+          <Stack.Screen name="PlantillasEntrenador" component={PlantillasEntrenadorScreen} />
+          <Stack.Screen name="GestionAtletas" component={GestionAtletas} />
         
         </>
       )}
