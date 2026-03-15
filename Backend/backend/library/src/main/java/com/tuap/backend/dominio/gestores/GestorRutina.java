@@ -49,7 +49,7 @@ public class GestorRutina {
             plantilla = rutinaDAO.save(plantilla);
             
             List<DetalleRutina> detalles = new ArrayList<>();
-            if (request.getEjercicios() != null) {
+            if (request.getEjercicios() != null) {  
                 for (RutinaRequest.EjercicioDetalleDTO d : request.getEjercicios()) {
                     Ejercicio ej = ejercicioDAO.findById(d.getIdEjercicio())
                             .orElseThrow(() -> new RuntimeException("Ejercicio no encontrado"));
@@ -84,8 +84,8 @@ public class GestorRutina {
         rutina.setObjetivo(request.getObjetivo());
         rutina.setNivel("Personalizado");
         rutina.setEsPlantilla(false); // No es plantilla
-
-        // ✅ Guardamos quién crea la rutina
+        rutina.setEntrenadorId(request.getEntrenadorId()); 
+       
         if (request.getCreador() != null && !request.getCreador().isBlank()) {
             rutina.setCreador(request.getCreador());
         } else {

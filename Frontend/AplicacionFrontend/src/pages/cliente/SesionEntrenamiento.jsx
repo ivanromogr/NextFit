@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     obtenerRutinasCliente,
-    guardarSesionRealizada, // <-- Cambiado para coincidir con tu endpoint
-    obtenerUltimaSesionRutina
+    guardarSesionRealizada, 
+    obtenerUltimaSesionRutina,
+    toggleCompletadoEvento
 } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
@@ -185,7 +186,7 @@ export default function SesionEntrenamiento() {
         setShowFinishModal(true);
     };
 
-    const confirmFinish = async () => {
+   const confirmFinish = async () => {
         if (!userId) {
             toast.error("Error: Sesión caducada.");
             return;
@@ -200,7 +201,6 @@ export default function SesionEntrenamiento() {
             const seriesLimpias = [];
             Object.entries(datosSesion).forEach(([ejercicioId, sets]) => {
                 sets.forEach((set, index) => {
-                    // Guardamos si está hecho o si tiene algún dato metido (para no perder el progreso si se le olvida darle al check)
                     if (set.hecho || parseFloat(set.peso) > 0 || parseInt(set.reps) > 0) {
                         seriesLimpias.push({
                             ejercicioId: ejercicioId,
@@ -219,14 +219,16 @@ export default function SesionEntrenamiento() {
                 rutinaId: rutinaId,
                 duracionSegundos: tiempo,
                 notasGenerales: notasUnificadas || "Sesión finalizada.",
-                eventoCalendarioId: eventoIdCalendario,
+                eventoCalendarioId: eventoIdCalendario, // Le mandamos el ID para que Java sepa qué día es
                 series: seriesLimpias
             };
 
-            await guardarSesionRealizada(payload); // <-- Usamos la función de endpoints.js
+            // ✅ 1. Guardamos la sesión. (Java se encarga automáticamente de poner el calendario en verde)
+            await guardarSesionRealizada(payload); 
 
             toast.success("¡Entrenamiento guardado! 🔥");
 
+            // ✅ 2. Redirigimos
             if (eventoIdCalendario) {
                 navigate("/cliente/calendario");
             } else {

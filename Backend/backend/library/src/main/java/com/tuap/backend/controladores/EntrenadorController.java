@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -252,6 +253,7 @@ public class EntrenadorController {
    
     // --- 7. VINCULAR CLIENTE POR EMAIL ---
     @PostMapping("/{id}/fichar")
+    @Transactional 
     public ResponseEntity<?> ficharCliente(
             @PathVariable UUID id, 
             @RequestBody Map<String, String> payload) {
@@ -263,22 +265,59 @@ public class EntrenadorController {
                 return ResponseEntity.badRequest().body(Map.of("message", "El email es obligatorio."));
             }
 
-            // 1. Buscamos al entrenador usando el DAO que ya tienes
             Entrenador entrenador = entrenadorDAO.findById(id)
                 .orElseThrow(() -> new RuntimeException("Entrenador no encontrado."));
 
-            // 2. Buscamos al cliente por su email
             Cliente cliente = clienteDAO.findByEmail(emailCliente.trim())
                 .orElseThrow(() -> new RuntimeException("No se encontró ningún atleta con el correo: " + emailCliente));
 
-            // 3. Vinculamos el cliente al entrenador y guardamos
+            // 🛡️ REGLA DE EXCLUSIVIDAD: Comprobamos si ya tiene otro entrenador
+            if (cliente.getEntrenador() != null && !cliente.getEntrenador().getId().equals(entrenador.getId())) {
+                // 409 Conflict: El recurso ya está asignado a otro
+                return ResponseEntity.status(409).body(Map.of(
+                    "message", "Este atleta ya está entrenando con otro profesional (" + cliente.getEntrenador().getNombre() + ")."
+                ));
+            }
+
+            // Si está libre (o si es el mismo entrenador que lo vuelve a añadir por error), lo vinculamos
             cliente.setEntrenador(entrenador);
             clienteDAO.save(cliente);
 
             return ResponseEntity.ok().body(Map.of("message", "¡" + cliente.getNombre() + " se ha unido a tu equipo!"));
             
         } catch (RuntimeException e) {
-            // Devuelve un error 404 claro si el correo no existe
+            return ResponseEntity.status(404).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Error interno en el servidor."));
+        }
+    }
+
+    // --- 8. DESVINCULAR CLIENTE ---
+    @PostMapping("/{idEntrenador}/desvincular/{idCliente}")
+    @Transactional
+    public ResponseEntity<?> desvincularCliente(
+            @PathVariable UUID idEntrenador,
+            @PathVariable UUID idCliente) {
+        
+        try {
+            // 1. Buscamos al cliente
+            Cliente cliente = clienteDAO.findById(idCliente)
+                .orElseThrow(() -> new RuntimeException("Atleta no encontrado."));
+
+            // 2. 🛡️ SEGURIDAD: Comprobamos que el atleta realmente pertenece a este entrenador
+            if (cliente.getEntrenador() == null || !cliente.getEntrenador().getId().equals(idEntrenador)) {
+                return ResponseEntity.status(403).body(Map.of("message", "No puedes desvincular a un atleta que no es tuyo."));
+            }
+
+            // 3. Rompemos el vínculo (lo dejamos libre)
+            cliente.setEntrenador(null);
+            
+            // 4. Guardamos el cambio
+            clienteDAO.save(cliente);
+
+            return ResponseEntity.ok().body(Map.of("message", "Atleta desvinculado correctamente. Ya no forma parte de tu equipo."));
+            
+        } catch (RuntimeException e) {
             return ResponseEntity.status(404).body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("message", "Error interno en el servidor."));

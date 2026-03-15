@@ -50,7 +50,7 @@ export default function RutinasDeCliente() {
       // Podemos cargar el cliente y sus rutinas a la vez para que sea más rápido
       const [datosCliente, datosRutinas] = await Promise.all([
           getCliente(clienteId),
-          obtenerRutinasAsignadasPorEntrenador(clienteId)
+          obtenerRutinasAsignadasPorEntrenador(clienteId, entrenadorId)
       ]);
       setCliente(datosCliente);
       setRutinas(datosRutinas || []);

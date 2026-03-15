@@ -83,6 +83,14 @@ public class Entrenador {
     @Column(name = "biografia", columnDefinition = "TEXT")
     private String biografia;
 
+    // ✅ NUEVOS CAMPOS PARA EL PERFIL PREMIUM
+    @Column(name = "titulo_academico")
+    private String tituloAcademico; 
+
+    @Column(name = "titulacion")
+    private String titulacion;
+
+
     @Column(name = "tarifa_mensual")
     private Double tarifaMensual;
 
@@ -246,6 +254,22 @@ public class Entrenador {
 
     public void setFotoPerfil(String fotoPerfil) {
         this.fotoPerfil = fotoPerfil;
+    }
+
+    public String getTituloAcademico() {
+        return tituloAcademico;
+    }
+
+    public void setTituloAcademico(String tituloAcademico) {
+        this.tituloAcademico = tituloAcademico;
+    }
+
+    public String getTitulacion() {
+        return titulacion;
+    }
+
+    public void setTitulacion(String titulacion) {
+        this.titulacion = titulacion;
     }
 
 }

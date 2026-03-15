@@ -4,7 +4,8 @@ import {
     obtenerClientesEntrenador, 
     ficharCliente, 
     obtenerDashboardResumen,
-    getEntrenador 
+    getEntrenador
+    
 } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 

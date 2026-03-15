@@ -120,24 +120,41 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
         else navigate("/cliente/dashboard");
     };
 
-    const handleGenerar = async () => {
-        if (!userId) return;
+    const handleGenerar = async (e) => {
+        if (e) e.preventDefault(); // 👈 Evita que la página se recargue sola por error
+        
+        if (!userId) {
+            alert("Falta el ID del usuario");
+            return;
+        }
+        
         setLoading(true);
         try {
             const payload = {
                 idCliente: userId,
+                clienteId: userId, // 👈 Mandamos los dos nombres por si Java es tiquismiquis
                 objetivo: formData.objetivo,
                 nivel: formData.nivel,
                 diasPorSemana: parseInt(formData.diasPorSemana),
                 lugar: "GIMNASIO"
             };
 
+            console.log("🚀 Enviando petición a la IA...", payload);
+            
             await generarRutinaAuto(payload);
+            
+            console.log("✅ ¡La IA respondió perfectamente!");
+            
             if (onSuccess) onSuccess();
             else setTimeout(() => navigate("/cliente/dashboard"), 500);
 
         } catch (error) {
-            alert("Error: " + (error.response?.data?.error || error.message));
+            // 🚨 AQUÍ CAZAMOS EL ERROR
+            console.error("❌ ERROR COMPLETO DE LA IA:", error);
+            console.error("❌ STATUS CODE:", error.response?.status);
+            
+            const mensajeError = error.response?.data?.message || error.response?.data?.error || error.message;
+            alert("Fallo en la IA (Mira la consola): " + mensajeError);
         } finally {
             setLoading(false);
         }

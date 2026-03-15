@@ -3,6 +3,7 @@ package com.tuap.backend.controladores;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuap.backend.dominio.entidades.Cliente;
@@ -31,7 +33,7 @@ public class RutinaController {
     @Autowired
     private GestorRutina gestorRutina;
 
-    // Inyectamos los DAO para la lógica de plantillas
+    // Inyectamos los DAO para la lógica de plantillas y filtros
     @Autowired 
     private RutinaDAO rutinaDAO;
     
@@ -87,10 +89,23 @@ public class RutinaController {
         return gestorRutina.obtenerRutinasDeCliente(idCliente);
     }
 
+    // ✅ FILTRO DE PRIVACIDAD ESTRICTA: Solo verás lo que hayas creado TÚ
     @GetMapping("/cliente/{idCliente}/entrenador")
-    public ResponseEntity<List<Rutina>> obtenerRutinasEntrenador(@PathVariable UUID idCliente) {
+    public ResponseEntity<List<Rutina>> obtenerRutinasEntrenador(
+            @PathVariable UUID idCliente,
+            @RequestParam(required = false) String entrenadorId) { // Recogemos el DNI del Entrenador
+        
         try {
+            // 1. Obtenemos todas las rutinas asignadas a este cliente creadas por un "ENTRENADOR"
             List<Rutina> rutinas = gestorRutina.obtenerRutinasDeEntrenadorParaCliente(idCliente);
+
+            // 2. Aplicamos el candado: Si se pasa un ID, filtramos estrictamente
+            if (entrenadorId != null) {
+                rutinas = rutinas.stream()
+                        .filter(r -> r.getEntrenadorId() != null && r.getEntrenadorId().toString().equals(entrenadorId))
+                        .collect(Collectors.toList());
+            }
+
             return ResponseEntity.ok(rutinas);
         } catch (Exception e) {
             e.printStackTrace();
@@ -99,7 +114,7 @@ public class RutinaController {
     }
 
     // =========================================================================
-    //                        ZONA DE PLANTILLAS MAESTRAS
+    //                            ZONA DE PLANTILLAS MAESTRAS
     // =========================================================================
 
     // --- 1. OBTENER PLANTILLAS DEL ENTRENADOR ---
@@ -134,6 +149,7 @@ public class RutinaController {
             clon.setCreador("ENTRENADOR"); 
             clon.setEsPlantilla(false); // Deja de ser plantilla
             clon.setCliente(cliente);   // Ahora pertenece al cliente
+            clon.setEntrenadorId(plantilla.getEntrenadorId()); // ✅ Mantenemos la firma de quién la clonó
 
             // 4. Clonar los ejercicios
             List<DetalleRutina> detallesClonados = new ArrayList<>();
@@ -144,7 +160,6 @@ public class RutinaController {
                     nuevoDetalle.setRutina(clon); 
                     nuevoDetalle.setEjercicio(original.getEjercicio());
                     
-                    // 👇 AQUÍ ESTÁ LA CORRECCIÓN CON TUS CAMPOS REALES
                     nuevoDetalle.setSeries(original.getSeries());
                     nuevoDetalle.setRepeticiones(original.getRepeticiones());
                     nuevoDetalle.setNotas(original.getNotas());

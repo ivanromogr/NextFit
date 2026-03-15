@@ -8,10 +8,11 @@ import {
   ChevronLeft, ChevronRight, Trash2, Dumbbell, Check, X, 
   Clock, Activity, ArrowLeft, AlertCircle, AlertTriangle, Plus, PlusCircle
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom'; // ✅ AÑADIDO useParams
 import { 
     obtenerEventosCalendario, programarRutina, eliminarEventoCalendario, 
-    obtenerRutinasCliente, toggleCompletadoEvento, moverEventoCalendario 
+    obtenerRutinasCliente, obtenerRutinasAsignadasPorEntrenador, 
+    toggleCompletadoEvento, moverEventoCalendario 
 } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
@@ -19,13 +20,19 @@ import ModalResultados from '../../components/functional/ModalResultados';
 
 export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }) {
     const navigate = useNavigate();
+    const params = useParams(); // ✅ Cazamos el ID de la URL
     const toast = useToast();
     const { userId } = useAuth();
     
+    // ✅ LÓGICA INTELIGENTE DE MODO ENTRENADOR
+    const idDeLaUrl = params.id || params.clienteId; 
+    const clienteId = clienteIdProp || idDeLaUrl || userId;
+    const modoEntrenador = isCoachMode || !!idDeLaUrl;
+
     const [currentDate, setCurrentDate] = useState(new Date());
     const [eventos, setEventos] = useState([]);
     const [rutinas, setRutinas] = useState([]);
-    const [hoveredDate, setHoveredDate] = useState(null); // Nuevo estado para hover
+    const [hoveredDate, setHoveredDate] = useState(null); 
     
     // Modales y selección
     const [showModal, setShowModal] = useState(false);
@@ -43,24 +50,31 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [eventToDelete, setEventToDelete] = useState(null);
 
-    const clienteId = clienteIdProp || userId;
-
     useEffect(() => {
         if (!clienteId) return;
         cargarEventos();
-        obtenerRutinasCliente(clienteId).then(data => setRutinas(data || []));
-    }, [currentDate, clienteId]);
+        
+        // Carga de rutinas filtradas
+        if (modoEntrenador) {
+            // ✅ AHORA SÍ: Le pasamos el clienteId y TU userId
+            obtenerRutinasAsignadasPorEntrenador(clienteId, userId).then(data => setRutinas(data || []));
+        } else {
+            obtenerRutinasCliente(clienteId).then(data => setRutinas(data || []));
+        }
+    }, [currentDate, clienteId, modoEntrenador, userId]);
 
     const cargarEventos = async () => {
         const start = format(startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 }), 'yyyy-MM-dd');
         const end = format(endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-        const data = await obtenerEventosCalendario(clienteId, start, end);
+        
+        // Enviamos tu ID para el filtro estricto de privacidad
+        const idFiltroEntrenador = modoEntrenador ? userId : null;
+        const data = await obtenerEventosCalendario(clienteId, start, end, idFiltroEntrenador);
+        
         setEventos(data);
     };
 
-    const rutinasDisponibles = isCoachMode 
-        ? rutinas.filter(r => r.creador === 'ENTRENADOR') 
-        : rutinas;
+    const rutinasDisponibles = rutinas; 
 
     // --- DRAG & DROP ---
     const handleDragStart = (e, eventoId) => {
@@ -102,8 +116,12 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         if (!selectedRutina) return toast.error("Selecciona una rutina");
         try {
             const fechaStr = format(selectedDate, 'yyyy-MM-dd');
-            await programarRutina(clienteId, selectedRutina, fechaStr);
-            toast.success(isCoachMode ? "Rutina asignada" : "Rutina programada");
+            const idEntrenador = modoEntrenador ? userId : undefined;
+            
+            // Enviamos la firma a Java
+            await programarRutina(clienteId, selectedRutina, fechaStr, idEntrenador);
+            
+            toast.success(modoEntrenador ? "Rutina asignada" : "Rutina programada");
             setShowModal(false);
             cargarEventos(); 
         } catch (error) {
@@ -115,7 +133,11 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         setSelectedRutina(rutinaId);
         try {
             const fechaStr = format(selectedDate, 'yyyy-MM-dd');
-            await programarRutina(clienteId, rutinaId, fechaStr);
+            const idEntrenador = modoEntrenador ? userId : undefined;
+            
+            // Enviamos la firma a Java
+            await programarRutina(clienteId, rutinaId, fechaStr, idEntrenador);
+            
             toast.success("¡Añadido al calendario!");
             setShowModal(false);
             cargarEventos(); 
@@ -154,18 +176,19 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         }
     };
 
-    const irAEntrenar = (rutinaId, eventoId) => {
-        if (isCoachMode) {
+   const irAEntrenar = (rutinaId, eventoId) => {
+        if (modoEntrenador) {
             const ev = eventos.find(e => e.id === eventoId);
             if (ev && ev.estado === 'COMPLETADO') {
                 setSelectedEventoId(eventoId);
                 setShowResultadosModal(true);
             } else {
-                toast.info("Este entrenamiento aún está pendiente.");
+                navigate(`/entrenador/cliente/${clienteId}/editar-rutina/${rutinaId}`);
             }
             return;
         }
-        navigate(`/cliente/sesion/${rutinaId}`);
+       
+        navigate(`/cliente/sesion/${rutinaId}`, { state: { eventoId: eventoId } });
     };
 
     const formatDuracion = (seg) => {
@@ -176,7 +199,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
 
     // --- ESTILOS PREMIUM ---
     const styles = {
-        page: { padding: '30px 40px', color: 'white', minHeight: '100vh', background: isCoachMode ? '#000000' : '#050505', fontFamily: "'Inter', sans-serif" },
+        page: { padding: '30px 40px', color: 'white', minHeight: '100vh', background: modoEntrenador ? '#000000' : '#050505', fontFamily: "'Inter', sans-serif" },
         header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
         title: { fontSize: '2rem', fontWeight: 900, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '15px', letterSpacing: '-0.5px' },
         navBtn: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', cursor: 'pointer', padding: '10px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' },
@@ -230,7 +253,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
 
     return (
         <div style={styles.page}>
-            {isCoachMode && (
+            {modoEntrenador && (
                 <button onClick={() => navigate(-1)} style={{display:'flex', alignItems:'center', gap:'8px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'white', cursor:'pointer', marginBottom:'20px', padding:'8px 16px', borderRadius:'12px', fontWeight:700}}>
                     <ArrowLeft size={16}/> VOLVER AL PERFIL
                 </button>
@@ -241,7 +264,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
                 <h2 style={styles.title}>
                     <Dumbbell size={28} color="#FACC15"/> 
                     {format(currentDate, 'MMMM yyyy', { locale: es })}
-                    {isCoachMode && <span style={{fontSize:'0.7rem', background:'rgba(255,255,255,0.1)', padding:'6px 12px', borderRadius:'20px', color:'white', marginLeft:'15px', letterSpacing:'1px'}}>MODO ENTRENADOR</span>}
+                    {modoEntrenador && <span style={{fontSize:'0.7rem', background:'rgba(255,255,255,0.1)', padding:'6px 12px', borderRadius:'20px', color:'white', marginLeft:'15px', letterSpacing:'1px'}}>MODO ENTRENADOR</span>}
                 </h2>
                 <button style={styles.navBtn} onClick={() => setCurrentDate(addMonths(currentDate, 1))} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}><ChevronRight/></button>
             </div>
@@ -282,7 +305,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
                                     onDragEnd={handleDragEnd}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        if (isCoachMode || ev.estado !== 'COMPLETADO') irAEntrenar(ev.rutinaId, ev.id);
+                                        if (modoEntrenador || ev.estado !== 'COMPLETADO') irAEntrenar(ev.rutinaId, ev.id);
                                     }}
                                 >
                                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
@@ -350,11 +373,11 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
                                     <AlertCircle size={32} color="rgba(255,255,255,0.2)" style={{marginBottom:'15px'}}/>
                                     <p style={{fontWeight: 800, color:'white', margin: '0 0 10px 0'}}>Biblioteca vacía</p>
                                     <p style={{fontSize:'0.9rem', color: 'rgba(255,255,255,0.5)', margin: '0 0 20px 0'}}>
-                                        {isCoachMode ? "No has creado ninguna rutina para este cliente." : "No tienes rutinas creadas."}
+                                        {modoEntrenador ? "No has creado ninguna rutina para este cliente." : "No tienes rutinas creadas."}
                                     </p>
                                     <button 
                                         style={{background: '#FACC15', color: 'black', border: 'none', padding: '12px 24px', borderRadius: '12px', fontWeight: 900, cursor: 'pointer', width: '100%'}}
-                                        onClick={() => navigate(isCoachMode ? `/entrenador/cliente/${clienteId}/crear-rutina` : '/cliente/crear-rutina')}
+                                        onClick={() => navigate(modoEntrenador ? `/entrenador/cliente/${clienteId}/crear-rutina` : '/cliente/crear-rutina')}
                                     >
                                         ⚡ CREAR RUTINA AHORA
                                     </button>
@@ -378,7 +401,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
                             </h3>
                         </div>
                         <p style={{color:'rgba(255,255,255,0.6)', fontSize:'0.95rem', lineHeight:'1.6', marginBottom:'30px'}}>
-                            {isCoachMode 
+                            {modoEntrenador 
                                 ? "Vas a quitar este entrenamiento del calendario de tu cliente. Esta acción no se puede deshacer."
                                 : "¿Estás seguro de que quieres eliminar este entrenamiento de tu agenda?"}
                         </p>

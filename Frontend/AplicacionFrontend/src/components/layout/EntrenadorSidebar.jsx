@@ -94,7 +94,7 @@ export default function EntrenadorSidebar() {
           style={styles.navItem(isDashboard)}
           onClick={() => navigate("/entrenador/dashboard")}
         >
-          <LayoutGrid size={20} /> Dashboard
+          <LayoutGrid size={20} /> Inicio
         </button>
 
         <button

@@ -67,6 +67,33 @@ export default function MenuCliente() {
     setActiveMenu(null);
   };
 
+  // ✅ NUEVO: Función para borrar un PLAN IA COMPLETO (todos sus días)
+  const handleDeletePlanIA = async (e, group) => {
+    e.stopPropagation();
+    setActiveMenu(null);
+    
+    // Mostramos un confirm nativo del navegador para ir rápido, 
+    // aunque podrías usar tu modal personalizado si quieres.
+    const isConfirmed = window.confirm(
+      `¿Estás seguro de que quieres eliminar TODO el "${group.key?.includes("|") ? `Plan ${group.objetivo}` : group.key}"? Esto borrará todos los días asignados.`
+    );
+
+    if (isConfirmed) {
+      try {
+        // Borramos todas las rutinas del grupo iterando sobre sus items
+        await Promise.all(group.items.map((rutinaDia) => eliminarRutina(rutinaDia.id)));
+        
+        // Actualizamos el estado sacando todas las rutinas que acabamos de borrar
+        const idsBorrados = group.items.map(r => r.id);
+        setRutinas(prev => prev.filter((r) => !idsBorrados.includes(r.id)));
+        
+        // Opcional: mostrar un toast de éxito aquí
+      } catch (error) {
+        alert("Hubo un error al eliminar el plan IA completo.");
+      }
+    }
+  };
+
   const confirmDelete = async () => {
     if (!rutinaToDelete) return;
     try {
@@ -145,13 +172,13 @@ export default function MenuCliente() {
     pill: { background: "#27272a", color: "#e4e4e7", padding: "4px 10px", borderRadius: "6px", fontSize: "0.7rem", fontWeight: "700", textTransform: "uppercase" },
     previewText: { color: "#52525b", fontSize: "0.85rem", lineHeight: "1.5", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: "2.5em" },
     btnStartPersonal: { marginTop: "auto", width: "100%", padding: "12px", borderRadius: "10px", background: "#18181b", color: "white", fontWeight: "700", border: "1px solid #27272a", cursor: "pointer", fontSize: "0.85rem", textTransform: "uppercase", transition: "background 0.2s" },
-    menuBtn: { color: "#52525b", padding: "8px", borderRadius: "50%", cursor: "pointer" },
+    menuBtn: { color: "#52525b", padding: "8px", borderRadius: "50%", cursor: "pointer", zIndex: 2 },
     dropdown: { position: "absolute", top: "40px", right: "10px", background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", padding: "6px", zIndex: 10, width: "150px", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" },
     dropdownItem: { display: "flex", alignItems: "center", gap: "10px", padding: "10px", fontSize: "0.85rem", color: "#e4e4e7", borderRadius: "8px", cursor: "pointer" },
     iaCard: { background: "linear-gradient(145deg, rgba(250,204,21,0.10) 0%, #121214 60%)", border: "1px solid rgba(250, 204, 21, 0.25)", borderRadius: "20px", padding: "26px", display: "flex", flexDirection: "column", gap: "14px", cursor: "pointer", transition: "all 0.2s", position: "relative", maxWidth: "520px" },
     iaTopRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" },
     iaPill: { background: "rgba(250,204,21,0.15)", color: "#FACC15", padding: "6px 10px", borderRadius: "10px", fontSize: "0.72rem", fontWeight: "900", textTransform: "uppercase", letterSpacing: "1px", display: "inline-flex", alignItems: "center", gap: "8px" },
-    iaTitle: { margin: 0, fontSize: "1.25rem", fontWeight: "900", textTransform: "uppercase" },
+    iaTitle: { margin: 0, fontSize: "1.25rem", fontWeight: "900", textTransform: "uppercase", paddingRight: "30px" }, // Padding extra para que el texto no pise el botón
     iaSub: { margin: 0, color: "#a1a1aa", fontSize: "0.95rem" },
     iaBtn: { marginTop: "10px", width: "100%", padding: "12px", borderRadius: "12px", background: "#FACC15", color: "black", fontWeight: "900", border: "none", cursor: "pointer", textTransform: "uppercase", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" },
     iaStatsRow: { display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "6px" },
@@ -261,7 +288,26 @@ export default function MenuCliente() {
                 <div style={styles.iaPill}>
                   <Sparkles size={16} /> PLAN IA
                 </div>
-                <div style={{ color: "#FACC15", fontWeight: "900", textTransform: "uppercase", fontSize: "0.85rem" }}>
+                
+                {/* ✅ NUEVO: Botón de los 3 puntitos para Planes IA */}
+                <div style={{ position: "absolute", top: "15px", right: "15px" }}>
+                  <div style={styles.menuBtn} onClick={(e) => toggleMenu(e, `ia-${group.key}`)}>
+                    <MoreHorizontal size={20} color="#FACC15" />
+                  </div>
+
+                  {activeMenu === `ia-${group.key}` && (
+                    <div style={{ ...styles.dropdown, right: 0 }}>
+                      <div
+                        style={{ ...styles.dropdownItem, color: "#ef4444" }}
+                        onClick={(e) => handleDeletePlanIA(e, group)}
+                      >
+                        <Trash2 size={16} /> Eliminar Plan Completo
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ color: "#FACC15", fontWeight: "900", textTransform: "uppercase", fontSize: "0.85rem", marginTop: "8px", marginRight: "35px" }}>
                   {daysCount} día{daysCount !== 1 ? "s" : ""}
                 </div>
               </div>
@@ -421,7 +467,7 @@ export default function MenuCliente() {
               <X size={20} />
             </button>
 
-            <h3 style={{ margin: 0, fontSize: "1.35rem", fontWeight: "900", textTransform: "uppercase" }}>
+            <h3 style={{ margin: 0, fontSize: "1.35rem", fontWeight: "900", textTransform: "uppercase", paddingRight: "40px" }}>
               {iaPlanSelected.key?.includes("|") ? `Plan ${iaPlanSelected.objetivo}` : iaPlanSelected.key}
             </h3>
             <p style={{ marginTop: "8px", marginBottom: "0", color: "#a1a1aa" }}>Selecciona el día que quieres entrenar.</p>

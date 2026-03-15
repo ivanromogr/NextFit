@@ -38,6 +38,9 @@ public class EventoCalendario {
     @Column(nullable = true)
     private Double volumenTotal;
 
+    @Column(name = "entrenador_id")
+    private UUID entrenadorId;
+
     private boolean completado; // Para marcar si ya se hizo
 
     public EventoCalendario() {}
@@ -64,4 +67,12 @@ public class EventoCalendario {
     public void setDuracionSegundos(Integer duracionSegundos) { this.duracionSegundos = duracionSegundos; }
     public Double getVolumenTotal() { return volumenTotal; }
     public void setVolumenTotal(Double volumenTotal) { this.volumenTotal = volumenTotal; }
+
+    public UUID getEntrenadorId() {
+        return entrenadorId;
+    }
+
+    public void setEntrenadorId(UUID entrenadorId) {
+        this.entrenadorId = entrenadorId;
+    }
 }

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody; // 👈 Asegúrate de tener este import
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,18 +34,39 @@ public class CalendarioController {
     @Autowired private ClienteDAO clienteDAO;
     @Autowired private RutinaDAO rutinaDAO;
 
-    // 1. Obtener eventos (CON EL SEMÁFORO DE ESTADOS)
+    // 1. Obtener eventos (CON FILTRO DE PRIVACIDAD ABSOLUTA ENTRE ENTRENADORES)
     @GetMapping("/{clienteId}")
     public ResponseEntity<List<Map<String, Object>>> getEventos(
             @PathVariable UUID clienteId,
             @RequestParam String inicio, 
-            @RequestParam String fin) {
+            @RequestParam String fin,
+            @RequestParam(required = false) String entrenadorId) {
         
         LocalDate fechaInicio = LocalDate.parse(inicio);
         LocalDate fechaFin = LocalDate.parse(fin);
         LocalDate hoy = LocalDate.now(); 
 
         List<EventoCalendario> eventos = eventoDAO.findByClienteIdAndFechaBetween(clienteId, fechaInicio, fechaFin);
+
+        // 🛡️ SEGURIDAD ESTRICTA: Sin parches temporales
+        if (entrenadorId != null) {
+            System.out.println("🕵️‍♂️ Filtrando calendario estrictamente para el entrenador: " + entrenadorId);
+            
+            eventos = eventos.stream()
+                    .filter(e -> {
+                        boolean eventoEsMio = e.getEntrenadorId() != null && e.getEntrenadorId().toString().equals(entrenadorId);
+                        boolean rutinaEsMia = e.getRutina().getEntrenadorId() != null && e.getRutina().getEntrenadorId().toString().equals(entrenadorId);
+                        
+                        // Solo pasa si el entrenador programó el evento o si la rutina es de su propiedad
+                        if (eventoEsMio || rutinaEsMia) {
+                            return true;
+                        } else {
+                            System.out.println("❌ Evento bloqueado: No pertenece a este entrenador.");
+                            return false;
+                        }
+                    })
+                    .collect(Collectors.toList());
+        }
 
         List<Map<String, Object>> respuesta = eventos.stream().map(e -> {
             Map<String, Object> map = new HashMap<>();
@@ -56,7 +77,8 @@ public class CalendarioController {
             map.put("completado", e.isCompletado()); // Booleano base
             map.put("duracion", e.getDuracionSegundos());
             map.put("volumen", e.getVolumenTotal());
-            //  CALCULAR EL ESTADO PARA EL COLOR
+            
+            // CALCULAR EL ESTADO PARA EL COLOR
             String estado;
             if (e.isCompletado()) {
                 estado = "COMPLETADO"; // Esto activará el color VERDE
@@ -73,7 +95,7 @@ public class CalendarioController {
         return ResponseEntity.ok(respuesta);
     }
 
-    // 2. Programar rutina
+    // 2. Programar rutina (GUARDANDO LA FIRMA DEL ENTRENADOR)
     @PostMapping("/{clienteId}")
     public ResponseEntity<?> crearEvento(@PathVariable UUID clienteId, @RequestBody Map<String, String> payload) {
         UUID rutinaId = UUID.fromString(payload.get("rutinaId"));
@@ -84,6 +106,12 @@ public class CalendarioController {
         if (cliente == null || rutina == null) return ResponseEntity.badRequest().body("Error datos");
 
         EventoCalendario evento = new EventoCalendario(fecha, rutina, cliente);
+        
+        // 🔒 Guardamos obligatoriamente la firma de quién crea el evento
+        if (payload.containsKey("entrenadorId") && payload.get("entrenadorId") != null) {
+            evento.setEntrenadorId(UUID.fromString(payload.get("entrenadorId")));
+        }
+
         eventoDAO.save(evento);
         return ResponseEntity.ok("Evento programado");
     }
@@ -106,6 +134,7 @@ public class CalendarioController {
 
         return ResponseEntity.ok(Map.of("completado", evento.isCompletado()));
     }
+    
     // 5. Mover evento (Drag & Drop)
     @PutMapping("/{eventoId}/mover")
     public ResponseEntity<?> moverEvento(@PathVariable UUID eventoId, @RequestBody Map<String, String> payload) {

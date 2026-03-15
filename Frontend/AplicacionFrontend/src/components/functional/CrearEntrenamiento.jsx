@@ -131,7 +131,8 @@
                 return;
             }
             
-            // Determinamos el destino
+            // ✅ SOLUCIÓN: Detectamos quién es por la URL, evitando los fallos de la memoria caché
+            const esEntrenador = isTemplate || window.location.pathname.includes("/entrenador");
             const clienteObjetivoId = localStorage.getItem("clienteObjetivoId") || clienteIdProp;
             
             // Construimos el Payload dinámico
@@ -139,14 +140,16 @@
                 nombre: nombreRutina,
                 descripcion: descripcionRutina,
                 objetivo: isTemplate ? "Plantilla Maestra" : "Personalizado",
-                creador: isTemplate || clienteObjetivoId ? "ENTRENADOR" : "CLIENTE",
                 
-                // Si es plantilla, enviamos estos campos nuevos
+               
+                creador: esEntrenador ? "ENTRENADOR" : "CLIENTE",
+                
                 esPlantilla: isTemplate, 
-                entrenadorId: isTemplate ? currentUserId : undefined,
+                // enviamos el ID de entrenador si realmente eres el Coach
+                entrenadorId: esEntrenador ? currentUserId : undefined,
                 
-                // Si NO es plantilla, enviamos el ID del cliente
-                idCliente: !isTemplate ? (clienteObjetivoId || localStorage.getItem("clienteId")) : undefined,
+                //Si eres cliente, te lo asignas a ti mismo (currentUserId). Si eres Coach, va al objetivo.
+                idCliente: !isTemplate ? (esEntrenador ? clienteObjetivoId : currentUserId) : undefined,
                 
                 ejercicios: ejerciciosSeleccionados.map(e => ({
                     idEjercicio: e.idEjercicio,
