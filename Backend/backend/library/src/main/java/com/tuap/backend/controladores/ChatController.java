@@ -34,7 +34,7 @@ public class ChatController {
     @Autowired
     private ClienteDAO clienteDAO;
 
-    // 1. WEBSOCKET: Enviar mensaje
+    // Enviar mensaje
     @MessageMapping("/chat")
     public void processMessage(@Payload Mensaje mensaje) {
         mensaje.setFechaHora(LocalDateTime.now());
@@ -45,7 +45,7 @@ public class ChatController {
         messagingTemplate.convertAndSend("/topic/mensajes/" + mensaje.getDestinatarioId(), guardado);
     }
 
-    // 2. WEBSOCKET: Marcar mensajes como leídos
+    //  Marcar mensajes como leídos
     @MessageMapping("/chat/leer")
     @Transactional
     public void marcarComoLeido(@Payload Map<String, String> payload) {
@@ -66,7 +66,7 @@ public class ChatController {
         }
     }
 
-    // 3. REST: Obtener historial de chat
+    // Obtener historial de chat
     @GetMapping("/api/chat/historial")
     @ResponseBody
     public ResponseEntity<List<Mensaje>> getHistorial(
@@ -76,14 +76,14 @@ public class ChatController {
     }
 
     /**
-     * ✅ MÉTODO MODIFICADO (SOLUCIÓN PROFESIONAL)
+     
      * Obtener la lista de personas con las que el usuario ha hablado.
      */
     @GetMapping("/api/chat/contactos") 
     @ResponseBody
     public ResponseEntity<List<Cliente>> obtenerContactosDeUsuario(@RequestParam UUID usuarioId) {
         try {
-            // 1. Obtenemos directamente los UUIDs (Requiere el cambio a JPQL en MensajeDAO)
+            // 1. Obtenemos directamente los UUIDs 
             List<UUID> contactosIds = mensajeDAO.findContactosIds(usuarioId);
             
             if (contactosIds == null || contactosIds.isEmpty()) {

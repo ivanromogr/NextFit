@@ -118,7 +118,7 @@ public class SesionEntrenamientoController {
         return ResponseEntity.ok(response);
     }
 
-    // 👇👇 DASHBOARD "VISTA DE ÁGUILA" (MODIFICADO) 👇👇
+    
     @GetMapping("/{entrenadorId}/dashboard-resumen")
     public ResponseEntity<?> getDashboardResumen(@PathVariable UUID entrenadorId) {
         try {
@@ -138,7 +138,7 @@ public class SesionEntrenamientoController {
                 System.out.println("Aviso: DAO no actualizado para métricas águila.");
             }
 
-            // Simulación de Récords (esto requeriría lógica compleja de PRs)
+            // Simulación de Récords 
             long nuevosRecords = 3; 
 
             // 3. Mapeo del Feed
@@ -159,9 +159,9 @@ public class SesionEntrenamientoController {
             
             // Objeto Stats Específico para las Tarjetas
             Map<String, Object> stats = new HashMap<>();
-            stats.put("hoy", entrenosHoy);        // ✅ Para tarjeta Verde
-            stats.put("riesgo", clientesRiesgo);  // ⚠️ Para tarjeta Roja
-            stats.put("records", nuevosRecords);  // 🎉 Para tarjeta Dorada
+            stats.put("hoy", entrenosHoy);        
+            stats.put("riesgo", clientesRiesgo);  
+            stats.put("records", nuevosRecords); 
             
             response.put("stats", stats);
             response.put("feedActividad", feed);

@@ -28,7 +28,7 @@ public class DashboardController {
     public ResponseEntity<Map<String, Object>> getResumen(@PathVariable UUID clienteId) {
         LocalDate hoy = LocalDate.now();
         
-        // 1. Calcular rango de esta semana (Lunes a Domingo)
+        // 1. Calcular rango de esta semana 
         LocalDate inicioSemana = hoy.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate finSemana = hoy.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
 
@@ -39,7 +39,7 @@ public class DashboardController {
         long entrenosHechos = eventosSemana.stream().filter(EventoCalendario::isCompletado).count();
         long entrenosTotal = eventosSemana.size(); 
         
-        // Sumar volumen de la semana (evitando nulos)
+        // Sumar volumen de la semana 
         double volumenSemana = eventosSemana.stream()
                 .filter(e -> e.getVolumenTotal() != null)
                 .mapToDouble(EventoCalendario::getVolumenTotal)
@@ -51,9 +51,7 @@ public class DashboardController {
                 .findFirst()
                 .orElse(null);
 
-        // ==========================================
-        // 🎯 5. LÓGICA DE LA RACHA (STREAK)
-        // ==========================================
+        // 5. Calcular racha actual (contar hacia atrás desde hoy hasta el primer día que no se completó)
         List<EventoCalendario> eventosHistorial = eventoDAO.findByClienteIdAndFechaLessThanEqualOrderByFechaDesc(clienteId, hoy);
         int racha = 0;
 
@@ -69,15 +67,14 @@ public class DashboardController {
             }
         }
 
-        // ==========================================
-        // 6. Construir Respuesta JSON
-        // ==========================================
+       
+
         Map<String, Object> response = new HashMap<>();
         response.put("entrenosHechos", entrenosHechos);
         response.put("entrenosObjetivo", entrenosTotal > 0 ? entrenosTotal : 4); 
         response.put("volumenSemana", volumenSemana);
         
-        // 👇 AÑADIMOS LA RACHA AL JSON 👇
+       
         response.put("rachaActual", racha);
         
         // Enviamos datos del evento de hoy

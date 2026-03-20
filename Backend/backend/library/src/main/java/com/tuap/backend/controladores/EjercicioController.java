@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam; // Asegúrate de importar esto si usas búsqueda
+import org.springframework.web.bind.annotation.RequestParam; 
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuap.backend.dominio.entidades.Ejercicio;
@@ -26,14 +26,13 @@ public class EjercicioController {
         return ejercicioDAO.findAll();
     }
 
-    // Asegúrate de mantener tu método de búsqueda si lo tenías
+   
     @GetMapping("/buscar")
     public List<Ejercicio> buscar(@RequestParam(required = false) String nombre,
                                   @RequestParam(required = false) String musculo) {
         String nombreFiltro = (nombre != null && !nombre.isEmpty()) ? nombre : null;
         String musculoFiltro = (musculo != null && !musculo.isEmpty()) ? musculo : null;
-        // Nota: Asegúrate de que tu EjercicioDAO tiene el método 'buscarAvanzado' que hicimos antes.
-        // Si no, usa findAll() o la lógica que tengas.
+       
         return ejercicioDAO.buscarAvanzado(nombreFiltro, musculoFiltro);
     }
 }

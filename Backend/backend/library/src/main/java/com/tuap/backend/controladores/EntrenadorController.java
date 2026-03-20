@@ -43,7 +43,7 @@ public class EntrenadorController {
 
     // --- 1. OBTENER CLIENTES (Con lógica de Borde Verde) ---
     @GetMapping("/{idEntrenador}/clientes")
-    public ResponseEntity<?> obtenerClientes(@PathVariable UUID idEntrenador) { // ✅ CAMBIO CLAVE AQUÍ: Usamos <?>
+    public ResponseEntity<?> obtenerClientes(@PathVariable UUID idEntrenador) { 
         try {
             List<Cliente> clientes = clienteDAO.findByEntrenadorId(idEntrenador);
             
@@ -74,7 +74,7 @@ public class EntrenadorController {
             }
             return ResponseEntity.ok(respuesta);
         } catch (Exception e) {
-            // ✅ Ahora Java nos permite devolver un texto de error limpio si falla
+           
             return ResponseEntity.internalServerError().body("Error interno al obtener los atletas: " + e.getMessage());
         }
     }
@@ -133,7 +133,7 @@ public class EntrenadorController {
         }
     }
 
-    // --- 3. DATOS PERFIL PÚBLICO (MODIFICADO PARA MEDIR VALORACIONES) ---
+    // --- 3. DATOS PERFIL PÚBLICO  ---
     @GetMapping("/{id}")
     public ResponseEntity<?> getPerfilPublico(@PathVariable UUID id) {
         try {
@@ -143,7 +143,7 @@ public class EntrenadorController {
             Double media = resenaDAO.calcularMediaPorEntrenador(id);
             List<Resena> listaResenas = resenaDAO.findByEntrenadorIdOrderByFechaDesc(id);
             
-            // ✅ NUEVO: Contamos los clientes reales de la base de datos
+            //Contamos los clientes reales de la base de datos
             long totalClientes = clienteDAO.countByEntrenador_Id(id); 
 
             Map<String, Object> respuesta = new HashMap<>();
@@ -214,7 +214,7 @@ public class EntrenadorController {
     }
 
     // --- 6. BUSCADOR PÚBLICO ---
-    // --- 6. BUSCADOR PÚBLICO AVANZADO (CON FILTROS) ---
+  
     @GetMapping("/publicos")
     public ResponseEntity<List<Entrenador>> obtenerEntrenadoresPublicos(
             @RequestParam(required = false) String modalidad,

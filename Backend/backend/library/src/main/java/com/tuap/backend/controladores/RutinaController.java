@@ -33,7 +33,7 @@ public class RutinaController {
     @Autowired
     private GestorRutina gestorRutina;
 
-    // Inyectamos los DAO para la lógica de plantillas y filtros
+  
     @Autowired 
     private RutinaDAO rutinaDAO;
     
@@ -89,7 +89,7 @@ public class RutinaController {
         return gestorRutina.obtenerRutinasDeCliente(idCliente);
     }
 
-    // ✅ FILTRO DE PRIVACIDAD ESTRICTA: Solo verás lo que hayas creado TÚ
+   
     @GetMapping("/cliente/{idCliente}/entrenador")
     public ResponseEntity<List<Rutina>> obtenerRutinasEntrenador(
             @PathVariable UUID idCliente,
@@ -140,16 +140,16 @@ public class RutinaController {
             Cliente cliente = clienteDAO.findById(clienteId)
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
-            // 3. Crear el clon (Copia de la Rutina)
+            // 3. Crear el clon 
             Rutina clon = new Rutina();
             clon.setNombre(plantilla.getNombre());
             clon.setObjetivo(plantilla.getObjetivo());
             clon.setDescripcion(plantilla.getDescripcion());
             clon.setNivel(plantilla.getNivel());
             clon.setCreador("ENTRENADOR"); 
-            clon.setEsPlantilla(false); // Deja de ser plantilla
-            clon.setCliente(cliente);   // Ahora pertenece al cliente
-            clon.setEntrenadorId(plantilla.getEntrenadorId()); // ✅ Mantenemos la firma de quién la clonó
+            clon.setEsPlantilla(false); 
+            clon.setCliente(cliente);  
+            clon.setEntrenadorId(plantilla.getEntrenadorId()); 
 
             // 4. Clonar los ejercicios
             List<DetalleRutina> detallesClonados = new ArrayList<>();

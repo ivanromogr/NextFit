@@ -37,7 +37,7 @@ public class ClienteController {
     public Cliente obtener(@PathVariable UUID id) {
         return clienteDAO.findById(id).orElse(null);
     }
-    // 👇 AÑADE ESTO EN TU CONTROLADOR 👇
+
     @GetMapping("/buscar")
     public ResponseEntity<?> buscarPorEmail(@RequestParam String email) {
         // Asumiendo que tienes un clienteRepository o usuarioRepository
@@ -89,7 +89,7 @@ public class ClienteController {
         return ResponseEntity.ok("Perfil completado exitosamente");
     }
 
-    // --- NUEVO: ACTUALIZAR PERFIL CLIENTE (PUT /api/clientes/{id}) ---
+    //  ACTUALIZAR PERFIL CLIENTE  ---
     @PutMapping("/{id}")
     public ResponseEntity<?> actualizarPerfil(@PathVariable UUID id, @RequestBody com.tuap.backend.dto.UpdateClienteRequest req) {
         Cliente cliente = clienteDAO.findById(id).orElse(null);

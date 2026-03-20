@@ -22,7 +22,7 @@ public class EstadisticasController {
     @GetMapping("/global/{clienteId}")
     public ResponseEntity<?> getGlobalStats(
             @PathVariable UUID clienteId,
-            @RequestParam(required = false) UUID entrenadorId) { // ✅ Recibe el ID del entrenador
+            @RequestParam(required = false) UUID entrenadorId) { 
         
         // Pasamos ambos IDs al gestor para que filtre los datos
         return ResponseEntity.ok(gestorEstadisticas.obtenerStatsGlobales(clienteId, entrenadorId));
@@ -33,7 +33,7 @@ public class EstadisticasController {
     public ResponseEntity<?> getExerciseStats(
             @PathVariable UUID clienteId, 
             @PathVariable UUID ejercicioId,
-            @RequestParam(required = false) UUID entrenadorId) { // ✅ Recibe el ID del entrenador
+            @RequestParam(required = false) UUID entrenadorId) { 
         
         var stats = gestorEstadisticas.obtenerProgresoEjercicio(clienteId, ejercicioId, entrenadorId);
         
@@ -45,7 +45,7 @@ public class EstadisticasController {
     @GetMapping("/prs/{clienteId}")
     public ResponseEntity<?> getPersonalRecords(
             @PathVariable UUID clienteId,
-            @RequestParam(required = false) UUID entrenadorId) { // ✅ Recibe el ID del entrenador
+            @RequestParam(required = false) UUID entrenadorId) { 
         
         return ResponseEntity.ok(gestorEstadisticas.obtenerPersonalRecords(clienteId, entrenadorId));
     }
