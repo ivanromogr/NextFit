@@ -20,11 +20,11 @@ public interface SesionEntrenamientoDAO extends JpaRepository<SesionEntrenamient
     // Feed de actividad
     List<SesionEntrenamiento> findTop10ByCliente_Entrenador_IdOrderByFechaHoraDesc(UUID entrenadorId);
 
-    // 👇 1. MÉTRICA HOY: Contar sesiones completadas HOY
+    // Contar sesiones completadas HOY
     @Query("SELECT COUNT(s) FROM SesionEntrenamiento s WHERE s.cliente.entrenador.id = :entrenadorId AND CAST(s.fechaHora AS date) = CURRENT_DATE")
     long countEntrenosHoy(@Param("entrenadorId") UUID entrenadorId);
 
-    // 👇 2. MÉTRICA RIESGO: Clientes inactivos (+7 días)
+    // Clientes inactivos (+7 días)
     @Query("SELECT COUNT(c) FROM Cliente c " +
            "WHERE c.entrenador.id = :entrenadorId " +
            "AND c.id NOT IN (" +

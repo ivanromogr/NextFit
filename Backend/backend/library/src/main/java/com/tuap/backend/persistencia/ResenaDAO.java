@@ -20,7 +20,7 @@ public interface ResenaDAO extends JpaRepository<Resena, UUID> {
     
     /**
      * Calcula la media aritmética de las estrellas de un entrenador.
-     * @Param id El UUID del entrenador.
+    
      * @return El promedio como Double (puede ser null si no hay reseñas).
      */
     @Query("SELECT AVG(r.estrellas) FROM Resena r WHERE r.entrenador.id = :id")

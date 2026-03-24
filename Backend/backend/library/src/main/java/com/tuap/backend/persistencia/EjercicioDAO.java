@@ -34,7 +34,7 @@ public interface EjercicioDAO extends JpaRepository<Ejercicio, UUID> {
     Ejercicio encontrarEjercicioAleatorio(@Param("musculo") String musculo, @Param("esCasa") boolean esCasa);
 
     
-    // --- NUEVO MÉTODO AÑADIDO PARA EL GESTOR DE RUTINAS INTELIGENTE ---
+   
     // Este método permite buscar un ejercicio específico por su nombre (o parte de él)
     // Ej: Si buscas "Sentadilla", te devolverá el primer ejercicio que contenga esa palabra.
     Optional<Ejercicio> findFirstByNombreContainingIgnoreCase(String texto);
