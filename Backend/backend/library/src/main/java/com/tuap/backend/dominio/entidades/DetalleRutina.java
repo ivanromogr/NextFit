@@ -42,7 +42,9 @@ public class DetalleRutina {
     private Float peso; 
     private Integer rpe; // Rating of Perceived Exertion (1-10)
     private int dias;
-    public DetalleRutina() {}
+    public DetalleRutina() {
+        // Constructor vacío necesario para JPA
+    }
 
     // Getters y Setters
     public UUID getId() { return id; }

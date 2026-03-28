@@ -84,13 +84,16 @@ class GestorClienteTest {
         when(fotoMock.isEmpty()).thenReturn(true); 
 
         // --- ACCIÓN ---
-        gestorCliente.actualizarPerfil(
-            clienteId, "Carlos", "Sainz", "carlos@test.com", 
+        // 🧹 CORRECCIÓN COMPILACIÓN: Ahora usamos el objeto PerfilParams en lugar de parámetros sueltos
+        GestorCliente.PerfilParams params = new GestorCliente.PerfilParams(
+            "Carlos", "Sainz", "carlos@test.com", 
             80.5, 180, 25, "Ganar masa", fotoMock
         );
 
+        gestorCliente.actualizarPerfil(clienteId, params);
+
         // --- COMPROBACIÓN ---
-        // Comprobamos que el Gestor modificó el objeto de verdad
+        // Comprobamos que el Gestor modificó el objeto de verdad basándose en los params
         assertEquals("Carlos", clienteMock.getNombre());
         assertEquals("Sainz", clienteMock.getApellido());
         assertEquals("carlos@test.com", clienteMock.getEmail());

@@ -25,17 +25,17 @@ public class Ejercicio {
     @Column(nullable = false) private String equipamiento; 
     private String parteCuerpo; 
     
-    // CAMBIO IMPORTANTE: de gifUrl a imagenUrl
     private String imagenUrl; 
     
-    // NUEVOS CAMPOS
     private String videoUrl; 
     private String dificultad; 
     
     @Lob @Column(columnDefinition = "TEXT")
     private String instrucciones; 
 
-    public Ejercicio() {}
+    public Ejercicio() {
+        // Constructor vacío necesario para JPA
+    }
 
     // Getters y Setters
     public UUID getId() { return id; }

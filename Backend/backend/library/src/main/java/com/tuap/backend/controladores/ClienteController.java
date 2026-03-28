@@ -39,8 +39,7 @@ public class ClienteController {
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<?> buscarPorEmail(@RequestParam String email) {
-        // Asumiendo que tienes un clienteRepository o usuarioRepository
+    public ResponseEntity<Cliente> buscarPorEmail(@RequestParam String email) {
         Optional<Cliente> cliente = clienteDAO.findByEmail(email);
         
         if (cliente.isPresent()) {
@@ -51,7 +50,7 @@ public class ClienteController {
     }
     
     @PostMapping("/onboarding")
-    public ResponseEntity<?> completarOnboarding(@RequestBody OnboardingRequest request) {
+    public ResponseEntity<String> completarOnboarding(@RequestBody OnboardingRequest request) {
         
         // 1. Validar que venga el ID
         if (request.getIdCliente() == null) {
@@ -65,7 +64,7 @@ public class ClienteController {
             return ResponseEntity.badRequest().body("Cliente no encontrado con id: " + request.getIdCliente());
         }
 
-        // 3. Actualizar datos (Igual que antes)
+        // 3. Actualizar datos
         cliente.setGenero(request.getGenero());
         cliente.setObjetivo(request.getObjetivo());
         
@@ -91,7 +90,8 @@ public class ClienteController {
 
     //  ACTUALIZAR PERFIL CLIENTE  ---
     @PutMapping("/{id}")
-    public ResponseEntity<?> actualizarPerfil(@PathVariable UUID id, @RequestBody com.tuap.backend.dto.UpdateClienteRequest req) {
+    
+    public ResponseEntity<String> actualizarPerfil(@PathVariable UUID id, @RequestBody com.tuap.backend.dto.UpdateClienteRequest req) {
         Cliente cliente = clienteDAO.findById(id).orElse(null);
         if (cliente == null) return ResponseEntity.badRequest().body("Cliente no encontrado con id: " + id);
 
@@ -104,7 +104,7 @@ public class ClienteController {
         if (req.getAltura() != null) cliente.setAltura(req.getAltura());
         if (req.getObjetivo() != null) cliente.setObjetivo(req.getObjetivo());
         if (req.getGenero() != null) cliente.setGenero(req.getGenero());
-        if (req.getContraseña() != null && !req.getContraseña().isEmpty()) cliente.setContraseña(req.getContraseña());
+        if (req.getContrasena() != null && !req.getContrasena().isEmpty()) cliente.setContrasena(req.getContrasena());
 
         clienteDAO.save(cliente);
         return ResponseEntity.ok("Perfil actualizado");

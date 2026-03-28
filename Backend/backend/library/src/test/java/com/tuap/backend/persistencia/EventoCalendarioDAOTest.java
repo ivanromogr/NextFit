@@ -45,13 +45,13 @@ class EventoCalendarioDAOTest {
         clienteMock.setNombre("Cbum");
         clienteMock.setApellido("Bumstead"); 
         clienteMock.setEmail("cbum@mrolympia.com"); 
-        clienteMock.setContraseña("olympia123"); 
+        clienteMock.setContrasena("olympia123"); 
         clienteMock.setGenero("Masculino"); 
-        clienteMock.setObjetivo("Ganar masa muscular"); // ✅ Añadido
-        clienteMock.setAltura(185);                     // ✅ Añadido
-        clienteMock.setEdad(29);                        // ✅ Añadido
-        clienteMock.setPeso(115.0);                     // ✅ Añadido
-        clienteMock.setRol("CLIENTE");                  // ✅ Añadido
+        clienteMock.setObjetivo("Ganar masa muscular"); 
+        clienteMock.setAltura(185);                     
+        clienteMock.setEdad(29);                        
+        clienteMock.setPeso(115.0);                     
+        clienteMock.setRol("CLIENTE");                 
 
         clienteMock = entityManager.persistAndFlush(clienteMock);
 

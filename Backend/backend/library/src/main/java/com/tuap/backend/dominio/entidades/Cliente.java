@@ -32,11 +32,12 @@ public class Cliente {
     @Column(nullable = false, unique = true)
     private String email;
 
+   
     @Column(nullable = false)
-    private String contraseña;
+    private String contrasena; 
 
     @Column(nullable = false)
-    private String rol; // "cliente"
+    private String rol;
 
     @Column(nullable = false)
     private double peso;
@@ -56,7 +57,6 @@ public class Cliente {
     @Column(nullable = false)
     private String genero;
 
-    // ✅ IMPLEMENTACIÓN PRO: Evitamos bucles en todas las listas bidireccionales
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("cliente")
     private List<Progreso> progresos;
@@ -74,16 +74,15 @@ public class Cliente {
     @JsonIgnoreProperties("clientes") 
     private Entrenador entrenador;
 
-    
     // Constructores
     public Cliente() {}
 
-    public Cliente(String nombre, String apellido, String email, String contraseña, String rol,
+    public Cliente(String nombre, String apellido, String email, String contrasena, String rol,
                    double peso, int altura, int edad, String objetivo, String fotoPerfil, String genero) {
         this.nombre = nombre;
         this.apellido = apellido;
         this.email = email;
-        this.contraseña = contraseña;
+        this.contrasena = contrasena; 
         this.rol = rol;
         this.peso = peso;
         this.altura = altura;
@@ -106,8 +105,9 @@ public class Cliente {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
-    public String getContraseña() { return contraseña; }
-    public void setContraseña(String contraseña) { this.contraseña = contraseña; }
+    //  Actualizados Getter y Setter
+    public String getContrasena() { return contrasena; }
+    public void setContrasena(String contrasena) { this.contrasena = contrasena; }
 
     public String getRol() { return rol; }
     public void setRol(String rol) { this.rol = rol; }

@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -23,13 +22,15 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class CustomSuccessHandler implements AuthenticationSuccessHandler {
 
-    @Autowired
-    private ClienteDAO clienteDAO;
-
-    @Autowired
-    private EntrenadorDAO entrenadorDAO;
-
+    private final ClienteDAO clienteDAO;
+    private final EntrenadorDAO entrenadorDAO;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // 🧹 SOLUCIÓN SONARQUBE: Inyección por constructor (Final Fields)
+    public CustomSuccessHandler(ClienteDAO clienteDAO, EntrenadorDAO entrenadorDAO) {
+        this.clienteDAO = clienteDAO;
+        this.entrenadorDAO = entrenadorDAO;
+    }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -39,7 +40,6 @@ public class CustomSuccessHandler implements AuthenticationSuccessHandler {
         String role = "cliente";
         Object id = null;
 
-        // Buscamos el ID
         Optional<Cliente> clienteOpt = clienteDAO.findByEmail(email);
         if (clienteOpt.isPresent()) {
             Cliente cliente = clienteOpt.get();
@@ -54,7 +54,6 @@ public class CustomSuccessHandler implements AuthenticationSuccessHandler {
             }
         }
 
-        // AQUÍ ESTÁ EL CAMBIO: Devolvemos JSON en vez de redirigir
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json;charset=UTF-8");
 

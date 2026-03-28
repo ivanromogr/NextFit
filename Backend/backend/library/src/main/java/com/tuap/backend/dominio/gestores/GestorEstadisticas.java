@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collections; // 🧹 Agregado
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -12,9 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.tuap.backend.dominio.entidades.SerieRealizada;
@@ -25,123 +23,71 @@ import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
 @Service
 public class GestorEstadisticas {
 
-    @Autowired private SesionEntrenamientoDAO sesionDAO;
-    @Autowired private SerieRealizadaDAO serieDAO;
+    private static final String KEY_ES_RECIENTE = "esReciente";
+    private final SesionEntrenamientoDAO sesionDAO;
+    private final SerieRealizadaDAO serieDAO;
 
-    /**
-     * Filtra una lista de sesiones por el entrenador que creó la rutina original.
-     */
+    public GestorEstadisticas(SesionEntrenamientoDAO sesionDAO, SerieRealizadaDAO serieDAO) {
+        this.sesionDAO = sesionDAO;
+        this.serieDAO = serieDAO;
+    }
+
     private List<SesionEntrenamiento> filtrarPorEntrenador(List<SesionEntrenamiento> sesiones, UUID entrenadorId) {
         if (entrenadorId == null) return sesiones;
         return sesiones.stream()
                 .filter(s -> s.getRutina() != null && 
                              s.getRutina().getEntrenadorId() != null && 
                              s.getRutina().getEntrenadorId().equals(entrenadorId))
-                .collect(Collectors.toList());
+                .toList(); 
     }
 
     public Map<String, Object> obtenerStatsGlobales(UUID clienteId, UUID entrenadorId) {
         List<SesionEntrenamiento> todasLasSesiones = sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId);
-        
-        // 🔒 Filtro de Privacidad
         List<SesionEntrenamiento> sesiones = filtrarPorEntrenador(todasLasSesiones, entrenadorId);
 
-        // --- 1. KPIs BÁSICOS ---
         int totalEntrenos = sesiones.size();
         double volumenTotalHistorico = sesiones.stream().mapToDouble(SesionEntrenamiento::getVolumenTotal).sum();
         int minutosTotales = sesiones.stream().mapToInt(SesionEntrenamiento::getDuracionSegundos).sum() / 60;
 
-        // --- 2. COMPARATIVA VOLUMEN ---
         LocalDateTime ahora = LocalDateTime.now();
-        LocalDateTime hace7dias = ahora.minusDays(7);
-        LocalDateTime hace14dias = ahora.minusDays(14);
+        double volumenUltimos7Dias = calcularVolumenRango(sesiones, ahora.minusDays(7), null);
+        double volumenSemanaPrevia = calcularVolumenRango(sesiones, ahora.minusDays(14), ahora.minusDays(7));
 
-        double volumenUltimos7Dias = sesiones.stream()
-            .filter(s -> s.getFechaHora().isAfter(hace7dias))
-            .mapToDouble(SesionEntrenamiento::getVolumenTotal).sum();
+        double porcentajeCambio = calcularPorcentajeCambio(volumenUltimos7Dias, volumenSemanaPrevia);
 
-        double volumenSemanaPrevia = sesiones.stream()
-            .filter(s -> s.getFechaHora().isAfter(hace14dias) && s.getFechaHora().isBefore(hace7dias))
-            .mapToDouble(SesionEntrenamiento::getVolumenTotal).sum();
-
-        double porcentajeCambio = 0.0;
-        if (volumenSemanaPrevia > 0) {
-            porcentajeCambio = ((volumenUltimos7Dias - volumenSemanaPrevia) / volumenSemanaPrevia) * 100.0;
-        } else if (volumenUltimos7Dias > 0) {
-            porcentajeCambio = 100.0;
-        }
-
-        // --- 3. GRÁFICAS ---
-        List<Map<String, Object>> graficaSemanal = generarGraficaSemanal(sesiones);
-        List<Map<String, Object>> graficaDiaria = generarGraficaDiaria(sesiones);
-
-        // --- 4. DISTRIBUCIÓN MUSCULAR ---
-        Map<String, Integer> conteoMusculos = new HashMap<>();
-        for (SesionEntrenamiento sesion : sesiones) {
-            for (SerieRealizada serie : sesion.getSeries()) {
-                if (serie.isHecho() && serie.getEjercicio() != null) {
-                    String musculo = serie.getEjercicio().getGrupoMuscular(); 
-                    if (musculo != null && !musculo.isEmpty()) {
-                        conteoMusculos.put(musculo, conteoMusculos.getOrDefault(musculo, 0) + 1);
-                    }
-                }
-            }
-        }
-        
-        List<Map<String, Object>> datosMusculos = new ArrayList<>();
-        conteoMusculos.forEach((k, v) -> {
-            Map<String, Object> m = new HashMap<>();
-            m.put("musculo", k);
-            m.put("series", v);
-            datosMusculos.add(m);
-        });
-
-        // --- CONSTRUIR RESPUESTA ---
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalEntrenos", totalEntrenos);
         stats.put("volumenTotal", Math.round(volumenTotalHistorico / 1000.0) + "t");
         stats.put("horasEntrenadas", Math.round(minutosTotales / 60.0));
         stats.put("comparativaVolumen", Math.round(porcentajeCambio));
-        stats.put("graficaSemanal", graficaSemanal);
-        stats.put("graficaDiaria", graficaDiaria);
-        stats.put("distribucionMuscular", datosMusculos);
+        stats.put("graficaSemanal", generarGraficaSemanal(sesiones));
+        stats.put("graficaDiaria", generarGraficaDiaria(sesiones));
+        stats.put("distribucionMuscular", calcularDistribucionMuscular(sesiones));
         
         return stats;
     }
 
     public Map<String, Object> obtenerProgresoEjercicio(UUID clienteId, UUID ejercicioId, UUID entrenadorId) {
-         List<SerieRealizada> historiaCompleta = serieDAO.findHistorialEjercicio(clienteId, ejercicioId);
-         
-         // 🔒 Filtro de Privacidad en el historial de series
-         List<SerieRealizada> historia = historiaCompleta.stream()
-                 .filter(serie -> {
-                     if (entrenadorId == null) return true;
-                     return serie.getSesion().getRutina() != null && 
-                            serie.getSesion().getRutina().getEntrenadorId() != null &&
-                            serie.getSesion().getRutina().getEntrenadorId().equals(entrenadorId);
-                 })
-                 .collect(Collectors.toList());
+         List<SerieRealizada> historia = serieDAO.findHistorialEjercicio(clienteId, ejercicioId).stream()
+                 .filter(serie -> entrenadorId == null || (serie.getSesion().getRutina() != null && 
+                        entrenadorId.equals(serie.getSesion().getRutina().getEntrenadorId())))
+                 .toList(); 
 
-         if (historia.isEmpty()) return null;
+         // 🧹 SOLUCIÓN SONARQUBE: Devolver mapa vacío en lugar de null
+         if (historia.isEmpty()) return Collections.emptyMap();
 
          List<Map<String, Object>> puntosGrafica = new ArrayList<>();
-         double personalRecord = 0.0;
          Map<SesionEntrenamiento, List<SerieRealizada>> porSesion = historia.stream()
-                 .collect(Collectors.groupingBy(SerieRealizada::getSesion));
+                 .collect(java.util.stream.Collectors.groupingBy(SerieRealizada::getSesion));
 
-         List<SesionEntrenamiento> sesionesOrdenadas = new ArrayList<>(porSesion.keySet());
-         sesionesOrdenadas.sort(Comparator.comparing(SesionEntrenamiento::getFechaHora));
+         List<SesionEntrenamiento> sesionesOrdenadas = porSesion.keySet().stream()
+                 .sorted(Comparator.comparing(SesionEntrenamiento::getFechaHora))
+                 .toList(); 
+         
          DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
 
          for (SesionEntrenamiento sesion : sesionesOrdenadas) {
-             List<SerieRealizada> seriesDia = porSesion.get(sesion);
-             double max1RMDia = 0;
-             for (SerieRealizada s : seriesDia) {
-                 if (s.getPeso() <= 0 || s.getReps() <= 0) continue;
-                 double e1rm = s.getPeso() * (1 + (s.getReps() / 30.0));
-                 if (e1rm > max1RMDia) max1RMDia = e1rm;
-                 if (s.getPeso() > personalRecord) personalRecord = s.getPeso();
-             }
+             double max1RMDia = calcularMax1RM(porSesion.get(sesion));
              if (max1RMDia > 0) {
                  Map<String, Object> punto = new HashMap<>();
                  punto.put("fecha", sesion.getFechaHora().format(formatter));
@@ -149,33 +95,16 @@ public class GestorEstadisticas {
                  puntosGrafica.add(punto);
              }
          }
+
          Map<String, Object> respuesta = new HashMap<>();
          respuesta.put("grafica", puntosGrafica);
-         respuesta.put("pr", personalRecord);
+         respuesta.put("pr", historia.stream().mapToDouble(SerieRealizada::getPeso).max().orElse(0.0));
          return respuesta;
     }
 
     public List<Map<String, Object>> obtenerPersonalRecords(UUID clienteId, UUID entrenadorId) {
-        List<SesionEntrenamiento> todasLasSesiones = sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId);
-        
-        // 🔒 Filtro de Privacidad
-        List<SesionEntrenamiento> sesiones = filtrarPorEntrenador(todasLasSesiones, entrenadorId);
-        
-        Map<String, SerieRealizada> mejoresLevantamientos = new HashMap<>();
-
-        for (SesionEntrenamiento sesion : sesiones) {
-            for (SerieRealizada serie : sesion.getSeries()) {
-                if (!serie.isHecho() || serie.getPeso() <= 0) continue;
-
-                String nombreEj = serie.getEjercicio().getNombre();
-                double pesoActual = serie.getPeso();
-
-                if (!mejoresLevantamientos.containsKey(nombreEj) || 
-                    pesoActual > mejoresLevantamientos.get(nombreEj).getPeso()) {
-                    mejoresLevantamientos.put(nombreEj, serie);
-                }
-            }
-        }
+        List<SesionEntrenamiento> sesiones = filtrarPorEntrenador(sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId), entrenadorId);
+        Map<String, SerieRealizada> mejoresLevantamientos = buscarMejoresLevantamientos(sesiones);
 
         List<Map<String, Object>> prList = new ArrayList<>();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMM yyyy");
@@ -184,74 +113,127 @@ public class GestorEstadisticas {
         for (Map.Entry<String, SerieRealizada> entry : mejoresLevantamientos.entrySet()) {
             Map<String, Object> item = new HashMap<>();
             SerieRealizada s = entry.getValue();
-
             item.put("ejercicio", entry.getKey());
             item.put("peso", s.getPeso());
             item.put("fecha", s.getSesion().getFechaHora().format(fmt));
-            item.put("esReciente", s.getSesion().getFechaHora().isAfter(hace7Dias));
-
+            item.put(KEY_ES_RECIENTE, s.getSesion().getFechaHora().isAfter(hace7Dias));
             prList.add(item);
         }
 
         prList.sort((a, b) -> {
-            boolean aRec = (boolean) a.get("esReciente");
-            boolean bRec = (boolean) b.get("esReciente");
-            if (aRec != bRec) return aRec ? -1 : 1;
+            if (!a.get(KEY_ES_RECIENTE).equals(b.get(KEY_ES_RECIENTE))) {
+                return (boolean) a.get(KEY_ES_RECIENTE) ? -1 : 1;
+            }
             return Double.compare((Double)b.get("peso"), (Double)a.get("peso"));
         });
 
         return prList;
     }
 
-    // --- MÉTODOS AUXILIARES ---
+    // --- MÉTODOS PRIVADOS DE APOYO ---
+
+    private double calcularMax1RM(List<SerieRealizada> seriesDia) {
+        double max = 0;
+        for (SerieRealizada s : seriesDia) {
+            if (s.getPeso() > 0 && s.getReps() > 0) {
+                double e1rm = s.getPeso() * (1 + (s.getReps() / 30.0));
+                if (e1rm > max) max = e1rm;
+            }
+        }
+        return max;
+    }
+
+    private Map<String, SerieRealizada> buscarMejoresLevantamientos(List<SesionEntrenamiento> sesiones) {
+        Map<String, SerieRealizada> mejores = new HashMap<>();
+        for (SesionEntrenamiento sesion : sesiones) {
+            for (SerieRealizada serie : sesion.getSeries()) {
+                if (serie.isHecho() && serie.getPeso() > 0) {
+                    String nombre = serie.getEjercicio().getNombre();
+                    // 🧹 SOLUCIÓN SONARQUBE: Uso de merge para simplificar lógica de "máximo"
+                    mejores.merge(nombre, serie, (existente, nueva) -> 
+                        nueva.getPeso() > existente.getPeso() ? nueva : existente
+                    );
+                }
+            }
+        }
+        return mejores;
+    }
+
+    private double calcularVolumenRango(List<SesionEntrenamiento> sesiones, LocalDateTime inicio, LocalDateTime fin) {
+        return sesiones.stream()
+            .filter(s -> s.getFechaHora().isAfter(inicio) && (fin == null || s.getFechaHora().isBefore(fin)))
+            .mapToDouble(SesionEntrenamiento::getVolumenTotal).sum();
+    }
+
+    private double calcularPorcentajeCambio(double actual, double previa) {
+        if (previa > 0) return ((actual - previa) / previa) * 100.0;
+        return actual > 0 ? 100.0 : 0.0;
+    }
+
+    private List<Map<String, Object>> calcularDistribucionMuscular(List<SesionEntrenamiento> sesiones) {
+        Map<String, Integer> conteo = new HashMap<>();
+        for (SesionEntrenamiento s : sesiones) {
+            for (SerieRealizada serie : s.getSeries()) {
+                if (serie.isHecho() && serie.getEjercicio() != null && serie.getEjercicio().getGrupoMuscular() != null) {
+                    String m = serie.getEjercicio().getGrupoMuscular();
+                    // 🧹 Mejora extra: Uso de merge
+                    conteo.merge(m, 1, Integer::sum);
+                }
+            }
+        }
+        return conteo.entrySet().stream().map(e -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("musculo", e.getKey());
+            map.put("series", e.getValue());
+            return map;
+        }).toList(); 
+    }
 
     private List<Map<String, Object>> generarGraficaSemanal(List<SesionEntrenamiento> sesiones) {
         Map<String, Integer> mapa = new LinkedHashMap<>();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMM");
-        List<SesionEntrenamiento> crono = new ArrayList<>(sesiones);
-        Collections.reverse(crono);
+        
+        List<SesionEntrenamiento> crono = sesiones.reversed();
 
         for (SesionEntrenamiento s : crono) {
             LocalDateTime inicioSemana = s.getFechaHora().with(WeekFields.of(Locale.getDefault()).dayOfWeek(), 1);
             String label = inicioSemana.format(fmt);
-            mapa.put(label, mapa.getOrDefault(label, 0) + 1);
+            // 🧹 Mejora extra: Uso de merge
+            mapa.merge(label, 1, Integer::sum);
         }
         
-        List<Map<String, Object>> lista = new ArrayList<>();
-        mapa.forEach((k, v) -> {
+        List<Map<String, Object>> lista = mapa.entrySet().stream().map(e -> {
             Map<String, Object> p = new HashMap<>();
-            p.put("label", k);
-            p.put("cantidad", v);
-            lista.add(p);
-        });
+            p.put("label", e.getKey());
+            p.put("cantidad", e.getValue());
+            return p;
+        }).toList(); 
+
         return lista.size() > 12 ? lista.subList(lista.size() - 12, lista.size()) : lista;
     }
 
     private List<Map<String, Object>> generarGraficaDiaria(List<SesionEntrenamiento> sesiones) {
         Map<String, Integer> mapa = new LinkedHashMap<>();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd");
-        
         LocalDateTime hoy = LocalDateTime.now();
+
         for (int i = 13; i >= 0; i--) {
             mapa.put(hoy.minusDays(i).format(fmt), 0);
         }
 
         for (SesionEntrenamiento s : sesiones) {
+            String label = s.getFechaHora().format(fmt);
             if (s.getFechaHora().isAfter(hoy.minusDays(14))) {
-                String label = s.getFechaHora().format(fmt);
-                if (mapa.containsKey(label)) {
-                    mapa.put(label, mapa.getOrDefault(label, 0) + 1);
-                }
+                // 🧹 SOLUCIÓN SONARQUBE: Uso de computeIfPresent para actualizar solo si existe
+                mapa.computeIfPresent(label, (k, v) -> v + 1);
             }
         }
 
-        List<Map<String, Object>> lista = new ArrayList<>();
-        mapa.forEach((k, v) -> {
+        return mapa.entrySet().stream().map(e -> {
             Map<String, Object> p = new HashMap<>();
-            p.put("label", k);
-            p.put("cantidad", v);
-            lista.add(p);
-        });
-        return lista;
+            p.put("label", e.getKey());
+            p.put("cantidad", e.getValue());
+            return p;
+        }).toList(); 
     }
 }

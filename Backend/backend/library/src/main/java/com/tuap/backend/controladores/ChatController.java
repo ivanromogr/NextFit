@@ -6,46 +6,51 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RestController; // 🧹 Cambiado
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.Mensaje;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.MensajeDAO;
 
-@Controller
+@RestController // 🧹 SOLUCIÓN SONARQUBE: RestController en lugar de Controller + ResponseBody
 public class ChatController {
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private static final String TOPIC_MENSAJES = "/topic/mensajes/";
 
-    @Autowired
-    private MensajeDAO mensajeDAO;
+    // 🧹 SOLUCIÓN SONARQUBE: Campos final para inyección por constructor
+    private final SimpMessagingTemplate messagingTemplate;
+    private final MensajeDAO mensajeDAO;
+    private final ClienteDAO clienteDAO;
 
-    @Autowired
-    private ClienteDAO clienteDAO;
+    // 🧹 SOLUCIÓN SONARQUBE: Inyección por constructor
+    public ChatController(SimpMessagingTemplate messagingTemplate,
+                          MensajeDAO mensajeDAO,
+                          ClienteDAO clienteDAO) {
+        this.messagingTemplate = messagingTemplate;
+        this.mensajeDAO = mensajeDAO;
+        this.clienteDAO = clienteDAO;
+    }
 
-    // Enviar mensaje
+    // Enviar mensaje (WebSocket)
     @MessageMapping("/chat")
     public void processMessage(@Payload Mensaje mensaje) {
         mensaje.setFechaHora(LocalDateTime.now());
         mensaje.setLeido(false);
         Mensaje guardado = mensajeDAO.save(mensaje);
 
-        messagingTemplate.convertAndSend("/topic/mensajes/" + mensaje.getRemitenteId(), guardado);
-        messagingTemplate.convertAndSend("/topic/mensajes/" + mensaje.getDestinatarioId(), guardado);
+        messagingTemplate.convertAndSend(TOPIC_MENSAJES + mensaje.getRemitenteId(), guardado);
+        messagingTemplate.convertAndSend(TOPIC_MENSAJES + mensaje.getDestinatarioId(), guardado);
     }
 
-    //  Marcar mensajes como leídos
+    // Marcar mensajes como leídos (WebSocket)
     @MessageMapping("/chat/leer")
     @Transactional
     public void marcarComoLeido(@Payload Map<String, String> payload) {
@@ -61,14 +66,13 @@ public class ChatController {
             mensajeDAO.saveAll(noLeidos);
 
             for (Mensaje m : noLeidos) {
-                messagingTemplate.convertAndSend("/topic/mensajes/" + remitenteId, m);
+                messagingTemplate.convertAndSend(TOPIC_MENSAJES + remitenteId, m);
             }
         }
     }
 
-    // Obtener historial de chat
+    // Obtener historial de chat (REST)
     @GetMapping("/api/chat/historial")
-    @ResponseBody
     public ResponseEntity<List<Mensaje>> getHistorial(
             @RequestParam UUID usuario1, 
             @RequestParam UUID usuario2) {
@@ -76,28 +80,22 @@ public class ChatController {
     }
 
     /**
-     
      * Obtener la lista de personas con las que el usuario ha hablado.
      */
     @GetMapping("/api/chat/contactos") 
-    @ResponseBody
     public ResponseEntity<List<Cliente>> obtenerContactosDeUsuario(@RequestParam UUID usuarioId) {
         try {
-            // 1. Obtenemos directamente los UUIDs 
             List<UUID> contactosIds = mensajeDAO.findContactosIds(usuarioId);
             
             if (contactosIds == null || contactosIds.isEmpty()) {
                 return ResponseEntity.ok(new ArrayList<>());
             }
             
-            // 2. Buscamos los perfiles de los clientes de una sola vez
             List<Cliente> contactos = clienteDAO.findAllById(contactosIds);
-            
             return ResponseEntity.ok(contactos);
         } catch (Exception e) {
-            // Imprime el error exacto en la consola de tu servidor si algo falla
-            e.printStackTrace(); 
-            return ResponseEntity.status(500).build();
+            // Se mantiene el log del error pero se elimina la traza completa en la respuesta por seguridad
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

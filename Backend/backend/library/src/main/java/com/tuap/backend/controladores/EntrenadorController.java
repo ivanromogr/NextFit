@@ -9,19 +9,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.Entrenador;
@@ -36,20 +27,31 @@ import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
 @RequestMapping("/api/entrenador")
 public class EntrenadorController {
 
-    @Autowired private ClienteDAO clienteDAO;
-    @Autowired private EntrenadorDAO entrenadorDAO;
-    @Autowired private SesionEntrenamientoDAO sesionDAO; 
-    @Autowired private ResenaDAO resenaDAO;
+    private static final String PARAM_TARIFA = "tarifaMensual";
+    private static final String PARAM_EXPERIENCIA = "aniosExperiencia";
+    private static final String KEY_MESSAGE = "message";
 
-    // --- 1. OBTENER CLIENTES (Con lógica de Borde Verde) ---
+    private final ClienteDAO clienteDAO;
+    private final EntrenadorDAO entrenadorDAO;
+    private final SesionEntrenamientoDAO sesionDAO; 
+    private final ResenaDAO resenaDAO;
+
+    public EntrenadorController(ClienteDAO clienteDAO, EntrenadorDAO entrenadorDAO, 
+                                SesionEntrenamientoDAO sesionDAO, ResenaDAO resenaDAO) {
+        this.clienteDAO = clienteDAO;
+        this.entrenadorDAO = entrenadorDAO;
+        this.sesionDAO = sesionDAO;
+        this.resenaDAO = resenaDAO;
+    }
+
+    // --- 1. OBTENER CLIENTES ---
     @GetMapping("/{idEntrenador}/clientes")
-    public ResponseEntity<?> obtenerClientes(@PathVariable UUID idEntrenador) { 
+    public ResponseEntity<Object> obtenerClientes(@PathVariable UUID idEntrenador) { 
         try {
             List<Cliente> clientes = clienteDAO.findByEntrenadorId(idEntrenador);
             
             LocalDate hoy = LocalDate.now();
-            LocalDate inicioSemana = hoy.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-            LocalDateTime inicio = inicioSemana.atStartOfDay();
+            LocalDateTime inicio = hoy.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay();
             LocalDateTime fin = LocalDateTime.now();
 
             List<Map<String, Object>> respuesta = new ArrayList<>();
@@ -57,29 +59,28 @@ public class EntrenadorController {
             for (Cliente c : clientes) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("cliente", c);
-
-                long sesionesEstaSemana = 0;
-                try {
-                    sesionesEstaSemana = sesionDAO.findByClienteIdAndFechaHoraBetweenOrderByFechaHoraDesc(
-                        c.getId(), inicio, fin
-                    ).size();
-                } catch (Exception e) {
-                    // Ignoramos si un cliente no tiene sesiones aún
-                }
-
+                long sesionesEstaSemana = obtenerConteoSesionesSeguro(c.getId(), inicio, fin);
                 item.put("semanaCompletada", sesionesEstaSemana >= 3);
                 item.put("sesionesHechas", sesionesEstaSemana);
-
                 respuesta.add(item);
             }
             return ResponseEntity.ok(respuesta);
         } catch (Exception e) {
-           
             return ResponseEntity.internalServerError().body("Error interno al obtener los atletas: " + e.getMessage());
         }
     }
+    
+    private long obtenerConteoSesionesSeguro(UUID clienteId, LocalDateTime inicio, LocalDateTime fin) {
+        try {
+            return sesionDAO.findByClienteIdAndFechaHoraBetweenOrderByFechaHoraDesc(clienteId, inicio, fin).size();
+        } catch (Exception _) { 
+           
+            return 0;
+        }
+    }
+
     @GetMapping("/{id}/reviews")
-    public ResponseEntity<?> getReviewsEntrenador(@PathVariable UUID id) {
+    public ResponseEntity<Object> getReviewsEntrenador(@PathVariable UUID id) {
         try {
             List<Resena> listaResenas = resenaDAO.findByEntrenadorIdOrderByFechaDesc(id);
             return ResponseEntity.ok(listaResenas);
@@ -90,21 +91,10 @@ public class EntrenadorController {
 
     // --- 2. DASHBOARD RESUMEN ---
     @GetMapping("/{entrenadorId}/dashboard-resumen")
-    public ResponseEntity<?> getDashboardResumen(@PathVariable UUID entrenadorId) {
+    public ResponseEntity<Object> getDashboardResumen(@PathVariable UUID entrenadorId) {
         try {
             List<SesionEntrenamiento> ultimas = sesionDAO.findTop10ByCliente_Entrenador_IdOrderByFechaHoraDesc(entrenadorId);
-            
-            long entrenosHoy = 0;
-            long clientesRiesgo = 0;
-            long totalClientes = 0;
-            
-            try {
-                entrenosHoy = sesionDAO.countEntrenosHoy(entrenadorId);
-                clientesRiesgo = sesionDAO.countClientesInactivos(entrenadorId, LocalDateTime.now().minusDays(7));
-                totalClientes = clienteDAO.countByEntrenador_Id(entrenadorId);
-            } catch (Exception e) {
-                System.out.println("Aviso métricas: " + e.getMessage());
-            }
+            Map<String, Long> metricas = obtenerMetricasDashboard(entrenadorId);
 
             List<Map<String, Object>> feed = ultimas.stream().map(s -> {
                 Map<String, Object> map = new HashMap<>();
@@ -116,15 +106,10 @@ public class EntrenadorController {
                 map.put("fecha", s.getFechaHora());
                 map.put("volumen", s.getVolumenTotal());
                 return map;
-            }).collect(Collectors.toList());
+            }).toList();
 
             Map<String, Object> response = new HashMap<>();
-            Map<String, Object> stats = new HashMap<>();
-            stats.put("hoy", entrenosHoy);
-            stats.put("riesgo", clientesRiesgo);
-            stats.put("totalClientes", totalClientes);
-            
-            response.put("stats", stats);
+            response.put("stats", metricas);
             response.put("feedActividad", feed);
 
             return ResponseEntity.ok(response);
@@ -133,25 +118,36 @@ public class EntrenadorController {
         }
     }
 
-    // --- 3. DATOS PERFIL PÚBLICO  ---
+    private Map<String, Long> obtenerMetricasDashboard(UUID entrenadorId) {
+        Map<String, Long> stats = new HashMap<>();
+        try {
+            stats.put("hoy", sesionDAO.countEntrenosHoy(entrenadorId));
+            stats.put("riesgo", sesionDAO.countClientesInactivos(entrenadorId, LocalDateTime.now().minusDays(7)));
+            stats.put("totalClientes", clienteDAO.countByEntrenador_Id(entrenadorId));
+        } catch (Exception _) {
+            
+            stats.put("hoy", 0L);
+            stats.put("riesgo", 0L);
+            stats.put("totalClientes", 0L);
+        }
+        return stats;
+    }
+
+    // --- 3. DATOS PERFIL PÚBLICO ---
     @GetMapping("/{id}")
-    public ResponseEntity<?> getPerfilPublico(@PathVariable UUID id) {
+    public ResponseEntity<Object> getPerfilPublico(@PathVariable UUID id) {
         try {
             Entrenador ent = entrenadorDAO.findById(id).orElse(null);
             if (ent == null) return ResponseEntity.notFound().build();
 
             Double media = resenaDAO.calcularMediaPorEntrenador(id);
             List<Resena> listaResenas = resenaDAO.findByEntrenadorIdOrderByFechaDesc(id);
-            
-            //Contamos los clientes reales de la base de datos
             long totalClientes = clienteDAO.countByEntrenador_Id(id); 
 
             Map<String, Object> respuesta = new HashMap<>();
             respuesta.put("entrenador", ent);
             respuesta.put("valoracionMedia", media != null ? Math.round(media * 10.0) / 10.0 : 0.0);
             respuesta.put("resenas", listaResenas);
-            
-            // ✅ NUEVO: Lo enviamos en la respuesta
             respuesta.put("numeroClientes", totalClientes); 
 
             return ResponseEntity.ok(respuesta);
@@ -160,61 +156,47 @@ public class EntrenadorController {
         }
     }
     
-    // --- 4. PUBLICAR RESEÑA ---
     @PostMapping("/{idEntrenador}/resena")
-    public ResponseEntity<?> publicarResena(@PathVariable UUID idEntrenador, @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<String> publicarResena(@PathVariable UUID idEntrenador, @RequestBody Map<String, Object> payload) {
         try {
             Entrenador entrenador = entrenadorDAO.findById(idEntrenador).orElseThrow();
-            
             Resena resena = new Resena();
             resena.setEntrenador(entrenador);
             resena.setEstrellas(Integer.parseInt(payload.get("estrellas").toString()));
             resena.setComentario((String) payload.get("comentario"));
             resena.setFecha(LocalDateTime.now());
-            
             resenaDAO.save(resena);
             return ResponseEntity.ok("Reseña publicada correctamente");
-        } catch (Exception e) {
+        } catch (Exception _) {
+         
             return ResponseEntity.badRequest().body("Error al publicar reseña");
         }
     }
 
-    // --- 5. ACTUALIZAR PERFIL ---
     @PutMapping("/{id}")
-    public ResponseEntity<?> actualizarPerfil(@PathVariable UUID id, @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<String> actualizarPerfil(@PathVariable UUID id, @RequestBody Map<String, Object> payload) {
         try {
             Entrenador entrenador = entrenadorDAO.findById(id).orElse(null);
             if (entrenador == null) return ResponseEntity.badRequest().body("Entrenador no encontrado");
-
-            if (payload.containsKey("nombre")) entrenador.setNombre((String) payload.get("nombre"));
-            if (payload.containsKey("apellido")) entrenador.setApellido((String) payload.get("apellido"));
-            if (payload.containsKey("fotoPerfil")) entrenador.setFotoPerfil((String) payload.get("fotoPerfil"));
-            if (payload.containsKey("especialidad")) entrenador.setEspecialidad((String) payload.get("especialidad"));
-            if (payload.containsKey("descripcionPerfil")) entrenador.setDescripcionPerfil((String) payload.get("descripcionPerfil"));
-
-            if (payload.containsKey("perfilPublico")) {
-                entrenador.setPerfilPublico(Boolean.parseBoolean(payload.get("perfilPublico").toString()));
-            }
-            
-            if (payload.containsKey("tarifaMensual") && payload.get("tarifaMensual") != null) {
-                entrenador.setTarifaMensual(Double.parseDouble(payload.get("tarifaMensual").toString()));
-            }
-
-            if (payload.containsKey("aniosExperiencia") && payload.get("aniosExperiencia") != null) {
-                entrenador.setAniosExperiencia(Integer.parseInt(payload.get("aniosExperiencia").toString()));
-            }
-
+            actualizarCamposPerfil(entrenador, payload);
             entrenadorDAO.save(entrenador);
             return ResponseEntity.ok("Perfil actualizado con éxito");
-            
         } catch (Exception e) {
-            e.printStackTrace(); 
             return ResponseEntity.internalServerError().body("Error interno: " + e.getMessage());
         }
     }
 
-    // --- 6. BUSCADOR PÚBLICO ---
-  
+    private void actualizarCamposPerfil(Entrenador e, Map<String, Object> p) {
+        if (p.containsKey("nombre")) e.setNombre((String) p.get("nombre"));
+        if (p.containsKey("apellido")) e.setApellido((String) p.get("apellido"));
+        if (p.containsKey("fotoPerfil")) e.setFotoPerfil((String) p.get("fotoPerfil"));
+        if (p.containsKey("especialidad")) e.setEspecialidad((String) p.get("especialidad"));
+        if (p.containsKey("descripcionPerfil")) e.setDescripcionPerfil((String) p.get("descripcionPerfil"));
+        if (p.containsKey("perfilPublico")) e.setPerfilPublico(Boolean.parseBoolean(p.get("perfilPublico").toString()));
+        if (p.containsKey(PARAM_TARIFA) && p.get(PARAM_TARIFA) != null) e.setTarifaMensual(Double.parseDouble(p.get(PARAM_TARIFA).toString()));
+        if (p.containsKey(PARAM_EXPERIENCIA) && p.get(PARAM_EXPERIENCIA) != null) e.setAniosExperiencia(Integer.parseInt(p.get(PARAM_EXPERIENCIA).toString()));
+    }
+
     @GetMapping("/publicos")
     public ResponseEntity<List<Entrenador>> obtenerEntrenadoresPublicos(
             @RequestParam(required = false) String modalidad,
@@ -222,105 +204,64 @@ public class EntrenadorController {
             @RequestParam(required = false) Double tarifaMax,
             @RequestParam(required = false) Integer expMin) {
         
-        // 1. Obtenemos todos los entrenadores públicos de la base de datos
-        List<Entrenador> publicos = entrenadorDAO.findByPerfilPublicoTrue();
+        List<Entrenador> filtrados = entrenadorDAO.findByPerfilPublicoTrue().stream()
+            .filter(e -> modalidad == null || modalidad.trim().isEmpty() || (e.getModalidadTrabajo() != null && e.getModalidadTrabajo().equalsIgnoreCase(modalidad)))
+            .filter(e -> especialidad == null || especialidad.trim().isEmpty() || (e.getEspecialidad() != null && e.getEspecialidad().toLowerCase().contains(especialidad.toLowerCase())))
+            .filter(e -> tarifaMax == null || (e.getTarifaMensual() != null && e.getTarifaMensual() <= tarifaMax))
+            .filter(e -> expMin == null || (e.getAniosExperiencia() != null && e.getAniosExperiencia() >= expMin))
+            .toList();
 
-        // 2. Aplicamos los filtros dinámicamente usando Streams
-        List<Entrenador> filtrados = publicos.stream()
-            // Filtro por Modalidad (ONLINE, PRESENCIAL, MIXTO) - Ignora mayúsculas/minúsculas
-            .filter(e -> modalidad == null || modalidad.trim().isEmpty() || 
-                        (e.getModalidadTrabajo() != null && e.getModalidadTrabajo().equalsIgnoreCase(modalidad)))
-            
-            // Filtro por Especialidad (Búsqueda parcial: ej. si buscas "Fuerza" encuentra "Entrenador de Fuerza")
-            .filter(e -> especialidad == null || especialidad.trim().isEmpty() || 
-                        (e.getEspecialidad() != null && e.getEspecialidad().toLowerCase().contains(especialidad.toLowerCase())))
-            
-            // Filtro por Tarifa Máxima (Menor o igual al precio indicado)
-            .filter(e -> tarifaMax == null || 
-                        (e.getTarifaMensual() != null && e.getTarifaMensual() <= tarifaMax))
-            
-            // Filtro por Experiencia Mínima (Mayor o igual a los años indicados)
-            .filter(e -> expMin == null || 
-                        (e.getAniosExperiencia() != null && e.getAniosExperiencia() >= expMin))
-            
-            .collect(Collectors.toList());
-
-        // 3. Por seguridad, ocultamos las contraseñas antes de enviar al frontend
-        filtrados.forEach(e -> e.setContraseña(null));
-        
+        filtrados.forEach(e -> e.setContrasena(null));
         return ResponseEntity.ok(filtrados);
     }
    
-    // --- 7. VINCULAR CLIENTE POR EMAIL ---
     @PostMapping("/{id}/fichar")
     @Transactional 
-    public ResponseEntity<?> ficharCliente(
-            @PathVariable UUID id, 
-            @RequestBody Map<String, String> payload) {
-        
+    public ResponseEntity<Object> ficharCliente(@PathVariable UUID id, @RequestBody Map<String, String> payload) {
         try {
-            String emailCliente = payload.get("email");
-            
-            if (emailCliente == null || emailCliente.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("message", "El email es obligatorio."));
+            String email = payload.get("email");
+            if (email == null || email.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(KEY_MESSAGE, "El email es obligatorio."));
             }
 
-            Entrenador entrenador = entrenadorDAO.findById(id)
-                .orElseThrow(() -> new RuntimeException("Entrenador no encontrado."));
+            Entrenador entrenador = entrenadorDAO.findById(id).orElseThrow(() -> new RuntimeException("Entrenador no encontrado."));
+            Cliente cliente = clienteDAO.findByEmail(email.trim()).orElseThrow(() -> new RuntimeException("No se encontró ningún atleta con el correo: " + email));
 
-            Cliente cliente = clienteDAO.findByEmail(emailCliente.trim())
-                .orElseThrow(() -> new RuntimeException("No se encontró ningún atleta con el correo: " + emailCliente));
-
-            // 🛡️ REGLA DE EXCLUSIVIDAD: Comprobamos si ya tiene otro entrenador
             if (cliente.getEntrenador() != null && !cliente.getEntrenador().getId().equals(entrenador.getId())) {
-                // 409 Conflict: El recurso ya está asignado a otro
                 return ResponseEntity.status(409).body(Map.of(
-                    "message", "Este atleta ya está entrenando con otro profesional (" + cliente.getEntrenador().getNombre() + ")."
+                    KEY_MESSAGE, "Este atleta ya está entrenando con otro profesional (" + cliente.getEntrenador().getNombre() + ")."
                 ));
             }
 
-            // Si está libre (o si es el mismo entrenador que lo vuelve a añadir por error), lo vinculamos
             cliente.setEntrenador(entrenador);
             clienteDAO.save(cliente);
-
-            return ResponseEntity.ok().body(Map.of("message", "¡" + cliente.getNombre() + " se ha unido a tu equipo!"));
-            
+            return ResponseEntity.ok().body(Map.of(KEY_MESSAGE, "¡" + cliente.getNombre() + " se ha unido a tu equipo!"));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body(Map.of("message", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("message", "Error interno en el servidor."));
+            return ResponseEntity.status(404).body(Map.of(KEY_MESSAGE, e.getMessage()));
+        } catch (Exception _) {
+            
+            return ResponseEntity.status(500).body(Map.of(KEY_MESSAGE, "Error interno en el servidor."));
         }
     }
 
-    // --- 8. DESVINCULAR CLIENTE ---
     @PostMapping("/{idEntrenador}/desvincular/{idCliente}")
     @Transactional
-    public ResponseEntity<?> desvincularCliente(
-            @PathVariable UUID idEntrenador,
-            @PathVariable UUID idCliente) {
-        
+    public ResponseEntity<Object> desvincularCliente(@PathVariable UUID idEntrenador, @PathVariable UUID idCliente) {
         try {
-            // 1. Buscamos al cliente
-            Cliente cliente = clienteDAO.findById(idCliente)
-                .orElseThrow(() -> new RuntimeException("Atleta no encontrado."));
-
-            // 2. 🛡️ SEGURIDAD: Comprobamos que el atleta realmente pertenece a este entrenador
+            Cliente cliente = clienteDAO.findById(idCliente).orElseThrow(() -> new RuntimeException("Atleta no encontrado."));
+            
             if (cliente.getEntrenador() == null || !cliente.getEntrenador().getId().equals(idEntrenador)) {
-                return ResponseEntity.status(403).body(Map.of("message", "No puedes desvincular a un atleta que no es tuyo."));
+                return ResponseEntity.status(403).body(Map.of(KEY_MESSAGE, "No puedes desvincular a un atleta que no es tuyo."));
             }
-
-            // 3. Rompemos el vínculo (lo dejamos libre)
+            
             cliente.setEntrenador(null);
-            
-            // 4. Guardamos el cambio
             clienteDAO.save(cliente);
-
-            return ResponseEntity.ok().body(Map.of("message", "Atleta desvinculado correctamente. Ya no forma parte de tu equipo."));
-            
+            return ResponseEntity.ok().body(Map.of(KEY_MESSAGE, "Atleta desvinculado correctamente. Ya no forma parte de tu equipo."));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body(Map.of("message", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("message", "Error interno en el servidor."));
+            return ResponseEntity.status(404).body(Map.of(KEY_MESSAGE, e.getMessage()));
+        } catch (Exception _) {
+            
+            return ResponseEntity.status(500).body(Map.of(KEY_MESSAGE, "Error interno en el servidor."));
         }
     }
 }

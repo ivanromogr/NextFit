@@ -27,15 +27,17 @@ public class Entrenador {
     @Column(nullable = false, unique = true)
     private String email;
 
+   
     @Column(nullable = false)
-    private String contraseña;
+    private String contrasena;
 
     @Column(nullable = false)
     private String rol; // "entrenador"
 
     @Column(nullable = false)
     private String especialidad;
-        @Column
+    
+    @Column
     private Integer edad;
 
     @Column
@@ -53,43 +55,18 @@ public class Entrenador {
     @Column
     private String modalidadTrabajo; // ONLINE / PRESENCIAL / MIXTO, etc.
 
-    public String getBiografia() {
-        return biografia;
-    }
-
-    public void setBiografia(String biografia) {
-        this.biografia = biografia;
-    }
-
-    public Double getTarifaMensual() {
-        return tarifaMensual;
-    }
-
-    public void setTarifaMensual(Double tarifaMensual) {
-        this.tarifaMensual = tarifaMensual;
-    }
-
-    public boolean isPerfilPublico() {
-        return perfilPublico;
-    }
-
-    public void setPerfilPublico(boolean perfilPublico) {
-        this.perfilPublico = perfilPublico;
-    }
+    @Column(name = "biografia", columnDefinition = "TEXT")
+    private String biografia;
 
     @Column
     private String fotoPerfil;
 
-    @Column(name = "biografia", columnDefinition = "TEXT")
-    private String biografia;
-
-    // ✅ NUEVOS CAMPOS PARA EL PERFIL PREMIUM
+  
     @Column(name = "titulo_academico")
     private String tituloAcademico; 
 
     @Column(name = "titulacion")
     private String titulacion;
-
 
     @Column(name = "tarifa_mensual")
     private Double tarifaMensual;
@@ -107,7 +84,7 @@ public class Entrenador {
     public Entrenador() {
     }
 
-    public Entrenador(String nombre, String apellido, String email, String contraseña, String rol,
+    public Entrenador(String nombre, String apellido, String email, String contrasena, String rol,
             String especialidad,
             Integer edad, String genero,
             Integer aniosExperiencia, String formacion,
@@ -116,7 +93,7 @@ public class Entrenador {
         this.nombre = nombre;
         this.apellido = apellido;
         this.email = email;
-        this.contraseña = contraseña;
+        this.contrasena = contrasena;
         this.rol = rol;
         this.especialidad = especialidad;
         this.edad = edad;
@@ -128,6 +105,7 @@ public class Entrenador {
         this.fotoPerfil = fotoPerfil;
     }
 
+    // Getters y Setters
     public UUID getId() {
         return id;
     }
@@ -160,12 +138,13 @@ public class Entrenador {
         this.email = email;
     }
 
-    public String getContraseña() {
-        return contraseña;
+    // 🧹 Actualizados Getter y Setter
+    public String getContrasena() {
+        return contrasena;
     }
 
-    public void setContraseña(String contraseña) {
-        this.contraseña = contraseña;
+    public void setContrasena(String contrasena) {
+        this.contrasena = contrasena;
     }
 
     public String getRol() {
@@ -200,7 +179,7 @@ public class Entrenador {
         this.entrenamientos = entrenamientos;
     }
 
-        public Integer getEdad() {
+    public Integer getEdad() {
         return edad;
     }
 
@@ -256,6 +235,14 @@ public class Entrenador {
         this.fotoPerfil = fotoPerfil;
     }
 
+    public String getBiografia() {
+        return biografia;
+    }
+
+    public void setBiografia(String biografia) {
+        this.biografia = biografia;
+    }
+
     public String getTituloAcademico() {
         return tituloAcademico;
     }
@@ -272,4 +259,19 @@ public class Entrenador {
         this.titulacion = titulacion;
     }
 
+    public Double getTarifaMensual() {
+        return tarifaMensual;
+    }
+
+    public void setTarifaMensual(Double tarifaMensual) {
+        this.tarifaMensual = tarifaMensual;
+    }
+
+    public boolean isPerfilPublico() {
+        return perfilPublico;
+    }
+
+    public void setPerfilPublico(boolean perfilPublico) {
+        this.perfilPublico = perfilPublico;
+    }
 }

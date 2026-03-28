@@ -20,7 +20,7 @@ public class EstadisticasController {
 
     // 1. Estadísticas Globales (Kilos totales, entrenos, etc.)
     @GetMapping("/global/{clienteId}")
-    public ResponseEntity<?> getGlobalStats(
+    public ResponseEntity<Object> getGlobalStats(
             @PathVariable UUID clienteId,
             @RequestParam(required = false) UUID entrenadorId) { 
         
@@ -30,7 +30,7 @@ public class EstadisticasController {
 
     // 2. Progreso de un ejercicio (Gráfica de 1RM)
     @GetMapping("/ejercicio/{clienteId}/{ejercicioId}")
-    public ResponseEntity<?> getExerciseStats(
+    public ResponseEntity<Object> getExerciseStats(
             @PathVariable UUID clienteId, 
             @PathVariable UUID ejercicioId,
             @RequestParam(required = false) UUID entrenadorId) { 
@@ -43,7 +43,7 @@ public class EstadisticasController {
 
     // 3. Récords Personales (PRs - Trofeos)
     @GetMapping("/prs/{clienteId}")
-    public ResponseEntity<?> getPersonalRecords(
+    public ResponseEntity<Object> getPersonalRecords(
             @PathVariable UUID clienteId,
             @RequestParam(required = false) UUID entrenadorId) { 
         

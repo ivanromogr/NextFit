@@ -50,7 +50,7 @@ class SesionEntrenamientoDAOTest {
         entrenadorMock.setNombre("Arnold");
         entrenadorMock.setApellido("Schwarzenegger");
         entrenadorMock.setEmail("arnold@gym.com");
-        entrenadorMock.setContraseña("1234");
+        entrenadorMock.setContrasena("1234");
         entrenadorMock.setEspecialidad("Culturismo");
         entrenadorMock.setRol("ENTRENADOR");
         entrenadorMock = entityManager.persistAndFlush(entrenadorMock);
@@ -60,7 +60,7 @@ class SesionEntrenamientoDAOTest {
         clienteActivo.setNombre("Cbum");
         clienteActivo.setApellido("Bumstead");
         clienteActivo.setEmail("cbum@gym.com");
-        clienteActivo.setContraseña("1234");
+        clienteActivo.setContrasena("1234");
         clienteActivo.setGenero("Masculino");
         clienteActivo.setObjetivo("Volumen");
         clienteActivo.setAltura(185);
@@ -75,7 +75,7 @@ class SesionEntrenamientoDAOTest {
         clienteInactivo.setNombre("Ronnie");
         clienteInactivo.setApellido("Coleman");
         clienteInactivo.setEmail("ronnie@gym.com");
-        clienteInactivo.setContraseña("1234");
+        clienteInactivo.setContrasena("1234");
         clienteInactivo.setGenero("Masculino");
         clienteInactivo.setObjetivo("Fuerza");
         clienteInactivo.setAltura(180);

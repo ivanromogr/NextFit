@@ -35,14 +35,12 @@ public class Rutina {
     @Column(nullable = false)
     private String creador; 
 
-    // --- CAMPOS PARA PLANTILLAS MAESTRAS ---
     @Column(name = "es_plantilla")
     private Boolean esPlantilla = false;
 
     @Column(name = "entrenador_id", columnDefinition = "BINARY(16)")
     private UUID entrenadorId;
 
-    // ✅ IMPLEMENTACIÓN PRO: Cortamos todas las ramas que causan recursión en el Cliente
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "cliente_id", nullable = true)
     @JsonIgnoreProperties({"rutinas", "entrenador", "chats", "progresos", "hibernateLazyInitializer", "handler"})
@@ -52,7 +50,9 @@ public class Rutina {
     @JsonIgnoreProperties("rutina")
     private List<DetalleRutina> detalles = new ArrayList<>();
 
-    public Rutina() {}
+    public Rutina() {
+        // Constructor vacío necesario para JPA
+    }
 
     // --- GETTERS Y SETTERS ---
 

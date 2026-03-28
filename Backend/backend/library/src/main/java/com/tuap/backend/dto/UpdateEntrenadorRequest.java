@@ -4,7 +4,7 @@ public class UpdateEntrenadorRequest {
     private String nombre;
     private String apellido;
     private String email;
-    private String contraseña;
+    private String contrasena;
     private String especialidad;
     private Integer edad;
     private String genero;
@@ -14,7 +14,9 @@ public class UpdateEntrenadorRequest {
     private String modalidadTrabajo;
     private String fotoPerfil;
 
-    public UpdateEntrenadorRequest() {}
+    public UpdateEntrenadorRequest() {
+        // Necesario para la deserialización 
+    }
 
     // getters y setters
     public String getNombre() { return nombre; }
@@ -26,8 +28,8 @@ public class UpdateEntrenadorRequest {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
-    public String getContraseña() { return contraseña; }
-    public void setContraseña(String contraseña) { this.contraseña = contraseña; }
+    public String getContrasena() { return contrasena; }
+    public void setContrasena(String contrasena) { this.contrasena = contrasena; }
 
     public String getEspecialidad() { return especialidad; }
     public void setEspecialidad(String especialidad) { this.especialidad = especialidad; }

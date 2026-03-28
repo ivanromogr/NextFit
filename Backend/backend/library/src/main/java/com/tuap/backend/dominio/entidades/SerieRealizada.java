@@ -40,7 +40,9 @@ public class SerieRealizada {
     // Guardamos el volumen de esta serie (peso * reps)
     private double volumenSerie; 
 
-    public SerieRealizada() {}
+    public SerieRealizada() {
+        // Constructor vacío necesario para JPA
+    }
 
     // Getters y Setters
     public UUID getId() { return id; }

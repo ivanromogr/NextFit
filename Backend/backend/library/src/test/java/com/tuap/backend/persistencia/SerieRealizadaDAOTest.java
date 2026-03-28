@@ -20,7 +20,8 @@ import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
 @DataJpaTest
 @TestPropertySource(properties = {
     "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
+    "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
+    "jwt.secret=ClaveDePruebaParaQueElContextoNoFalle1234567890" 
 })
 class SerieRealizadaDAOTest {
 
@@ -40,7 +41,7 @@ class SerieRealizadaDAOTest {
         clienteMock.setNombre("Cbum");
         clienteMock.setApellido("Bumstead");
         clienteMock.setEmail("cbum@mrolympia.com");
-        clienteMock.setContraseña("olympia123");
+        clienteMock.setContrasena("olympia123");
         clienteMock.setGenero("Masculino");
         clienteMock.setObjetivo("Ganar masa muscular");
         clienteMock.setAltura(185);

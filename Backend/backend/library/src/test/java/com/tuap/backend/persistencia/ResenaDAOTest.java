@@ -41,7 +41,7 @@ class ResenaDAOTest {
         entrenadorMock.setNombre("Arnold");
         entrenadorMock.setApellido("Schwarzenegger");
         entrenadorMock.setEmail("arnold@goldgym.com");
-        entrenadorMock.setContraseña("terminator123");
+        entrenadorMock.setContrasena("terminator123");
         entrenadorMock.setEspecialidad("Culturismo");
         entrenadorMock.setRol("ENTRENADOR");
         entrenadorMock = entityManager.persistAndFlush(entrenadorMock);
@@ -51,7 +51,7 @@ class ResenaDAOTest {
         entrenadorSinResenas.setNombre("Ronnie");
         entrenadorSinResenas.setApellido("Coleman");
         entrenadorSinResenas.setEmail("ronnie@lightweight.com");
-        entrenadorSinResenas.setContraseña("yeahbuddy");
+        entrenadorSinResenas.setContrasena("yeahbuddy");
         entrenadorSinResenas.setEspecialidad("Fuerza");
         entrenadorSinResenas.setRol("ENTRENADOR");
         entrenadorSinResenas = entityManager.persistAndFlush(entrenadorSinResenas);
@@ -61,7 +61,7 @@ class ResenaDAOTest {
         clienteMock.setNombre("Cbum");
         clienteMock.setApellido("Bumstead");
         clienteMock.setEmail("cbum@mrolympia.com");
-        clienteMock.setContraseña("olympia123");
+        clienteMock.setContrasena("olympia123");
         clienteMock.setGenero("Masculino");
         clienteMock.setObjetivo("Ganar masa");
         clienteMock.setAltura(185);

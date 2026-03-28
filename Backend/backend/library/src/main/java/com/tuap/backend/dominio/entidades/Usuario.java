@@ -9,18 +9,18 @@ public class Usuario {
     private String apellido;
     private String email;
     private String nombre;
-    private String contraseña;
+    private String contrasena;
     private String rol;
 
     public Usuario() {
         super();
     }
 
-    public Usuario(String nombre, String apellido, String email, String contraseña, String rol) {
+    public Usuario(String nombre, String apellido, String email, String contrasena, String rol) {
         this.nombre = nombre;
         this.apellido = apellido;
         this.email = email;
-        this.contraseña = contraseña;
+        this.contrasena = contrasena;
         this.rol = rol;
     }
 
@@ -50,12 +50,12 @@ public class Usuario {
         this.email = email;
     }
 
-    public String getContraseña() {
-        return contraseña;
+    public String getContrasena() {
+        return contrasena;
     }
 
-    public void setContraseña(String contraseña) {
-        this.contraseña = contraseña;
+    public void setContrasena(String contrasena) {
+        this.contrasena = contrasena;
     }
 
     public String getRol() {

@@ -2,12 +2,12 @@ package com.tuap.backend.dominio.gestores;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
+import java.util.NoSuchElementException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.DetalleRutina;
@@ -19,335 +19,262 @@ import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.DetalleRutinaDAO;
 import com.tuap.backend.persistencia.EjercicioDAO;
 import com.tuap.backend.persistencia.RutinaDAO;
+import com.tuap.backend.persistencia.EntrenadorDAO;
 
 @Service
 public class GestorRutina {
 
-    @Autowired private RutinaDAO rutinaDAO;
-    @Autowired private DetalleRutinaDAO detalleRutinaDAO;
-    @Autowired private ClienteDAO clienteDAO;
-    @Autowired private EjercicioDAO ejercicioDAO;
-    @Autowired private com.tuap.backend.persistencia.EntrenadorDAO entrenadorDAO;
+    private static final String ROLE_ENTRENADOR = "ENTRENADOR";
+    private static final String ROLE_CLIENTE = "CLIENTE";
+    private static final String EJ_SENTADILLA = "Sentadilla";
+    private static final String EJ_PESO_MUERTO = "Peso Muerto";
+    private static final String NIVEL_PERSO = "Personalizado";
+    
+  
+    private static final String CAT_FUERZA = "FUERZA";
+    private static final String CAT_HIPERTROFIA = "HIPERTROFIA";
 
-    // =========================================================
-    //  PARTE 1: CREADOR MANUAL (incluyendo PLANTILLAS MAESTRAS)
-    // =========================================================
+    private final RutinaDAO rutinaDAO;
+    private final DetalleRutinaDAO detalleRutinaDAO;
+    private final ClienteDAO clienteDAO;
+    private final EjercicioDAO ejercicioDAO;
+    private final EntrenadorDAO entrenadorDAO;
+
+    public GestorRutina(RutinaDAO rutinaDAO, 
+                        DetalleRutinaDAO detalleRutinaDAO, 
+                        ClienteDAO clienteDAO, 
+                        EjercicioDAO ejercicioDAO, 
+                        EntrenadorDAO entrenadorDAO) {
+        this.rutinaDAO = rutinaDAO;
+        this.detalleRutinaDAO = detalleRutinaDAO;
+        this.clienteDAO = clienteDAO;
+        this.ejercicioDAO = ejercicioDAO;
+        this.entrenadorDAO = entrenadorDAO;
+    }
+
     @Transactional
     public Rutina crearRutinaManual(RutinaRequest request) {
-        // ✅ Si es una PLANTILLA MAESTRA
-        if (request.getEsPlantilla() != null && request.getEsPlantilla()) {
-            Rutina plantilla = new Rutina();
-            plantilla.setNombre(request.getNombre());
-            plantilla.setDescripcion(request.getDescripcion());
-            plantilla.setObjetivo(request.getObjetivo());
-            plantilla.setNivel("Personalizado");
-            plantilla.setCreador("ENTRENADOR");
-            plantilla.setEsPlantilla(true);
-            plantilla.setEntrenadorId(request.getEntrenadorId()); // ✅ Asociamos al entrenador
-            plantilla.setCliente(null); // Una plantilla NO pertenece a un cliente específico
-            
-            plantilla = rutinaDAO.save(plantilla);
-            
-            List<DetalleRutina> detalles = new ArrayList<>();
-            if (request.getEjercicios() != null) {  
-                for (RutinaRequest.EjercicioDetalleDTO d : request.getEjercicios()) {
-                    Ejercicio ej = ejercicioDAO.findById(d.getIdEjercicio())
-                            .orElseThrow(() -> new RuntimeException("Ejercicio no encontrado"));
-
-                    DetalleRutina detalle = new DetalleRutina();
-                    detalle.setRutina(plantilla);
-                    detalle.setEjercicio(ej);
-                    detalle.setSeries(d.getSeries());
-                    detalle.setRepeticiones(d.getRepeticiones());
-                    detalle.setPeso(d.getPeso());
-                    detalle.setRpe(d.getRpe());
-                    detalle.setNotas(d.getNotas());
-                    detalle.setDias(1);
-
-                    detalles.add(detalle);
-                }
-            }
-
-            detalleRutinaDAO.saveAll(detalles);
-            plantilla.setDetalles(detalles);
-            return plantilla;
+        if (Boolean.TRUE.equals(request.getEsPlantilla())) {
+            return procesarPlantillaMaestra(request);
         }
+        return procesarRutinaCliente(request);
+    }
+
+    private Rutina procesarPlantillaMaestra(RutinaRequest request) {
+        Rutina plantilla = new Rutina();
+        plantilla.setNombre(request.getNombre());
+        plantilla.setDescripcion(request.getDescripcion());
+        plantilla.setObjetivo(request.getObjetivo());
+        plantilla.setNivel(NIVEL_PERSO);
+        plantilla.setCreador(ROLE_ENTRENADOR);
+        plantilla.setEsPlantilla(true);
+        plantilla.setEntrenadorId(request.getEntrenadorId());
+        plantilla.setCliente(null);
         
-        // ✅ Si es una RUTINA NORMAL
+        plantilla = rutinaDAO.save(plantilla);
+        vincularEjercicios(plantilla, request.getEjercicios());
+        return plantilla;
+    }
+
+    private Rutina procesarRutinaCliente(RutinaRequest request) {
         Cliente cliente = clienteDAO.findById(request.getIdCliente())
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
+                .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado con ID: " + request.getIdCliente()));
 
         Rutina rutina = new Rutina();
         rutina.setCliente(cliente);
         rutina.setNombre(request.getNombre());
         rutina.setDescripcion(request.getDescripcion());
         rutina.setObjetivo(request.getObjetivo());
-        rutina.setNivel("Personalizado");
-        rutina.setEsPlantilla(false); // No es plantilla
+        rutina.setNivel(NIVEL_PERSO);
+        rutina.setEsPlantilla(false);
         rutina.setEntrenadorId(request.getEntrenadorId()); 
-       
-        if (request.getCreador() != null && !request.getCreador().isBlank()) {
-            rutina.setCreador(request.getCreador());
-        } else {
-            try {
-                var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-                if (auth != null && auth.getName() != null) {
-                    String email = auth.getName();
-                    boolean esEntrenador = entrenadorDAO.findByEmail(email).isPresent();
-                    rutina.setCreador(esEntrenador ? "ENTRENADOR" : "CLIENTE");
-                } else {
-                    rutina.setCreador("CLIENTE");
-                }
-            } catch (Exception ex) {
-                rutina.setCreador("CLIENTE");
-            }
-        }
+
+        rutina.setCreador(determinarCreador(request.getCreador()));
 
         rutina = rutinaDAO.save(rutina);
-
-        List<DetalleRutina> detalles = new ArrayList<>();
-        if (request.getEjercicios() != null) {
-            for (RutinaRequest.EjercicioDetalleDTO d : request.getEjercicios()) {
-                Ejercicio ej = ejercicioDAO.findById(d.getIdEjercicio())
-                        .orElseThrow(() -> new RuntimeException("Ejercicio no encontrado"));
-
-                DetalleRutina detalle = new DetalleRutina();
-                detalle.setRutina(rutina);
-                detalle.setEjercicio(ej);
-                detalle.setSeries(d.getSeries());
-                detalle.setRepeticiones(d.getRepeticiones());
-                detalle.setPeso(d.getPeso());
-                detalle.setRpe(d.getRpe());
-                detalle.setNotas(d.getNotas());
-                detalle.setDias(1);
-
-                detalles.add(detalle);
-            }
-        }
-
-        detalleRutinaDAO.saveAll(detalles);
-        rutina.setDetalles(detalles);
+        vincularEjercicios(rutina, request.getEjercicios());
         return rutina;
     }
 
-    // =========================================================
-    //  PARTE 2: GENERADOR AUTOMÁTICO "IA" (CREA 1 RUTINA POR DÍA)
-    // =========================================================
+    private String determinarCreador(String creadorRequest) {
+        if (creadorRequest != null && !creadorRequest.isBlank()) {
+            return creadorRequest;
+        }
+        try {
+            var auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getName() != null) {
+                return entrenadorDAO.findByEmail(auth.getName()).isPresent() ? ROLE_ENTRENADOR : ROLE_CLIENTE;
+            }
+        } catch (Exception ex) {
+            // Log silent
+        }
+        return ROLE_CLIENTE;
+    }
+
+    private void vincularEjercicios(Rutina rutina, List<RutinaRequest.EjercicioDetalleDTO> dtos) {
+        if (dtos == null) return;
+        
+        List<DetalleRutina> detalles = new ArrayList<>();
+        for (RutinaRequest.EjercicioDetalleDTO d : dtos) {
+            Ejercicio ej = ejercicioDAO.findById(d.getIdEjercicio())
+                    .orElseThrow(() -> new NoSuchElementException("Ejercicio no encontrado con ID: " + d.getIdEjercicio()));
+
+            DetalleRutina detalle = new DetalleRutina();
+            detalle.setRutina(rutina);
+            detalle.setEjercicio(ej);
+            detalle.setSeries(d.getSeries());
+            detalle.setRepeticiones(d.getRepeticiones());
+            detalle.setPeso(d.getPeso());
+            detalle.setRpe(d.getRpe());
+            detalle.setNotas(d.getNotas());
+            detalle.setDias(1);
+            detalles.add(detalle);
+        }
+        detalleRutinaDAO.saveAll(detalles);
+        rutina.setDetalles(detalles);
+    }
+
     @Transactional
     public List<Rutina> generarRutinaAutomatica(GenerarRutinaRequest request) {
         Cliente cliente = clienteDAO.findById(request.getIdCliente())
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
+                .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado"));
 
-        int dias = request.getDiasPorSemana();
-        if (dias < 1) dias = 1;
-        if (dias > 6) dias = 6; // límite razonable
-
+        int dias = Math.clamp(request.getDiasPorSemana(), 1, 6);
         List<Rutina> rutinasGeneradas = new ArrayList<>();
 
         for (int dia = 1; dia <= dias; dia++) {
-
-            // ✅ Creamos UNA RUTINA POR CADA DÍA
-            Rutina rutinaDia = new Rutina();
-            rutinaDia.setCliente(cliente);
-            rutinaDia.setNombre("Día " + dia + " - Plan " + formatearTexto(request.getObjetivo()));
-            rutinaDia.setObjetivo(request.getObjetivo());
-            rutinaDia.setNivel(request.getNivel());
-            rutinaDia.setCreador("IA");
-
-            String desc = String.format(
-                    "Entrenamiento día %d. Objetivo: %s. Nivel: %s.",
-                    dia,
-                    formatearTexto(request.getObjetivo()),
-                    formatearTexto(request.getNivel())
-            );
-            rutinaDia.setDescripcion(desc);
-
-            rutinaDia = rutinaDAO.save(rutinaDia);
-
-            List<DetalleRutina> detallesDia = new ArrayList<>();
-
-            // ✅ Selección por objetivo + variación por día
-            if ("FUERZA".equalsIgnoreCase(request.getObjetivo())) {
-                generarFuerzaDia(detallesDia, rutinaDia, dia);
-            } else if ("GANAR_MASA".equalsIgnoreCase(request.getObjetivo())) {
-                generarHipertrofiaDia(detallesDia, rutinaDia, dia);
-            } else {
-                generarPerdidaPesoDia(detallesDia, rutinaDia, dia);
-            }
-
-            if (detallesDia.isEmpty()) {
-                throw new RuntimeException("Error: No se encontraron ejercicios compatibles para el día " + dia);
-            }
-
-            detalleRutinaDAO.saveAll(detallesDia);
-            rutinaDia.setDetalles(detallesDia);
-
-            rutinasGeneradas.add(rutinaDia);
+            rutinasGeneradas.add(crearRutinaAutomaticaDia(cliente, request, dia));
         }
-
         return rutinasGeneradas;
     }
 
-    // =========================================================
-    //  PARTE 3: ACTUALIZAR RUTINA
-    // =========================================================
-    @Transactional
-    public Rutina actualizarRutina(UUID id, Rutina rutinaDatosNuevos) {
-        Rutina rutinaExistente = rutinaDAO.findById(id)
-                .orElseThrow(() -> new RuntimeException("Rutina no encontrada con ID: " + id));
+    private Rutina crearRutinaAutomaticaDia(Cliente cliente, GenerarRutinaRequest request, int dia) {
+        Rutina rutinaDia = new Rutina();
+        rutinaDia.setCliente(cliente);
+        rutinaDia.setNombre("Día " + dia + " - Plan " + formatearTexto(request.getObjetivo()));
+        rutinaDia.setObjetivo(request.getObjetivo());
+        rutinaDia.setNivel(request.getNivel());
+        rutinaDia.setCreador("IA");
+        rutinaDia.setDescripcion(String.format("Entrenamiento día %d. Objetivo: %s.", dia, request.getObjetivo()));
 
-        rutinaExistente.setNombre(rutinaDatosNuevos.getNombre());
-        rutinaExistente.setObjetivo(rutinaDatosNuevos.getObjetivo());
-        rutinaExistente.setNivel(rutinaDatosNuevos.getNivel());
+        rutinaDia = rutinaDAO.save(rutinaDia);
+        List<DetalleRutina> detalles = new ArrayList<>();
 
-        // No actualizamos 'creador'
-        rutinaExistente.getDetalles().clear();
+        String obj = request.getObjetivo().toUpperCase();
+        procesarObjetivoIA(obj, detalles, rutinaDia, dia);
 
-        if (rutinaDatosNuevos.getDetalles() != null) {
-            for (DetalleRutina detalle : rutinaDatosNuevos.getDetalles()) {
-                detalle.setRutina(rutinaExistente);
-
-                // Si tu entidad tiene "dias", evitamos que sea null o <1
-                try {
-                    Integer d = detalle.getDias(); // funciona aunque sea int (autoboxing)
-                    if (d == null || d < 1) detalle.setDias(1);
-                } catch (Exception ignore) {}
-
-                rutinaExistente.getDetalles().add(detalle);
-            }
+        if (detalles.isEmpty()) {
+           
+            throw new IllegalStateException("Error: No se encontraron ejercicios compatibles para el día " + dia);
         }
 
-        return rutinaDAO.save(rutinaExistente);
+        detalleRutinaDAO.saveAll(detalles);
+        rutinaDia.setDetalles(detalles);
+        return rutinaDia;
     }
 
-    // =========================================================
-    //  UTILIDADES
-    // =========================================================
+    private void procesarObjetivoIA(String obj, List<DetalleRutina> detalles, Rutina rutina, int dia) {
+        String categoria = getCategoriaDeObjetivo(obj);
+        
+        switch (categoria) {
+            case CAT_FUERZA -> generarFuerzaDia(detalles, rutina, dia);
+            case CAT_HIPERTROFIA -> generarHipertrofiaDia(detalles, rutina, dia);
+            default -> generarPerdidaPesoDia(detalles, rutina, dia);
+        }
+    }
+
+    private String getCategoriaDeObjetivo(String obj) {
+        if (obj.contains(CAT_FUERZA)) return CAT_FUERZA;
+        if (obj.contains("MASA") || obj.contains(CAT_HIPERTROFIA)) return CAT_HIPERTROFIA;
+        return "OTRO";
+    }
+
+    private void generarFuerzaDia(List<DetalleRutina> detalles, Rutina rutina, int dia) {
+        if ((dia - 1) % 2 == 0) { // A
+            agregarEjercicioSiExiste(detalles, rutina, EJ_SENTADILLA, 5, 5, 9, "Descanso 3-5 min.");
+            agregarEjercicioSiExiste(detalles, rutina, "Press de Banca", 5, 5, 9, "Barra al pecho.");
+            agregarEjercicioSiExiste(detalles, rutina, "Dominadas", 4, 6, 9, "Lastradas.");
+        } else { // B
+            agregarEjercicioSiExiste(detalles, rutina, EJ_PESO_MUERTO, 3, 5, 9, "Agarre mixto.");
+            agregarEjercicioSiExiste(detalles, rutina, "Press Militar", 4, 6, 8, "Bloquea arriba.");
+            agregarEjercicioSiExiste(detalles, rutina, "Remo", 4, 6, 8, "Espalda recta.");
+        }
+    }
+
+    private void generarHipertrofiaDia(List<DetalleRutina> detalles, Rutina rutina, int dia) {
+        if (dia == 1) { 
+            agregarEjercicioSiExiste(detalles, rutina, "Press Inclinado", 4, 10, 8, "Pecho superior.");
+            agregarEjercicioSiExiste(detalles, rutina, "Remo con Barra", 4, 12, 8, "Torso 45º.");
+        } else if (dia == 2) { 
+            agregarEjercicioSiExiste(detalles, rutina, EJ_SENTADILLA, 4, 10, 8, "Profunda.");
+            agregarEjercicioSiExiste(detalles, rutina, EJ_PESO_MUERTO, 3, 10, 8, "Enfoca femoral.");
+        } else {
+            agregarEjercicioSiExiste(detalles, rutina, EJ_SENTADILLA, 3, 12, 8, "Moderado.");
+            agregarEjercicioSiExiste(detalles, rutina, "Remo", 3, 12, 8, "Control total.");
+        }
+    }
+
+    private void generarPerdidaPesoDia(List<DetalleRutina> detalles, Rutina rutina, int dia) {
+        if (dia % 2 == 1) {
+            agregarEjercicioSiExiste(detalles, rutina, "Burpees", 4, 12, 8, "Ritmo constante.");
+            agregarEjercicioSiExiste(detalles, rutina, "Plancha", 4, 1, 9, "60 seg.");
+        } else {
+            agregarEjercicioSiExiste(detalles, rutina, EJ_SENTADILLA, 4, 20, 7, "Velocidad.");
+            agregarEjercicioSiExiste(detalles, rutina, "Flexiones", 4, 15, 9, "Cerca del fallo.");
+        }
+    }
+
+    @Transactional
+    public Rutina actualizarRutina(UUID id, Rutina nuevosDatos) {
+        Rutina existente = rutinaDAO.findById(id).orElseThrow(() -> new NoSuchElementException("Rutina no encontrada"));
+        existente.setNombre(nuevosDatos.getNombre());
+        existente.setObjetivo(nuevosDatos.getObjetivo());
+        existente.setNivel(nuevosDatos.getNivel());
+        existente.getDetalles().clear();
+
+        if (nuevosDatos.getDetalles() != null) {
+            for (DetalleRutina d : nuevosDatos.getDetalles()) {
+                d.setRutina(existente);
+                if (d.getDias() < 1) d.setDias(1);
+                existente.getDetalles().add(d);
+            }
+        }
+        return rutinaDAO.save(existente);
+    }
 
     public List<Rutina> obtenerRutinasDeCliente(UUID idCliente) {
         return rutinaDAO.findByClienteId(idCliente);
     }
 
     public List<Rutina> obtenerRutinasDeEntrenadorParaCliente(UUID idCliente) {
-        return rutinaDAO.findByClienteIdAndCreador(idCliente, "ENTRENADOR");
+        return rutinaDAO.findByClienteIdAndCreador(idCliente, ROLE_ENTRENADOR);
     }
 
     public void eliminarRutina(UUID id) {
         if (rutinaDAO.existsById(id)) {
             rutinaDAO.deleteById(id);
         } else {
-            throw new RuntimeException("La rutina no existe");
+            throw new NoSuchElementException("La rutina no existe");
         }
     }
 
-    // =========================================================
-    //  GENERACIÓN POR DÍA (IA) -> 1 día = 1 rutina
-    // =========================================================
-
-    private void generarFuerzaDia(List<DetalleRutina> detalles, Rutina rutina, int dia) {
-        // Alternamos A/B
-        int mod = (dia - 1) % 2;
-
-        if (mod == 0) { // A
-            agregarEjercicioSiExiste(detalles, rutina, "Sentadilla", 5, 5, 9, "Descanso 3-5 min.");
-            agregarEjercicioSiExiste(detalles, rutina, "Press de Banca", 5, 5, 9, "Barra al pecho.");
-            agregarEjercicioSiExiste(detalles, rutina, "Dominadas", 4, 6, 9, "Lastradas si puedes.");
-        } else { // B
-            agregarEjercicioSiExiste(detalles, rutina, "Peso Muerto", 3, 5, 9, "Agarre mixto.");
-            agregarEjercicioSiExiste(detalles, rutina, "Press Militar", 4, 6, 8, "Bloquea arriba.");
-            agregarEjercicioSiExiste(detalles, rutina, "Remo", 4, 6, 8, "Controla la espalda.");
-        }
-
-        // Accesorio
-        if (dia % 2 == 0) {
-            agregarEjercicioSiExiste(detalles, rutina, "Curl", 3, 10, 8, "Técnica estricta.");
-        } else {
-            agregarEjercicioSiExiste(detalles, rutina, "Tríceps", 3, 10, 8, "Codos estables.");
-        }
-    }
-
-    private void generarHipertrofiaDia(List<DetalleRutina> detalles, Rutina rutina, int dia) {
-        if (dia == 1) { // Torso A
-            agregarEjercicioSiExiste(detalles, rutina, "Press Inclinado", 4, 10, 8, "Pecho superior.");
-            agregarEjercicioSiExiste(detalles, rutina, "Remo con Barra", 4, 12, 8, "Torso 45º.");
-            agregarEjercicioSiExiste(detalles, rutina, "Elevaciones Laterales", 4, 15, 9, "Controla bajada.");
-            agregarEjercicioSiExiste(detalles, rutina, "Curl", 3, 12, 9, "Sin balanceo.");
-            agregarEjercicioSiExiste(detalles, rutina, "Press Francés", 3, 12, 8, "Codos cerrados.");
-        } else if (dia == 2) { // Pierna A
-            agregarEjercicioSiExiste(detalles, rutina, "Sentadilla", 4, 10, 8, "Profunda.");
-            agregarEjercicioSiExiste(detalles, rutina, "Zancadas", 3, 12, 7, "Pasos por pierna.");
-            agregarEjercicioSiExiste(detalles, rutina, "Peso Muerto", 3, 10, 8, "Enfoca femoral.");
-            agregarEjercicioSiExiste(detalles, rutina, "Gemelos", 4, 15, 8, "Pausa arriba.");
-        } else if (dia == 3) { // Torso B
-            agregarEjercicioSiExiste(detalles, rutina, "Press de Banca", 4, 10, 8, "Recorrido completo.");
-            agregarEjercicioSiExiste(detalles, rutina, "Dominadas", 4, 8, 9, "Controlando bajada.");
-            agregarEjercicioSiExiste(detalles, rutina, "Press Militar", 3, 10, 8, "Sin arquear.");
-            agregarEjercicioSiExiste(detalles, rutina, "Curl", 3, 12, 9, "Tensión continua.");
-            agregarEjercicioSiExiste(detalles, rutina, "Tríceps", 3, 12, 8, "Extensión controlada.");
-        } else if (dia == 4) { // Pierna B
-            agregarEjercicioSiExiste(detalles, rutina, "Sentadilla", 4, 12, 8, "Más volumen.");
-            agregarEjercicioSiExiste(detalles, rutina, "Zancadas", 3, 12, 7, "Rango completo.");
-            agregarEjercicioSiExiste(detalles, rutina, "Peso Muerto", 3, 12, 8, "Técnica limpia.");
-            agregarEjercicioSiExiste(detalles, rutina, "Gemelos", 4, 15, 8, "Sin rebotes.");
-        } else { // 5-6: Full body extra
-            agregarEjercicioSiExiste(detalles, rutina, "Press Inclinado", 3, 12, 8, "Moderado.");
-            agregarEjercicioSiExiste(detalles, rutina, "Remo", 3, 12, 8, "Control total.");
-            agregarEjercicioSiExiste(detalles, rutina, "Sentadilla", 3, 12, 8, "Moderado.");
-            agregarEjercicioSiExiste(detalles, rutina, "Plancha", 3, 1, 8, "45-60 seg.");
-        }
-    }
-
-    private void generarPerdidaPesoDia(List<DetalleRutina> detalles, Rutina rutina, int dia) {
-        if (dia % 3 == 1) { // A
-            agregarEjercicioSiExiste(detalles, rutina, "Burpees", 4, 12, 8, "Ritmo constante.");
-            agregarEjercicioSiExiste(detalles, rutina, "Mountain", 4, 30, 8, "30 segs.");
-            agregarEjercicioSiExiste(detalles, rutina, "Plancha", 4, 1, 9, "45-60 seg.");
-        } else if (dia % 3 == 2) { // B
-            agregarEjercicioSiExiste(detalles, rutina, "Sentadilla", 4, 20, 7, "Velocidad.");
-            agregarEjercicioSiExiste(detalles, rutina, "Flexiones", 4, 15, 9, "Cerca del fallo.");
-            agregarEjercicioSiExiste(detalles, rutina, "Plancha", 3, 1, 9, "60 segs.");
-        } else { // C
-            agregarEjercicioSiExiste(detalles, rutina, "Burpees", 4, 10, 8, "Técnica limpia.");
-            agregarEjercicioSiExiste(detalles, rutina, "Flexiones", 4, 12, 8, "Control.");
-            agregarEjercicioSiExiste(detalles, rutina, "Mountain", 4, 30, 8, "30 segs.");
-        }
-    }
-
-    // =========================================================
-    //  HELPERS
-    // =========================================================
-    private void agregarEjercicioSiExiste(
-            List<DetalleRutina> lista,
-            Rutina rutina,
-            String nombreClave,
-            int series,
-            int reps,
-            int rpe,
-            String notas
-    ) {
-        Optional<Ejercicio> optEjercicio = ejercicioDAO.findFirstByNombreContainingIgnoreCase(nombreClave);
-        if (optEjercicio.isPresent()) {
+    private void agregarEjercicioSiExiste(List<DetalleRutina> lista, Rutina rutina, String clave, int s, int r, int rpe, String n) {
+        ejercicioDAO.findFirstByNombreContainingIgnoreCase(clave).ifPresent(ej -> {
             DetalleRutina d = new DetalleRutina();
             d.setRutina(rutina);
-            d.setEjercicio(optEjercicio.get());
-            d.setSeries(series);
-            d.setRepeticiones(reps);
+            d.setEjercicio(ej);
+            d.setSeries(s);
+            d.setRepeticiones(r);
             d.setPeso(0.0f);
             d.setRpe(rpe);
-            d.setNotas(notas);
-
-            // Si tu entidad tiene "dias", lo ponemos a 1 porque esta rutina ya es "el día"
-            try {
-                d.setDias(1);
-            } catch (Exception ignore) {}
-
+            d.setNotas(n);
+            d.setDias(1);
             lista.add(d);
-        }
+        });
     }
 
-    private String formatearTexto(String texto) {
-        if (texto == null || texto.isEmpty()) return "";
-        return texto.substring(0, 1).toUpperCase()
-                + texto.substring(1).toLowerCase().replace("_", " ");
+    private String formatearTexto(String t) {
+        if (t == null || t.isEmpty()) return "";
+        return t.substring(0, 1).toUpperCase() + t.substring(1).toLowerCase().replace("_", " ");
     }
 }

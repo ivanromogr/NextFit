@@ -25,16 +25,17 @@ public class CustomUserDetailsService implements UserDetailsService {
         return clienteDAO.findByEmail(email)
             .map(cliente -> User.builder()
                 .username(cliente.getEmail())
-                .password(cliente.getContraseña())
+                
+                .password(cliente.getContrasena()) 
                 .roles(cliente.getRol().replace("ROLE_", ""))
                 .build())
             .or(() -> entrenadorDAO.findByEmail(email)
                 .map(entrenador -> User.builder()
                     .username(entrenador.getEmail())
-                    .password(entrenador.getContraseña())
+                    // 🧹 CORREGIDO: Llamamos a getContrasena() sin la "ñ"
+                    .password(entrenador.getContrasena()) 
                     .roles(entrenador.getRol().replace("ROLE_", ""))
                     .build()))
             .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
     }
 }
-

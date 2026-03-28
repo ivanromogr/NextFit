@@ -19,8 +19,8 @@ public class Administrador {
     public Administrador() {
     }
 
-    public Administrador(String nombre, String apellido, String email, String rol, String contraseña, String nivelAcceso) {
-        // super(nombre, apellido, email, contraseña, rol); // id es generado automáticamente, no hace falta pasarlo
+    public Administrador(String nombre, String apellido, String email, String rol, String contrasena, String nivelAcceso) {
+        // super(nombre, apellido, email, contrasena, rol); // id es generado automáticamente, no hace falta pasarlo
         this.nivelAcceso = nivelAcceso;
     }
 

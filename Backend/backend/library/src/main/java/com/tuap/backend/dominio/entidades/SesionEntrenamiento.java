@@ -59,7 +59,9 @@ public class SesionEntrenamiento {
     @JsonIgnoreProperties("sesion")
     private List<SerieRealizada> series = new ArrayList<>();
 
-    public SesionEntrenamiento() {}
+    public SesionEntrenamiento() {
+        // Constructor vacío necesario para JPA
+    }
 
     // Getters y Setters
     public UUID getId() { return id; }

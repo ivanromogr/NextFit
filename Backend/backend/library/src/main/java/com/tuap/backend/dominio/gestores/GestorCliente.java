@@ -7,8 +7,6 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,59 +21,68 @@ import com.tuap.backend.persistencia.ClienteDAO;
 
 @Controller
 public class GestorCliente {
-    @Autowired
-    private ClienteDAO clienteDAO;
+
+    private static final String ATTR_ERROR = "error";
+    private static final String MSG_NOT_FOUND = "Cliente no encontrado";
+    private static final String ATTR_CLIENTE = "cliente";
+    private static final String VIEW_ERROR = "error";
+
+    // 🧹 SOLUCIÓN SONARQUBE: Campo final para inyección por constructor
+    private final ClienteDAO clienteDAO;
+
+    // 🧹 SOLUCIÓN SONARQUBE: Constructor Injection
+    public GestorCliente(ClienteDAO clienteDAO) {
+        this.clienteDAO = clienteDAO;
+    }
+
+    // 📦 DTO interno para reducir el número de parámetros (Clean Code)
+    public record PerfilParams(
+        String nombre, String apellido, String email, 
+        double peso, int altura, int edad, 
+        String objetivo, MultipartFile foto
+    ) {}
 
     public Cliente verPerfil(UUID idCliente) {
-        Optional<Cliente> clienteOpt = clienteDAO.findById(idCliente);
-        return clienteOpt.orElse(null);
+        return clienteDAO.findById(idCliente).orElse(null);
     }
 
     @GetMapping("/menucliente/{id}")
     public String menuCliente(@PathVariable UUID id, Model model) {
-        // Obtener el contexto de seguridad actual
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
+        // 🧹 SOLUCIÓN SONARQUBE: Eliminada variable "auth" que no se usaba
         
-
-        // Verificar si el cliente existe en base de datos
         Optional<Cliente> clienteOpt = clienteDAO.findById(id);
         if (clienteOpt.isEmpty()) {
-            model.addAttribute("error", "Cliente no encontrado");
-            return "error";
+            model.addAttribute(ATTR_ERROR, MSG_NOT_FOUND);
+            return VIEW_ERROR;
         }
 
-        Cliente cliente = clienteOpt.get();
-        model.addAttribute("cliente", cliente);
-
-        return "menucliente"; // Nombre de la vista HTML
+        model.addAttribute(ATTR_CLIENTE, clienteOpt.get());
+        return "menucliente";
     }
-    // Ver tu perfil 
+
     @GetMapping("/cliente/perfil/{id}")
     public String verPerfilCliente(@PathVariable UUID id, Model model) {
         Cliente cliente = verPerfil(id);
         if (cliente != null) {
-            model.addAttribute("cliente", cliente);
+            model.addAttribute(ATTR_CLIENTE, cliente);
             return "perfilCliente";
         } else {
-            model.addAttribute("error", "Cliente no encontrado");
-            return "error";
+            model.addAttribute(ATTR_ERROR, MSG_NOT_FOUND);
+            return VIEW_ERROR;
         }
     }
-    //editar tu perfil
+
     @GetMapping("/cliente/editar/{id}")
     public String editarPerfilCliente(@PathVariable UUID id, Model model) {
         Cliente cliente = verPerfil(id);
         if (cliente != null) {
-            model.addAttribute("cliente", cliente);
+            model.addAttribute(ATTR_CLIENTE, cliente);
             return "editarPerfilCliente";
         } else {
-            model.addAttribute("error", "Cliente no encontrado");
-            return "error";
+            model.addAttribute(ATTR_ERROR, MSG_NOT_FOUND);
+            return VIEW_ERROR;
         }
     }
-
-    // PostMapping
 
     @PostMapping("/cliente/perfil/{id}/editar")
     public String guardarCambiosPerfil(
@@ -89,36 +96,53 @@ public class GestorCliente {
             @RequestParam("objetivo") String objetivo,
             @RequestParam("foto") MultipartFile foto) throws IOException {
 
-        actualizarPerfil(id, nombre, apellido, email, peso, altura, edad, objetivo, foto);
+        // Agrupamos parámetros en un objeto para cumplir con el límite de SonarQube
+        PerfilParams params = new PerfilParams(nombre, apellido, email, peso, altura, edad, objetivo, foto);
+        actualizarPerfil(id, params);
+        
         return "redirect:/cliente/perfil/" + id;
     }
 
-    public void actualizarPerfil(UUID idCliente, String nombre, String apellido, String email,
-            double peso, int altura, int edad, String objetivo,
-            MultipartFile foto) throws IOException {
+    // 🧹 SOLUCIÓN SONARQUBE: Reducido de 9 parámetros a 2 usando el objeto PerfilParams
+    public void actualizarPerfil(UUID idCliente, PerfilParams params) throws IOException {
         Optional<Cliente> clienteOpt = clienteDAO.findById(idCliente);
         if (clienteOpt.isPresent()) {
             Cliente cliente = clienteOpt.get();
 
-            cliente.setNombre(nombre);
-            cliente.setApellido(apellido);
-            cliente.setEmail(email);
-            cliente.setPeso(peso);
-            cliente.setAltura(altura);
-            cliente.setEdad(edad);
-            cliente.setObjetivo(objetivo);
+            cliente.setNombre(params.nombre());
+            cliente.setApellido(params.apellido());
+            cliente.setEmail(params.email());
+            cliente.setPeso(params.peso());
+            cliente.setAltura(params.altura());
+            cliente.setEdad(params.edad());
+            cliente.setObjetivo(params.objetivo());
 
             // Manejo de la foto
-            if (!foto.isEmpty()) {
-                String nombreArchivo = UUID.randomUUID() + "_" + foto.getOriginalFilename();
-                Path ruta = Paths.get("uploads", nombreArchivo);
-                Files.createDirectories(ruta.getParent());
-                Files.write(ruta, foto.getBytes());
-                cliente.setFotoPerfil(nombreArchivo);
-            }
+            procesarFotoPerfil(cliente, params.foto());
 
             clienteDAO.save(cliente);
         }
     }
 
+    private void procesarFotoPerfil(Cliente cliente, MultipartFile foto) throws IOException {
+        if (foto != null && !foto.isEmpty() && foto.getOriginalFilename() != null) {
+            // 🧹 SOLUCIÓN SONARQUBE: Verificación de nulo antes de cleanPath
+            String originalName = foto.getOriginalFilename();
+            String nombreOriginalLimpio = org.springframework.util.StringUtils.cleanPath(originalName);
+            
+            String nombreArchivoSeguro = java.nio.file.Paths.get(nombreOriginalLimpio).getFileName().toString();
+            String nombreFinal = UUID.randomUUID() + "_" + nombreArchivoSeguro;
+            
+            Path rutaBase = Paths.get("uploads").toAbsolutePath().normalize();
+            Path rutaDestino = rutaBase.resolve(nombreFinal).normalize();
+            
+            if (!rutaDestino.startsWith(rutaBase)) {
+                throw new SecurityException("Intento de Path Traversal detectado.");
+            }
+            
+            Files.createDirectories(rutaDestino.getParent());
+            Files.write(rutaDestino, foto.getBytes());
+            cliente.setFotoPerfil(nombreFinal);
+        }
+    }
 }

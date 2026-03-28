@@ -56,15 +56,15 @@ class GestorLoginTest {
     @Test
     void registroApi_DatosValidos_RegistraClienteYDevuelve200() {
         // --- PREPARACIÓN ---
-        GestorLogin.RegistroRequest req = new GestorLogin.RegistroRequest();
-        req.nombre = "Ana";
-        req.apellido = "García";
-        req.email = "test@test.com";
-        req.contraseña = "123456";
-        req.rol = "cliente";
+       GestorLogin.RegistroRequest req = new GestorLogin.RegistroRequest();
+req.setNombre("Juan");
+req.setApellido("Pérez");
+req.setEmail("juan@ejemplo.com");
+req.setContrasena("123456"); 
+req.setRol("cliente");
 
-        // Simulamos el encriptador de contraseñas
-        when(passwordEncoder.encode("123456")).thenReturn("contraseña_encriptada_123");
+        // Simulamos el encriptador de contrasenas
+        when(passwordEncoder.encode("123456")).thenReturn("contrasena_encriptada_123");
         
         // Simulamos que el entrenador NO existe con ese email
         when(entrenadorDAO.findByEmail(anyString())).thenReturn(Optional.empty());
@@ -96,11 +96,11 @@ class GestorLoginTest {
     void registroApi_EmailYaExiste_DevuelveError409() {
         // --- PREPARACIÓN ---
         GestorLogin.RegistroRequest req = new GestorLogin.RegistroRequest();
-        req.nombre = "Pedro";
-        req.apellido = "Pérez";
-        req.email = "test@test.com"; // Este email ya está pillado
-        req.contraseña = "123456";
-        req.rol = "cliente";
+        req.setNombre("Pedro");
+        req.setApellido("Pérez");
+        req.setEmail("test@test.com"); // Este email ya está pillado
+        req.setContrasena("123456");
+        req.setRol("cliente");
 
         // Simulamos que la BBDD encuentra a alguien con ese email
         when(clienteDAO.findByEmail("test@test.com")).thenReturn(Optional.of(clienteMock));
@@ -122,11 +122,11 @@ class GestorLoginTest {
     void registroApi_FaltaContraseña_DevuelveError400() {
         // --- PREPARACIÓN ---
         GestorLogin.RegistroRequest req = new GestorLogin.RegistroRequest();
-        req.nombre = "Luis";
-        req.apellido = "Gómez";
-        req.email = "luis@test.com";
-        req.contraseña = ""; // Dejado en blanco a propósito
-        req.rol = "cliente";
+        req.setNombre("Luis");
+        req.setApellido("Gómez");
+        req.setEmail("luis@test.com");
+        req.setContrasena(""); // Dejado en blanco a propósito
+        req.setRol("cliente");
 
         // --- ACCIÓN ---
         ResponseEntity<?> respuesta = gestorLogin.registroApi(req);

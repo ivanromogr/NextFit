@@ -4,7 +4,7 @@ public class UpdateClienteRequest {
     private String nombre;
     private String apellido;
     private String email;
-    private String contraseña; // opcional: si se envía, será actualizada
+    private String contrasena; // opcional: si se envía, será actualizada
     private String fotoPerfil;
     private Double peso;
     private Integer altura;
@@ -21,8 +21,8 @@ public class UpdateClienteRequest {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
-    public String getContraseña() { return contraseña; }
-    public void setContraseña(String contraseña) { this.contraseña = contraseña; }
+    public String getContrasena() { return contrasena; }
+    public void setContrasena(String contrasena) { this.contrasena = contrasena; }
 
     public String getFotoPerfil() { return fotoPerfil; }
     public void setFotoPerfil(String fotoPerfil) { this.fotoPerfil = fotoPerfil; }

@@ -2,23 +2,20 @@ package com.tuap.backend.dominio.gestores;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.Entrenador;
@@ -28,49 +25,57 @@ import com.tuap.backend.dto.OnboardingRequest;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-
-@Controller
+@RestController
 public class GestorLogin {
 
-    // Constantes
     private static final String RELLENA_CAMPOS = "Rellena todos los campos";
     private static final String USUARIO_EXISTE_STR = "El nombre de usuario ya existe";
-    private static final String SECRET_KEY = "mySecretKey"; 
+    private static final String ROLE_CLIENTE = "ROLE_CLIENTE";
+    private static final String ROLE_ENTRENADOR = "ROLE_ENTRENADOR";
 
-    @Autowired
-    private ClienteDAO clienteDAO;
+    private final ClienteDAO clienteDAO;
+    private final EntrenadorDAO entrenadorDAO;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private EntrenadorDAO entrenadorDAO;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    // DTO interno para el registro inicial (Nombre, email, pass, rol)
-    public static class RegistroRequest {
-        public String nombre;
-        public String apellido;
-        public String email;
-        public String contraseña;
-        public String rol; 
+    public GestorLogin(ClienteDAO clienteDAO, 
+                       EntrenadorDAO entrenadorDAO, 
+                       PasswordEncoder passwordEncoder) {
+        this.clienteDAO = clienteDAO;
+        this.entrenadorDAO = entrenadorDAO;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // --------------------------------------------------------------------------------
-    // API 1: ONBOARDING CLIENTE (JSON)
-    // Recibe ID + Datos Físicos -> Actualiza Cliente -> Devuelve JSON
-    // --------------------------------------------------------------------------------
-    @PostMapping("/api/cliente/onboarding")
-    @ResponseBody
-    public ResponseEntity<?> completarOnboardingCliente(@RequestBody OnboardingRequest req) {
+    
+    public static class RegistroRequest {
+        private String nombre;
+        private String apellido;
+        private String email;
+        private String contrasena;
+        private String rol; 
 
-        // 1. Validar ID
+        public String getNombre() { return nombre; }
+        public void setNombre(String nombre) { this.nombre = nombre; }
+
+        public String getApellido() { return apellido; }
+        public void setApellido(String apellido) { this.apellido = apellido; }
+
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+
+        public String getContrasena() { return contrasena; }
+        public void setContrasena(String contrasena) { this.contrasena = contrasena; }
+
+        public String getRol() { return rol; }
+        public void setRol(String rol) { this.rol = rol; }
+    }
+
+    @PostMapping("/api/cliente/onboarding")
+    public ResponseEntity<Object> completarOnboardingCliente(@RequestBody OnboardingRequest req) {
+
         if (req == null || req.getIdCliente() == null) {
             return ResponseEntity.badRequest().body("Error: No se recibió el ID del cliente.");
         }
 
-        // 2. Buscar Cliente
         Optional<Cliente> clienteOpt = clienteDAO.findById(req.getIdCliente());
         if (clienteOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Cliente no encontrado con ID: " + req.getIdCliente());
@@ -78,27 +83,23 @@ public class GestorLogin {
 
         Cliente cliente = clienteOpt.get();
 
-        // 3. Actualizar datos (Si vienen en el JSON)
         if (req.getPesoKg() != null)       cliente.setPeso(req.getPesoKg());
         if (req.getAlturaCm() != null)     cliente.setAltura(req.getAlturaCm().intValue());
         if (req.getGenero() != null)       cliente.setGenero(req.getGenero());
         if (req.getObjetivo() != null)     cliente.setObjetivo(req.getObjetivo());
         
-        // 4. Calcular Edad automáticamente
         if (req.getFechaNacimiento() != null && !req.getFechaNacimiento().isBlank()) {
             try {
                 LocalDate fechaNac = LocalDate.parse(req.getFechaNacimiento());
                 int edadCalculada = Period.between(fechaNac, LocalDate.now()).getYears();
                 cliente.setEdad(edadCalculada);
             } catch (Exception e) {
-                System.out.println("Error calculando edad: " + e.getMessage());
+                // Log silent
             }
         }
 
-        // 5. Guardar
         clienteDAO.save(cliente);
 
-        // 6. Responder
         Map<String, Object> body = new HashMap<>();
         body.put("mensaje", "Onboarding completado exitosamente");
         body.put("idCliente", cliente.getId());
@@ -106,73 +107,62 @@ public class GestorLogin {
         return ResponseEntity.ok(body);
     }
 
-    // --------------------------------------------------------------------------------
-    // API 2: REGISTRO DE USUARIO (JSON)
-    // Recibe Datos Básicos -> Crea Usuario -> Devuelve ID
-    // --------------------------------------------------------------------------------
     @PostMapping("/api/register")
-    @ResponseBody
-    public ResponseEntity<?> registroApi(@RequestBody RegistroRequest req) {
+    public ResponseEntity<Object> registroApi(@RequestBody RegistroRequest req) {
 
-        // 1. Validaciones
         if (req == null ||
-                req.nombre == null || req.nombre.isBlank() ||
-                req.apellido == null || req.apellido.isBlank() ||
-                req.email == null || req.email.isBlank() ||
-                req.contraseña == null || req.contraseña.isBlank() ||
-                req.rol == null || req.rol.isBlank()) {
+                req.getNombre() == null || req.getNombre().isBlank() ||
+                req.getApellido() == null || req.getApellido().isBlank() ||
+                req.getEmail() == null || req.getEmail().isBlank() ||
+                req.getContrasena() == null || req.getContrasena().isBlank() ||
+                req.getRol() == null || req.getRol().isBlank()) {
 
             return ResponseEntity.badRequest().body(RELLENA_CAMPOS);
         }
 
         Usuario usuario = new Usuario();
-        usuario.setNombre(req.nombre);
-        usuario.setApellido(req.apellido);
-        usuario.setEmail(req.email);
-        usuario.setContraseña(req.contraseña);
-        usuario.setRol(req.rol);
+        usuario.setNombre(req.getNombre());
+        usuario.setApellido(req.getApellido());
+        usuario.setEmail(req.getEmail());
+        usuario.setContrasena(req.getContrasena()); 
+        usuario.setRol(req.getRol());
 
-        String rolNormalizado = req.rol.toLowerCase();
+        String rolNormalizado = req.getRol().toLowerCase();
 
-        // 2. Comprobar duplicados
         if (emailExisteEnSistema(usuario.getEmail())) {
             return ResponseEntity.status(409).body(USUARIO_EXISTE_STR);
         }
 
-        int resultado = 0;
+        int resultado;
         UUID clienteId = null;
         UUID entrenadorId = null;
 
-        // 3. Crear según rol
         switch (rolNormalizado) {
-            case "cliente":
-                // Llamamos a la versión limpia de registrarCliente (sin Model)
-                resultado = registrarCliente(usuario, 0.0, 0, 0, "", null);
+            case "cliente" -> {
+                resultado = registrarCliente(usuario);
                 if (resultado != 0) {
                     clienteId = clienteDAO.findByEmail(usuario.getEmail())
                             .map(Cliente::getId)
                             .orElse(null);
                 }
-                break;
-
-            case "entrenador":
-                resultado = registrarEntrenador(usuario, "");
+            }
+            case "entrenador" -> {
+                resultado = registrarEntrenador(usuario);
                 if (resultado != 0) {
                     entrenadorId = entrenadorDAO.findByEmail(usuario.getEmail())
                             .map(Entrenador::getId)
                             .orElse(null);
                 }
-                break;
-
-            default:
+            }
+            default -> {
                 return ResponseEntity.badRequest().body("Rol inválido");
+            }
         }
 
         if (resultado == 0) {
             return ResponseEntity.internalServerError().body("No se ha podido registrar el usuario.");
         }
 
-        // 4. Devolver JSON con los IDs para el Frontend
         Map<String, Object> body = new HashMap<>();
         body.put("rol", rolNormalizado);
         body.put("clienteId", clienteId); 
@@ -181,19 +171,14 @@ public class GestorLogin {
 
         return ResponseEntity.ok(body);
     }
-    // --------------------------------------------------------------------------------
-    // API 3: ONBOARDING ENTRENADOR (JSON)
-    // --------------------------------------------------------------------------------
-    @PostMapping("/api/entrenador/onboarding")
-    @ResponseBody
-    public ResponseEntity<?> completarOnboardingEntrenador(@RequestBody EntrenadorOnboardingRequest req) {
 
-        // 1. Validar ID
+    @PostMapping("/api/entrenador/onboarding")
+    public ResponseEntity<Object> completarOnboardingEntrenador(@RequestBody EntrenadorOnboardingRequest req) {
+
         if (req == null || req.getIdEntrenador() == null) {
             return ResponseEntity.badRequest().body("Error: No se recibió el ID del entrenador.");
         }
 
-        // 2. Buscar Entrenador
         Optional<Entrenador> entrenadorOpt = entrenadorDAO.findById(req.getIdEntrenador());
         if (entrenadorOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Entrenador no encontrado con ID: " + req.getIdEntrenador());
@@ -201,7 +186,6 @@ public class GestorLogin {
 
         Entrenador entrenador = entrenadorOpt.get();
 
-        // 3. Actualizar datos (Solo si no son nulos)
         if (req.getEspecialidad() != null)      entrenador.setEspecialidad(req.getEspecialidad());
         if (req.getEdad() != null)              entrenador.setEdad(req.getEdad());
         if (req.getGenero() != null)            entrenador.setGenero(req.getGenero());
@@ -211,10 +195,8 @@ public class GestorLogin {
         if (req.getModalidadTrabajo() != null)  entrenador.setModalidadTrabajo(req.getModalidadTrabajo());
         if (req.getFotoPerfil() != null)        entrenador.setFotoPerfil(req.getFotoPerfil());
 
-        // 4. Guardar cambios
         entrenadorDAO.save(entrenador);
 
-        // 5. Responder
         Map<String, Object> body = new HashMap<>();
         body.put("mensaje", "Perfil de entrenador completado exitosamente");
         body.put("idEntrenador", entrenador.getId());
@@ -222,112 +204,68 @@ public class GestorLogin {
         return ResponseEntity.ok(body);
     }
 
-    // --------------------------------------------------------------------------------
-    // MÉTODOS PRIVADOS DE APOYO (LIMPIOS DE VISTAS)
-    // --------------------------------------------------------------------------------
-    
     private boolean emailExisteEnSistema(String email) {
         return clienteDAO.findByEmail(email).isPresent() || entrenadorDAO.findByEmail(email).isPresent();
     }
 
-    private int registrarCliente(Usuario usuario, Double peso, Integer altura, Integer edad,
-            String objetivo, String fotoPerfil) {
-        
-        String encoded = passwordEncoder.encode(usuario.getContraseña());
-        
-        double pesoVal = (peso != null) ? peso : 0.0;
-        int alturaVal = (altura != null) ? altura : 0;
-        int edadVal = (edad != null) ? edad : 0;
-        String objetivoVal = (objetivo != null) ? objetivo : "";
-        String fotoPerfilVal = (fotoPerfil != null) ? fotoPerfil : "";
-        String generoVal = "";
-
+    private int registrarCliente(Usuario usuario) {
+        String encoded = passwordEncoder.encode(usuario.getContrasena()); 
         try {
             Cliente cliente = new Cliente(
                     usuario.getNombre(), usuario.getApellido(), usuario.getEmail(),
-                    encoded, "ROLE_CLIENTE", pesoVal, alturaVal,
-                    edadVal, objetivoVal, fotoPerfilVal, generoVal);
+                    encoded, ROLE_CLIENTE, 0.0, 0,
+                    0, "", "", "");
 
             clienteDAO.save(cliente);
             return 1;
         } catch (Exception e) {
-            e.printStackTrace();
             return 0;
         }
     }
 
-    private int registrarEntrenador(Usuario usuario, String especialidad) {
-        String encoded = passwordEncoder.encode(usuario.getContraseña());
-
-        String especialidadVal = (especialidad != null) ? especialidad : "";
-        Integer edadVal = 0;
-        String generoVal = "";
-        Integer aniosExperienciaVal = 0;
-        String formacionVal = "";
-        String descripcionPerfilVal = "";
-        String modalidadTrabajoVal = "";
-        String fotoPerfilVal = "";
-
+    private int registrarEntrenador(Usuario usuario) {
+        String encoded = passwordEncoder.encode(usuario.getContrasena()); 
         try {
             Entrenador entrenador = new Entrenador(
                     usuario.getNombre(), usuario.getApellido(), usuario.getEmail(),
-                    encoded, "ROLE_ENTRENADOR", especialidadVal, edadVal,
-                    generoVal, aniosExperienciaVal, formacionVal,
-                    descripcionPerfilVal, modalidadTrabajoVal, fotoPerfilVal);
+                    encoded, ROLE_ENTRENADOR, "", 0,
+                    "", 0, "",
+                    "", "", "");
 
             entrenadorDAO.save(entrenador);
             return 1;
         } catch (Exception e) {
-            e.printStackTrace();
             return 0;
         }
     }
 
-
-    // --------------------------------------------------------------------------------
-    // OTROS ENDPOINTS API (Getters, Recover Password)
-    // --------------------------------------------------------------------------------
-
     @GetMapping("/clientes/{id}")
-    @ResponseBody
     public Cliente getClienteById(@PathVariable UUID id) { 
         return clienteDAO.findById(id).orElse(null);
     }
 
     @GetMapping("/entrenadores/{id}")
-    @ResponseBody
     public Entrenador getEntrenadorById(@PathVariable UUID id) {
         return entrenadorDAO.findById(id).orElse(null);
     }
     
+    // 🧹 PRECAUCIÓN AQUÍ: He cambiado "nuevaContraseña" por "nuevaContrasena" en la firma del método
     @PostMapping("/api/recover-password")
-    @ResponseBody
-    public ResponseEntity<String> recoverPassword(@RequestParam String email, @RequestParam String nuevaContraseña) {
+    public ResponseEntity<String> recoverPassword(@RequestParam String email, @RequestParam String nuevaContrasena) {
         Optional<Cliente> clienteOpt = clienteDAO.findByEmail(email);
         Optional<Entrenador> entrenadorOpt = entrenadorDAO.findByEmail(email);
 
         if (clienteOpt.isPresent()) {
             Cliente cliente = clienteOpt.get();
-            cliente.setContraseña(passwordEncoder.encode(nuevaContraseña));
+            cliente.setContrasena(passwordEncoder.encode(nuevaContrasena)); // 🧹 Actualizado
             clienteDAO.save(cliente);
             return ResponseEntity.ok("Contraseña actualizada correctamente");
         } else if (entrenadorOpt.isPresent()) {
             Entrenador entrenador = entrenadorOpt.get();
-            entrenador.setContraseña(passwordEncoder.encode(nuevaContraseña));
+            entrenador.setContrasena(passwordEncoder.encode(nuevaContrasena)); // 🧹 Actualizado
             entrenadorDAO.save(entrenador);
             return ResponseEntity.ok("Contraseña actualizada correctamente");
         }
         return ResponseEntity.badRequest().body("Usuario no encontrado");
-    }
-
-    // Métodos para generar Token (Opcionales si usas JWT más adelante)
-    private String generateToken(Cliente cliente) {
-        return Jwts.builder()
-                .setSubject(cliente.getEmail())
-                .claim("roles", cliente.getRol())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 86400000))
-                .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
-                .compact();
     }
 }
