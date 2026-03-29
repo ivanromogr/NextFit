@@ -21,7 +21,7 @@
         clienteIdProp = null, 
         rutinaInicial = null, 
         onGuardarSuccess = null,
-        isTemplate = false // ✅ NUEVO PROP: ¿Estamos creando una plantilla maestra?
+        isTemplate = false 
     }) => {
         const navigate = useNavigate();
         const { userId: currentUserId } = useAuth(); // Obtenemos el ID del usuario logueado (Entrenador)

@@ -17,7 +17,7 @@ import {
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 
-// 🔥 VOLVEMOS A IMPORTAR TU PANEL LATERAL
+
 import ModalResultados from '../../components/functional/ModalResultados';
 
 export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }) {

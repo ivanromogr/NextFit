@@ -24,7 +24,6 @@ const EditarRutina = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedMuscle, setSelectedMuscle] = useState("TODOS");
 
-    // ✅ NUEVO: ESTADO PARA NOTIFICACIONES TOAST
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     useEffect(() => {

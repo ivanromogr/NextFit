@@ -15,12 +15,12 @@ import PersonalRecordsList from '../../components/ui/PersonalRecordsList';
 
 import { Trophy, Dumbbell, Calendar, ArrowUp, ArrowDown, ArrowLeft } from 'lucide-react';
 
-// 👇 1. ACEPTAMOS PROPS
+//  1. ACEPTAMOS PROPS
 export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) {
     const navigate = useNavigate();
     const { userId } = useAuth();
 
-    // 👇 2. LÓGICA HÍBRIDA: Si viene prop (Entrenador), la usa. Si no, Context (Cliente).
+    // Si viene prop (Entrenador), la usa. Si no, Context (Cliente).
     const clienteId = clienteIdProp || userId;
 
     const [globalStats, setGlobalStats] = useState(null);

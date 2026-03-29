@@ -11,7 +11,7 @@ export default function ChatClientePage() {
     const { userId: clienteId } = useAuth(); // Pillamos el ID del contexto blindado
     const [entrenador, setEntrenador] = useState(null);
     
-    // 👇 MAGIA 1: Al cargar, leemos si ya teníamos amigos guardados en la memoria de la pestaña
+    // Al cargar, leemos si ya teníamos amigos guardados en la memoria de la pestaña
     const [amigos, setAmigos] = useState(() => {
         const guardados = sessionStorage.getItem(`contactos_chat_${clienteId}`);
         return guardados ? JSON.parse(guardados) : [];
@@ -33,7 +33,7 @@ export default function ChatClientePage() {
 
     const socketRef = useRef(null);
 
-    // 👇 MAGIA 2: Cada vez que la lista de amigos cambie, la guardamos a fuego en la memoria
+    // Cada vez que la lista de amigos cambie, la guardamos a fuego en la memoria
     useEffect(() => {
         if (amigos.length > 0) {
             sessionStorage.setItem(`contactos_chat_${clienteId}`, JSON.stringify(amigos));

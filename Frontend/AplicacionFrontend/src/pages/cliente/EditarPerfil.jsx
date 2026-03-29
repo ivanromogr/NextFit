@@ -17,10 +17,10 @@ const EditarPerfil = () => {
     apellido: '', 
     email: '', 
     fotoPerfil: '', 
-    contraseña: '' 
+    contrasena: '' 
   });
 
-  // ✅ Estado para Toast
+  
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
@@ -40,7 +40,7 @@ const EditarPerfil = () => {
           apellido: data.apellido || '',
           email: data.email || '',
           fotoPerfil: data.fotoPerfil || '',
-          contraseña: ''
+          contrasena: ''
         });
         console.log('✅ Form cliente actualizado');
       } catch (e) { 
@@ -72,9 +72,9 @@ const EditarPerfil = () => {
         fotoPerfil: form.fotoPerfil || ''
       };
 
-      // Agregar contraseña solo si tiene valor
-      if (form.contraseña && form.contraseña.trim() !== '') {
-        payload.contraseña = form.contraseña;
+      // Agregar contrasena solo si tiene valor
+      if (form.contrasena && form.contrasena.trim() !== '') {
+        payload.contrasena = form.contrasena;
       }
 
       console.log('📤 Enviando payload cliente:', payload);
@@ -226,8 +226,8 @@ const EditarPerfil = () => {
                         type="password" 
                         style={styles.input} 
                         placeholder="Déjalo en blanco si no quieres cambiarla" 
-                        value={form.contraseña} 
-                        onChange={e => handleChange('contraseña', e.target.value)} 
+                        value={form.contrasena} 
+                        onChange={e => handleChange('contrasena', e.target.value)} 
                         onFocus={e => e.target.style.borderColor = '#ef4444'} 
                         onBlur={e => e.target.style.borderColor = '#333'}
                     />

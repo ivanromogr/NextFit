@@ -4,14 +4,14 @@ import {
     obtenerRutinasCliente,
     guardarSesionRealizada, 
     obtenerUltimaSesionRutina,
-    obtenerRutinasAsignadasPorEntrenador // 🔥 IMPORTADO
+    obtenerRutinasAsignadasPorEntrenador 
 } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import {
     ChevronLeft, Check, Clock, Save,
     Plus, Info, Trash2, X, MessageSquare, Activity,
-    Trophy, Youtube, Eye // 🔥 IMPORTADO EL OJO
+    Trophy, Youtube, Eye 
 } from 'lucide-react';
 
 export default function SesionEntrenamiento() {

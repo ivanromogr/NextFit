@@ -15,7 +15,7 @@ export default function Register() {
   const [error, setError] = useState("");
 
   const [form, setForm] = useState({
-    nombre: "", apellido: "", email: "", contraseña: "", rol: "CLIENTE",
+    nombre: "", apellido: "", email: "", contrasena: "", rol: "CLIENTE",
   });
 
   const [isNarrow, setIsNarrow] = useState(typeof window !== 'undefined' ? window.innerWidth <= 600 : false);
@@ -128,8 +128,8 @@ export default function Register() {
             type="password"
             placeholder="Mínimo 6 caracteres"
             icon={Lock}
-            value={form.contraseña}
-            onChange={handleChange("contraseña")}
+            value={form.contrasena}
+            onChange={handleChange("contrasena")}
             autoComplete="new-password"
           />
 

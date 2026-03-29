@@ -15,7 +15,7 @@ import {
   Globe // Añadimos el icono para el Escaparate Público
 } from 'lucide-react';
 
-// ✅ Reutilizamos tu design system
+
 import GymButton from '../../components/ui/GymButton';
 import GymInput from '../../components/ui/GymInput';
 import GymSelectionCard from '../../components/ui/GymSelectionCard';
@@ -37,7 +37,7 @@ const EditarPerfilEntrenador = () => {
     modalidadTrabajo: '',
     genero: '',
     fotoPerfil: '',
-    contraseña: '',
+    contrasena: '',
     // 👇 Nuevos campos para el Escaparate
     perfilPublico: false,
     tarifaMensual: ''
@@ -46,7 +46,7 @@ const EditarPerfilEntrenador = () => {
   const [originalForm, setOriginalForm] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  // ✅ Toast
+  
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const LISTA_TITULACIONES = [
@@ -80,9 +80,9 @@ const EditarPerfilEntrenador = () => {
       }
 
       try {
-        console.log('📡 Fetching entrenador con ID:', userId);
+        console.log('Fetching entrenador con ID:', userId);
         const data = await getEntrenador(userId);
-        console.log('📦 Datos recibidos:', data);
+        console.log(' Datos recibidos:', data);
 
         const normalized = {
           nombre: data.nombre || '',
@@ -139,12 +139,12 @@ const EditarPerfilEntrenador = () => {
           modalidadTrabajo: data.modalidadTrabajo || 'ONLINE',
           genero: data.genero || '',
           fotoPerfil: data.fotoPerfil || '',
-          contraseña: '',
+          contrasena: '',
           perfilPublico: data.perfilPublico || false,
           tarifaMensual: data.tarifaMensual != null ? String(data.tarifaMensual) : ''
         };
 
-        console.log('✅ Form normalizado:', normalized);
+        console.log(' Form normalizado:', normalized);
         setForm(normalized);
         setOriginalForm(normalized);
         setLoading(false);
@@ -180,7 +180,7 @@ const EditarPerfilEntrenador = () => {
 
     try {
       // 🔧 SIMPLIFICADO: Enviar todos los campos que se pueden editar
-      // (excluyendo email que es inmutable y contraseña que se envía solo si hay valor)
+      // (excluyendo email que es inmutable y contrasena que se envía solo si hay valor)
       const payload = {
         nombre: form.nombre || '',
         apellido: form.apellido || '',
@@ -195,9 +195,9 @@ const EditarPerfilEntrenador = () => {
         tarifaMensual: (form.tarifaMensual === '' || form.tarifaMensual === null) ? null : Number(form.tarifaMensual)
       };
 
-      // Agregar contraseña solo si tiene valor
-      if (form.contraseña && form.contraseña.trim() !== '') {
-        payload.contraseña = form.contraseña;
+      // Agregar contrasena solo si tiene valor
+      if (form.contrasena && form.contrasena.trim() !== '') {
+        payload.contrasena = form.contrasena;
       }
 
       console.log('📤 Enviando payload:', payload);
@@ -553,8 +553,8 @@ const EditarPerfilEntrenador = () => {
             <div style={styles.divider} />
 
             <div style={styles.sectionTitle}><Lock size={18} color="#EF4444" /> Seguridad</div>
-            <GymInput label="Cambiar contraseña" type="password" placeholder="Déjalo vacío para mantener la actual" icon={Lock} value={form.contraseña} onChange={(e) => handleChange('contraseña', e.target.value)} autoComplete="new-password" />
-            <div style={styles.dangerHint}>La contraseña solo se enviará si escribes algo.</div>
+            <GymInput label="Cambiar contrasena" type="password" placeholder="Déjalo vacío para mantener la actual" icon={Lock} value={form.contrasena} onChange={(e) => handleChange('contrasena', e.target.value)} autoComplete="new-password" />
+            <div style={styles.dangerHint}>La contrasena solo se enviará si escribes algo.</div>
           </div>
         </form>
       </div>

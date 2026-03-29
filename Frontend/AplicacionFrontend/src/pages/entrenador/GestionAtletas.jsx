@@ -7,7 +7,7 @@ import {
 } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 
-// ✅ Añadimos AlertTriangle para el modal de confirmación
+
 import { 
     User, Plus, Search, Mail, ChevronRight, Check, 
     MessageCircle, X, UserMinus, AlertTriangle 
@@ -29,7 +29,7 @@ export default function GestionAtletas() {
   const [busqueda, setBusqueda] = useState("");
   const [chatOpen, setChatOpen] = useState(null);
 
-  // ✅ ESTADOS PARA EL MODAL PERSONALIZADO DE DESVINCULAR
+
   const [showUnlinkModal, setShowUnlinkModal] = useState(false);
   const [atletaToUnlink, setAtletaToUnlink] = useState(null);
 
@@ -110,7 +110,7 @@ export default function GestionAtletas() {
     modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 100 },
     modalCard: { background: "#09090b", padding: "30px", borderRadius: "24px", border: "1px solid #333", width: "420px", position: "relative" },
 
-    // ✅ NUEVOS ESTILOS ESTADO VACÍO
+    
     emptyState: {
         display: "flex",
         flexDirection: "column",

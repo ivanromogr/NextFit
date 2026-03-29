@@ -17,7 +17,7 @@ export default function ImageUploadLocal({ onUploadSuccess }) {
             reader.onloadend = async () => {
                 const base64String = reader.result;
                 
-                // 👇 NUEVO: Enviar Base64 al backend para convertir a URL
+               
                 try {
                     const response = await fetch('http://localhost:8080/api/upload/base64', {
                         method: 'POST',
