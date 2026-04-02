@@ -87,7 +87,7 @@ function TarjetaEjercicio({ ejercicio }) {
                 {!errorImagen ? (
                     <img 
                         src={ejercicio.gifUrl} 
-                        alt={ejercicio.nombre} 
+                        alt={ejercicio.nombreTraducido} 
                         loading="lazy"
                         // SI FALLA LA CARGA, ACTIVAMOS EL MODO ERROR
                         onError={(e) => {
@@ -109,14 +109,14 @@ function TarjetaEjercicio({ ejercicio }) {
                    padding: '2px 6px', borderRadius: '4px', 
                    fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase'
                  }}>
-                   {ejercicio.grupoMuscular}
+                   {ejercicio.grupoMuscularTraducido}
                  </div>
             </div>
             
             {/* INFO */}
             <div style={{ padding: '12px' }}>
                 <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'white', textTransform: 'capitalize', fontWeight: '700' }}>
-                  {ejercicio.nombre}
+                  {ejercicio.nombreTraducido}
                 </h3>
             </div>
         </div>

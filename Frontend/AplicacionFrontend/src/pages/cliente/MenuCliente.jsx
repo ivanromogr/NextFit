@@ -265,7 +265,7 @@ export default function MenuCliente() {
         {/* ✅ Card GLOBAL por planes IA */}
         {iaPlanGroups.map((group) => {
           const daysCount = group.items.length;
-          const preview = group.items?.[0]?.detalles?.map((d) => d.ejercicio.nombre).join(", ") || "Pulsa para ver los días del plan.";
+          const preview = group.items?.[0]?.detalles?.map((d) => d.ejercicio.nombreTraducido).join(", ") || "Pulsa para ver los días del plan.";
           const totalEjercicios = group.items.reduce((acc, r) => acc + (r.detalles?.length || 0), 0);
           const nivelLabel = (group.nivel || "").toString().replaceAll("_", " ");
           const objetivoLabel = (group.objetivo || "IA").toString().replaceAll("_", " ");
@@ -420,7 +420,7 @@ export default function MenuCliente() {
               </h3>
 
               <div style={styles.previewText}>
-                {rutina.detalles?.map((d) => d.ejercicio.nombre).join(", ")}
+                {rutina.detalles?.map((d) => d.ejercicio.nombreTraducido).join(", ")}
               </div>
             </div>
 

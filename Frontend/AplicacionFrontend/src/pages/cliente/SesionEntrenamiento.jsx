@@ -388,7 +388,7 @@ export default function SesionEntrenamiento() {
                                 }
                             </div>
                             <div style={{ flex: 1 }}>
-                                <div style={styles.exTitle}>{ej.ejercicio.nombre}</div>
+                                <div style={styles.exTitle}>{ej.ejercicio.nombreTraducido}</div>
                                 <div style={styles.noteWrapper}>
                                     {editando && !isReadOnly ? (
                                         <div>

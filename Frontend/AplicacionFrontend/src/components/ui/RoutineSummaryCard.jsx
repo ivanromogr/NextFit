@@ -142,7 +142,7 @@ const RoutineSummaryCard = ({ rutina, onStart }) => {
                 <div style={styles.avatarStack}>
                     {/* Mostramos máximo 4 ejercicios para no saturar */}
                     {rutina.detalles.slice(0, 4).map((det, idx) => (
-                        <div key={idx} style={styles.avatar(det.ejercicio.gifUrl || '')} title={det.ejercicio.nombre} />
+                        <div key={idx} style={styles.avatar(det.ejercicio.gifUrl || '')} title={det.ejercicio.nombreTraducido} />
                     ))}
                 </div>
                 {numEjercicios > 4 && (

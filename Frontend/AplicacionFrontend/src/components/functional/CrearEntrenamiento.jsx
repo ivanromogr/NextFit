@@ -48,8 +48,8 @@
                 if (rutinaInicial.detalles) {
                     const mapeados = rutinaInicial.detalles.map(d => ({
                         idEjercicio: d.ejercicio.id,
-                        nombre: d.ejercicio.nombre,
-                        musculo: d.ejercicio.grupoMuscular,
+                        nombre: d.ejercicio.nombreTraducido,
+                        musculo: d.ejercicio.grupoMuscularTraducido,
                         imagen: d.ejercicio.imagenUrl,
                         videoLink: d.ejercicio.videoUrl,
                         descripcion: d.ejercicio.instrucciones,
