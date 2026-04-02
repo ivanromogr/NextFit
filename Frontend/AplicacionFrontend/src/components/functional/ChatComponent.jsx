@@ -117,7 +117,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         const client = new Client({
             brokerURL: undefined,
             webSocketFactory: () => new WebSocket(
-                WS_BASE_URL.replace(/^http/, 'ws') + '/ws'
+                WS_BASE_URL.replace(/^https/, 'wss').replace(/^http/, 'ws') + '/ws'
             ),
             reconnectDelay: 5000,
             onConnect: () => {
