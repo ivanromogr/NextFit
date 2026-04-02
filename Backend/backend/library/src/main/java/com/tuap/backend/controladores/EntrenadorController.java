@@ -12,7 +12,14 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.Entrenador;
@@ -73,7 +80,7 @@ public class EntrenadorController {
     private long obtenerConteoSesionesSeguro(UUID clienteId, LocalDateTime inicio, LocalDateTime fin) {
         try {
             return sesionDAO.findByClienteIdAndFechaHoraBetweenOrderByFechaHoraDesc(clienteId, inicio, fin).size();
-        } catch (Exception _) { 
+        } catch (Exception e) { 
            
             return 0;
         }
@@ -124,7 +131,7 @@ public class EntrenadorController {
             stats.put("hoy", sesionDAO.countEntrenosHoy(entrenadorId));
             stats.put("riesgo", sesionDAO.countClientesInactivos(entrenadorId, LocalDateTime.now().minusDays(7)));
             stats.put("totalClientes", clienteDAO.countByEntrenador_Id(entrenadorId));
-        } catch (Exception _) {
+        } catch (Exception e) {
             
             stats.put("hoy", 0L);
             stats.put("riesgo", 0L);
@@ -167,7 +174,7 @@ public class EntrenadorController {
             resena.setFecha(LocalDateTime.now());
             resenaDAO.save(resena);
             return ResponseEntity.ok("Reseña publicada correctamente");
-        } catch (Exception _) {
+        } catch (Exception e) {
          
             return ResponseEntity.badRequest().body("Error al publicar reseña");
         }
@@ -238,7 +245,7 @@ public class EntrenadorController {
             return ResponseEntity.ok().body(Map.of(KEY_MESSAGE, "¡" + cliente.getNombre() + " se ha unido a tu equipo!"));
         } catch (RuntimeException e) {
             return ResponseEntity.status(404).body(Map.of(KEY_MESSAGE, e.getMessage()));
-        } catch (Exception _) {
+        } catch (Exception e) {
             
             return ResponseEntity.status(500).body(Map.of(KEY_MESSAGE, "Error interno en el servidor."));
         }
@@ -259,7 +266,7 @@ public class EntrenadorController {
             return ResponseEntity.ok().body(Map.of(KEY_MESSAGE, "Atleta desvinculado correctamente. Ya no forma parte de tu equipo."));
         } catch (RuntimeException e) {
             return ResponseEntity.status(404).body(Map.of(KEY_MESSAGE, e.getMessage()));
-        } catch (Exception _) {
+        } catch (Exception e) {
             
             return ResponseEntity.status(500).body(Map.of(KEY_MESSAGE, "Error interno en el servidor."));
         }
