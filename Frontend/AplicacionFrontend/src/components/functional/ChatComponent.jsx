@@ -1,51 +1,83 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
-import { Send, User, MoreVertical, Phone, CheckCheck, Paperclip, Smile, X, Image as ImageIcon, Film } from 'lucide-react'; 
-import EmojiPicker from 'emoji-picker-react'; 
-import { api } from '../../api/endpoints'; 
+import { Send, User, MoreVertical, Phone, CheckCheck, Paperclip, Smile, X, Image as ImageIcon, Film } from 'lucide-react';
+import EmojiPicker from 'emoji-picker-react';
+import { api } from '../../api/endpoints';
+import { API_BASE_URL, WS_BASE_URL } from '../../api/config';
 
 export default function ChatComponent({ usuarioId, destinatarioId, nombreDestinatario, fotoDestinatario, autoGreet = false, greetingMessage = '', onAutoGreetSent }) {
     const [mensajes, setMensajes] = useState([]);
     const [nuevoMensaje, setNuevoMensaje] = useState("");
     const [conectado, setConectado] = useState(false);
-    
+
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [archivoAdjunto, setArchivoAdjunto] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
-    
+
     const stompClientRef = useRef(null);
     const messagesEndRef = useRef(null);
     const isConnected = useRef(false);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
-        setMensajes([]); 
+        setMensajes([]);
         cargarHistorial();
-        if (stompClientRef.current) { stompClientRef.current.deactivate(); isConnected.current = false; }
+
+        if (stompClientRef.current) {
+            stompClientRef.current.deactivate();
+            isConnected.current = false;
+        }
+
         conectarWebSocket();
-        return () => { if (stompClientRef.current) stompClientRef.current.deactivate(); isConnected.current = false; };
+
+        return () => {
+            if (stompClientRef.current) {
+                stompClientRef.current.deactivate();
+            }
+            isConnected.current = false;
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [usuarioId, destinatarioId]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        const noLeidos = mensajes.filter(m => m.remitenteId === destinatarioId && !m.leido);
-        
-        const isVisible = typeof document !== 'undefined' && document.visibilityState === 'visible' && document.hasFocus && document.hasFocus();
-        
+
+        const noLeidos = mensajes.filter(
+            (m) => m.remitenteId === destinatarioId && !m.leido
+        );
+
+        const isVisible =
+            typeof document !== 'undefined' &&
+            document.visibilityState === 'visible' &&
+            document.hasFocus &&
+            document.hasFocus();
+
         if (noLeidos.length > 0 && stompClientRef.current?.connected && isVisible) {
             stompClientRef.current.publish({
                 destination: "/app/chat/leer",
-                body: JSON.stringify({ remitenteId: destinatarioId, destinatarioId: usuarioId })
+                body: JSON.stringify({
+                    remitenteId: destinatarioId,
+                    destinatarioId: usuarioId
+                })
             });
-            setMensajes(prev => prev.map(m => (m.remitenteId === destinatarioId && !m.leido) ? { ...m, leido: true } : m));
+
+            setMensajes((prev) =>
+                prev.map((m) =>
+                    (m.remitenteId === destinatarioId && !m.leido)
+                        ? { ...m, leido: true }
+                        : m
+                )
+            );
         }
     }, [mensajes, destinatarioId, usuarioId, conectado]);
 
     useEffect(() => {
         if (!conectado || !autoGreet || !stompClientRef.current || mensajes.length > 0) return;
 
-        const saludo = greetingMessage && greetingMessage.trim() !== '' ? greetingMessage : 'Hola, encantado. Me gustaría iniciar la transformación.';
+        const saludo =
+            greetingMessage && greetingMessage.trim() !== ''
+                ? greetingMessage
+                : 'Hola, encantado. Me gustaría iniciar la transformación.';
 
         const mensaje = {
             remitenteId: usuarioId,
@@ -59,43 +91,55 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 destination: "/app/chat",
                 body: JSON.stringify(mensaje)
             });
+
             if (typeof onAutoGreetSent === 'function') {
                 onAutoGreetSent();
             }
         } catch (err) {
             console.error('Error enviando saludo automático', err);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [conectado, autoGreet, destinatarioId, usuarioId]);
 
     const cargarHistorial = async () => {
         try {
             const response = await api.get(`/api/chat/historial?usuario1=${usuarioId}&usuario2=${destinatarioId}`);
             setMensajes(response.data || []);
-        } catch (error) { console.error(error); }
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     const conectarWebSocket = () => {
         if (isConnected.current) return;
         isConnected.current = true;
-        
+
         const client = new Client({
-            brokerURL: 'ws://localhost:8080/ws', // ✅ Puedes dejar localhost en la web
+            brokerURL: undefined,
+            webSocketFactory: () => new WebSocket(
+                WS_BASE_URL.replace(/^http/, 'ws') + '/ws'
+            ),
             reconnectDelay: 5000,
             onConnect: () => {
                 setConectado(true);
                 stompClientRef.current = client;
-                
+
                 client.subscribe(`/topic/mensajes/${usuarioId}`, (payload) => {
                     const mensajeRecibido = JSON.parse(payload.body);
-                    if (mensajeRecibido.remitenteId === destinatarioId || mensajeRecibido.remitenteId === usuarioId) {
+
+                    if (
+                        mensajeRecibido.remitenteId === destinatarioId ||
+                        mensajeRecibido.remitenteId === usuarioId
+                    ) {
                         setMensajes((prev) => {
-                            const index = prev.findIndex(m => m.id === mensajeRecibido.id);
+                            const index = prev.findIndex((m) => m.id === mensajeRecibido.id);
+
                             if (index !== -1) {
                                 const actualizados = [...prev];
                                 actualizados[index] = mensajeRecibido;
                                 return actualizados;
                             }
+
                             return [...prev, mensajeRecibido];
                         });
                     }
@@ -114,7 +158,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     };
 
     const handleEmojiClick = (emojiObject) => {
-        setNuevoMensaje(prev => prev + emojiObject.emoji);
+        setNuevoMensaje((prev) => prev + emojiObject.emoji);
     };
 
     const handleFileSelect = (e) => {
@@ -127,7 +171,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
 
     const cancelarAdjunto = () => {
         setArchivoAdjunto(null);
-        if(fileInputRef.current) fileInputRef.current.value = "";
+        if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     const enviarMensaje = async (e) => {
@@ -142,28 +186,36 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             setIsUploading(true);
             const formData = new FormData();
             formData.append("file", archivoAdjunto);
+
             try {
-                const res = await api.post('/api/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-                archivoUrlFinal = res.data.url; 
+                const res = await api.post('/api/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                archivoUrlFinal = res.data.url;
                 tipoArchivoFinal = archivoAdjunto.type.startsWith('video') ? 'VIDEO' : 'IMAGEN';
             } catch (error) {
                 console.error("Error subiendo archivo", error);
                 setIsUploading(false);
-                return; 
+                return;
             }
+
             setIsUploading(false);
         }
 
-        const mensaje = { 
-            remitenteId: usuarioId, destinatarioId: destinatarioId, contenido: nuevoMensaje, leido: false,
-            archivoUrl: archivoUrlFinal, tipoArchivo: tipoArchivoFinal
+        const mensaje = {
+            remitenteId: usuarioId,
+            destinatarioId: destinatarioId,
+            contenido: nuevoMensaje,
+            leido: false,
+            archivoUrl: archivoUrlFinal,
+            tipoArchivo: tipoArchivoFinal
         };
-        
+
         stompClientRef.current.publish({
             destination: "/app/chat",
             body: JSON.stringify(mensaje)
         });
-        
+
         setNuevoMensaje("");
         cancelarAdjunto();
         setShowEmojiPicker(false);
@@ -174,81 +226,81 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         const hoy = new Date();
         const ayer = new Date(hoy);
         ayer.setDate(ayer.getDate() - 1);
+
         if (fecha.toDateString() === hoy.toDateString()) return "Hoy";
         if (fecha.toDateString() === ayer.toDateString()) return "Ayer";
-        return fecha.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+
+        return fecha.toLocaleDateString('es-ES', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+        });
     };
 
-    // ✅ LIMPIADOR DE URLs PARA LA WEB
     const formatearUrlMedia = (url) => {
-    if (!url) return null;
+        if (!url) return null;
 
-    // Si la URL ya viene con http (de mensajes antiguos), la limpiamos
-    if (url.startsWith('http')) {
-        // Si estás en la web, asegúrate de que apunte a localhost para que el navegador no se bloquee
-        return url.replace('192.168.1.62', 'localhost');
-    }
+        if (url.startsWith('http')) {
+            return url;
+        }
 
-    // Si es la nueva ruta relativa que envía el Java (/api/upload/...)
-    const base = "http://localhost:8080";
-    return `${base}${url}`;
+        return `${API_BASE_URL}${url}`;
     };
 
-    // ✅ REVISIÓN: emojis gigantes solo si no hay foto
     const esSoloEmojis = (texto, url) => {
-        if (!texto || url) return false; 
-        const textoLimpio = texto.replace(/\s/g, ''); 
-        if (textoLimpio.length === 0 || textoLimpio.length > 15) return false; 
+        if (!texto || url) return false;
+        const textoLimpio = texto.replace(/\s/g, '');
+        if (textoLimpio.length === 0 || textoLimpio.length > 15) return false;
         if (/[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,!?¿¡]/.test(textoLimpio)) return false;
         return /[^\x00-\x7F]/.test(textoLimpio);
     };
 
     const styles = {
-        container: { display: 'flex', flexDirection: 'column', height: '100%', width: '100%', background: '#09090b', position:'relative' },
+        container: { display: 'flex', flexDirection: 'column', height: '100%', width: '100%', background: '#09090b', position: 'relative' },
         header: { padding: '16px 24px', background: '#09090b', borderBottom: '1px solid #1f1f22', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 },
         headerLeft: { display: 'flex', alignItems: 'center', gap: '15px' },
-        avatar: { width:'40px', height:'40px', borderRadius:'50%', background:'#1f1f22', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' },
+        avatar: { width: '40px', height: '40px', borderRadius: '50%', background: '#1f1f22', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
         chatArea: { flex: 1, padding: '24px 5%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', background: '#0c0c0e' },
         dateSeparator: { display: 'flex', justifyContent: 'center', margin: '24px 0 12px 0' },
         dateBadge: { background: 'rgba(39, 39, 42, 0.6)', color: '#e4e4e7', padding: '4px 12px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '500' },
-        
+
         bubbleRow: { display: 'flex', flexDirection: 'column', width: '100%' },
-        
-        bubbleMe: { 
-            alignSelf: 'flex-end', 
-            background: 'rgba(250, 204, 21, 0.08)', 
-            color: '#e4e4e7', 
-            padding: '8px 14px', 
-            borderRadius: '14px 14px 2px 14px', 
-            maxWidth: '75%', 
-            marginBottom: '4px', 
-            border: '1px solid rgba(250, 204, 21, 0.25)', 
-            boxShadow: '0 2px 5px rgba(0,0,0,0.2)' 
+
+        bubbleMe: {
+            alignSelf: 'flex-end',
+            background: 'rgba(250, 204, 21, 0.08)',
+            color: '#e4e4e7',
+            padding: '8px 14px',
+            borderRadius: '14px 14px 2px 14px',
+            maxWidth: '75%',
+            marginBottom: '4px',
+            border: '1px solid rgba(250, 204, 21, 0.25)',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
         },
-        
-        bubbleThem: { 
-            alignSelf: 'flex-start', 
-            background: '#18181b', 
-            color: '#e4e4e7', 
-            padding: '8px 14px', 
-            borderRadius: '14px 14px 14px 2px', 
-            maxWidth: '75%', 
-            marginBottom: '4px', 
+
+        bubbleThem: {
+            alignSelf: 'flex-start',
+            background: '#18181b',
+            color: '#e4e4e7',
+            padding: '8px 14px',
+            borderRadius: '14px 14px 14px 2px',
+            maxWidth: '75%',
+            marginBottom: '4px',
             border: '1px solid #27272a',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.2)' 
+            boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
         },
-        
+
         mensajeTexto: { fontSize: '0.95rem', fontWeight: '400', lineHeight: '1.4', wordBreak: 'break-word', whiteSpace: 'pre-wrap' },
         mediaContent: { maxWidth: '100%', borderRadius: '8px', marginBottom: '6px', maxHeight: '250px', objectFit: 'cover' },
-        
+
         timeMe: { fontSize: '0.65rem', marginTop: '2px', color: '#71717a', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' },
         timeThem: { fontSize: '0.65rem', marginTop: '2px', color: '#71717a', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' },
-        
+
         inputAreaContainer: { position: 'relative', background: '#09090b', borderTop: '1px solid #1f1f22' },
         previewBox: { padding: '10px 5%', background: '#121214', borderBottom: '1px solid #1f1f22', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
         previewInfo: { display: 'flex', alignItems: 'center', gap: '10px', color: '#e4e4e7', fontSize: '0.9rem', fontWeight: '500' },
         previewCancelBtn: { background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
-        
+
         inputArea: { padding: '16px 5%', display: 'flex', alignItems: 'flex-end', gap: '10px' },
         actionBtn: { width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#71717a', cursor: 'pointer', background: 'transparent', border: 'none', borderRadius: '50%', transition: 'color 0.2s' },
         inputWrapper: { flex: 1, background: '#18181b', borderRadius: '20px', padding: '10px 16px', display: 'flex', alignItems: 'center', border: '1px solid transparent', minHeight: '40px' },
@@ -263,34 +315,40 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             <div style={styles.header}>
                 <div style={styles.headerLeft}>
                     <div style={styles.avatar}>
-                        {fotoDestinatario ? <img src={fotoDestinatario} alt="avatar" style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <User size={20} color="#71717a"/>}
+                        {fotoDestinatario ? (
+                            <img src={fotoDestinatario} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            <User size={20} color="#71717a" />
+                        )}
                     </div>
                     <div>
-                        <div style={{color:'white', fontWeight:'600', fontSize:'1.05rem', letterSpacing: '-0.2px'}}>{nombreDestinatario}</div>
-                        <div style={{color: conectado ? '#22c55e' : '#71717a', fontSize:'0.8rem', display:'flex', alignItems:'center', gap:'6px'}}>
+                        <div style={{ color: 'white', fontWeight: '600', fontSize: '1.05rem', letterSpacing: '-0.2px' }}>
+                            {nombreDestinatario}
+                        </div>
+                        <div style={{ color: conectado ? '#22c55e' : '#71717a', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {conectado ? 'En línea' : 'Desconectado'}
                         </div>
                     </div>
                 </div>
-                <div style={{display:'flex', gap:'20px', color:'#a1a1aa'}}>
-                    <Phone size={20} style={{cursor:'pointer'}} />
-                    <MoreVertical size={20} style={{cursor:'pointer'}} />
+                <div style={{ display: 'flex', gap: '20px', color: '#a1a1aa' }}>
+                    <Phone size={20} style={{ cursor: 'pointer' }} />
+                    <MoreVertical size={20} style={{ cursor: 'pointer' }} />
                 </div>
             </div>
 
             <div className="hide-scroll" style={styles.chatArea}>
                 {mensajes.length === 0 && (
-                    <div style={{textAlign:'center', color:'#52525b', marginTop:'auto', marginBottom:'auto'}}>
-                        <p style={{margin:0, fontSize:'0.9rem'}}>Aún no hay mensajes.</p>
+                    <div style={{ textAlign: 'center', color: '#52525b', marginTop: 'auto', marginBottom: 'auto' }}>
+                        <p style={{ margin: 0, fontSize: '0.9rem' }}>Aún no hay mensajes.</p>
                     </div>
                 )}
-                
+
                 {mensajes.map((msg, i) => {
                     const esMio = msg.remitenteId === usuarioId;
                     const fechaActual = formatearFechaSeparador(msg.fechaHora);
-                    const fechaAnterior = i > 0 ? formatearFechaSeparador(mensajes[i-1].fechaHora) : null;
+                    const fechaAnterior = i > 0 ? formatearFechaSeparador(mensajes[i - 1].fechaHora) : null;
                     const mostrarFecha = fechaActual !== fechaAnterior;
-                    
+
                     const soloEmoji = esSoloEmojis(msg.contenido, msg.archivoUrl);
 
                     return (
@@ -300,61 +358,66 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                                     <span style={styles.dateBadge}>{fechaActual}</span>
                                 </div>
                             )}
-                            
+
                             <div style={styles.bubbleRow}>
-                                <div style={{
-                                    ...(esMio ? styles.bubbleMe : styles.bubbleThem),
-                                    ...(soloEmoji ? { 
-                                        background: 'transparent', 
-                                        boxShadow: 'none', 
-                                        border: 'none', 
-                                        padding: '4px 0' 
-                                    } : {})
-                                }}>
-                                    
-                                    {/* ✅ MEDIA CON RUTAS LIMPIAS */}
+                                <div
+                                    style={{
+                                        ...(esMio ? styles.bubbleMe : styles.bubbleThem),
+                                        ...(soloEmoji
+                                            ? {
+                                                background: 'transparent',
+                                                boxShadow: 'none',
+                                                border: 'none',
+                                                padding: '4px 0'
+                                            }
+                                            : {})
+                                    }}
+                                >
                                     {msg.archivoUrl && (
                                         msg.tipoArchivo === 'VIDEO' ? (
-                                            <video 
-                                                controls 
+                                            <video
+                                                controls
                                                 style={{ ...styles.mediaContent, backgroundColor: '#000' }}
                                                 preload="metadata"
                                                 playsInline
                                             >
-                                                {/* Le pasamos el source explícito para que el navegador no se pierda */}
                                                 <source src={formatearUrlMedia(msg.archivoUrl)} type="video/mp4" />
                                                 <source src={formatearUrlMedia(msg.archivoUrl)} type="video/webm" />
                                                 Tu navegador no soporta la reproducción de este vídeo.
                                             </video>
                                         ) : (
-                                            <img 
-                                                src={formatearUrlMedia(msg.archivoUrl)} 
-                                                alt="Adjunto" 
-                                                style={styles.mediaContent} 
+                                            <img
+                                                src={formatearUrlMedia(msg.archivoUrl)}
+                                                alt="Adjunto"
+                                                style={styles.mediaContent}
                                             />
                                         )
                                     )}
 
                                     {msg.contenido && (
-                                        <span style={{
-                                            ...styles.mensajeTexto,
-                                            ...(soloEmoji ? { fontSize: '3.5rem', lineHeight: '1' } : {})
-                                        }}>
+                                        <span
+                                            style={{
+                                                ...styles.mensajeTexto,
+                                                ...(soloEmoji ? { fontSize: '3.5rem', lineHeight: '1' } : {})
+                                            }}
+                                        >
                                             {msg.contenido}
                                         </span>
                                     )}
-                                    
-                                    <div style={{
-                                        ...(esMio ? styles.timeMe : styles.timeThem),
-                                        ...(soloEmoji && esMio ? { color: '#a1a1aa' } : {})
-                                    }}>
-                                        {new Date(msg.fechaHora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                        
+
+                                    <div
+                                        style={{
+                                            ...(esMio ? styles.timeMe : styles.timeThem),
+                                            ...(soloEmoji && esMio ? { color: '#a1a1aa' } : {})
+                                        }}
+                                    >
+                                        {new Date(msg.fechaHora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+
                                         {esMio && (
-                                            <CheckCheck 
-                                                size={14} 
-                                                strokeWidth={2.5} 
-                                                color={msg.leido ? "#3b82f6" : "#71717a"} 
+                                            <CheckCheck
+                                                size={14}
+                                                strokeWidth={2.5}
+                                                color={msg.leido ? "#3b82f6" : "#71717a"}
                                             />
                                         )}
                                     </div>
@@ -376,7 +439,9 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 {archivoAdjunto && (
                     <div style={styles.previewBox}>
                         <div style={styles.previewInfo}>
-                            {archivoAdjunto.type.startsWith('video') ? <Film size={20} color="#3b82f6"/> : <ImageIcon size={20} color="#22c55e"/>}
+                            {archivoAdjunto.type.startsWith('video')
+                                ? <Film size={20} color="#3b82f6" />
+                                : <ImageIcon size={20} color="#22c55e" />}
                             <span>{archivoAdjunto.name}</span>
                         </div>
                         <button style={styles.previewCancelBtn} onClick={cancelarAdjunto}>
@@ -386,23 +451,53 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 )}
 
                 <form style={styles.inputArea} onSubmit={enviarMensaje}>
-                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/*,video/*" />
-                    <button type="button" style={styles.actionBtn} onClick={() => fileInputRef.current.click()} onMouseEnter={(e) => e.currentTarget.style.color = 'white'} onMouseLeave={(e) => e.currentTarget.style.color = '#71717a'}>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileSelect}
+                        style={{ display: 'none' }}
+                        accept="image/*,video/*"
+                    />
+                    <button
+                        type="button"
+                        style={styles.actionBtn}
+                        onClick={() => fileInputRef.current.click()}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = 'white')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = '#71717a')}
+                    >
                         <Paperclip size={22} />
                     </button>
 
                     <div style={styles.inputWrapper}>
-                        <input style={styles.input} placeholder={archivoAdjunto ? "Añade un comentario..." : "Escribe un mensaje..."} value={nuevoMensaje} onChange={(e) => setNuevoMensaje(e.target.value)} autoComplete="off" />
-                        <button type="button" style={{background: 'none', border: 'none', display: 'flex', cursor: 'pointer', padding: 0}} onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
-                            <Smile size={22} color={showEmojiPicker ? "#FACC15" : "#71717a"} style={{transition: 'color 0.2s'}}/>
+                        <input
+                            style={styles.input}
+                            placeholder={archivoAdjunto ? "Añade un comentario..." : "Escribe un mensaje..."}
+                            value={nuevoMensaje}
+                            onChange={(e) => setNuevoMensaje(e.target.value)}
+                            autoComplete="off"
+                        />
+                        <button
+                            type="button"
+                            style={{ background: 'none', border: 'none', display: 'flex', cursor: 'pointer', padding: 0 }}
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        >
+                            <Smile
+                                size={22}
+                                color={showEmojiPicker ? "#FACC15" : "#71717a"}
+                                style={{ transition: 'color 0.2s' }}
+                            />
                         </button>
                     </div>
 
-                    <button type="submit" style={styles.sendBtn} disabled={(!nuevoMensaje && !archivoAdjunto) || isUploading}>
-                        <Send size={18} style={{marginLeft: (nuevoMensaje || archivoAdjunto) ? '-2px' : '0'}}/>
+                    <button
+                        type="submit"
+                        style={styles.sendBtn}
+                        disabled={(!nuevoMensaje && !archivoAdjunto) || isUploading}
+                    >
+                        <Send size={18} style={{ marginLeft: (nuevoMensaje || archivoAdjunto) ? '-2px' : '0' }} />
                     </button>
                 </form>
             </div>
         </div>
     );
-}   
+}
