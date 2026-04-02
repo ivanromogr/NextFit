@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.tuap.backend.controladores.EjercicioController;
 import com.tuap.backend.dominio.entidades.Ejercicio;
+import com.tuap.backend.dto.EjercicioResponse;
 import com.tuap.backend.persistencia.EjercicioDAO;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,7 +47,7 @@ class EjercicioControllerTest {
         when(ejercicioDAO.findAll()).thenReturn(Arrays.asList(ejercicioMock));
 
         // --- ACCIÓN ---
-        List<Ejercicio> resultado = ejercicioController.obtenerTodos();
+        List<EjercicioResponse> resultado = ejercicioController.obtenerTodos();
 
         // --- COMPROBACIÓN ---
         assertEquals(1, resultado.size());
@@ -61,7 +62,7 @@ class EjercicioControllerTest {
         when(ejercicioDAO.buscarAvanzado("Dominadas", "Espalda")).thenReturn(Arrays.asList(ejercicioMock));
 
         // --- ACCIÓN ---
-        List<Ejercicio> resultado = ejercicioController.buscar("Dominadas", "Espalda");
+        List<EjercicioResponse> resultado = ejercicioController.buscar("Dominadas", "Espalda");
 
         // --- COMPROBACIÓN ---
         assertEquals(1, resultado.size());
@@ -78,7 +79,7 @@ class EjercicioControllerTest {
 
         // --- ACCIÓN ---
         // Simulamos que el frontend (el móvil) manda los campos de búsqueda vacíos
-        List<Ejercicio> resultado = ejercicioController.buscar("", "");
+        List<EjercicioResponse> resultado = ejercicioController.buscar("", "");
 
         // --- COMPROBACIÓN ---
         assertEquals(1, resultado.size());

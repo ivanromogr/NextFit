@@ -1,7 +1,7 @@
 package com.tuap.backend.persistencia;
 
 import java.util.List;
-import java.util.Optional; // <--- IMPORTANTE: Necesario para el nuevo método
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,28 +14,42 @@ import com.tuap.backend.dominio.entidades.Ejercicio;
 @Repository
 public interface EjercicioDAO extends JpaRepository<Ejercicio, UUID> {
 
-    // --- TUS MÉTODOS ACTUALES (NO TOCAR) ---
-
-    // Búsqueda para el Panel Lateral (Filtra por nombre Y/O músculo)
+    // --- 🔹 BÚSQUEDA ORIGINAL (NO TOCAR) ---
     @Query("SELECT e FROM Ejercicio e WHERE " +
            "(:nombre IS NULL OR LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))) AND " +
            "(:musculo IS NULL OR e.grupoMuscular = :musculo)")
     List<Ejercicio> buscarAvanzado(@Param("nombre") String nombre, @Param("musculo") String musculo);
 
-    // Para el modo MANUAL simple
+
+    // --- 🔥 NUEVO: BÚSQUEDA CON TRADUCCIÓN ---
+    @Query("SELECT e FROM Ejercicio e WHERE " +
+           "(:nombreOriginal IS NULL OR " +
+           "LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombreOriginal, '%')) OR " +
+           "LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombreTraducido, '%'))) AND " +
+           "(:musculo IS NULL OR e.grupoMuscular = :musculo)")
+    List<Ejercicio> buscarAvanzadoTraducido(
+            @Param("nombreOriginal") String nombreOriginal,
+            @Param("nombreTraducido") String nombreTraducido,
+            @Param("musculo") String musculo);
+
+
+    // --- 🔹 BÚSQUEDA SIMPLE ---
     @Query("SELECT e FROM Ejercicio e WHERE LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))")
     List<Ejercicio> buscarPorNombre(@Param("nombre") String nombre);
 
-    // Para el modo AUTOMÁTICO (IA) - Selección Aleatoria
+
+    // --- 🔹 IA / RANDOM ---
     @Query(value = "SELECT * FROM ejercicio e " +
                    "WHERE e.grupo_muscular = :musculo " +
                    "AND (:esCasa = false OR e.equipamiento IN ('Peso Corporal', 'Mancuernas', 'Banda Elástica', 'body weight')) " +
                    "ORDER BY RAND() LIMIT 1", nativeQuery = true)
     Ejercicio encontrarEjercicioAleatorio(@Param("musculo") String musculo, @Param("esCasa") boolean esCasa);
 
-    
-   
-    // Este método permite buscar un ejercicio específico por su nombre (o parte de él)
-    // Ej: Si buscas "Sentadilla", te devolverá el primer ejercicio que contenga esa palabra.
+
+    // --- 🔹 BUSCAR POR TEXTO ---
     Optional<Ejercicio> findFirstByNombreContainingIgnoreCase(String texto);
+
+
+    // --- 🔹 CONTROL DE DUPLICADOS API ---
+    boolean existsByApiId(String apiId);
 }

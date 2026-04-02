@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tuap.backend.dominio.entidades.Ejercicio;
 import com.tuap.backend.persistencia.EjercicioDAO;
 
-@Component
+//@Component
 public class EjercicioSeeder implements CommandLineRunner {
 
     // 🧹 SOLUCIÓN SONARQUBE: Definición de un Logger profesional
