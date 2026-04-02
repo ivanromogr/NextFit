@@ -67,8 +67,8 @@ public class RutinaController {
             
             Rutina actualizada = gestorRutina.actualizarRutina(id, rutinaDatos);
             return ResponseEntity.ok(actualizada);
-        } catch (RuntimeException _) {
-            // 🧹 SOLUCIÓN SONARQUBE: Unnamed pattern '_'
+    } catch (RuntimeException e) {
+            
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error al actualizar: " + e.getMessage());
@@ -105,7 +105,7 @@ public class RutinaController {
             }
 
             return ResponseEntity.ok(rutinas);
-        } catch (Exception _) {
+        } catch (Exception e) {
     
             return ResponseEntity.internalServerError().build();
         }
@@ -117,7 +117,7 @@ public class RutinaController {
         try {
             List<Rutina> plantillas = rutinaDAO.findByEntrenadorIdAndEsPlantillaTrue(entrenadorId);
             return ResponseEntity.ok(plantillas);
-        } catch (Exception _) {
+        } catch (Exception e) {
            
             return ResponseEntity.internalServerError().build();
         }
