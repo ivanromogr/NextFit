@@ -6,6 +6,7 @@ import { Search, Edit, User, MessageSquare, Plus, X, Check } from "lucide-react"
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
 import { useAuth } from "../../context/AuthContext"; // Usando tu nuevo Contexto de Copilot
+import { WS_BASE_URL } from "../../api/config";
 
 export default function ChatClientePage() {
     const { userId: clienteId } = useAuth(); // Pillamos el ID del contexto blindado
@@ -108,24 +109,25 @@ export default function ChatClientePage() {
     };
 
     const conectarSocketGlobal = () => {
-        const socket = new SockJS('http://localhost:8080/ws');
-        const client = Stomp.over(socket);
-        client.debug = null;
+    const socket = new SockJS(`${WS_BASE_URL}/ws`);
+    const client = Stomp.over(socket);
+    client.debug = null;
 
-        client.connect({}, () => {
-            socketRef.current = client;
-            client.subscribe(`/topic/mensajes/${clienteId}`, (payload) => {
-                const msg = JSON.parse(payload.body);
-                
-                if (msg.remitenteId !== clienteId) {
-                    if (contactoSeleccionado?.id !== msg.remitenteId) {
-                        setUnreadUsers(prev => new Set(prev).add(msg.remitenteId));
-                    }
-                    comprobarSiEsNuevoContacto(msg.remitenteId);
+    client.connect({}, () => {
+        socketRef.current = client;
+
+        client.subscribe(`/topic/mensajes/${clienteId}`, (payload) => {
+            const msg = JSON.parse(payload.body);
+
+            if (msg.remitenteId !== clienteId) {
+                if (contactoSeleccionado?.id !== msg.remitenteId) {
+                    setUnreadUsers(prev => new Set(prev).add(msg.remitenteId));
                 }
-            });
+                comprobarSiEsNuevoContacto(msg.remitenteId);
+            }
         });
-    };
+    });
+};
 
     const cargarContactosBase = async () => {
         try {
