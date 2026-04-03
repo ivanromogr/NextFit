@@ -5,6 +5,7 @@ import { Search, MessageSquare, User, Edit } from "lucide-react";
 import ChatComponent from "../../components/functional/ChatComponent";
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
+import { WS_BASE_URL } from "../../api/config";
 
 export default function ChatPage() {
     const { userId: entrenadorId } = useAuth();
@@ -23,46 +24,48 @@ export default function ChatPage() {
         return () => { if (socketRef.current) socketRef.current.disconnect(); };
     }, [entrenadorId]);
 
-    const conectarSocketGlobal = () => {
-        const socket = new SockJS('http://localhost:8080/ws');
-        const client = Stomp.over(socket);
-        client.debug = null;
+   const conectarSocketGlobal = () => {
+    const socket = new SockJS(`${WS_BASE_URL}/ws`);
+    const client = Stomp.over(socket);
+    client.debug = null;
 
-        client.connect({}, () => {
-            socketRef.current = client;
-            client.subscribe(`/topic/mensajes/${entrenadorId}`, (payload) => {
-                    const msg = JSON.parse(payload.body);
+    client.connect({}, () => {
+        socketRef.current = client;
 
-                    // Si el remitente no es el propio entrenador
-                    if (msg.remitenteId && msg.remitenteId !== entrenadorId) {
-                        // Si no está en la lista de clientes, lo cargamos desde API y lo añadimos
-                        setClientes(prev => {
-                            const exists = prev.some(c => String(c.id) === String(msg.remitenteId));
-                            if (!exists) {
-                                // fetch y añadir en background
-                                getCliente(msg.remitenteId).then(res => {
-                                    const clienteData = res.entrenador ? res.entrenador : res;
-                                    // Algunos endpoints devuelven objeto anidado; normalizamos
-                                    setClientes(old => {
-                                        if (old.some(c => String(c.id) === String(clienteData.id))) return old;
-                                        return [clienteData, ...old];
-                                    });
-                                }).catch(err => {
-                                    console.warn('No se pudo cargar cliente remoto:', err);
+        client.subscribe(`/topic/mensajes/${entrenadorId}`, (payload) => {
+            const msg = JSON.parse(payload.body);
+
+            if (msg.remitenteId && msg.remitenteId !== entrenadorId) {
+                setClientes((prev) => {
+                    const exists = prev.some((c) => String(c.id) === String(msg.remitenteId));
+
+                    if (!exists) {
+                        getCliente(msg.remitenteId)
+                            .then((res) => {
+                                const clienteData = res.entrenador ? res.entrenador : res;
+
+                                setClientes((old) => {
+                                    if (old.some((c) => String(c.id) === String(clienteData.id))) {
+                                        return old;
+                                    }
+                                    return [clienteData, ...old];
                                 });
-                            }
-
-                            // Si el remitente no es el seleccionado actual, marcar como no leído
-                            if (clienteSeleccionado?.id !== msg.remitenteId) {
-                                setUnreadUsers(prev => new Set(prev).add(msg.remitenteId));
-                            }
-
-                            return prev;
-                        });
+                            })
+                            .catch((err) => {
+                                console.warn('No se pudo cargar cliente remoto:', err);
+                            });
                     }
+
+                    if (clienteSeleccionado?.id !== msg.remitenteId) {
+                        setUnreadUsers((prevUnread) => new Set(prevUnread).add(msg.remitenteId));
+                    }
+
+                    return prev;
                 });
+            }
         });
-    };
+    });
+};
 
     const cargarClientes = async () => {
         try {
