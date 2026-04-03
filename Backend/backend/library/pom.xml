@@ -58,7 +58,7 @@
         <!-- MySQL -->
         <dependency>
             <groupId>org.postgresql</groupId>
-            <artifactId>org.postgresql</artifactId>
+            <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
 
