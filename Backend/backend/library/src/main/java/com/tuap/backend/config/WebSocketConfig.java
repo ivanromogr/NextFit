@@ -12,18 +12,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Prefijo para los mensajes que el servidor envía al cliente (suscripciones)
-        config.enableSimpleBroker("/topic"); 
-        
-        // Prefijo para los mensajes que el cliente envía al servidor (@MessageMapping)
-        config.setApplicationDestinationPrefixes("/app"); 
+        config.enableSimpleBroker("/topic");
+        config.setApplicationDestinationPrefixes("/app");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // ✅ SOLUCIÓN: Eliminamos .withSockJS() para permitir WebSockets nativos
-        // Esto es lo que React Native y @stomp/stompjs necesitan
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*"); 
+                .setAllowedOriginPatterns(
+                        "http://localhost:5173",
+                        "http://localhost:3000",
+                        "https://next-fit-azure.vercel.app",
+                        "https://*.vercel.app"
+                )
+                .withSockJS();
     }
 }
