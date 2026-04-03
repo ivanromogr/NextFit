@@ -31,7 +31,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Faltan datos', 'Por favor, introduce tu correo y contraseña.');
+      Alert.alert('Faltan datos', 'Por favor, introduce tu correo y contrasena.');
       return;
     }
 
@@ -47,7 +47,7 @@ export default function LoginScreen() {
       };
 
       const body = new URLSearchParams(loginData).toString();
-      const AUTH_HOST = 'http://192.168.1.30:8080';
+      const AUTH_HOST = 'http://192.168.1.46:8080';
 
       const resp = await axios.post(`${AUTH_HOST}/login`, body, {
          headers: { "Content-Type": "application/x-www-form-urlencoded" }
@@ -71,7 +71,7 @@ export default function LoginScreen() {
       if (err.response?.status === 404 || err.response?.status === 401) {
         Alert.alert(
           'Acceso denegado', 
-          'Correo o contraseña incorrectos. Comprueba que no haya espacios al final.'
+          'Correo o contrasena incorrectos. Comprueba que no haya espacios al final.'
         );
       } else {
         Alert.alert('Error', 'No se pudo conectar con el servidor.');
@@ -121,7 +121,7 @@ export default function LoginScreen() {
               onPress={() => Alert.alert('Info', 'Funcionalidad en desarrollo.')} 
               style={styles.forgotPasswordContainer}
             >
-              <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+              <Text style={styles.forgotPasswordText}>¿Olvidaste tu contrasena?</Text>
             </TouchableOpacity>
 
             <GymButton 

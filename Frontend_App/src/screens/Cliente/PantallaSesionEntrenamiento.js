@@ -312,7 +312,7 @@ export default function PantallaSesionEntrenamiento() {
                   )}
 
                   <View style={{ flex: 1, paddingLeft: 15 }}>
-                    <Text style={styles.exTitle}>{ej.ejercicio.nombre}</Text>
+                    <Text style={styles.exTitle}>{ej.ejercicio.nombreTraducido}</Text>
                     
                     {editando && !isReadOnly ? (
                       <View style={styles.noteInputWrap}>

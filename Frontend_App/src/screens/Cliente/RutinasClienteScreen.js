@@ -172,7 +172,7 @@ export default function RutinasClienteScreen() {
       const nivelLabel = (item.nivel || "").toString().replace(/_/g, " ");
       const objetivoLabel = (item.objetivo || "IA").toString().replace(/_/g, " ");
       const title = item.key?.includes("|") ? `Plan ${objetivoLabel}` : item.key;
-      const preview = item.items?.[0]?.detalles?.map((d) => d.ejercicio.nombre).join(", ") || "Sin ejercicios previos";
+      const preview = item.items?.[0]?.detalles?.map((d) => d.ejercicio.nombreTraducido).join(", ") || "Sin ejercicios previos";
 
       return (
         <View style={styles.iaContainer}>

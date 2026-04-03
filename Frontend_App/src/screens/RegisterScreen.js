@@ -49,14 +49,14 @@ export default function RegisterScreen() {
     nombre: "", 
     apellido: "", 
     email: "", 
-    contraseña: "", 
+    contrasena: "", 
     rol: "CLIENTE" // Por defecto
   });
 
   const handleChange = (field, value) => setForm({ ...form, [field]: value });
 
   const handleRegister = async () => {
-    if (!form.nombre || !form.apellido || !form.email || !form.contraseña) {
+    if (!form.nombre || !form.apellido || !form.email || !form.contrasena) {
       setError("Por favor, rellena todos los campos.");
       return;
     }
@@ -172,8 +172,8 @@ export default function RegisterScreen() {
               label="Contraseña"
               icon={Lock}
               placeholder="Mínimo 6 caracteres"
-              value={form.contraseña}
-              onChangeText={(val) => handleChange("contraseña", val)}
+              value={form.contrasena}
+              onChangeText={(val) => handleChange("contrasena", val)}
               secureTextEntry={true}
             />
 

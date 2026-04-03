@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start",
+    "test": "jest",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"
@@ -14,16 +15,51 @@
     "@react-navigation/bottom-tabs": "^7.14.0",
     "@react-navigation/native": "^7.1.28",
     "@react-navigation/stack": "^7.7.2",
+    "@stomp/stompjs": "^7.3.0",
     "axios": "^1.13.5",
+    "date-fns": "^4.1.0",
     "expo": "~54.0.33",
+    "expo-av": "~16.0.8",
+    "expo-image-picker": "~17.0.10",
+    "expo-linear-gradient": "~15.0.8",
+    "expo-notifications": "~0.32.16",
     "expo-status-bar": "~3.0.9",
-    "lucide-react-native": "^0.575.0",
+    "jest-expo": "~54.0.17",
+    "lucide-react-native": "^0.577.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-calendars": "^1.1314.0",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-get-random-values": "^2.0.0",
+    "react-native-gifted-charts": "^1.4.74",
     "react-native-modal-datetime-picker": "^18.0.0",
     "react-native-safe-area-context": "~5.6.0",
-    "react-native-screens": "~4.16.0"
+    "react-native-screens": "~4.16.0",
+    "react-native-svg": "15.12.1",
+    "rn-emoji-keyboard": "^1.7.0",
+    "sockjs-client": "^1.6.1",
+    "stompjs": "^2.3.3",
+    "text-encoding": "^0.7.0"
   },
-  "private": true
+  "jest": {
+    "preset": "jest-expo",
+    "transform": {
+      "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
+    },
+    "setupFilesAfterEnv": [
+      "./jest.setup.js",
+      "@testing-library/jest-native/extend-expect"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(jest-)?react-native|@react-native|@react-native-community|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|lucide-react-native|@react-native-async-storage)"
+    ]
+  },
+  "private": true,
+  "devDependencies": {
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^13.3.3",
+    "babel-preset-expo": "^55.0.13",
+    "jest": "^30.3.0",
+    "react-test-renderer": "^19.1.0"
+  }
 }

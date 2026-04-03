@@ -10,7 +10,7 @@ SELECT
   nombre,
   apellido,
   email,
-  contraseña,
+  contrasena,
   rol
 FROM usuario;
 

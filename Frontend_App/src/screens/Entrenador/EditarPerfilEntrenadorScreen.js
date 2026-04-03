@@ -55,7 +55,7 @@ export default function EditarPerfilEntrenadorScreen() {
     const [form, setForm] = useState({
         nombre: '', apellido: '', email: '', especialidad: [], aniosExperiencia: '',
         formacion: '', descripcionPerfil: '', modalidadTrabajo: '', genero: '',
-        fotoPerfil: '', contraseña: '', perfilPublico: false, tarifaMensual: ''
+        fotoPerfil: '', contrasena: '', perfilPublico: false, tarifaMensual: ''
     });
 
     const [visibleEspecialidades, setVisibleEspecialidades] = useState(LISTA_ESPECIALIDADES);
@@ -98,7 +98,7 @@ export default function EditarPerfilEntrenadorScreen() {
                     modalidadTrabajo: data.modalidadTrabajo || 'ONLINE',
                     genero: data.genero || '',
                     fotoPerfil: data.fotoPerfil || '',
-                    contraseña: '',
+                    contrasena: '',
                     perfilPublico: data.perfilPublico || false,
                     tarifaMensual: data.tarifaMensual != null ? String(data.tarifaMensual) : ''
                 });
@@ -147,8 +147,8 @@ export default function EditarPerfilEntrenadorScreen() {
                 tarifaMensual: form.tarifaMensual ? Number(form.tarifaMensual) : null
             };
 
-            if (form.contraseña && form.contraseña.trim() !== '') {
-                payload.contraseña = form.contraseña;
+            if (form.contrasena && form.contrasena.trim() !== '') {
+                payload.contrasena = form.contrasena;
             }
 
             await actualizarEntrenador(userId, payload);
@@ -373,11 +373,11 @@ export default function EditarPerfilEntrenadorScreen() {
                         label="Cambiar Contraseña" 
                         placeholder="Déjalo vacío para no cambiar" 
                         icon={Lock} 
-                        value={form.contraseña} 
-                        onChangeText={(val) => handleChange('contraseña', val)} 
+                        value={form.contrasena} 
+                        onChangeText={(val) => handleChange('contrasena', val)} 
                         secureTextEntry 
                     />
-                    <Text style={styles.dangerHint}>La contraseña solo se enviará si escribes algo aquí.</Text>
+                    <Text style={styles.dangerHint}>La contrasena solo se enviará si escribes algo aquí.</Text>
 
                     {/* BOTÓN GUARDAR */}
                     <View style={{ marginTop: 40, marginBottom: 20 }}>

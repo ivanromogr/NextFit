@@ -31,7 +31,7 @@ export default function PerfilScreen() {
     apellido: '', 
     email: '', 
     fotoPerfil: '', 
-    contraseña: '' 
+    contrasena: '' 
   });
   const [focusedInput, setFocusedInput] = useState(null);
 
@@ -46,7 +46,7 @@ export default function PerfilScreen() {
           apellido: data.apellido || '',
           email: data.email || '',
           fotoPerfil: data.fotoPerfil || '',
-          contraseña: ''
+          contrasena: ''
         });
       } catch (e) { 
         console.error('Error al cargar cliente:', e);
@@ -70,8 +70,8 @@ export default function PerfilScreen() {
         fotoPerfil: form.fotoPerfil || ''
       };
 
-      if (form.contraseña && form.contraseña.trim() !== '') {
-        payload.contraseña = form.contraseña;
+      if (form.contrasena && form.contrasena.trim() !== '') {
+        payload.contrasena = form.contrasena;
       }
 
       await actualizarCliente(userId, payload);
@@ -284,13 +284,13 @@ export default function PerfilScreen() {
           <View style={styles.inputGroupFull}>
             <Text style={styles.label}>Nueva Contraseña</Text>
             <TextInput 
-              style={[styles.input, focusedInput === 'contraseña' && styles.inputFocusedError]} 
+              style={[styles.input, focusedInput === 'contrasena' && styles.inputFocusedError]} 
               placeholder="Déjalo en blanco si no quieres cambiarla" 
               placeholderTextColor="#666"
               secureTextEntry
-              value={form.contraseña} 
-              onChangeText={v => handleChange('contraseña', v)}
-              onFocus={() => setFocusedInput('contraseña')}
+              value={form.contrasena} 
+              onChangeText={v => handleChange('contrasena', v)}
+              onFocus={() => setFocusedInput('contrasena')}
               onBlur={() => setFocusedInput(null)}
             />
           </View>
