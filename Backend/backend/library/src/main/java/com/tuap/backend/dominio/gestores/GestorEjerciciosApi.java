@@ -79,7 +79,13 @@ public class GestorEjerciciosApi {
                             && api.getEquipment() != null
                             && !ejercicioDAO.existsByApiId(api.getId())) {
 
-                        String nombreTraducido = servicioTraduccion.traducirTexto(api.getName(), "en", "es");
+                        String nombreTraducido;
+                        try {
+                            nombreTraducido = servicioTraduccion.traducirTexto(api.getName(), "en", "es");
+                        } catch (Exception e) {
+                            System.out.println("⚠️ Error traduciendo ejercicio " + api.getName() + ". Se guarda el nombre original.");
+                            nombreTraducido = api.getName();
+                        }
 
                         Ejercicio ejercicio = new Ejercicio();
                         ejercicio.setApiId(api.getId());
