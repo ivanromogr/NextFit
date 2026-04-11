@@ -27,8 +27,11 @@ import com.tuap.backend.servicios.TraductorEjercicios;
 @RequestMapping("/api/ejercicios")
 public class EjercicioController {
 
-    @Value("${exercisedb.api.key}")
+    @Value("${exercisedb.api.key:}")
     private String apiKey;
+
+    @Value("${app.base-url:http://localhost:8080}")
+    private String appBaseUrl;
 
     private final EjercicioDAO ejercicioDAO;
     private final GestorEjerciciosApi gestorEjerciciosApi;
@@ -49,6 +52,11 @@ public class EjercicioController {
                 .stream()
                 .map(this::convertirAResponse)
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping("/total")
+    public long totalEjercicios() {
+        return ejercicioDAO.count();
     }
 
     @GetMapping("/buscar")
@@ -84,35 +92,39 @@ public class EjercicioController {
     }
 
     @GetMapping("/imagen/{apiId}")
-public ResponseEntity<byte[]> obtenerImagenEjercicio(@PathVariable String apiId) {
-    try {
-        String url = "https://exercisedb.p.rapidapi.com/image?exerciseId=" + apiId + "&resolution=180";
+    public ResponseEntity<byte[]> obtenerImagenEjercicio(@PathVariable String apiId) {
+        try {
+            if (apiKey == null || apiKey.isBlank()) {
+                return ResponseEntity.notFound().build();
+            }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-RapidAPI-Key", apiKey);
-        headers.set("X-RapidAPI-Host", "exercisedb.p.rapidapi.com");
+            String url = "https://exercisedb.p.rapidapi.com/image?exerciseId=" + apiId + "&resolution=180";
 
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-        RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-RapidAPI-Key", apiKey);
+            headers.set("X-RapidAPI-Host", "exercisedb.p.rapidapi.com");
 
-        ResponseEntity<byte[]> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                byte[].class
-        );
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            RestTemplate restTemplate = new RestTemplate();
 
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.setContentType(MediaType.IMAGE_GIF);
+            ResponseEntity<byte[]> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    byte[].class
+            );
 
-        return ResponseEntity.ok()
-                .headers(responseHeaders)
-                .body(response.getBody());
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.setContentType(MediaType.IMAGE_GIF);
 
-    } catch (Exception e) {
-        return ResponseEntity.notFound().build();
+            return ResponseEntity.ok()
+                    .headers(responseHeaders)
+                    .body(response.getBody());
+
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
-}
 
     private EjercicioResponse convertirAResponse(Ejercicio ejercicio) {
         EjercicioResponse response = new EjercicioResponse();
@@ -135,8 +147,7 @@ public ResponseEntity<byte[]> obtenerImagenEjercicio(@PathVariable String apiId)
                 traductorEjercicios.traducirParteAEspanol(ejercicio.getParteCuerpo())
         );
 
-        // IMPORTANTE: ahora devolvemos la URL de TU backend, no la de RapidAPI
-        response.setImagenUrl("http://localhost:8080/api/ejercicios/imagen/" + ejercicio.getApiId());
+        response.setImagenUrl(appBaseUrl + "/api/ejercicios/imagen/" + ejercicio.getApiId());
 
         response.setVideoUrl(ejercicio.getVideoUrl());
         response.setDificultad(ejercicio.getDificultad());

@@ -20,7 +20,7 @@ import com.tuap.backend.servicios.ServicioTraduccion;
 @Service
 public class GestorEjerciciosApi {
 
-    @Value("${exercisedb.api.key}")
+    @Value("${exercisedb.api.key:}")
     private String apiKey;
 
     private final EjercicioDAO ejercicioDAO;
@@ -32,6 +32,11 @@ public class GestorEjerciciosApi {
     }
 
     public List<Ejercicio> importarEjerciciosDesdeApi() {
+
+        if (apiKey == null || apiKey.isBlank()) {
+            System.out.println("⚠️ No hay EXERCISEDB_API_KEY configurada. No se puede importar.");
+            return new ArrayList<>();
+        }
 
         RestTemplate restTemplate = new RestTemplate();
 
