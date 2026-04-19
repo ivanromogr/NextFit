@@ -64,17 +64,35 @@ public class EjercicioController {
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String musculo) {
 
+        boolean sinNombre = (nombre == null || nombre.isBlank());
+        boolean sinMusculo = (musculo == null || musculo.isBlank());
+
+        if (sinNombre && sinMusculo) {
+            return ejercicioDAO.findAll()
+                    .stream()
+                    .map(this::convertirAResponse)
+                    .collect(Collectors.toList());
+        }
+
         String nombreOriginalFiltro = null;
         String nombreTraducidoFiltro = null;
 
-        if (nombre != null && !nombre.isEmpty()) {
+        if (!sinNombre) {
             nombreOriginalFiltro = nombre;
-            nombreTraducidoFiltro = traductorEjercicios.traducirNombreAIngles(nombre);
+            try {
+                nombreTraducidoFiltro = traductorEjercicios.traducirNombreAIngles(nombre);
+            } catch (Exception e) {
+                nombreTraducidoFiltro = nombre;
+            }
         }
 
         String musculoFiltro = null;
-        if (musculo != null && !musculo.isEmpty()) {
-            musculoFiltro = traductorEjercicios.traducirMusculoAIngles(musculo);
+        if (!sinMusculo) {
+            try {
+                musculoFiltro = traductorEjercicios.traducirMusculoAIngles(musculo);
+            } catch (Exception e) {
+                musculoFiltro = musculo;
+            }
         }
 
         return ejercicioDAO.buscarAvanzadoTraducido(nombreOriginalFiltro, nombreTraducidoFiltro, musculoFiltro)
@@ -146,9 +164,7 @@ public class EjercicioController {
         response.setParteCuerpoTraducida(
                 traductorEjercicios.traducirParteAEspanol(ejercicio.getParteCuerpo())
         );
-
         response.setImagenUrl(ejercicio.getImagenUrl());
-
         response.setVideoUrl(ejercicio.getVideoUrl());
         response.setDificultad(ejercicio.getDificultad());
         response.setInstrucciones(ejercicio.getInstrucciones());
