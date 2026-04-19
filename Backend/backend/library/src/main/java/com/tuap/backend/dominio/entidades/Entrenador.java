@@ -15,7 +15,6 @@ import jakarta.persistence.OneToMany;
 public class Entrenador {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "BINARY(16)", unique = true, nullable = false)
     private UUID id;
 
     @Column(nullable = false)

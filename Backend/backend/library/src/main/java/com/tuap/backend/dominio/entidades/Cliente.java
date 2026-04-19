@@ -20,7 +20,6 @@ public class Cliente {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "BINARY(16)", unique = true, nullable = false)
     private UUID id;
 
     @Column(nullable = false)

@@ -24,7 +24,6 @@ public class Rutina {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "BINARY(16)")
     private UUID id;
 
     private String nombre;
@@ -38,7 +37,7 @@ public class Rutina {
     @Column(name = "es_plantilla")
     private Boolean esPlantilla = false;
 
-    @Column(name = "entrenador_id", columnDefinition = "BINARY(16)")
+    @Column(name = "entrenador_id")
     private UUID entrenadorId;
 
     @ManyToOne(fetch = FetchType.EAGER)
