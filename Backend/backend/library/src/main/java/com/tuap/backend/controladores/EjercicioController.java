@@ -147,7 +147,7 @@ public class EjercicioController {
                 traductorEjercicios.traducirParteAEspanol(ejercicio.getParteCuerpo())
         );
 
-        response.setImagenUrl(appBaseUrl + "/api/ejercicios/imagen/" + ejercicio.getApiId());
+        response.setImagenUrl(ejercicio.getImagenUrl());
 
         response.setVideoUrl(ejercicio.getVideoUrl());
         response.setDificultad(ejercicio.getDificultad());

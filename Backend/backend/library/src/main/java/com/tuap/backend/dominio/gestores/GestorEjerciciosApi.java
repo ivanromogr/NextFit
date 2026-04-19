@@ -15,6 +15,7 @@ import org.springframework.web.client.RestTemplate;
 import com.tuap.backend.dominio.entidades.Ejercicio;
 import com.tuap.backend.dto.EjercicioApiResponse;
 import com.tuap.backend.persistencia.EjercicioDAO;
+import com.tuap.backend.servicios.ServicioCloudinary;
 import com.tuap.backend.servicios.ServicioTraduccion;
 
 @Service
@@ -25,16 +26,21 @@ public class GestorEjerciciosApi {
 
     private final EjercicioDAO ejercicioDAO;
     private final ServicioTraduccion servicioTraduccion;
+    private final ServicioCloudinary servicioCloudinary;
 
-    public GestorEjerciciosApi(EjercicioDAO ejercicioDAO, ServicioTraduccion servicioTraduccion) {
+    public GestorEjerciciosApi(
+            EjercicioDAO ejercicioDAO,
+            ServicioTraduccion servicioTraduccion,
+            ServicioCloudinary servicioCloudinary) {
         this.ejercicioDAO = ejercicioDAO;
         this.servicioTraduccion = servicioTraduccion;
+        this.servicioCloudinary = servicioCloudinary;
     }
 
     public List<Ejercicio> importarEjerciciosDesdeApi() {
 
         if (apiKey == null || apiKey.isBlank()) {
-            System.out.println("⚠️ No hay EXERCISEDB_API_KEY configurada. No se puede importar.");
+            System.out.println("No hay EXERCISEDB_API_KEY configurada. No se puede importar.");
             return new ArrayList<>();
         }
 
@@ -88,7 +94,7 @@ public class GestorEjerciciosApi {
                         try {
                             nombreTraducido = servicioTraduccion.traducirTexto(api.getName(), "en", "es");
                         } catch (Exception e) {
-                            System.out.println("⚠️ Error traduciendo ejercicio " + api.getName() + ". Se guarda el nombre original.");
+                            System.out.println("Error traduciendo ejercicio " + api.getName() + ". Se guarda el nombre original.");
                             nombreTraducido = api.getName();
                         }
 
@@ -100,13 +106,20 @@ public class GestorEjerciciosApi {
                         ejercicio.setEquipamiento(api.getEquipment());
                         ejercicio.setParteCuerpo(api.getBodyPart());
 
-                        ejercicio.setImagenUrl(
-                                "https://exercisedb.p.rapidapi.com/image?exerciseId="
-                                        + api.getId()
-                                        + "&resolution=180"
-                                        + "&rapidapi-key=" + apiKey
-                        );
+                        String gifUrlApi = "https://exercisedb.p.rapidapi.com/image?exerciseId="
+                                + api.getId()
+                                + "&resolution=180"
+                                + "&rapidapi-key=" + apiKey;
 
+                        String gifUrlFinal;
+                        try {
+                            gifUrlFinal = servicioCloudinary.subirGifDesdeUrl(gifUrlApi, api.getId());
+                        } catch (Exception e) {
+                            System.out.println(" Error subiendo GIF a Cloudinary para ejercicio " + api.getId() + ". Se deja sin imagen.");
+                            gifUrlFinal = null;
+                        }
+
+                        ejercicio.setImagenUrl(gifUrlFinal);
                         ejercicio.setVideoUrl(null);
                         ejercicio.setDificultad(null);
                         ejercicio.setInstrucciones(null);
