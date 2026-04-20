@@ -1,5 +1,6 @@
 package com.tuap.backend.controladores;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -74,20 +75,18 @@ public class EjercicioController {
                     .collect(Collectors.toList());
         }
 
-        String nombreOriginalFiltro = null;
-        String nombreTraducidoFiltro = null;
+        String nombreFiltro = null;
+        List<String> musculosFiltro = null;
 
         if (!sinNombre) {
-            nombreOriginalFiltro = nombre;
-            nombreTraducidoFiltro = traducirFiltro(nombre);
+            nombreFiltro = nombre.trim();
         }
 
-        String musculoFiltro = null;
         if (!sinMusculo) {
-            musculoFiltro = traducirFiltro(musculo);
+            musculosFiltro = traducirMusculoALista(musculo);
         }
 
-        return ejercicioDAO.buscarAvanzadoTraducido(nombreOriginalFiltro, nombreTraducidoFiltro, musculoFiltro)
+        return ejercicioDAO.buscarAvanzadoConListaMusculos(nombreFiltro, musculosFiltro)
                 .stream()
                 .map(this::convertirAResponse)
                 .collect(Collectors.toList());
@@ -184,6 +183,83 @@ public class EjercicioController {
         if (t.contains("hombro")) return "shoulder press";
 
         return t;
+    }
+
+    /**
+     * 🔥 NUEVO: Traduce un músculo en español a una LISTA de músculos en inglés
+     * Con esto podemos filtrar por músculos relacionados.
+     *
+     * Ej: "Piernas" → ["quads", "hamstrings", "glutes", "calves"]
+     */
+    private List<String> traducirMusculoALista(String musculo) {
+        if (musculo == null || musculo.isBlank()) {
+            return null;
+        }
+
+        String m = musculo.toLowerCase().trim();
+
+        // PIERNAS - músculos principales de las piernas
+        if (m.contains("pierna") || m.contains("piernas")) {
+            return Arrays.asList("quads", "hamstrings", "glutes", "calves", "leg");
+        }
+
+        // ESPALDA - músculos de la espalda
+        if (m.contains("espalda")) {
+            return Arrays.asList("back", "lats", "traps", "spine", "rhomboids");
+        }
+
+        // PECHO
+        if (m.contains("pecho")) {
+            return Arrays.asList("chest");
+        }
+
+        // BRAZOS - bíceps, tríceps, antebrazos
+        if (m.contains("brazo") || m.contains("brazos")) {
+            return Arrays.asList("biceps", "triceps", "forearms", "arm");
+        }
+
+        // HOMBROS
+        if (m.contains("hombro") || m.contains("hombros")) {
+            return Arrays.asList("shoulder", "neck", "traps");
+        }
+
+        // ABDOMINALES
+        if (m.contains("abdominal") || m.contains("abdominales") || m.contains("abdomen")) {
+            return Arrays.asList("abs", "waist", "serratus anterior");
+        }
+
+        // BÍCEPS específico
+        if (m.contains("bíceps") || m.contains("biceps")) {
+            return Arrays.asList("biceps");
+        }
+
+        // TRÍCEPS específico
+        if (m.contains("tríceps") || m.contains("triceps")) {
+            return Arrays.asList("triceps");
+        }
+
+        // GLÚTEOS
+        if (m.contains("glúteo") || m.contains("gluteo") || m.contains("glúteos") || m.contains("gluteos")) {
+            return Arrays.asList("glutes");
+        }
+
+        // GEMELOS
+        if (m.contains("gemelo") || m.contains("gemelos")) {
+            return Arrays.asList("calves");
+        }
+
+        // CUÁDRICEPS
+        if (m.contains("cuádriceps") || m.contains("cuadriceps")) {
+            return Arrays.asList("quads");
+        }
+
+        // ISQUIOTIBIALES
+        if (m.contains("isquio") || m.contains("femoral") || m.contains("isquiotibial")) {
+            return Arrays.asList("hamstrings");
+        }
+
+        // Si no coincide con nada, devolver null (sin filtro por músculo)
+        return null;
     }
 
     private EjercicioResponse convertirAResponse(Ejercicio ejercicio) {

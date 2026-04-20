@@ -52,4 +52,19 @@ public interface EjercicioDAO extends JpaRepository<Ejercicio, UUID> {
 
     // --- 🔹 CONTROL DE DUPLICADOS API ---
     boolean existsByApiId(String apiId);
+
+    // --- 🔥 BÚSQUEDA AVANZADA CON LISTA DE MÚSCULOS ---
+    @Query("""
+        SELECT e FROM Ejercicio e
+        WHERE
+            (:nombre IS NULL OR
+            LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombre, '%')) OR
+            LOWER(e.nombreTraducido) LIKE LOWER(CONCAT('%', :nombre, '%')))
+        AND
+            (:musculos IS NULL OR LOWER(e.grupoMuscular) IN :musculos)
+    """)
+    List<Ejercicio> buscarAvanzadoConListaMusculos(
+            @Param("nombre") String nombre,
+            @Param("musculos") List<String> musculos
+    );
 }
