@@ -65,7 +65,6 @@ const CrearEntrenamiento = ({
     }
   }, [rutinaInicial]);
 
-  // Cargar todos los ejercicios una vez
   useEffect(() => {
     const fetchEjercicios = async () => {
       try {
@@ -84,7 +83,6 @@ const CrearEntrenamiento = ({
     fetchEjercicios();
   }, []);
 
-  // Filtrar en frontend
   useEffect(() => {
     const texto = busqueda.trim().toLowerCase();
 
@@ -306,7 +304,6 @@ const CrearEntrenamiento = ({
         {toast.message}
       </div>
 
-      {/* SIDEBAR */}
       <div style={styles.sidebar}>
         <div style={styles.sidebarHeader}>
           <h2 style={{ color: 'white', margin: '0 0 20px 0', fontFamily: 'Teko, sans-serif', fontSize: '2rem' }}>
@@ -355,27 +352,27 @@ const CrearEntrenamiento = ({
                 <ImageWithFallback
                   src={ej.imagenUrl}
                   alt={ej.nombreTraducido || ej.nombre}
-                  style={{ width:'45px', height:'45px', borderRadius:'8px', objectFit:'cover', background:'#000' }}
+                  style={{width:'45px', height:'45px', borderRadius:'8px', objectFit:'cover', background:'#000'}}
                 />
 
-                <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:'bold', fontSize:'0.95rem', color: 'white' }}>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:'bold', fontSize:'0.95rem', color: 'white'}}>
                     {ej.nombreTraducido || ej.nombre}
                   </div>
-                  <div style={{ fontSize:'0.7rem', color:'#666', textTransform:'uppercase', letterSpacing:'1px' }}>
+                  <div style={{fontSize:'0.7rem', color:'#666', textTransform:'uppercase', letterSpacing:'1px'}}>
                     {ej.grupoMuscularTraducido || ej.grupoMuscular}
                   </div>
                 </div>
 
                 <button
                   onClick={(e) => abrirInfo(e, ej, 'biblioteca')}
-                  style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#aaa', marginRight: '5px' }}
+                  style={{background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#aaa', marginRight: '5px'}}
                   title="Ver detalles"
                 >
                   <IconInfo />
                 </button>
 
-                <div style={{ background: isTemplate ? '#60A5FA' : '#FACC15', borderRadius:'50%', padding:'4px', display:'flex', color:'black' }}>
+                <div style={{background: isTemplate ? '#60A5FA' : '#FACC15', borderRadius:'50%', padding:'4px', display:'flex', color:'black'}}>
                   <IconPlus />
                 </div>
               </div>
@@ -384,7 +381,6 @@ const CrearEntrenamiento = ({
         </div>
       </div>
 
-      {/* MAIN PANEL */}
       <div style={styles.main}>
         <div style={styles.header}>
           <button
@@ -396,7 +392,7 @@ const CrearEntrenamiento = ({
             <IconChevronLeft /> CANCELAR
           </button>
 
-          <div style={{ flex: 1, marginRight: '40px' }}>
+          <div style={{flex: 1, marginRight: '40px'}}>
             <input
               style={styles.titleInput}
               placeholder={isTemplate ? "NOMBRE DE LA PLANTILLA MAESTRA" : "NOMBRE DE TU RUTINA"}
@@ -416,8 +412,8 @@ const CrearEntrenamiento = ({
           <button
             style={styles.saveBtn}
             onClick={guardar}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = isTemplate ? '0 0 25px rgba(96, 165, 250, 0.6)' : '0 0 25px rgba(250, 204, 21, 0.6)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = isTemplate ? '0 0 15px rgba(96, 165, 250, 0.4)' : '0 0 15px rgba(250, 204, 21, 0.4)'; }}
+            onMouseEnter={e => {e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = isTemplate ? '0 0 25px rgba(96, 165, 250, 0.6)' : '0 0 25px rgba(250, 204, 21, 0.6)';}}
+            onMouseLeave={e => {e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = isTemplate ? '0 0 15px rgba(96, 165, 250, 0.4)' : '0 0 15px rgba(250, 204, 21, 0.4)';}}
           >
             <IconSave /> {isTemplate ? "GUARDAR PLANTILLA" : (rutinaInicial ? "ACTUALIZAR" : "GUARDAR")}
           </button>
@@ -425,14 +421,10 @@ const CrearEntrenamiento = ({
 
         <div style={styles.cardArea}>
           {ejerciciosSeleccionados.length === 0 ? (
-            <div style={{ textAlign:'center', color:'#333', marginTop:'100px', display:'flex', flexDirection:'column', alignItems:'center' }}>
+            <div style={{textAlign:'center', color:'#333', marginTop:'100px', display:'flex', flexDirection:'column', alignItems:'center'}}>
               <IconDumbbell />
-              <h2 style={{ fontFamily: 'Teko, sans-serif', fontSize: '2rem', color:'#444', margin: '20px 0 5px 0' }}>
-                ESPACIO DE TRABAJO VACÍO
-              </h2>
-              <p style={{ color:'#666' }}>
-                {isTemplate ? "Diseña tu plantilla maestra añadiendo ejercicios." : "Selecciona ejercicios de la biblioteca para comenzar a diseñar."}
-              </p>
+              <h2 style={{fontFamily: 'Teko, sans-serif', fontSize: '2rem', color:'#444', margin: '20px 0 5px 0'}}>ESPACIO DE TRABAJO VACÍO</h2>
+              <p style={{color:'#666'}}>{isTemplate ? "Diseña tu plantilla maestra añadiendo ejercicios." : "Selecciona ejercicios de la biblioteca para comenzar a diseñar."}</p>
             </div>
           ) : (
             ejerciciosSeleccionados.map((ej, index) => (
@@ -445,10 +437,10 @@ const CrearEntrenamiento = ({
                   <ImageWithFallback
                     src={ej.imagen}
                     alt={ej.nombre}
-                    style={{ width:'100%', height:'100%', objectFit:'cover' }}
+                    style={{width:'100%', height:'100%', objectFit:'cover'}}
                   />
 
-                  <div style={{ ...styles.indexBadge, background: isTemplate ? '#60A5FA' : '#FACC15' }}>
+                  <div style={{...styles.indexBadge, background: isTemplate ? '#60A5FA' : '#FACC15'}}>
                     #{index + 1}
                   </div>
                 </div>
@@ -456,7 +448,7 @@ const CrearEntrenamiento = ({
                 <div style={styles.dataSection}>
                   <div style={styles.cardHeader}>
                     <div>
-                      <div style={{ ...styles.cardSubtitle, color: isTemplate ? '#60A5FA' : '#FACC15' }}>
+                      <div style={{...styles.cardSubtitle, color: isTemplate ? '#60A5FA' : '#FACC15'}}>
                         {ej.musculo}
                       </div>
                       <h3 style={styles.cardTitle}>{ej.nombre}</h3>
@@ -464,7 +456,7 @@ const CrearEntrenamiento = ({
 
                     <button
                       onClick={() => eliminar(ej.tempId)}
-                      style={{ background:'transparent', border:'none', color:'#444', cursor:'pointer', padding:'8px' }}
+                      style={{background:'transparent', border:'none', color:'#444', cursor:'pointer', padding:'8px'}}
                       title="Eliminar"
                     >
                       <IconTrash />
@@ -476,29 +468,26 @@ const CrearEntrenamiento = ({
                       <label style={styles.controlLabel}>Series</label>
                       <input type="number" style={styles.controlInput} value={ej.series} onChange={e => actualizar(ej.tempId, 'series', e.target.value)} />
                     </div>
-
-                    <div style={{ ...styles.controlItem, borderLeft: '1px solid #222' }}>
+                    <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}>
                       <label style={styles.controlLabel}>Reps</label>
                       <input type="number" style={styles.controlInput} value={ej.reps} onChange={e => actualizar(ej.tempId, 'reps', e.target.value)} />
                     </div>
-
-                    <div style={{ ...styles.controlItem, borderLeft: '1px solid #222' }}>
-                      <label style={{ ...styles.controlLabel, color: isTemplate ? '#60A5FA' : '#FACC15' }}>Peso (Kg)</label>
-                      <input type="number" style={{ ...styles.controlInput, color: isTemplate ? '#60A5FA' : '#FACC15' }} value={ej.peso} onChange={e => actualizar(ej.tempId, 'peso', e.target.value)} />
+                    <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}>
+                      <label style={{...styles.controlLabel, color: isTemplate ? '#60A5FA' : '#FACC15'}}>Peso (Kg)</label>
+                      <input type="number" style={{...styles.controlInput, color: isTemplate ? '#60A5FA' : '#FACC15'}} value={ej.peso} onChange={e => actualizar(ej.tempId, 'peso', e.target.value)} />
                     </div>
-
-                    <div style={{ ...styles.controlItem, borderLeft: '1px solid #222' }}>
-                      <label style={{ ...styles.controlLabel, color: '#60A5FA' }}>RPE</label>
-                      <input type="number" style={{ ...styles.controlInput, color: '#60A5FA' }} value={ej.rpe} onChange={e => actualizar(ej.tempId, 'rpe', e.target.value)} />
+                    <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}>
+                      <label style={{...styles.controlLabel, color: '#60A5FA'}}>RPE</label>
+                      <input type="number" style={{...styles.controlInput, color: '#60A5FA'}} value={ej.rpe} onChange={e => actualizar(ej.tempId, 'rpe', e.target.value)} />
                     </div>
                   </div>
 
                   <input
                     type="text"
-                    style={{ width:'100%', marginTop:'15px', background:'transparent', borderBottom:'1px solid #333', borderTop:'none', borderLeft:'none', borderRight:'none', color:'#aaa', outline:'none', padding:'8px 0', fontSize:'0.9rem' }}
+                    style={{width:'100%', marginTop:'15px', background:'transparent', borderBottom:'1px solid #333', borderTop:'none', borderLeft:'none', borderRight:'none', color:'#aaa', outline:'none', padding:'8px 0', fontSize:'0.9rem'}}
                     placeholder="📝 Notas técnicas (ej: Descanso 90s, tempo lento...)"
                     value={ej.notas}
-                    onChange={e => actualizar(e.tempId, 'notas', e.target.value)}
+                    onChange={e => actualizar(ej.tempId, 'notas', e.target.value)}
                   />
                 </div>
               </div>
@@ -510,33 +499,33 @@ const CrearEntrenamiento = ({
       {infoEjercicio && (
         <div style={styles.modalOverlay} onClick={() => setInfoEjercicio(null)}>
           <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <div style={{ padding:'20px 30px', borderBottom:'1px solid #222', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#151515' }}>
-              <h3 style={{ margin:0, fontFamily: 'Teko, sans-serif', fontSize: '1.8rem', textTransform: 'uppercase' }}>
+            <div style={{padding:'20px 30px', borderBottom:'1px solid #222', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#151515'}}>
+              <h3 style={{margin:0, fontFamily: 'Teko, sans-serif', fontSize: '1.8rem', textTransform: 'uppercase'}}>
                 {infoEjercicio.nombre}
               </h3>
-              <button onClick={() => setInfoEjercicio(null)} style={{ background:'none', border:'none', color:'#666', cursor:'pointer' }}>
+              <button onClick={() => setInfoEjercicio(null)} style={{background:'none', border:'none', color:'#666', cursor:'pointer'}}>
                 <IconClose />
               </button>
             </div>
 
-            <div style={{ position: 'relative', width:'100%', height:'300px', background:'black' }}>
-              <ImageWithFallback src={infoEjercicio.imagen} alt={infoEjercicio.nombre} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition: 'center' }} />
-              <div style={{ position:'absolute', bottom:0, left:0, width:'100%', height:'60px', background:'linear-gradient(to top, #111, transparent)' }}></div>
+            <div style={{position: 'relative', width:'100%', height:'300px', background:'black'}}>
+              <ImageWithFallback src={infoEjercicio.imagen} alt={infoEjercicio.nombre} style={{width:'100%', height:'100%', objectFit:'cover', objectPosition: 'center'}} />
+              <div style={{position:'absolute', bottom:0, left:0, width:'100%', height:'60px', background:'linear-gradient(to top, #111, transparent)'}}></div>
             </div>
 
-            <div style={{ padding:'30px' }}>
-              <div style={{ display:'flex', gap:'10px', marginBottom:'20px' }}>
-                <span style={{ background: isTemplate ? '#60A5FA' : '#FACC15', color:'black', padding:'4px 12px', borderRadius:'4px', fontSize:'0.75rem', fontWeight:'bold', textTransform:'uppercase' }}>
+            <div style={{padding:'30px'}}>
+              <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
+                <span style={{background: isTemplate ? '#60A5FA' : '#FACC15', color:'black', padding:'4px 12px', borderRadius:'4px', fontSize:'0.75rem', fontWeight:'bold', textTransform:'uppercase'}}>
                   {infoEjercicio.musculo}
                 </span>
                 {infoEjercicio.dificultad && (
-                  <span style={{ border:'1px solid #333', color:'#888', padding:'4px 12px', borderRadius:'4px', fontSize:'0.75rem', textTransform:'uppercase' }}>
+                  <span style={{border:'1px solid #333', color:'#888', padding:'4px 12px', borderRadius:'4px', fontSize:'0.75rem', textTransform:'uppercase'}}>
                     {infoEjercicio.dificultad}
                   </span>
                 )}
               </div>
 
-              <p style={{ color:'#ccc', lineHeight:'1.6', fontSize:'1rem', whiteSpace: 'pre-line' }}>
+              <p style={{color:'#ccc', lineHeight:'1.6', fontSize:'1rem', whiteSpace: 'pre-line'}}>
                 {infoEjercicio.descripcion || "No hay instrucciones detalladas disponibles."}
               </p>
 
@@ -545,7 +534,7 @@ const CrearEntrenamiento = ({
                   href={infoEjercicio.videoLink}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ display:'inline-flex', alignItems:'center', gap:'10px', color:'black', background: isTemplate ? '#60A5FA' : '#FACC15', textDecoration:'none', marginTop:'25px', fontWeight:'bold', padding: '12px 20px', borderRadius: '8px', transition: 'filter 0.2s' }}
+                  style={{display:'inline-flex', alignItems:'center', gap:'10px', color:'black', background: isTemplate ? '#60A5FA' : '#FACC15', textDecoration:'none', marginTop:'25px', fontWeight:'bold', padding: '12px 20px', borderRadius: '8px', transition: 'filter 0.2s'}}
                   onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.1)'}
                   onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
                 >

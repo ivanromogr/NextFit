@@ -79,20 +79,12 @@ public class EjercicioController {
 
         if (!sinNombre) {
             nombreOriginalFiltro = nombre;
-            try {
-                nombreTraducidoFiltro = traductorEjercicios.traducirNombreAIngles(nombre);
-            } catch (Exception e) {
-                nombreTraducidoFiltro = nombre;
-            }
+            nombreTraducidoFiltro = traducirFiltro(nombre);
         }
 
         String musculoFiltro = null;
         if (!sinMusculo) {
-            try {
-                musculoFiltro = traductorEjercicios.traducirMusculoAIngles(musculo);
-            } catch (Exception e) {
-                musculoFiltro = musculo;
-            }
+            musculoFiltro = traducirFiltro(musculo);
         }
 
         return ejercicioDAO.buscarAvanzadoTraducido(nombreOriginalFiltro, nombreTraducidoFiltro, musculoFiltro)
@@ -107,6 +99,18 @@ public class EjercicioController {
                 .stream()
                 .map(this::convertirAResponse)
                 .collect(Collectors.toList());
+    }
+
+    @PostMapping("/retraducir")
+    public ResponseEntity<String> retraducirEjercicios() {
+        List<Ejercicio> ejercicios = ejercicioDAO.findAll();
+        ejercicios.forEach(ejercicio -> {
+            if (ejercicio.getNombreTraducido() == null || ejercicio.getNombreTraducido().isBlank()) {
+                ejercicio.setNombreTraducido(traductorEjercicios.traducirMusculoAEspanol(ejercicio.getNombre()));
+                ejercicioDAO.save(ejercicio);
+            }
+        });
+        return ResponseEntity.ok("Ejercicios retraducidos correctamente: " + ejercicios.size());
     }
 
     @GetMapping("/imagen/{apiId}")
@@ -142,6 +146,44 @@ public class EjercicioController {
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    private String traducirFiltro(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return texto;
+        }
+
+        String t = texto.toLowerCase().trim();
+
+        // músculos
+        if (t.contains("pecho")) return "chest";
+        if (t.contains("espalda")) return "back";
+        if (t.contains("pierna") || t.contains("piernas")) return "leg";
+        if (t.contains("hombro") || t.contains("hombros")) return "shoulder";
+        if (t.contains("brazo") || t.contains("brazos")) return "arm";
+        if (t.contains("abdominal") || t.contains("abdominales") || t.contains("abdomen")) return "abs";
+        if (t.contains("bíceps") || t.contains("biceps")) return "biceps";
+        if (t.contains("tríceps") || t.contains("triceps")) return "triceps";
+        if (t.contains("glúteo") || t.contains("gluteo") || t.contains("glúteos") || t.contains("gluteos")) return "glutes";
+        if (t.contains("gemelo") || t.contains("gemelos")) return "calves";
+        if (t.contains("cuádriceps") || t.contains("cuadriceps")) return "quads";
+        if (t.contains("isquio") || t.contains("femoral") || t.contains("isquiotibial")) return "hamstrings";
+
+        // ejercicios comunes
+        if (t.contains("sentadilla")) return "squat";
+        if (t.contains("peso muerto")) return "deadlift";
+        if (t.contains("press banca") || t.contains("press de banca") || t.contains("banca")) return "bench press";
+        if (t.contains("dominada") || t.contains("dominadas")) return "pull up";
+        if (t.contains("flexion") || t.contains("flexión") || t.contains("flexiones")) return "push up";
+        if (t.contains("curl")) return "curl";
+        if (t.contains("remo")) return "row";
+        if (t.contains("prensa")) return "leg press";
+        if (t.contains("zancada")) return "lunge";
+        if (t.contains("plancha")) return "plank";
+        if (t.contains("abdominal")) return "crunch";
+        if (t.contains("hombro")) return "shoulder press";
+
+        return t;
     }
 
     private EjercicioResponse convertirAResponse(Ejercicio ejercicio) {
