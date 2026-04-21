@@ -17,6 +17,67 @@ const IconChevronLeft = () => <svg width="24" height="24" viewBox="0 0 24 24" fi
 const IconCheckCircle = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
 const IconAlertCircle = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
 
+const normalizarTexto = (texto = "") =>
+  texto
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const obtenerEquivalenciasMusculo = (musculo) => {
+  const m = normalizarTexto(musculo);
+
+  const mapa = {
+    pecho: ["pecho", "pectoral", "pectorales", "chest"],
+    espalda: ["espalda", "dorsal", "dorsales", "back", "lat", "lats", "trap", "traps", "trapecio", "trapecios", "rhomboids", "spine"],
+    piernas: ["pierna", "piernas", "legs", "leg", "quads", "quad", "cuadriceps", "hamstrings", "isquiotibiales", "glutes", "gluteos", "gluteo", "calves", "calf", "gemelos"],
+    hombros: ["hombro", "hombros", "shoulder", "shoulders", "delt", "delts", "deltoides"],
+    brazos: ["brazo", "brazos", "arm", "arms", "biceps", "triceps", "forearm", "forearms", "antebrazo", "antebrazos"],
+    abdominales: ["abdominal", "abdominales", "abdomen", "abs", "core", "waist", "serratus anterior"]
+  };
+
+  return mapa[m] || [m];
+};
+
+const coincideBusquedaEjercicio = (ejercicio, busqueda, filtroMusculo) => {
+  const textoBusqueda = normalizarTexto(busqueda);
+
+  const nombre = normalizarTexto(ejercicio.nombre || "");
+  const nombreTraducido = normalizarTexto(ejercicio.nombreTraducido || "");
+  const grupo = normalizarTexto(ejercicio.grupoMuscular || "");
+  const grupoTraducido = normalizarTexto(ejercicio.grupoMuscularTraducido || "");
+  const parteCuerpo = normalizarTexto(ejercicio.parteCuerpo || "");
+  const parteCuerpoTraducida = normalizarTexto(ejercicio.parteCuerpoTraducida || "");
+  const equipamiento = normalizarTexto(ejercicio.equipamiento || "");
+
+  const textoCompleto = [
+    nombre,
+    nombreTraducido,
+    grupo,
+    grupoTraducido,
+    parteCuerpo,
+    parteCuerpoTraducida,
+    equipamiento
+  ].join(" ");
+
+  const cumpleBusqueda =
+    !textoBusqueda ||
+    textoCompleto.includes(textoBusqueda) ||
+    obtenerEquivalenciasMusculo(textoBusqueda).some(alias =>
+      textoCompleto.includes(normalizarTexto(alias))
+    );
+
+  const cumpleMusculo =
+    !filtroMusculo ||
+    obtenerEquivalenciasMusculo(filtroMusculo).some(alias => {
+      const eq = normalizarTexto(alias);
+      return grupo.includes(eq) || grupoTraducido.includes(eq) || textoCompleto.includes(eq);
+    });
+
+  return cumpleBusqueda && cumpleMusculo;
+};
+
 const CrearEntrenamiento = ({
   clienteIdProp = null,
   rutinaInicial = null,
@@ -72,9 +133,11 @@ const CrearEntrenamiento = ({
         const data = await obtenerEjercicios();
         const ejercicios = Array.isArray(data) ? data : [];
         setTodosEjercicios(ejercicios);
+        setListaEjercicios(ejercicios);
       } catch (err) {
         console.error("Error cargando ejercicios:", err);
         setTodosEjercicios([]);
+        setListaEjercicios([]);
       } finally {
         setLoadingEjercicios(false);
       }
@@ -84,22 +147,9 @@ const CrearEntrenamiento = ({
   }, []);
 
   useEffect(() => {
-    const texto = busqueda.trim().toLowerCase();
-
-    const filtrados = todosEjercicios.filter((ex) => {
-      const nombreVisible = (ex.nombreTraducido || ex.nombre || "").toLowerCase();
-      const musculoVisible = ex.grupoMuscularTraducido || ex.grupoMuscular || "";
-
-      const coincideTexto =
-        texto === "" ||
-        nombreVisible.includes(texto);
-
-      const coincideMusculo =
-        filtroMusculo === "" ||
-        musculoVisible === filtroMusculo;
-
-      return coincideTexto && coincideMusculo;
-    });
+    const filtrados = todosEjercicios.filter((ejercicio) =>
+      coincideBusquedaEjercicio(ejercicio, busqueda, filtroMusculo)
+    );
 
     setListaEjercicios(filtrados);
   }, [busqueda, filtroMusculo, todosEjercicios]);
