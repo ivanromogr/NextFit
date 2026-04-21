@@ -14,54 +14,82 @@ import com.tuap.backend.dominio.entidades.Ejercicio;
 @Repository
 public interface EjercicioDAO extends JpaRepository<Ejercicio, UUID> {
 
-    // --- 🔹 BÚSQUEDA ORIGINAL (NO TOCAR) ---
-    @Query("SELECT e FROM Ejercicio e WHERE " +
-           "(:nombre IS NULL OR LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))) AND " +
-           "(:musculo IS NULL OR e.grupoMuscular = :musculo)")
-    List<Ejercicio> buscarAvanzado(@Param("nombre") String nombre, @Param("musculo") String musculo);
+    // --- BÚSQUEDA ORIGINAL ---
+    @Query("""
+        SELECT e
+        FROM Ejercicio e
+        WHERE
+            (:nombre IS NULL OR LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombre, '%')))
+        AND
+            (:musculo IS NULL OR LOWER(e.grupoMuscular) = LOWER(:musculo))
+    """)
+    List<Ejercicio> buscarAvanzado(
+            @Param("nombre") String nombre,
+            @Param("musculo") String musculo
+    );
 
-
-    // --- 🔥 NUEVO: BÚSQUEDA CON TRADUCCIÓN ---
-    @Query("SELECT e FROM Ejercicio e WHERE " +
-           "(:nombreOriginal IS NULL OR " +
-           "LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombreOriginal, '%')) OR " +
-           "LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombreTraducido, '%'))) AND " +
-           "(:musculo IS NULL OR e.grupoMuscular = :musculo)")
+    // --- BÚSQUEDA CON TRADUCCIÓN ---
+    @Query("""
+        SELECT e
+        FROM Ejercicio e
+        WHERE
+            (
+                :nombreOriginal IS NULL
+                OR LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombreOriginal, '%'))
+                OR LOWER(COALESCE(e.nombreTraducido, '')) LIKE LOWER(CONCAT('%', :nombreTraducido, '%'))
+            )
+        AND
+            (:musculo IS NULL OR LOWER(e.grupoMuscular) = LOWER(:musculo))
+    """)
     List<Ejercicio> buscarAvanzadoTraducido(
             @Param("nombreOriginal") String nombreOriginal,
             @Param("nombreTraducido") String nombreTraducido,
-            @Param("musculo") String musculo);
+            @Param("musculo") String musculo
+    );
 
-
-    // --- 🔹 BÚSQUEDA SIMPLE ---
-    @Query("SELECT e FROM Ejercicio e WHERE LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))")
+    // --- BÚSQUEDA SIMPLE ---
+    @Query("""
+        SELECT e
+        FROM Ejercicio e
+        WHERE LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))
+           OR LOWER(COALESCE(e.nombreTraducido, '')) LIKE LOWER(CONCAT('%', :nombre, '%'))
+    """)
     List<Ejercicio> buscarPorNombre(@Param("nombre") String nombre);
 
+    // --- IA / RANDOM ---
+    @Query(value = """
+        SELECT * FROM ejercicio e
+        WHERE e.grupo_muscular = :musculo
+          AND (:esCasa = false OR e.equipamiento IN ('Peso Corporal', 'Mancuernas', 'Banda Elástica', 'body weight'))
+        ORDER BY RANDOM()
+        LIMIT 1
+    """, nativeQuery = true)
+    Ejercicio encontrarEjercicioAleatorio(
+            @Param("musculo") String musculo,
+            @Param("esCasa") boolean esCasa
+    );
 
-    // --- 🔹 IA / RANDOM ---
-    @Query(value = "SELECT * FROM ejercicio e " +
-                   "WHERE e.grupo_muscular = :musculo " +
-                   "AND (:esCasa = false OR e.equipamiento IN ('Peso Corporal', 'Mancuernas', 'Banda Elástica', 'body weight')) " +
-                   "ORDER BY RAND() LIMIT 1", nativeQuery = true)
-    Ejercicio encontrarEjercicioAleatorio(@Param("musculo") String musculo, @Param("esCasa") boolean esCasa);
-
-
-    // --- 🔹 BUSCAR POR TEXTO ---
+    // --- BUSCAR POR TEXTO ---
     Optional<Ejercicio> findFirstByNombreContainingIgnoreCase(String texto);
 
-
-    // --- 🔹 CONTROL DE DUPLICADOS API ---
+    // --- CONTROL DE DUPLICADOS API ---
     boolean existsByApiId(String apiId);
 
-    // --- 🔥 BÚSQUEDA AVANZADA CON LISTA DE MÚSCULOS ---
+    // --- BÚSQUEDA AVANZADA CON LISTA DE MÚSCULOS ---
     @Query("""
-        SELECT e FROM Ejercicio e
+        SELECT e
+        FROM Ejercicio e
         WHERE
-            (:nombre IS NULL OR
-            LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombre, '%')) OR
-            LOWER(e.nombreTraducido) LIKE LOWER(CONCAT('%', :nombre, '%')))
+            (
+                :nombre IS NULL
+                OR LOWER(e.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))
+                OR LOWER(COALESCE(e.nombreTraducido, '')) LIKE LOWER(CONCAT('%', :nombre, '%'))
+            )
         AND
-            (:musculos IS NULL OR LOWER(e.grupoMuscular) IN :musculos)
+            (
+                :musculos IS NULL
+                OR LOWER(e.grupoMuscular) IN (:musculos)
+            )
     """)
     List<Ejercicio> buscarAvanzadoConListaMusculos(
             @Param("nombre") String nombre,
