@@ -272,48 +272,309 @@ export default function SesionEntrenamiento() {
 
     // --- ESTILOS (100% IGUALES A TU VERSIÓN LIMPIA) ---
     const styles = {
-        page: { background: '#09090b', minHeight: '100vh', color: 'white', fontFamily: 'sans-serif', paddingBottom: '100px' },
-        topBar: { position: 'sticky', top: 0, background: '#09090b', zIndex: 50, borderBottom: '1px solid #222', padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-        headerTitle: { fontSize: '1.1rem', fontWeight: '900', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '10px' },
-        statsBar: { display: 'flex', justifyContent: 'space-around', padding: '20px 0', background: '#0c0c0e', borderBottom: '1px solid #1f1f22' },
-        statItem: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
-        statLabel: { fontSize: '0.65rem', color: '#71717a', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' },
-        statValueYellow: { fontSize: '1.2rem', fontWeight: 'bold', color: '#FACC15', display: 'flex', alignItems: 'center', gap: '5px' },
-        statValue: { fontSize: '1.2rem', fontWeight: 'bold', color: '#fff' },
+        page: { 
+            background: '#09090b', 
+            minHeight: '100vh', 
+            color: 'white', 
+            fontFamily: 'sans-serif', 
+            paddingBottom: '100px',
+            '@media (max-width: 767px)': {
+                paddingBottom: 'var(--spacing-xl)'
+            }
+        },
+        topBar: { 
+            position: 'sticky', 
+            top: 0, 
+            background: '#09090b', 
+            zIndex: 50, 
+            borderBottom: '1px solid #222', 
+            padding: '15px 20px', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-md) var(--spacing-md)',
+                flexWrap: 'wrap',
+                gap: 'var(--spacing-sm)'
+            }
+        },
+        headerTitle: { 
+            fontSize: '1.1rem', 
+            fontWeight: '900', 
+            textTransform: 'uppercase', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '10px',
+            '@media (max-width: 767px)': {
+                fontSize: '1rem',
+                gap: 'var(--spacing-sm)'
+            }
+        },
+        statsBar: { 
+            display: 'flex', 
+            justifyContent: 'space-around', 
+            padding: '20px 0', 
+            background: '#0c0c0e', 
+            borderBottom: '1px solid #1f1f22',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-md) 0',
+                flexWrap: 'wrap',
+                gap: 'var(--spacing-md)'
+            }
+        },
+        statItem: { 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center',
+            '@media (max-width: 767px)': {
+                flex: 1,
+                minWidth: '80px'
+            }
+        },
+        statLabel: { 
+            fontSize: '0.65rem', 
+            color: '#71717a', 
+            fontWeight: 'bold', 
+            marginBottom: '4px', 
+            textTransform: 'uppercase', 
+            letterSpacing: '1px' 
+        },
+        statValueYellow: { 
+            fontSize: '1.2rem', 
+            fontWeight: 'bold', 
+            color: '#FACC15', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '5px' 
+        },
+        statValue: { 
+            fontSize: '1.2rem', 
+            fontWeight: 'bold', 
+            color: '#fff' 
+        },
 
-        card: { background: '#121214', borderRadius: '12px', border: '1px solid #27272a', margin: '20px', overflow: 'hidden' },
-        cardHeader: { padding: '20px', borderBottom: '1px solid #222', display: 'flex', gap: '15px' },
+        card: { 
+            background: '#121214', 
+            borderRadius: '12px', 
+            border: '1px solid #27272a', 
+            margin: '20px', 
+            overflow: 'hidden',
+            '@media (max-width: 767px)': {
+                margin: 'var(--spacing-md)',
+                borderRadius: '8px'
+            }
+        },
+        cardHeader: { 
+            padding: '20px', 
+            borderBottom: '1px solid #222', 
+            display: 'flex', 
+            gap: '15px',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-md)',
+                gap: 'var(--spacing-sm)',
+                flexWrap: 'wrap'
+            }
+        },
         noteWrapper: { marginTop: '8px' },
         notePlaceholder: { color: '#71717a', fontSize: '0.85rem', cursor: isReadOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontStyle: 'italic' },
         noteDisplay: { color: '#ccc', fontSize: '0.85rem', cursor: isReadOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '6px', width: 'fit-content' },
         noteInput: { width: '100%', background: '#09090b', border: '1px solid #333', color: 'white', padding: '8px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', resize: 'none', minHeight: '60px' },
         btnSaveNote: { background: '#FACC15', color: 'black', border: 'none', padding: '4px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.7rem', marginTop: '5px' },
 
-        exTitle: { fontSize: '1.1rem', fontWeight: '900', textTransform: 'uppercase', color: '#FACC15', marginBottom: '2px' },
-        imgBox: { width: '60px', height: '60px', background: '#222', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #333' },
+        exTitle: { 
+            fontSize: '1.1rem', 
+            fontWeight: '900', 
+            textTransform: 'uppercase', 
+            color: '#FACC15', 
+            marginBottom: '2px',
+            '@media (max-width: 767px)': {
+                fontSize: '1rem'
+            }
+        },
+        imgBox: { 
+            width: '60px', 
+            height: '60px', 
+            background: '#222', 
+            borderRadius: '8px', 
+            overflow: 'hidden', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            border: '1px solid #333',
+            '@media (max-width: 767px)': {
+                width: '50px',
+                height: '50px',
+                borderRadius: '6px'
+            }
+        },
 
         // ✅ TABLA Y GRID INTACTOS COMO EN LA VERSIÓN "LIMPIA"
-        tableHeader: { display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', padding: '10px 15px', background: '#18181b', color: '#52525b', fontSize: '0.65rem', fontWeight: '900', letterSpacing: '0.5px', textAlign: 'center', textTransform: 'uppercase' },
-        tableRow: (hecho) => ({ display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', padding: '12px 15px', borderBottom: '1px solid #1f1f22', alignItems: 'center', background: hecho ? 'rgba(34, 197, 94, 0.05)' : 'transparent', transition: 'background 0.2s' }),
+        tableHeader: { 
+            display: 'grid', 
+            gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', 
+            padding: '10px 15px', 
+            background: '#18181b', 
+            color: '#52525b', 
+            fontSize: '0.65rem', 
+            fontWeight: '900', 
+            letterSpacing: '0.5px', 
+            textAlign: 'center', 
+            textTransform: 'uppercase',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-sm) var(--spacing-md)',
+                fontSize: '0.6rem',
+                gridTemplateColumns: '0.5fr 1fr 0.9fr 0.9fr 0.7fr 0.7fr'
+            }
+        },
+        tableRow: (hecho) => ({ 
+            display: 'grid', 
+            gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', 
+            padding: '12px 15px', 
+            borderBottom: '1px solid #1f1f22', 
+            alignItems: 'center', 
+            background: hecho ? 'rgba(34, 197, 94, 0.05)' : 'transparent', 
+            transition: 'background 0.2s',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-sm) var(--spacing-md)',
+                gridTemplateColumns: '0.5fr 1fr 0.9fr 0.9fr 0.7fr 0.7fr'
+            }
+        }),
 
         // ✅ INPUT INTACTO (Fondo oscuro, sin bordes amarillos)
-        input: { width: '100%', background: '#09090b', border: '1px solid #333', color: 'white', padding: '8px 4px', borderRadius: '6px', textAlign: 'center', fontWeight: 'bold', outline: 'none', fontSize: '0.95rem' },
-        checkBtn: (hecho) => ({ width: '32px', height: '32px', borderRadius: '50%', background: hecho ? '#FACC15' : 'transparent', border: hecho ? 'none' : '2px solid #3f3f46', color: hecho ? 'black' : '#3f3f46', cursor: isReadOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }),
+        input: { 
+            width: '100%', 
+            background: '#09090b', 
+            border: '1px solid #333', 
+            color: 'white', 
+            padding: '8px 4px', 
+            borderRadius: '6px', 
+            textAlign: 'center', 
+            fontWeight: 'bold', 
+            outline: 'none', 
+            fontSize: '0.95rem',
+            '@media (max-width: 767px)': {
+                padding: '10px 6px',
+                fontSize: '1rem',
+                minHeight: '44px'
+            }
+        },
+        checkBtn: (hecho) => ({ 
+            width: '32px', 
+            height: '32px', 
+            borderRadius: '50%', 
+            background: hecho ? '#FACC15' : 'transparent', 
+            border: hecho ? 'none' : '2px solid #3f3f46', 
+            color: hecho ? 'black' : '#3f3f46', 
+            cursor: isReadOnly ? 'default' : 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            transition: 'all 0.2s',
+            '@media (max-width: 767px)': {
+                width: '40px',
+                height: '40px',
+                minWidth: '44px',
+                minHeight: '44px'
+            }
+        }),
 
-        addSetBtn: { width: '100%', padding: '15px', background: 'transparent', border: 'none', color: '#71717a', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', borderTop: '1px solid #222', textTransform: 'uppercase', letterSpacing: '1px' },
+        addSetBtn: { 
+            width: '100%', 
+            padding: '15px', 
+            background: 'transparent', 
+            border: 'none', 
+            color: '#71717a', 
+            fontWeight: 'bold', 
+            cursor: 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            gap: '6px', 
+            fontSize: '0.75rem', 
+            borderTop: '1px solid #222', 
+            textTransform: 'uppercase', 
+            letterSpacing: '1px',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-md)',
+                fontSize: '0.8rem'
+            }
+        },
 
-        finishBtn: { background: '#FACC15', color: 'black', border: 'none', padding: '8px 16px', borderRadius: '20px', fontWeight: '800', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' },
+        finishBtn: { 
+            background: '#FACC15', 
+            color: 'black', 
+            border: 'none', 
+            padding: '8px 16px', 
+            borderRadius: '20px', 
+            fontWeight: '800', 
+            cursor: 'pointer', 
+            textTransform: 'uppercase', 
+            fontSize: '0.75rem', 
+            letterSpacing: '0.5px',
+            '@media (max-width: 767px)': {
+                padding: '10px 20px',
+                fontSize: '0.85rem',
+                borderRadius: '25px'
+            }
+        },
         iconBtn: { background: 'transparent', border: 'none', color: '#71717a', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
 
-        modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(5px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-        finishModalCard: { background: '#121212', borderRadius: '20px', width: '90%', maxWidth: '400px', padding: '30px', textAlign: 'center', border: '1px solid #333', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' },
+        modalOverlay: { 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            width: '100%', 
+            height: '100%', 
+            background: 'rgba(0,0,0,0.9)', 
+            backdropFilter: 'blur(5px)', 
+            zIndex: 100, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            padding: 'var(--spacing-md)',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-sm)'
+            }
+        },
+        finishModalCard: { 
+            background: '#121212', 
+            borderRadius: '20px', 
+            width: '90%', 
+            maxWidth: '400px', 
+            padding: '30px', 
+            textAlign: 'center', 
+            border: '1px solid #333', 
+            boxShadow: '0 20px 50px rgba(0,0,0,0.8)', 
+            position: 'relative',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-lg)',
+                borderRadius: '16px',
+                maxWidth: '95%'
+            }
+        },
         finishTitle: { fontSize: '1.6rem', fontWeight: '900', color: 'white', margin: '15px 0 5px 0', textTransform: 'uppercase' },
         finishSub: { color: '#a1a1aa', fontSize: '0.9rem', marginBottom: '25px' },
         statsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '30px', background: '#18181b', padding: '15px', borderRadius: '12px', border: '1px solid #27272a' },
         statItemLabel: { fontSize: '0.65rem', color: '#71717a', fontWeight: '700', textTransform: 'uppercase' },
         statItemValue: { fontSize: '1.1rem', color: '#FACC15', fontWeight: '900', marginTop: '4px' },
 
-        infoModalCard: { background: '#121212', borderRadius: '20px', width: '90%', maxWidth: '500px', padding: '30px', position: 'relative', border: '1px solid #333', maxHeight: '80vh', overflowY: 'auto' },
+        infoModalCard: { 
+            background: '#121212', 
+            borderRadius: '20px', 
+            width: '90%', 
+            maxWidth: '500px', 
+            padding: '30px', 
+            position: 'relative', 
+            border: '1px solid #333', 
+            maxHeight: '80vh', 
+            overflowY: 'auto',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-lg)',
+                borderRadius: '16px',
+                maxWidth: '95%',
+                maxHeight: '85vh'
+            }
+        },
         modalTag: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(250, 204, 21, 0.1)', color: '#FACC15', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '15px' },
         infoTitle: { fontSize: '1.6rem', fontWeight: '900', color: 'white', marginBottom: '15px', lineHeight: 1, textTransform: 'uppercase' },
         infoText: { color: '#a1a1aa', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '25px' },
@@ -335,17 +596,60 @@ export default function SesionEntrenamiento() {
                 <div style={styles.headerTitle}>
                     <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', marginRight: '5px' }}><ChevronLeft /></button>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rutina?.nombre}</span>
+                        <span style={{ 
+                            maxWidth: '200px', 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis', 
+                            whiteSpace: 'nowrap',
+                            '@media (max-width: 767px)': {
+                                maxWidth: '150px',
+                                fontSize: '0.9rem'
+                            }
+                        }}>{rutina?.nombre}</span>
                         {/* ✅ MODO OBSERVADOR INDICADOR */}
                         {isReadOnly && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px', color: '#FACC15', fontSize: '0.65rem', letterSpacing: '1px' }}>
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '5px', 
+                                marginTop: '2px', 
+                                color: '#FACC15', 
+                                fontSize: '0.65rem', 
+                                letterSpacing: '1px',
+                                '@media (max-width: 767px)': {
+                                    fontSize: '0.6rem'
+                                }
+                            }}>
                                 <Eye size={12} /> MODO OBSERVADOR
                             </div>
                         )}
                     </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#18181b', padding: '6px 12px', borderRadius: '20px', border: '1px solid #27272a', fontSize: '0.9rem', fontWeight: 'bold', color: '#FACC15' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '15px',
+                    '@media (max-width: 767px)': {
+                        gap: 'var(--spacing-sm)',
+                        flexWrap: 'wrap'
+                    }
+                }}>
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '6px', 
+                        background: '#18181b', 
+                        padding: '6px 12px', 
+                        borderRadius: '20px', 
+                        border: '1px solid #27272a', 
+                        fontSize: '0.9rem', 
+                        fontWeight: 'bold', 
+                        color: '#FACC15',
+                        '@media (max-width: 767px)': {
+                            padding: '4px 8px',
+                            fontSize: '0.8rem'
+                        }
+                    }}>
                         <Clock size={16} /> {formatoTiempo(tiempo)}
                     </div>
                     {/* ✅ OCULTAMOS TERMINAR EN MODO LECTURA */}

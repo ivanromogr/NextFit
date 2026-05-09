@@ -2,11 +2,13 @@ import axios from "axios";
 import api from "./api";
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BASE_URL } from '../config/environment';
 
 // ✅ Exportamos 'api' para uso global (Chat, WebSocket, etc.)
 export { api };
 
-const BASE_URL_NATIVA = "http://192.168.1.30:8080";
+// 🌍 BASE_URL se ajusta automáticamente según el ambiente (dev o prod)
+console.log('[ENDPOINTS CONFIG] 🔧 BASE_URL =', BASE_URL);
 
 // ==========================================
 // 💡 HELPER PROFESIONAL DE IMÁGENES
@@ -16,7 +18,7 @@ export const getImageUrl = (path) => {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
-  return `${BASE_URL_NATIVA}${path.startsWith('/') ? '' : '/'}${path}`;
+  return `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
 };
 
 
@@ -28,7 +30,7 @@ export const loginForm = async ({ email, password }) => {
   params.append("username", email);    
   params.append("password", password); 
   
-  return axios.post(`${BASE_URL_NATIVA}/login`, params, {
+  return axios.post(`${BASE_URL}/login`, params, {
     headers: { "Content-Type": "application/x-www-form-urlencoded" }
   });
 };
@@ -99,8 +101,30 @@ export const completarOnboardingEntrenador = async (payload) => {
 // 4. RUTINAS Y EJERCICIOS
 // ==========================================
 export const obtenerEjercicios = async () => {
-  const response = await api.get("/ejercicios");
-  return response.data;
+  try {
+    console.log('[obtenerEjercicios] 📥 Iniciando carga de ejercicios...');
+    const response = await api.get("/ejercicios");
+    
+    console.log('[obtenerEjercicios] ✅ Ejercicios recibidos:', {
+      cantidad: response.data?.length || 0,
+      tipoData: Array.isArray(response.data) ? 'array' : typeof response.data,
+      status: response.status,
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('[obtenerEjercicios] ❌ ERROR al obtener ejercicios:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      url: error.config?.url,
+      fullUrl: `${error.config?.baseURL}${error.config?.url}`,
+      message: error.message,
+      errorData: error.response?.data,
+    });
+    
+    // ⚠️ DEBUG: Mostrar detalles del error
+    throw error;
+  }
 };
 export const obtenerEjerciciosConHistorial = async (clienteId, entrenadorId = null) => {
   try {
@@ -108,6 +132,7 @@ export const obtenerEjerciciosConHistorial = async (clienteId, entrenadorId = nu
     const response = await api.get(`/stats/ejercicios/${clienteId}`, config);
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
+    console.error('[obtenerEjerciciosConHistorial] ❌ Error:', error.message);
     return []; // Si no ha hecho ejercicios, array vacío
   }
 };

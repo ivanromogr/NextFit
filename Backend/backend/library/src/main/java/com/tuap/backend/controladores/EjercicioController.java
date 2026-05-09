@@ -22,6 +22,7 @@ import com.tuap.backend.dominio.entidades.Ejercicio;
 import com.tuap.backend.dominio.gestores.GestorEjerciciosApi;
 import com.tuap.backend.dto.EjercicioResponse;
 import com.tuap.backend.persistencia.EjercicioDAO;
+import com.tuap.backend.servicios.EjercicioSeeder;
 import com.tuap.backend.servicios.TraductorEjercicios;
 
 @RestController
@@ -36,14 +37,17 @@ public class EjercicioController {
 
     private final EjercicioDAO ejercicioDAO;
     private final GestorEjerciciosApi gestorEjerciciosApi;
+    private final EjercicioSeeder ejercicioSeeder;
     private final TraductorEjercicios traductorEjercicios;
 
     public EjercicioController(
             EjercicioDAO ejercicioDAO,
             GestorEjerciciosApi gestorEjerciciosApi,
+            EjercicioSeeder ejercicioSeeder,
             TraductorEjercicios traductorEjercicios) {
         this.ejercicioDAO = ejercicioDAO;
         this.gestorEjerciciosApi = gestorEjerciciosApi;
+        this.ejercicioSeeder = ejercicioSeeder;
         this.traductorEjercicios = traductorEjercicios;
     }
 
@@ -98,6 +102,17 @@ public class EjercicioController {
                 .stream()
                 .map(this::convertirAResponse)
                 .collect(Collectors.toList());
+    }
+
+    @PostMapping("/importar-json")
+    public ResponseEntity<List<EjercicioResponse>> importarEjerciciosDesdeJson(
+            @RequestParam(defaultValue = "false") boolean replace) {
+        List<EjercicioResponse> ejercicios = ejercicioSeeder.importarDesdeJson(replace)
+                .stream()
+                .map(this::convertirAResponse)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(ejercicios);
     }
 
     @PostMapping("/retraducir")
@@ -204,6 +219,7 @@ public class EjercicioController {
 
         response.setId(ejercicio.getId());
         response.setApiId(ejercicio.getApiId());
+        response.setSlug(ejercicio.getSlug());
         response.setNombre(ejercicio.getNombre());
         response.setNombreTraducido(
                 ejercicio.getNombreTraducido() != null && !ejercicio.getNombreTraducido().isBlank()
@@ -214,15 +230,28 @@ public class EjercicioController {
         response.setGrupoMuscularTraducido(
                 traductorEjercicios.traducirMusculoAEspanol(ejercicio.getGrupoMuscular())
         );
+        response.setSubgrupoMuscular(ejercicio.getSubgrupoMuscular());
         response.setEquipamiento(ejercicio.getEquipamiento());
         response.setParteCuerpo(ejercicio.getParteCuerpo());
         response.setParteCuerpoTraducida(
                 traductorEjercicios.traducirParteAEspanol(ejercicio.getParteCuerpo())
         );
         response.setImagenUrl(ejercicio.getImagenUrl());
+        response.setImagenPaso1(ejercicio.getImagenPaso1());
+        response.setImagenPaso2(ejercicio.getImagenPaso2());
+        response.setImagenPaso3(ejercicio.getImagenPaso3());
         response.setVideoUrl(ejercicio.getVideoUrl());
         response.setDificultad(ejercicio.getDificultad());
+        response.setNivel(ejercicio.getNivel());
+        response.setTipoMovimiento(ejercicio.getTipoMovimiento());
+        response.setDescripcionCorta(ejercicio.getDescripcionCorta());
         response.setInstrucciones(ejercicio.getInstrucciones());
+        response.setConsejosTecnicos(ejercicio.getConsejosTecnicos());
+        response.setErroresComunes(ejercicio.getErroresComunes());
+        response.setTieneAnimacion(ejercicio.getTieneAnimacion());
+        response.setTipoVisual(ejercicio.getTipoVisual());
+        response.setOrigen(ejercicio.getOrigen());
+        response.setActivo(ejercicio.getActivo());
 
         return response;
     }

@@ -24,19 +24,44 @@ export default function ExplorarEjercicios() {
     cargar();
   }, []);
 
-  const ejerciciosFiltrados = ejercicios.filter(ej => 
-    ej.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    ej.grupoMuscular.toLowerCase().includes(busqueda.toLowerCase())
-  );
+  const ejerciciosFiltrados = ejercicios.filter(ej => {
+    const textoBusqueda = busqueda.toLowerCase();
+    const nombre = (ej.nombreTraducido || ej.nombre || "").toLowerCase();
+    const grupo = (ej.grupoMuscularTraducido || ej.grupoMuscular || "").toLowerCase();
+
+    return nombre.includes(textoBusqueda) || grupo.includes(textoBusqueda);
+  });
 
   return (
-    <div style={{ padding: '24px', minHeight: '100vh', paddingBottom: '80px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ 
+      padding: 'var(--spacing-xl) var(--spacing-2xl)', 
+      minHeight: '100vh', 
+      paddingBottom: '80px', 
+      maxWidth: '1200px', 
+      margin: '0 auto',
+      '@media (max-width: 767px)': {
+        padding: 'var(--spacing-lg) var(--spacing-md)',
+        paddingBottom: 'var(--spacing-2xl)'
+      }
+    }}>
       
-      <div style={{ marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '2.5rem', margin: '0', color: 'white', fontStyle: 'italic', fontFamily: 'Teko, sans-serif', textTransform: 'uppercase' }}>
+      <div style={{ marginBottom: 'var(--spacing-xl)' }}>
+        <h1 style={{ 
+          fontSize: 'clamp(2rem, 5vw, 2.5rem)', 
+          margin: '0', 
+          color: 'white', 
+          fontStyle: 'italic', 
+          fontFamily: 'Teko, sans-serif', 
+          textTransform: 'uppercase' 
+        }}>
           EXPLORAR <span style={{ color: '#FACC15' }}>EJERCICIOS</span>
         </h1>
-        <p style={{ color: '#a3a3a3' }}>Descubre movimientos para tu rutina.</p>
+        <p style={{ 
+          color: '#a3a3a3',
+          '@media (max-width: 767px)': {
+            fontSize: '0.9rem'
+          }
+        }}>Descubre movimientos para tu rutina.</p>
       </div>
 
       <GymInput 
@@ -52,7 +77,11 @@ export default function ExplorarEjercicios() {
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', 
-          gap: '16px' 
+          gap: 'var(--spacing-md)',
+          '@media (max-width: 767px)': {
+            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+            gap: 'var(--spacing-sm)'
+          }
         }}>
           {ejerciciosFiltrados.slice(0, 50).map((ej) => (
             <TarjetaEjercicio key={ej.id} ejercicio={ej} />
@@ -66,6 +95,8 @@ export default function ExplorarEjercicios() {
 // COMPONENTE TARJETA INTELIGENTE
 function TarjetaEjercicio({ ejercicio }) {
     const [errorImagen, setErrorImagen] = useState(false);
+    const mediaUrl = ejercicio.imagenUrl || ejercicio.gifUrl;
+    const nombre = ejercicio.nombreTraducido || ejercicio.nombre;
 
     return (
         <div style={{ 
@@ -73,50 +104,96 @@ function TarjetaEjercicio({ ejercicio }) {
             borderRadius: '12px', 
             overflow: 'hidden',
             border: '1px solid #333',
-            display: 'flex', flexDirection: 'column',
+            display: 'flex', 
+            flexDirection: 'column',
             transition: 'transform 0.2s',
-            cursor: 'pointer'
-        }}>
+            cursor: 'pointer',
+            '@media (max-width: 767px)': {
+                borderRadius: '8px'
+            }
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
             {/* ZONA DE IMAGEN */}
             <div style={{ 
-                width: '100%', aspectRatio: '1/1', 
+                width: '100%', 
+                aspectRatio: '1/1', 
                 backgroundColor: '#202020', // FONDO OSCURO (Ya no blanco)
                 position: 'relative',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center'
             }}>
-                {!errorImagen ? (
+                {!errorImagen && mediaUrl ? (
                     <img 
-                        src={ejercicio.gifUrl} 
-                        alt={ejercicio.nombreTraducido} 
+                        src={mediaUrl} 
+                        alt={nombre} 
                         loading="lazy"
-                        // SI FALLA LA CARGA, ACTIVAMOS EL MODO ERROR
                         onError={(e) => {
-                            e.target.style.display = 'none'; // Ocultamos la imagen rota
-                            setErrorImagen(true); // Mostramos el icono
+                            e.target.style.display = 'none';
+                            setErrorImagen(true);
                         }}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} // 'cover' llena mejor el cuadro
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                ) : ejercicio.videoUrl ? (
+                    <video
+                        src={ejercicio.videoUrl}
+                        muted
+                        loop
+                        playsInline
+                        preload="metadata"
+                        onMouseEnter={(e) => e.currentTarget.play()}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.pause();
+                            e.currentTarget.currentTime = 0;
+                        }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                 ) : (
-                    // ESTO SE MUESTRA SI EL GIF FALLA
                     <div style={{ color: '#525252', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <Dumbbell size={40} />
                     </div>
                 )}
 
                 <div style={{ 
-                   position: 'absolute', bottom: '8px', right: '8px', 
-                   background: '#FACC15', color: 'black', 
-                   padding: '2px 6px', borderRadius: '4px', 
-                   fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase'
+                   position: 'absolute', 
+                   bottom: '8px', 
+                   right: '8px', 
+                   background: '#FACC15', 
+                   color: 'black', 
+                   padding: '2px 6px', 
+                   borderRadius: '4px', 
+                   fontSize: '0.7rem', 
+                   fontWeight: '800', 
+                   textTransform: 'uppercase',
+                   '@media (max-width: 767px)': {
+                     fontSize: '0.65rem',
+                     padding: '2px 4px'
+                   }
                  }}>
                    {ejercicio.grupoMuscularTraducido}
                  </div>
             </div>
             
             {/* INFO */}
-            <div style={{ padding: '12px' }}>
-                <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'white', textTransform: 'capitalize', fontWeight: '700' }}>
-                  {ejercicio.nombreTraducido}
+            <div style={{ 
+              padding: 'var(--spacing-sm)',
+              '@media (max-width: 767px)': {
+                padding: 'var(--spacing-xs)'
+              }
+            }}>
+                <h3 style={{ 
+                  margin: 0, 
+                  fontSize: '0.9rem', 
+                  color: 'white', 
+                  textTransform: 'capitalize', 
+                  fontWeight: '700',
+                  '@media (max-width: 767px)': {
+                    fontSize: '0.85rem'
+                  }
+                }}>
+                  {nombre}
                 </h3>
             </div>
         </div>

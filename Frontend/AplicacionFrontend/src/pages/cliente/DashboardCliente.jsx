@@ -120,15 +120,54 @@ export default function DashboardCliente() {
 
     // --- ESTILOS PREMIUM ---
     const styles = {
-        page: { padding: '40px 50px', background: '#050505', minHeight: '100vh', color: 'white', fontFamily: "'Inter', system-ui, sans-serif" },
+        page: { 
+            padding: 'var(--spacing-xl) var(--spacing-2xl)', 
+            background: '#050505', 
+            minHeight: '100vh', 
+            color: 'white', 
+            fontFamily: "'Inter', system-ui, sans-serif",
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-md) var(--spacing-md)'
+            }
+        },
         
         // 1. Cabecera (Header)
-        headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' },
+        headerRow: { 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: 'var(--spacing-xl)',
+            '@media (max-width: 767px)': {
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: 'var(--spacing-md)',
+                marginBottom: 'var(--spacing-lg)'
+            }
+        },
         greetingBox: { display: 'flex', flexDirection: 'column', gap: '4px' },
-        title: { fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.5px', margin: 0 },
-        subtitle: { color: 'rgba(255,255,255,0.5)', fontSize: '0.95rem', fontWeight: 500 },
+        title: { 
+            fontSize: 'clamp(1.5rem, 4vw, 2rem)', 
+            fontWeight: 900, 
+            letterSpacing: '-0.5px', 
+            margin: 0 
+        },
+        subtitle: { 
+            color: 'rgba(255,255,255,0.5)', 
+            fontSize: '0.95rem', 
+            fontWeight: 500,
+            '@media (max-width: 767px)': {
+                fontSize: '0.85rem'
+            }
+        },
         
-        profileSection: { display: 'flex', alignItems: 'center', gap: '20px' },
+        profileSection: { 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 'var(--spacing-lg)',
+            '@media (max-width: 767px)': {
+                alignSelf: 'flex-end'
+            }
+        },
         
         // Contenedor de la campana (Relativo para el Dropdown)
         bellWrapper: { position: 'relative' },
@@ -136,7 +175,27 @@ export default function DashboardCliente() {
         notificationDot: { position: 'absolute', top: 0, right: 0, width: '12px', height: '12px', borderRadius: '50%', background: '#EF4444', border: '2px solid #050505' },
         
         // Panel Flotante de Notificaciones
-        notiDropdown: { position: 'absolute', top: '55px', right: 0, width: '380px', background: 'rgba(18, 18, 20, 0.95)', backdropFilter: 'blur(15px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '20px', zIndex: 100, boxShadow: '0 20px 50px rgba(0,0,0,0.8)' },
+        notiDropdown: { 
+            position: 'absolute', 
+            top: '55px', 
+            right: 0, 
+            width: '380px', 
+            background: 'rgba(18, 18, 20, 0.95)', 
+            backdropFilter: 'blur(15px)', 
+            border: '1px solid rgba(255,255,255,0.1)', 
+            borderRadius: '20px', 
+            padding: '20px', 
+            zIndex: 100, 
+            boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
+            '@media (max-width: 767px)': {
+                width: 'calc(100vw - 2rem)',
+                maxWidth: '380px',
+                right: '-1rem',
+                top: '60px',
+                borderRadius: '16px',
+                padding: '16px'
+            }
+        },
         notiHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '15px' },
         notiTitle: { margin: 0, fontSize: '1.2rem', fontWeight: 900 },
         notiCloseBtn: { background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', display: 'flex' },
@@ -149,13 +208,80 @@ export default function DashboardCliente() {
         avatarImg: { width: '55px', height: '55px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #FACC15', padding: '2px', boxShadow: '0 0 15px rgba(250, 204, 21, 0.15)', cursor: 'pointer' },
         
         // Botones de acción
-        actionRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' },
-        btnSecondary: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '12px 24px', borderRadius: '14px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s' },
-        btnPrimary: { background: 'linear-gradient(135deg, #FACC15 0%, #EAB308 100%)', color: 'black', border: 'none', padding: '12px 28px', borderRadius: '14px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 10px 25px rgba(250, 204, 21, 0.25)', transition: 'all 0.2s transform' },
+        actionRow: { 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: 'var(--spacing-lg)',
+            '@media (max-width: 767px)': {
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: 'var(--spacing-md)',
+                marginBottom: 'var(--spacing-md)'
+            }
+        },
+        btnSecondary: { 
+            background: 'rgba(255,255,255,0.05)', 
+            border: '1px solid rgba(255,255,255,0.1)', 
+            color: 'white', 
+            padding: '12px 24px', 
+            borderRadius: '14px', 
+            fontWeight: 700, 
+            cursor: 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '10px', 
+            transition: 'all 0.2s',
+            '@media (max-width: 767px)': {
+                padding: '10px 20px',
+                fontSize: '0.9rem'
+            }
+        },
+        btnPrimary: { 
+            background: 'linear-gradient(135deg, #FACC15 0%, #EAB308 100%)', 
+            color: 'black', 
+            border: 'none', 
+            padding: '12px 28px', 
+            borderRadius: '14px', 
+            fontWeight: 900, 
+            cursor: 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            boxShadow: '0 10px 25px rgba(250, 204, 21, 0.25)', 
+            transition: 'all 0.2s transform',
+            '@media (max-width: 767px)': {
+                padding: '10px 24px',
+                fontSize: '0.9rem'
+            }
+        },
 
         // Grid Estadísticas
-        statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '40px' },
-        statCard: { background: 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '15px', backdropFilter: 'blur(10px)' },
+        statsGrid: { 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+            gap: 'var(--spacing-lg)', 
+            marginBottom: 'var(--spacing-2xl)',
+            '@media (max-width: 767px)': {
+                gridTemplateColumns: '1fr',
+                gap: 'var(--spacing-md)',
+                marginBottom: 'var(--spacing-xl)'
+            }
+        },
+        statCard: { 
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)', 
+            border: '1px solid rgba(255,255,255,0.05)', 
+            borderRadius: '24px', 
+            padding: 'var(--spacing-lg)', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '15px', 
+            backdropFilter: 'blur(10px)',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-md)',
+                borderRadius: '16px'
+            }
+        },
         iconWrap: { width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
         statValue: { fontSize: '2.2rem', fontWeight: 900, display: 'flex', alignItems: 'baseline', gap: '5px' },
         statUnit: { fontSize: '1rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600 },
@@ -163,16 +289,108 @@ export default function DashboardCliente() {
         progressBarFill: (pct) => ({ width: `${pct}%`, height:'100%', background: pct >= 100 ? '#4ade80' : '#FACC15', borderRadius:'10px', transition:'width 1s ease-in-out' }),
 
         // Hero
-        heroCard: { background: 'url("https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2000&auto=format&fit=crop") center/cover', borderRadius: '30px', position: 'relative', overflow: 'hidden', padding: '40px' },
+        heroCard: { 
+            background: 'url("https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2000&auto=format&fit=crop") center/cover', 
+            borderRadius: '30px', 
+            position: 'relative', 
+            overflow: 'hidden', 
+            padding: 'var(--spacing-2xl)',
+            '@media (max-width: 767px)': {
+                borderRadius: '20px',
+                padding: 'var(--spacing-lg)'
+            }
+        },
         heroOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 100%)', zIndex: 1 },
-        heroContent: { position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' },
-        heroTag: { background: 'rgba(250, 204, 21, 0.15)', color: '#FACC15', border: '1px solid rgba(250, 204, 21, 0.3)', padding: '8px 16px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800, letterSpacing: '1px', display: 'inline-flex', alignItems: 'center', gap: '6px', backdropFilter: 'blur(5px)' },
-        heroTitle: { margin: '15px 0 10px 0', fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-1px', textTransform: 'uppercase' },
-        heroSub: { margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: '1.05rem', maxWidth: '400px', lineHeight: '1.5' },
-        playBtn: { background: '#FACC15', color: 'black', border: 'none', padding: '16px 36px', borderRadius: '50px', fontSize: '1rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 0 25px rgba(250, 204, 21, 0.3)', textTransform: 'uppercase', transition: 'transform 0.2s' },
+        heroContent: { 
+            position: 'relative', 
+            zIndex: 2, 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            flexWrap: 'wrap', 
+            gap: 'var(--spacing-lg)',
+            '@media (max-width: 767px)': {
+                flexDirection: 'column',
+                textAlign: 'center',
+                gap: 'var(--spacing-md)'
+            }
+        },
+        heroTag: { 
+            background: 'rgba(250, 204, 21, 0.15)', 
+            color: '#FACC15', 
+            border: '1px solid rgba(250, 204, 21, 0.3)', 
+            padding: '8px 16px', 
+            borderRadius: '20px', 
+            fontSize: '0.8rem', 
+            fontWeight: 800, 
+            letterSpacing: '1px', 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '6px', 
+            backdropFilter: 'blur(5px)' 
+        },
+        heroTitle: { 
+            margin: '15px 0 10px 0', 
+            fontSize: 'clamp(1.8rem, 5vw, 2.5rem)', 
+            fontWeight: 900, 
+            letterSpacing: '-1px', 
+            textTransform: 'uppercase' 
+        },
+        heroSub: { 
+            margin: 0, 
+            color: 'rgba(255,255,255,0.7)', 
+            fontSize: '1.05rem', 
+            maxWidth: '400px', 
+            lineHeight: '1.5',
+            '@media (max-width: 767px)': {
+                fontSize: '0.95rem',
+                maxWidth: '100%'
+            }
+        },
+        playBtn: { 
+            background: '#FACC15', 
+            color: 'black', 
+            border: 'none', 
+            padding: '16px 36px', 
+            borderRadius: '50px', 
+            fontSize: '1rem', 
+            fontWeight: 900, 
+            cursor: 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '10px', 
+            boxShadow: '0 0 25px rgba(250, 204, 21, 0.3)', 
+            textTransform: 'uppercase', 
+            transition: 'transform 0.2s',
+            '@media (max-width: 767px)': {
+                padding: '14px 28px',
+                fontSize: '0.9rem',
+                width: '100%',
+                justifyContent: 'center'
+            }
+        },
 
         // Enlace
-        libraryLink: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)', padding: '30px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', transition: 'border-color 0.2s', marginTop: '30px' }
+        libraryLink: { 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)', 
+            padding: 'var(--spacing-xl)', 
+            borderRadius: '24px', 
+            border: '1px solid rgba(255,255,255,0.05)', 
+            cursor: 'pointer', 
+            transition: 'border-color 0.2s', 
+            marginTop: 'var(--spacing-xl)',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-lg)',
+                borderRadius: '16px',
+                marginTop: 'var(--spacing-lg)',
+                flexDirection: 'column',
+                textAlign: 'center',
+                gap: 'var(--spacing-md)'
+            }
+        }
     };
 
     if (loading) {

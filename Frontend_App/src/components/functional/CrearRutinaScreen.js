@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -40,6 +40,68 @@ import { useAuth } from '../../components/context/AuthContext';
 
 const MUSCULOS = ["Todos", "Pecho", "Espalda", "Piernas", "Hombros", "Brazos", "Abdominales"];
 
+const normalizarTexto = (texto = "") =>
+  texto
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const obtenerEquivalenciasMusculo = (musculo) => {
+  const m = normalizarTexto(musculo);
+
+  const mapa = {
+    pecho: ["pecho", "pectoral", "pectorales", "chest"],
+    espalda: ["espalda", "dorsal", "dorsales", "back", "lat", "lats", "trap", "traps", "trapecio", "trapecios", "rhomboids", "spine"],
+    piernas: ["pierna", "piernas", "legs", "leg", "quads", "quad", "cuadriceps", "hamstrings", "isquiotibiales", "glutes", "gluteos", "gluteo", "calves", "calf", "gemelos"],
+    hombros: ["hombro", "hombros", "shoulder", "shoulders", "delt", "delts", "deltoides"],
+    brazos: ["brazo", "brazos", "arm", "arms", "biceps", "triceps", "forearm", "forearms", "antebrazo", "antebrazos"],
+    abdominales: ["abdominal", "abdominales", "abdomen", "abs", "core", "waist", "serratus anterior"]
+  };
+
+  return mapa[m] || [m];
+};
+
+const coincideBusquedaEjercicio = (ejercicio, busqueda, filtroMusculo) => {
+  const textoBusqueda = normalizarTexto(busqueda);
+
+  const nombre = normalizarTexto(ejercicio.nombre || "");
+  const nombreTraducido = normalizarTexto(ejercicio.nombreTraducido || "");
+  const grupo = normalizarTexto(ejercicio.grupoMuscular || "");
+  const grupoTraducido = normalizarTexto(ejercicio.grupoMuscularTraducido || "");
+  const parteCuerpo = normalizarTexto(ejercicio.parteCuerpo || "");
+  const parteCuerpoTraducida = normalizarTexto(ejercicio.parteCuerpoTraducida || "");
+  const equipamiento = normalizarTexto(ejercicio.equipamiento || "");
+
+  const textoCompleto = [
+    nombre,
+    nombreTraducido,
+    grupo,
+    grupoTraducido,
+    parteCuerpo,
+    parteCuerpoTraducida,
+    equipamiento
+  ].join(" ");
+
+  const cumpleBusqueda =
+    !textoBusqueda ||
+    textoCompleto.includes(textoBusqueda) ||
+    obtenerEquivalenciasMusculo(textoBusqueda).some(alias =>
+      textoCompleto.includes(normalizarTexto(alias))
+    );
+
+  const cumpleMusculo =
+    filtroMusculo === "Todos" ||
+    !filtroMusculo ||
+    obtenerEquivalenciasMusculo(filtroMusculo).some(alias => {
+      const eq = normalizarTexto(alias);
+      return grupo.includes(eq) || grupoTraducido.includes(eq) || textoCompleto.includes(eq);
+    });
+
+  return cumpleBusqueda && cumpleMusculo;
+};
+
 export default function CrearRutinaScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -58,7 +120,7 @@ export default function CrearRutinaScreen() {
     esEntrenador || rutinaInicial || inicialIsTemplate ? 'manual' : 'selector'
   );
 
-  const isDesktopLayout = width >= 1100;
+  const isMobile = width < 768;
 
   useEffect(() => {
     if (esEntrenador && viewMode !== 'manual') {
@@ -68,32 +130,67 @@ export default function CrearRutinaScreen() {
 
   const [loadingIA, setLoadingIA] = useState(false);
 
-  // IA
   const [aiObjetivo, setAiObjetivo] = useState(null);
   const [aiNivel, setAiNivel] = useState(null);
   const [aiDias, setAiDias] = useState(null);
 
-  // Manual
   const [nombreRutina, setNombreRutina] = useState(rutinaInicial?.nombre || "");
   const [descripcionRutina, setDescripcionRutina] = useState(rutinaInicial?.descripcion || "");
   const [ejerciciosSeleccionados, setEjerciciosSeleccionados] = useState([]);
   const [isTemplate, setIsTemplate] = useState(inicialIsTemplate);
 
-  // Biblioteca
   const [busqueda, setBusqueda] = useState("");
   const [filtroMusculo, setFiltroMusculo] = useState("Todos");
-  const [listaEjercicios, setListaEjercicios] = useState([]);
+  const [todosEjercicios, setTodosEjercicios] = useState([]);
   const [loadingEjercicios, setLoadingEjercicios] = useState(false);
+  const [mostrarBiblioteca, setMostrarBiblioteca] = useState(true);
 
   useEffect(() => {
-    if (viewMode === 'manual') {
-      const delayDebounce = setTimeout(() => {
-        fetchEjercicios();
-      }, 300);
+    const cargarEjercicios = async () => {
+      if (viewMode !== 'manual') return;
 
-      return () => clearTimeout(delayDebounce);
-    }
-  }, [busqueda, filtroMusculo, viewMode]);
+      try {
+        setLoadingEjercicios(true);
+        console.log('[CrearRutinaScreen] 🏋️ Cargando ejercicios para modo manual...');
+        
+        const data = await obtenerEjercicios();
+        
+        console.log('[CrearRutinaScreen] ✅ Ejercicios cargados exitosamente:', {
+          cantidad: data?.length || 0,
+          tipoData: Array.isArray(data) ? 'array' : typeof data,
+          primero: data?.[0]?.nombre,
+        });
+        
+        const ejerciciosValidos = Array.isArray(data) ? data : [];
+        
+        if (ejerciciosValidos.length === 0) {
+          console.warn('[CrearRutinaScreen] ⚠️ ADVERTENCIA: Se recibió array vacío de ejercicios');
+        }
+        
+        setTodosEjercicios(ejerciciosValidos);
+      } catch (error) {
+        console.error('[CrearRutinaScreen] ❌ Error cargando ejercicios:', {
+          message: error.message,
+          status: error.response?.status,
+          errorData: error.response?.data,
+          stack: error.stack,
+        });
+        
+        // Mostrar alerta visual al usuario en móvil
+        Alert.alert(
+          'Error de conexión',
+          'No se pudieron cargar los ejercicios. Verifica que el backend esté disponible en http://192.168.1.30:8080',
+          [{ text: 'OK', onPress: () => console.log('Alert cerrada') }]
+        );
+        
+        setTodosEjercicios([]);
+      } finally {
+        setLoadingEjercicios(false);
+      }
+    };
+
+    cargarEjercicios();
+  }, [viewMode]);
 
   useEffect(() => {
     if (rutinaInicial?.detalles?.length) {
@@ -122,30 +219,11 @@ export default function CrearRutinaScreen() {
     }
   }, [rutinaInicial]);
 
-  const fetchEjercicios = async () => {
-    try {
-      setLoadingEjercicios(true);
-      const data = await obtenerEjercicios();
-
-      const filtrados = (data || []).filter((ex) => {
-        const nombreVisible = (ex.nombreTraducido || ex.nombre || "").toLowerCase();
-        const grupoVisible = ex.grupoMuscularTraducido || ex.grupoMuscular || "";
-
-        const coincideTexto = nombreVisible.includes(busqueda.toLowerCase());
-        const coincideMusculo =
-          filtroMusculo === "Todos" || grupoVisible === filtroMusculo;
-
-        return coincideTexto && coincideMusculo;
-      });
-
-      setListaEjercicios(filtrados);
-    } catch (error) {
-      console.error("Error biblioteca:", error);
-      setListaEjercicios([]);
-    } finally {
-      setLoadingEjercicios(false);
-    }
-  };
+  const listaEjercicios = useMemo(() => {
+    return todosEjercicios.filter((ex) =>
+      coincideBusquedaEjercicio(ex, busqueda, filtroMusculo)
+    );
+  }, [todosEjercicios, busqueda, filtroMusculo]);
 
   const handleGenerarIA = async () => {
     if (!aiObjetivo || !aiNivel || !aiDias) {
@@ -284,81 +362,106 @@ export default function CrearRutinaScreen() {
     }
   };
 
-  const renderBiblioteca = () => (
-    <View style={styles.libraryPanel}>
-      <Text style={styles.libraryTitle}>
-        BIBLIOTECA FIT <Text style={{ color: '#FACC15' }}>FIT</Text>
-      </Text>
+  const renderLibraryItem = (item) => (
+    <TouchableOpacity
+      key={item.id}
+      style={styles.libItem}
+      onPress={() => agregarAlWorkout(item)}
+      activeOpacity={0.85}
+    >
+      {item.imagenUrl ? (
+        <Image source={{ uri: item.imagenUrl }} style={styles.libImg} />
+      ) : (
+        <View style={styles.libImgPlaceholder}>
+          <ImageIcon color="#444" size={20} />
+        </View>
+      )}
 
-      <View style={styles.searchBoxInline}>
-        <TextInput
-          style={styles.searchInputInline}
-          placeholder="Buscar ejercicio..."
-          placeholderTextColor="#666"
-          value={busqueda}
-          onChangeText={setBusqueda}
-        />
-        <Search color="#666" size={18} />
+      <View style={styles.libTextWrap}>
+        <Text style={styles.libName} numberOfLines={2}>
+          {item.nombreTraducido || item.nombre}
+        </Text>
+        <Text style={styles.libMuscle} numberOfLines={1}>
+          {item.grupoMuscularTraducido || item.grupoMuscular}
+        </Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersRow}
-      >
-        {MUSCULOS.map((m) => (
-          <TouchableOpacity
-            key={m}
-            style={[styles.filterPill, filtroMusculo === m && styles.filterPillActive]}
-            onPress={() => setFiltroMusculo(m)}
-          >
-            <Text style={[styles.filterPillText, filtroMusculo === m && styles.filterPillTextActive]}>
-              {m}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.libAddIcon}>
+        <Plus color="#FACC15" size={18} />
+      </View>
+    </TouchableOpacity>
+  );
 
-      <View style={styles.libraryListArea}>
-        {loadingEjercicios ? (
-          <ActivityIndicator color="#FACC15" style={{ marginTop: 30 }} />
-        ) : listaEjercicios.length === 0 ? (
-          <View style={styles.emptyLibraryBox}>
-            <Text style={styles.emptyLibraryText}>No se encontraron ejercicios</Text>
-          </View>
+  const renderExerciseCard = (item) => (
+    <View key={item.tempId} style={styles.exerciseCard}>
+      <View style={styles.exerciseHeader}>
+        {item.imagen ? (
+          <Image source={{ uri: item.imagen }} style={styles.exerciseImg} />
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {listaEjercicios.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.libItem}
-                onPress={() => agregarAlWorkout(item)}
-              >
-                {item.imagenUrl ? (
-                  <Image source={{ uri: item.imagenUrl }} style={styles.libImg} />
-                ) : (
-                  <View style={styles.libImgPlaceholder}>
-                    <ImageIcon color="#444" size={20} />
-                  </View>
-                )}
-
-                <View style={styles.libTextWrap}>
-                  <Text style={styles.libName} numberOfLines={1}>
-                    {item.nombreTraducido || item.nombre}
-                  </Text>
-                  <Text style={styles.libMuscle} numberOfLines={1}>
-                    {item.grupoMuscularTraducido || item.grupoMuscular}
-                  </Text>
-                </View>
-
-                <View style={styles.libAddIcon}>
-                  <Plus color="#FACC15" size={18} />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <View style={styles.exerciseImgPlaceholder}>
+            <ImageIcon color="#333" size={22} />
+          </View>
         )}
+
+        <View style={styles.exerciseHeaderText}>
+          <Text style={styles.exerciseName} numberOfLines={2}>{item.nombre}</Text>
+          <Text style={styles.exerciseMuscle} numberOfLines={1}>{item.musculo}</Text>
+        </View>
+
+        <TouchableOpacity onPress={() => eliminarEjercicio(item.tempId)} style={styles.trashBtn}>
+          <Trash2 color="#EF4444" size={20} />
+        </TouchableOpacity>
       </View>
+
+      <View style={styles.inputsGrid}>
+        <View style={styles.inputWrap}>
+          <Text style={styles.inputLabel}>SERIES</Text>
+          <TextInput
+            style={styles.gridInput}
+            keyboardType="numeric"
+            value={item.series}
+            onChangeText={(v) => actualizarCampo(item.tempId, 'series', v)}
+          />
+        </View>
+
+        <View style={styles.inputWrap}>
+          <Text style={styles.inputLabel}>REPS</Text>
+          <TextInput
+            style={styles.gridInput}
+            keyboardType="numeric"
+            value={item.reps}
+            onChangeText={(v) => actualizarCampo(item.tempId, 'reps', v)}
+          />
+        </View>
+
+        <View style={styles.inputWrap}>
+          <Text style={[styles.inputLabel, { color: '#FACC15' }]}>PESO</Text>
+          <TextInput
+            style={[styles.gridInput, { color: '#FACC15' }]}
+            keyboardType="numeric"
+            value={item.peso}
+            onChangeText={(v) => actualizarCampo(item.tempId, 'peso', v)}
+          />
+        </View>
+
+        <View style={styles.inputWrap}>
+          <Text style={[styles.inputLabel, { color: '#60A5FA' }]}>RPE</Text>
+          <TextInput
+            style={[styles.gridInput, { color: '#60A5FA' }]}
+            keyboardType="numeric"
+            value={item.rpe}
+            onChangeText={(v) => actualizarCampo(item.tempId, 'rpe', v)}
+          />
+        </View>
+      </View>
+
+      <TextInput
+        style={styles.notasInput}
+        placeholder="Notas técnicas..."
+        placeholderTextColor="#444"
+        value={item.notas}
+        onChangeText={(v) => actualizarCampo(item.tempId, 'notas', v)}
+      />
     </View>
   );
 
@@ -575,138 +678,16 @@ export default function CrearRutinaScreen() {
 
         <Text style={styles.headerTitle}>{isTemplate ? "PLANTILLA" : "NUEVA RUTINA"}</Text>
 
-        <TouchableOpacity onPress={finalizarGuardado} style={styles.saveBtn}>
-          <Save color="#0A0A0A" size={20} />
-        </TouchableOpacity>
+        {!isMobile && (
+          <TouchableOpacity onPress={finalizarGuardado} style={styles.saveBtn}>
+            <Save color="#0A0A0A" size={20} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        {isDesktopLayout ? (
-          <View style={styles.desktopLayout}>
-            {renderBiblioteca()}
-
-            <ScrollView style={styles.rightPanel} showsVerticalScrollIndicator={false}>
-              <View style={styles.cardInfo}>
-                <TextInput
-                  style={styles.inputNombre}
-                  placeholder="Nombre del entrenamiento"
-                  placeholderTextColor="#555"
-                  value={nombreRutina}
-                  onChangeText={setNombreRutina}
-                />
-
-                <TextInput
-                  style={styles.inputDesc}
-                  placeholder="Añade una descripción u objetivo..."
-                  placeholderTextColor="#555"
-                  multiline
-                  value={descripcionRutina}
-                  onChangeText={setDescripcionRutina}
-                />
-
-                {esEntrenador && (
-                  <TouchableOpacity
-                    style={[styles.templateToggle, isTemplate && styles.templateToggleActive]}
-                    onPress={() => setIsTemplate(!isTemplate)}
-                  >
-                    <View style={[styles.radio, isTemplate && styles.radioActive]} />
-                    <Text style={styles.templateText}>Guardar como Plantilla Maestra</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <View style={styles.workspaceArea}>
-                <Text style={styles.workspaceTitle}>TU RUTINA ({ejerciciosSeleccionados.length})</Text>
-
-                {ejerciciosSeleccionados.length === 0 ? (
-                  <View style={styles.emptyWorkspace}>
-                    <Dumbbell color="#1A1A1A" size={70} />
-                    <Text style={styles.emptyWorkspaceTitle}>ESPACIO DE TRABAJO VACÍO</Text>
-                    <Text style={styles.emptyWorkspaceSub}>
-                      Selecciona ejercicios de la biblioteca para comenzar a diseñar.
-                    </Text>
-                  </View>
-                ) : (
-                  ejerciciosSeleccionados.map((item) => (
-                    <View key={item.tempId} style={styles.exerciseCard}>
-                      <View style={styles.exerciseHeader}>
-                        {item.imagen ? (
-                          <Image source={{ uri: item.imagen }} style={styles.exerciseImg} />
-                        ) : (
-                          <View style={styles.exerciseImgPlaceholder}>
-                            <ImageIcon color="#333" size={24} />
-                          </View>
-                        )}
-
-                        <View style={styles.exerciseHeaderText}>
-                          <Text style={styles.exerciseName}>{item.nombre}</Text>
-                          <Text style={styles.exerciseMuscle}>{item.musculo}</Text>
-                        </View>
-
-                        <TouchableOpacity onPress={() => eliminarEjercicio(item.tempId)} style={styles.trashBtn}>
-                          <Trash2 color="#EF4444" size={20} />
-                        </TouchableOpacity>
-                      </View>
-
-                      <View style={styles.inputsGrid}>
-                        <View style={styles.inputWrap}>
-                          <Text style={styles.inputLabel}>SERIES</Text>
-                          <TextInput
-                            style={styles.gridInput}
-                            keyboardType="numeric"
-                            value={item.series}
-                            onChangeText={(v) => actualizarCampo(item.tempId, 'series', v)}
-                          />
-                        </View>
-
-                        <View style={styles.inputWrap}>
-                          <Text style={styles.inputLabel}>REPS</Text>
-                          <TextInput
-                            style={styles.gridInput}
-                            keyboardType="numeric"
-                            value={item.reps}
-                            onChangeText={(v) => actualizarCampo(item.tempId, 'reps', v)}
-                          />
-                        </View>
-
-                        <View style={styles.inputWrap}>
-                          <Text style={[styles.inputLabel, { color: '#FACC15' }]}>PESO</Text>
-                          <TextInput
-                            style={[styles.gridInput, { color: '#FACC15' }]}
-                            keyboardType="numeric"
-                            value={item.peso}
-                            onChangeText={(v) => actualizarCampo(item.tempId, 'peso', v)}
-                          />
-                        </View>
-
-                        <View style={styles.inputWrap}>
-                          <Text style={[styles.inputLabel, { color: '#60A5FA' }]}>RPE</Text>
-                          <TextInput
-                            style={[styles.gridInput, { color: '#60A5FA' }]}
-                            keyboardType="numeric"
-                            value={item.rpe}
-                            onChangeText={(v) => actualizarCampo(item.tempId, 'rpe', v)}
-                          />
-                        </View>
-                      </View>
-
-                      <TextInput
-                        style={styles.notasInput}
-                        placeholder="Instrucciones o notas técnicas..."
-                        placeholderTextColor="#444"
-                        value={item.notas}
-                        onChangeText={(v) => actualizarCampo(item.tempId, 'notas', v)}
-                      />
-                    </View>
-                  ))
-                )}
-              </View>
-            </ScrollView>
-          </View>
-        ) : (
-          <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-            {renderBiblioteca()}
-
+        <View style={{ flex: 1 }}>
+          <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.mainContent}>
             <View style={styles.cardInfo}>
               <TextInput
                 style={styles.inputNombre}
@@ -736,96 +717,95 @@ export default function CrearRutinaScreen() {
               )}
             </View>
 
-            {renderBiblioteca()}
+            <View style={styles.sectionBlock}>
+              <View style={styles.sectionBlockHeader}>
+                <Text style={styles.sectionBlockTitle}>BIBLIOTECA DE EJERCICIOS</Text>
+                <TouchableOpacity
+                  style={styles.sectionToggleBtn}
+                  onPress={() => setMostrarBiblioteca(!mostrarBiblioteca)}
+                >
+                  <Text style={styles.sectionToggleText}>
+                    {mostrarBiblioteca ? 'OCULTAR' : 'MOSTRAR'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.searchBoxInline}>
+                <TextInput
+                  style={styles.searchInputInline}
+                  placeholder="Buscar ejercicio..."
+                  placeholderTextColor="#666"
+                  value={busqueda}
+                  onChangeText={setBusqueda}
+                />
+                <Search color="#666" size={18} />
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filtersRow}
+              >
+                {MUSCULOS.map((m) => (
+                  <TouchableOpacity
+                    key={m}
+                    style={[styles.filterPill, filtroMusculo === m && styles.filterPillActive]}
+                    onPress={() => setFiltroMusculo(m)}
+                  >
+                    <Text style={[styles.filterPillText, filtroMusculo === m && styles.filterPillTextActive]}>
+                      {m}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <Text style={styles.resultsCount}>
+                {loadingEjercicios ? 'Cargando ejercicios...' : `${listaEjercicios.length} ejercicios`}
+              </Text>
+
+              {mostrarBiblioteca && (
+                <View style={styles.libraryInlineArea}>
+                  {loadingEjercicios ? (
+                    <ActivityIndicator color="#FACC15" style={{ marginTop: 24 }} />
+                  ) : listaEjercicios.length === 0 ? (
+                    <View style={styles.emptyLibraryBox}>
+                      <Text style={styles.emptyLibraryText}>No se encontraron ejercicios</Text>
+                    </View>
+                  ) : (
+                    listaEjercicios.slice(0, 30).map(renderLibraryItem)
+                  )}
+                </View>
+              )}
+            </View>
 
             <View style={styles.workoutArea}>
               <Text style={styles.workspaceTitle}>TU RUTINA ({ejerciciosSeleccionados.length})</Text>
 
               {ejerciciosSeleccionados.length === 0 ? (
                 <View style={styles.emptyWorkspace}>
-                  <Dumbbell color="#1A1A1A" size={70} />
-                  <Text style={styles.emptyWorkspaceTitle}>ESPACIO DE TRABAJO VACÍO</Text>
+                  <Dumbbell color="#1A1A1A" size={56} />
+                  <Text style={styles.emptyWorkspaceTitle}>AÚN NO HAS AÑADIDO EJERCICIOS</Text>
                   <Text style={styles.emptyWorkspaceSub}>
-                    Selecciona ejercicios de la biblioteca para comenzar a diseñar.
+                    Busca y añade ejercicios desde la biblioteca superior.
                   </Text>
                 </View>
               ) : (
-                ejerciciosSeleccionados.map((item) => (
-                  <View key={item.tempId} style={styles.exerciseCard}>
-                    <View style={styles.exerciseHeader}>
-                      {item.imagen ? (
-                        <Image source={{ uri: item.imagen }} style={styles.exerciseImg} />
-                      ) : (
-                        <View style={styles.exerciseImgPlaceholder}>
-                          <ImageIcon color="#333" size={24} />
-                        </View>
-                      )}
-
-                      <View style={styles.exerciseHeaderText}>
-                        <Text style={styles.exerciseName}>{item.nombre}</Text>
-                        <Text style={styles.exerciseMuscle}>{item.musculo}</Text>
-                      </View>
-
-                      <TouchableOpacity onPress={() => eliminarEjercicio(item.tempId)} style={styles.trashBtn}>
-                        <Trash2 color="#EF4444" size={20} />
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.inputsGrid}>
-                      <View style={styles.inputWrap}>
-                        <Text style={styles.inputLabel}>SERIES</Text>
-                        <TextInput
-                          style={styles.gridInput}
-                          keyboardType="numeric"
-                          value={item.series}
-                          onChangeText={(v) => actualizarCampo(item.tempId, 'series', v)}
-                        />
-                      </View>
-
-                      <View style={styles.inputWrap}>
-                        <Text style={styles.inputLabel}>REPS</Text>
-                        <TextInput
-                          style={styles.gridInput}
-                          keyboardType="numeric"
-                          value={item.reps}
-                          onChangeText={(v) => actualizarCampo(item.tempId, 'reps', v)}
-                        />
-                      </View>
-
-                      <View style={styles.inputWrap}>
-                        <Text style={[styles.inputLabel, { color: '#FACC15' }]}>PESO</Text>
-                        <TextInput
-                          style={[styles.gridInput, { color: '#FACC15' }]}
-                          keyboardType="numeric"
-                          value={item.peso}
-                          onChangeText={(v) => actualizarCampo(item.tempId, 'peso', v)}
-                        />
-                      </View>
-
-                      <View style={styles.inputWrap}>
-                        <Text style={[styles.inputLabel, { color: '#60A5FA' }]}>RPE</Text>
-                        <TextInput
-                          style={[styles.gridInput, { color: '#60A5FA' }]}
-                          keyboardType="numeric"
-                          value={item.rpe}
-                          onChangeText={(v) => actualizarCampo(item.tempId, 'rpe', v)}
-                        />
-                      </View>
-                    </View>
-
-                    <TextInput
-                      style={styles.notasInput}
-                      placeholder="Instrucciones o notas técnicas..."
-                      placeholderTextColor="#444"
-                      value={item.notas}
-                      onChangeText={(v) => actualizarCampo(item.tempId, 'notas', v)}
-                    />
-                  </View>
-                ))
+                ejerciciosSeleccionados.map(renderExerciseCard)
               )}
             </View>
           </ScrollView>
-        )}
+
+          {isMobile && (
+            <View style={styles.mobileBottomBar}>
+              <TouchableOpacity style={styles.mobileSaveBtn} onPress={finalizarGuardado}>
+                <Save color="#0A0A0A" size={18} />
+                <Text style={styles.mobileSaveBtnText}>
+                  {rutinaInicial?.id ? 'ACTUALIZAR RUTINA' : 'GUARDAR RUTINA'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
@@ -846,26 +826,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingHorizontal: 20,
-    paddingBottom: 15,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
     backgroundColor: '#0a0a0a',
     borderBottomWidth: 1,
     borderBottomColor: '#1A1A1A'
   },
 
   iconBtn: { padding: 5 },
-  headerTitle: { color: 'white', fontWeight: '800', fontSize: 16, letterSpacing: 0.5 },
+  headerTitle: { color: 'white', fontWeight: '800', fontSize: 16, letterSpacing: 0.5, flex: 1, textAlign: 'center', marginHorizontal: 8 },
   saveBtn: { backgroundColor: '#FACC15', padding: 8, borderRadius: 20 },
   scroll: { flex: 1 },
 
+  mainContent: {
+    paddingBottom: 120
+  },
+
   centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, marginTop: -50 },
-  mainTitle: { color: 'white', fontSize: 30, fontWeight: '900', textTransform: 'uppercase', marginBottom: 5, letterSpacing: 1 },
-  subTitle: { color: '#888', fontSize: 16, marginBottom: 40 },
+  mainTitle: { color: 'white', fontSize: 24, fontWeight: '900', textTransform: 'uppercase', marginBottom: 5, letterSpacing: 1, textAlign: 'center' },
+  subTitle: { color: '#888', fontSize: 16, marginBottom: 40, textAlign: 'center' },
+
   optionCard: {
     backgroundColor: '#121214',
     width: '100%',
     borderRadius: 24,
-    padding: 30,
+    padding: 24,
     alignItems: 'center',
     marginBottom: 20,
     borderWidth: 1,
@@ -879,7 +864,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 20
   },
-  optionTitle: { color: 'white', fontSize: 20, fontWeight: '900', textTransform: 'uppercase', marginBottom: 10 },
+  optionTitle: { color: 'white', fontSize: 20, fontWeight: '900', textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' },
   optionDesc: { color: '#777', fontSize: 14, textAlign: 'center', lineHeight: 22, paddingHorizontal: 20 },
 
   iaHeader: { alignItems: 'center', marginBottom: 40, marginTop: 10 },
@@ -894,10 +879,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(250, 204, 21, 0.3)'
   },
-  iaTitle: { color: 'white', fontSize: 32, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 },
+  iaTitle: { color: 'white', fontSize: 28, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' },
   iaSub: { color: '#aaa', fontSize: 14, textAlign: 'center', marginTop: 5 },
+
   section: { marginBottom: 35 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 10 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 10, flexWrap: 'wrap' },
   circleNumber: {
     width: 24,
     height: 24,
@@ -908,10 +894,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   numberText: { color: '#FACC15', fontSize: 12, fontWeight: '900' },
-  sectionTitle: { color: '#FACC15', fontSize: 13, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  sectionTitle: { color: '#FACC15', fontSize: 13, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase', flexShrink: 1 },
   iaCardActive: { borderColor: '#FACC15', backgroundColor: 'rgba(250, 204, 21, 0.05)' },
   iaTextActive: { color: '#FACC15' },
   iaCardSub: { color: '#777', fontSize: 12, marginTop: 2 },
+
   iaCardLarge: {
     backgroundColor: '#121214',
     width: 160,
@@ -923,7 +910,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#222'
   },
-  iaCardTitle: { color: 'white', fontWeight: '900', fontSize: 16, textTransform: 'uppercase' },
+  iaCardTitle: { color: 'white', fontWeight: '900', fontSize: 16, textTransform: 'uppercase', textAlign: 'center' },
+
   iaCardRow: {
     backgroundColor: '#121214',
     borderRadius: 20,
@@ -935,6 +923,7 @@ const styles = StyleSheet.create({
     borderColor: '#222'
   },
   iaCardTitleRow: { color: 'white', fontWeight: '900', fontSize: 16, textTransform: 'uppercase' },
+
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   iaCardGrid: {
     backgroundColor: '#121214',
@@ -947,6 +936,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#222'
   },
+
   bottomFixed: {
     position: 'absolute',
     bottom: 0,
@@ -971,25 +961,47 @@ const styles = StyleSheet.create({
   },
   btnGenerarText: { color: '#0A0A0A', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
 
-  desktopLayout: {
-    flex: 1,
-    flexDirection: 'row'
-  },
+  cardInfo: { padding: 16 },
+  inputNombre: { color: 'white', fontSize: 22, fontWeight: '800', marginBottom: 8 },
+  inputDesc: { color: '#888', fontSize: 14, minHeight: 60, marginBottom: 15, textAlignVertical: 'top' },
 
-  libraryPanel: {
-    width: Platform.OS === 'web' ? 380 : '100%',
-    backgroundColor: '#0B0B0D',
-    borderRightWidth: Platform.OS === 'web' ? 1 : 0,
-    borderRightColor: '#1A1A1A',
-    padding: 20
-  },
+  templateToggle: { flexDirection: 'row', alignItems: 'center', marginTop: 5, opacity: 0.7 },
+  templateToggleActive: { opacity: 1 },
+  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#444', marginRight: 10 },
+  radioActive: { backgroundColor: '#FACC15', borderColor: '#FACC15' },
+  templateText: { color: 'white', fontWeight: '600', fontSize: 13, flexShrink: 1 },
 
-  libraryTitle: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: '900',
+  sectionBlock: {
+    marginHorizontal: 16,
     marginBottom: 20,
-    textTransform: 'uppercase'
+    backgroundColor: '#0B0B0D',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#1A1A1A',
+    padding: 16
+  },
+  sectionBlockHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14
+  },
+  sectionBlockTitle: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.8
+  },
+  sectionToggleBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#151515'
+  },
+  sectionToggleText: {
+    color: '#FACC15',
+    fontSize: 11,
+    fontWeight: '800'
   },
 
   searchBoxInline: {
@@ -1016,14 +1028,19 @@ const styles = StyleSheet.create({
     gap: 10
   },
 
-  libraryListArea: {
-    flex: 1,
-    minHeight: 300,
+  resultsCount: {
+    color: '#666',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 8
+  },
+
+  libraryInlineArea: {
     marginTop: 12
   },
 
   emptyLibraryBox: {
-    paddingVertical: 40,
+    paddingVertical: 30,
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -1033,64 +1050,45 @@ const styles = StyleSheet.create({
     fontSize: 14
   },
 
-  rightPanel: {
-    flex: 1,
-    backgroundColor: '#050505'
-  },
-
-  cardInfo: { padding: 20 },
-  inputNombre: { color: 'white', fontSize: 28, fontWeight: '800', marginBottom: 5 },
-  inputDesc: { color: '#888', fontSize: 15, minHeight: 40, marginBottom: 15 },
-  templateToggle: { flexDirection: 'row', alignItems: 'center', marginTop: 5, opacity: 0.6 },
-  templateToggleActive: { opacity: 1 },
-  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#444', marginRight: 10 },
-  radioActive: { backgroundColor: '#FACC15', borderColor: '#FACC15' },
-  templateText: { color: 'white', fontWeight: '600', fontSize: 13 },
-
-  workoutArea: { paddingHorizontal: 20, paddingBottom: 40 },
-  workspaceArea: {
-    paddingHorizontal: 20,
-    paddingBottom: 40
-  },
-
+  workoutArea: { paddingHorizontal: 16, paddingBottom: 40 },
   workspaceTitle: {
     color: '#555',
     fontWeight: '800',
     fontSize: 12,
     letterSpacing: 1,
-    marginBottom: 20,
-    marginTop: 10
+    marginBottom: 16,
+    marginTop: 4
   },
 
   emptyWorkspace: {
-    minHeight: 350,
+    minHeight: 180,
     alignItems: 'center',
     justifyContent: 'center',
-    opacity: 0.55
+    opacity: 0.6,
+    paddingHorizontal: 16
   },
 
   emptyWorkspaceTitle: {
     color: 'white',
     fontWeight: '900',
-    fontSize: 28,
+    fontSize: 20,
     marginTop: 16,
     textAlign: 'center'
   },
 
   emptyWorkspaceSub: {
     color: '#777',
-    fontSize: 15,
+    fontSize: 14,
     textAlign: 'center',
     marginTop: 12,
-    maxWidth: 460,
-    lineHeight: 22
+    lineHeight: 20
   },
 
   exerciseCard: {
     backgroundColor: '#0A0A0A',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 15,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: '#1A1A1A'
   },
@@ -1098,47 +1096,47 @@ const styles = StyleSheet.create({
   exerciseHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15
+    marginBottom: 14
   },
 
   exerciseImg: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
+    width: 50,
+    height: 50,
+    borderRadius: 12,
     backgroundColor: '#111',
     marginRight: 12
   },
 
   exerciseImgPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
+    width: 50,
+    height: 50,
+    borderRadius: 12,
     backgroundColor: '#111',
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center'
   },
 
-  exerciseHeaderText: { flex: 1 },
-  exerciseName: { color: 'white', fontWeight: '700', fontSize: 16, marginBottom: 2 },
+  exerciseHeaderText: { flex: 1, paddingRight: 8 },
+  exerciseName: { color: 'white', fontWeight: '700', fontSize: 15, marginBottom: 2 },
   exerciseMuscle: { color: '#888', fontSize: 12 },
-  trashBtn: { padding: 5 },
+  trashBtn: { padding: 4 },
 
   inputsGrid: {
     flexDirection: 'row',
     backgroundColor: '#111',
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 14,
+    padding: 10,
     gap: 5
   },
 
   inputWrap: { flex: 1, alignItems: 'center' },
   inputLabel: { color: '#555', fontSize: 9, fontWeight: '800', marginBottom: 4 },
-  gridInput: { color: 'white', fontSize: 18, fontWeight: '800', textAlign: 'center', padding: 0 },
+  gridInput: { color: 'white', fontSize: 17, fontWeight: '800', textAlign: 'center', padding: 0, minWidth: 28 },
   notasInput: {
     color: '#888',
     fontSize: 14,
-    marginTop: 15,
+    marginTop: 14,
     borderTopWidth: 1,
     borderTopColor: '#1A1A1A',
     paddingTop: 12
@@ -1202,13 +1200,13 @@ const styles = StyleSheet.create({
   libName: {
     color: 'white',
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: 14,
     marginBottom: 4
   },
 
   libMuscle: {
     color: '#888',
-    fontSize: 13
+    fontSize: 12
   },
 
   libAddIcon: {
@@ -1218,5 +1216,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(250, 204, 21, 0.1)'
+  },
+
+  mobileBottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 16,
+    backgroundColor: 'rgba(5,5,5,0.97)',
+    borderTopWidth: 1,
+    borderTopColor: '#1A1A1A'
+  },
+  mobileSaveBtn: {
+    backgroundColor: '#FACC15',
+    minHeight: 54,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8
+  },
+  mobileSaveBtnText: {
+    color: '#0A0A0A',
+    fontWeight: '900',
+    fontSize: 14,
+    letterSpacing: 0.5
   }
 });

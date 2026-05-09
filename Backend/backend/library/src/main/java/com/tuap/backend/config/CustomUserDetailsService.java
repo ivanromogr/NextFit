@@ -32,7 +32,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             .or(() -> entrenadorDAO.findByEmail(email)
                 .map(entrenador -> User.builder()
                     .username(entrenador.getEmail())
-                    // 🧹 CORREGIDO: Llamamos a getContrasena() sin la "ñ"
+                    //  Llamamos a getContrasena() sin la "ñ"
                     .password(entrenador.getContrasena()) 
                     .roles(entrenador.getRol().replace("ROLE_", ""))
                     .build()))

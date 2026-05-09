@@ -36,7 +36,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--spacing-md);
 }
 
 .auth-card {
@@ -45,11 +45,31 @@ body {
     var(--card-bg);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
-  padding: 32px 28px;
+  padding: var(--spacing-xl) var(--spacing-lg);
   max-width: 420px;
   width: 100%;
   border: 1px solid var(--border);
   backdrop-filter: blur(10px);
+}
+
+/* ===== RESPONSIVE AUTH CARD ===== */
+@media (max-width: 767px) {
+  .auth-root {
+    padding: var(--spacing-sm);
+  }
+
+  .auth-card {
+    padding: var(--spacing-lg) var(--spacing-md);
+    margin: var(--spacing-sm);
+    max-width: none;
+    border-radius: var(--radius-md);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .auth-card {
+    max-width: 380px;
+  }
 }
 
 .auth-header {

@@ -1,272 +1,1087 @@
 [
   {
-    "nombre": "Press de Banca",
-    "grupoMuscular": "Pecho",
+    "slug": "escaladores",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/escaladores.mp4",
+    "nombre": "Escaladores",
+    "grupoMuscular": "Core",
+    "subgrupoMuscular": "Abdominales",
+    "equipamiento": "Peso corporal",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio dinámico para trabajar el core y mejorar la resistencia.",
+    "instrucciones": [
+      "Colócate en posición de plancha alta.",
+      "Mantén las manos debajo de los hombros.",
+      "Lleva una rodilla hacia el pecho.",
+      "Alterna las piernas de forma controlada."
+    ],
+    "consejosTecnicos": [
+      "Mantén el abdomen activo.",
+      "No eleves demasiado la cadera.",
+      "Controla el ritmo del movimiento."
+    ],
+    "erroresComunes": [
+      "Hundirse en la zona lumbar.",
+      "Mover la cadera en exceso.",
+      "Perder la alineación corporal."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "peso-muerto-convencional",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/peso-muerto-convencional.mp4",
+    "nombre": "Peso muerto convencional",
+    "grupoMuscular": "Pierna",
+    "subgrupoMuscular": "Cadena posterior",
     "equipamiento": "Barra",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/press_banca.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=sqIwK4yq3Lw",
-    "instrucciones": "1. Túmbate en el banco con los ojos bajo la barra.\n2. Baja controlado hasta el pecho.\n3. Empuja explosivamente."
+    "nivel": "Avanzado",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio básico de fuerza para glúteos, isquiosurales y espalda.",
+    "instrucciones": [
+      "Colócate de pie con la barra cerca de las tibias.",
+      "Flexiona la cadera y las rodillas para sujetar la barra.",
+      "Mantén la espalda recta y el pecho firme.",
+      "Extiende la cadera y las rodillas hasta quedar de pie."
+    ],
+    "consejosTecnicos": [
+      "Mantén la barra cerca del cuerpo.",
+      "Activa el abdomen antes de levantar.",
+      "Empuja el suelo con los pies."
+    ],
+    "erroresComunes": [
+      "Redondear la espalda.",
+      "Alejar la barra del cuerpo.",
+      "Tirar solo con la espalda."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   },
   {
-    "nombre": "Flexiones",
-    "grupoMuscular": "Pecho",
-    "equipamiento": "Peso corporal",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/flexiones.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=e_6NbbDk2Ks",
-    "instrucciones": "1. Manos a la anchura de hombros.\n2. Cuerpo recto como tabla.\n3. Baja hasta rozar el suelo."
-  },
-  {
-    "nombre": "Aperturas con Mancuernas",
-    "grupoMuscular": "Pecho",
+    "slug": "press-frances-mancuernas",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/press-frances-con-mancuernas.mp4",
+    "nombre": "Press francés con mancuernas",
+    "grupoMuscular": "Brazos",
+    "subgrupoMuscular": "Tríceps",
     "equipamiento": "Mancuernas",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/apertura_mancuernas.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=eozdVDA78K0",
-    "instrucciones": "1. Abre los brazos con ligera flexión.\n2. Siente el estiramiento.\n3. Cierra como abrazando un árbol."
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Aislamiento",
+    "descripcionCorta": "Ejercicio para fortalecer el tríceps mediante extensión de codos.",
+    "instrucciones": [
+      "Acuéstate o siéntate sujetando las mancuernas.",
+      "Coloca los brazos extendidos sobre el pecho o por encima de la cabeza.",
+      "Flexiona los codos bajando las mancuernas de forma controlada.",
+      "Extiende los codos hasta volver a la posición inicial."
+    ],
+    "consejosTecnicos": [
+      "Mantén los codos estables.",
+      "Controla la bajada.",
+      "No uses impulso."
+    ],
+    "erroresComunes": [
+      "Abrir demasiado los codos.",
+      "Mover los hombros.",
+      "Usar demasiado peso."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   },
   {
-    "nombre": "Press Inclinado",
-    "grupoMuscular": "Pecho",
-    "equipamiento": "Mancuernas",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/press_inclinado.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=8iPEnn-ltC8",
-    "instrucciones": "1. Banco a 30-45 grados.\n2. Empuja hacia el techo.\n3. Baja al pecho superior."
-  },
-  {
-    "nombre": "Fondos en Paralelas",
-    "grupoMuscular": "Pecho",
-    "equipamiento": "Peso corporal",
-    "dificultad": "Avanzado",
-    "imagenUrl": "/imagenes/fondo_paralelas.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=2z8JmcrW-As",
-    "instrucciones": "1. Inclina el tronco adelante.\n2. Baja hasta 90 grados.\n3. Empuja fuerte."
-  },
-  {
-    "nombre": "Dominadas",
+    "slug": "pull-over-mancuerna",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/pull-over-con-mancuerna.mp4",
+    "nombre": "Pull over con mancuerna",
     "grupoMuscular": "Espalda",
-    "equipamiento": "Peso corporal",
-    "dificultad": "Avanzado",
-    "imagenUrl": "/imagenes/dominadas.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=eGo4IYlbE5g",
-    "instrucciones": "1. Agarre ancho.\n2. Sube la barbilla sobre la barra.\n3. Baja completo."
+    "subgrupoMuscular": "Dorsal ancho",
+    "equipamiento": "Mancuerna",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio para trabajar dorsal, pecho y movilidad de hombro.",
+    "instrucciones": [
+      "Acuéstate en un banco sujetando una mancuerna con ambas manos.",
+      "Coloca la mancuerna sobre el pecho con los brazos casi extendidos.",
+      "Baja la mancuerna por detrás de la cabeza de forma controlada.",
+      "Vuelve a subir hasta la posición inicial."
+    ],
+    "consejosTecnicos": [
+      "Mantén los codos ligeramente flexionados.",
+      "Controla el rango de movimiento.",
+      "Evita arquear demasiado la espalda."
+    ],
+    "erroresComunes": [
+      "Bajar sin control.",
+      "Flexionar demasiado los codos.",
+      "Perder estabilidad en el tronco."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   },
   {
-    "nombre": "Remo con Barra",
+    "slug": "seal-row",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/seal-row.mp4",
+    "nombre": "Seal row",
     "grupoMuscular": "Espalda",
+    "subgrupoMuscular": "Dorsal y trapecio medio",
     "equipamiento": "Barra",
-    "dificultad": "Avanzado",
-    "imagenUrl": "/imagenes/remo_con_barra.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=G8l_8chR5BE",
-    "instrucciones": "1. Espalda recta inclinada.\n2. Tira la barra a la cadera.\n3. Aprieta espalda."
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Remo con apoyo en banco para aislar la espalda y reducir impulso.",
+    "instrucciones": [
+      "Acuéstate boca abajo sobre un banco elevado.",
+      "Sujeta la barra con agarre cómodo.",
+      "Tira de la barra hacia el torso.",
+      "Baja la barra lentamente hasta extender los brazos."
+    ],
+    "consejosTecnicos": [
+      "Mantén el pecho apoyado.",
+      "Junta las escápulas al subir.",
+      "Evita balanceos."
+    ],
+    "erroresComunes": [
+      "Levantar el pecho del banco.",
+      "Tirar con los brazos únicamente.",
+      "Bajar la barra demasiado rápido."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   },
   {
-    "nombre": "Jalón al Pecho",
-    "grupoMuscular": "Espalda",
-    "equipamiento": "Máquina",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/jalon_pecho.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=CAwf7n6Luuc",
-    "instrucciones": "1. Tira hacia la clavícula.\n2. Baja los codos.\n3. Controla la subida."
+    "slug": "subida-cajon",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/subida-al-cajon.mp4",
+    "nombre": "Subida al cajón",
+    "grupoMuscular": "Pierna",
+    "subgrupoMuscular": "Glúteos y cuádriceps",
+    "equipamiento": "Cajón",
+    "nivel": "Principiante",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio unilateral para piernas y glúteos usando un cajón.",
+    "instrucciones": [
+      "Colócate frente a un cajón estable.",
+      "Apoya un pie completo sobre el cajón.",
+      "Empuja con la pierna apoyada para subir.",
+      "Baja de forma controlada y repite."
+    ],
+    "consejosTecnicos": [
+      "Apoya todo el pie en el cajón.",
+      "Mantén el tronco estable.",
+      "Controla la bajada."
+    ],
+    "erroresComunes": [
+      "Impulsarse demasiado con la pierna trasera.",
+      "Dejar que la rodilla se vaya hacia dentro.",
+      "Bajar sin control."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   },
   {
-    "nombre": "Remo Gironda",
+    "slug": "bird-dog",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/bird-dog.mp4",
+    "nombre": "Bird dog",
+    "grupoMuscular": "Core",
+    "subgrupoMuscular": "Estabilizadores lumbares",
+    "equipamiento": "Peso corporal",
+    "nivel": "Principiante",
+    "tipoMovimiento": "Estabilidad",
+    "descripcionCorta": "Ejercicio de estabilidad para core, glúteos y zona lumbar.",
+    "instrucciones": [
+      "Colócate en cuadrupedia.",
+      "Extiende un brazo y la pierna contraria.",
+      "Mantén la espalda neutra.",
+      "Vuelve al centro y alterna lados."
+    ],
+    "consejosTecnicos": [
+      "No gires la cadera.",
+      "Mantén el abdomen activo.",
+      "Realiza el movimiento lentamente."
+    ],
+    "erroresComunes": [
+      "Arquear la espalda.",
+      "Elevar demasiado la pierna.",
+      "Perder el equilibrio por ir rápido."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "dead-bug-2-0",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/dead-bug-2-0.mp4",
+    "nombre": "Dead bug 2-0",
+    "grupoMuscular": "Core",
+    "subgrupoMuscular": "Abdominal profundo",
+    "equipamiento": "Peso corporal",
+    "nivel": "Principiante",
+    "tipoMovimiento": "Estabilidad",
+    "descripcionCorta": "Variante de dead bug para mejorar el control lumbo-pélvico.",
+    "instrucciones": [
+      "Acuéstate boca arriba con piernas elevadas.",
+      "Mantén la zona lumbar cerca del suelo.",
+      "Extiende una pierna de forma controlada.",
+      "Vuelve al centro y alterna el movimiento."
+    ],
+    "consejosTecnicos": [
+      "No despegues la zona lumbar.",
+      "Respira de forma controlada.",
+      "Prioriza la técnica sobre la velocidad."
+    ],
+    "erroresComunes": [
+      "Arquear la espalda.",
+      "Bajar la pierna demasiado.",
+      "Perder tensión abdominal."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "jalon-unilateral",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/jalon-unilateral.mp4",
+    "nombre": "Jalón unilateral",
     "grupoMuscular": "Espalda",
+    "subgrupoMuscular": "Dorsal ancho",
     "equipamiento": "Polea",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/remo_girando.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=GZbfZ033f74",
-    "instrucciones": "1. Espalda recta.\n2. Tira al ombligo.\n3. No te balancees."
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Jalón a una mano para trabajar el dorsal de forma unilateral.",
+    "instrucciones": [
+      "Colócate frente a la polea con un agarre individual.",
+      "Sujeta el agarre con una mano.",
+      "Tira del codo hacia abajo y hacia el costado.",
+      "Vuelve lentamente a la posición inicial."
+    ],
+    "consejosTecnicos": [
+      "Mantén el tronco estable.",
+      "No tires con impulso.",
+      "Concéntrate en llevar el codo hacia abajo."
+    ],
+    "erroresComunes": [
+      "Rotar demasiado el tronco.",
+      "Encoger el hombro.",
+      "Usar un peso excesivo."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   },
   {
-    "nombre": "Peso Muerto",
-    "grupoMuscular": "Espalda",
-    "equipamiento": "Barra",
-    "dificultad": "Avanzado",
-    "imagenUrl": "/imagenes/peso_muerto.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=7Q_GnXm7Nb8",
-    "instrucciones": "1. Levanta el peso del suelo.\n2. Espalda neutra siempre.\n3. Empuja con piernas."
-  },
-  {
-    "nombre": "Sentadilla",
-    "grupoMuscular": "Piernas",
-    "equipamiento": "Barra",
-    "dificultad": "Avanzado",
-    "imagenUrl": "/imagenes/sentadilla.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=QKKZ9AGYTi4",
-    "instrucciones": "1. Baja profundo.\n2. Rodillas hacia fuera.\n3. Pecho arriba."
-  },
-  {
-    "nombre": "Prensa",
-    "grupoMuscular": "Piernas",
-    "equipamiento": "Máquina",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/prensa.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=IZxyjW7MPJQ",
-    "instrucciones": "1. Empuja con los talones.\n2. No bloquees rodillas.\n3. Baja controlado."
-  },
-  {
-    "nombre": "Zancadas",
-    "grupoMuscular": "Piernas",
-    "equipamiento": "Mancuernas",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/zancadas.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=QOVaHkwWsRo",
-    "instrucciones": "1. Paso largo.\n2. Rodilla trasera casi al suelo.\n3. Torso recto."
-  },
-  {
-    "nombre": "Peso Muerto Rumano",
-    "grupoMuscular": "Piernas",
-    "equipamiento": "Barra",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/peso_muerto_rumano.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=JCXUYuzwNrM",
-    "instrucciones": "1. Piernas semi-rígidas.\n2. Cadera atrás.\n3. Siente los isquios."
-  },
-  {
-    "nombre": "Extensión Cuádriceps",
-    "grupoMuscular": "Piernas",
-    "equipamiento": "Máquina",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/extension_cuadriceps.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=YyvSfVjQeL0",
-    "instrucciones": "1. Extiende rodillas.\n2. Aguanta 1 seg arriba.\n3. Baja lento."
-  },
-  {
-    "nombre": "Gemelos en Máquina",
-    "grupoMuscular": "Piernas",
-    "equipamiento": "Máquina",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/gemelos_maquina.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=ymG9Pdrk_5c",
-    "instrucciones": "1. Talones abajo del todo.\n2. Sube explosivo.\n3. Rango completo."
-  },
-  {
-    "nombre": "Press Militar",
-    "grupoMuscular": "Hombros",
-    "equipamiento": "Barra",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/press_militar.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=2yjwXTZQDDI",
-    "instrucciones": "1. Empuja sobre la cabeza.\n2. Abdomen fuerte.\n3. No arquees espalda."
-  },
-  {
-    "nombre": "Elevaciones Laterales",
-    "grupoMuscular": "Hombros",
-    "equipamiento": "Mancuernas",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/elevaciones_laterales.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=3VcKaXpzqRo",
-    "instrucciones": "1. Codos semi-flexionados.\n2. Sube hasta la horizontal.\n3. Baja despacio."
-  },
-  {
-    "nombre": "Pájaros",
-    "grupoMuscular": "Hombros",
-    "equipamiento": "Mancuernas",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/pajaros.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=ttvfGg9d76c",
-    "instrucciones": "1. Inclínate.\n2. Abre brazos atrás.\n3. Enfoca hombro posterior."
-  },
-  {
-    "nombre": "Press Arnold",
-    "grupoMuscular": "Hombros",
-    "equipamiento": "Mancuernas",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/Press_Arnold.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=jeG_bC-a0ls",
-    "instrucciones": "1. Empieza palmas hacia ti.\n2. Gira al subir.\n3. Termina palmas al frente."
-  },
-  {
-    "nombre": "Curl con Barra",
-    "grupoMuscular": "Brazos",
-    "equipamiento": "Barra",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/curl_barra.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=kwG2ipFRgfo",
-    "instrucciones": "1. Codos pegados.\n2. Sube sin balanceo.\n3. Aprieta bíceps."
-  },
-  {
-    "nombre": "Curl Martillo",
-    "grupoMuscular": "Brazos",
-    "equipamiento": "Mancuernas",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/curl_martillo.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=zC3nLlEvin4",
-    "instrucciones": "1. Palmas se miran.\n2. Sube la mancuerna.\n3. Ideal para antebrazo."
-  },
-  {
-    "nombre": "Tríceps Polea",
-    "grupoMuscular": "Brazos",
-    "equipamiento": "Polea",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/triceps_Polea.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=vB5OHsJ3ECE",
-    "instrucciones": "1. Codos fijos.\n2. Extiende abajo.\n3. Separa cuerda."
-  },
-  {
-    "nombre": "Press Francés",
-    "grupoMuscular": "Brazos",
-    "equipamiento": "Barra Z",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/press_frances.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=-rh3MHnwlqw",
-    "instrucciones": "1. Barra a la frente.\n2. Codos cerrados.\n3. Extiende arriba."
-  },
-  {
-    "nombre": "Fondos en Banco",
-    "grupoMuscular": "Brazos",
+    "slug": "plancha-abd-cadera",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/plancha-abd-cadera.mp4",
+    "nombre": "Plancha + abd cadera",
+    "grupoMuscular": "Core",
+    "subgrupoMuscular": "Abdominales y glúteo medio",
     "equipamiento": "Peso corporal",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/fondos_banco.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=0326dy_-CzM",
-    "instrucciones": "1. Manos en banco.\n2. Baja cadera.\n3. Empuja con brazos."
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Estabilidad",
+    "descripcionCorta": "Plancha con abducción de cadera para trabajar core y glúteo medio.",
+    "instrucciones": [
+      "Colócate en posición de plancha.",
+      "Mantén el abdomen activo y el cuerpo alineado.",
+      "Separa una pierna hacia el lateral.",
+      "Vuelve al centro y alterna o repite el lado."
+    ],
+    "consejosTecnicos": [
+      "Evita balancear la cadera.",
+      "Mantén los hombros estables.",
+      "Haz el movimiento controlado."
+    ],
+    "erroresComunes": [
+      "Elevar la cadera.",
+      "Perder la alineación del cuerpo.",
+      "Abrir la pierna con impulso."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   },
   {
+    "slug": "press-inclinado-mancuernas",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/press-inclinado-con-mancuernas.mp4",
+    "nombre": "Press inclinado con mancuernas",
+    "grupoMuscular": "Pecho",
+    "subgrupoMuscular": "Pectoral superior",
+    "equipamiento": "Mancuernas",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio para trabajar la parte superior del pecho con mayor rango de movimiento.",
+    "instrucciones": [
+      "Acuéstate en un banco inclinado.",
+      "Sujeta las mancuernas a la altura del pecho.",
+      "Empuja las mancuernas hacia arriba.",
+      "Baja lentamente hasta la posición inicial."
+    ],
+    "consejosTecnicos": [
+      "Mantén los pies firmes.",
+      "Controla la bajada.",
+      "No choques las mancuernas arriba."
+    ],
+    "erroresComunes": [
+      "Arquear demasiado la espalda.",
+      "Bajar sin control.",
+      "Usar peso excesivo."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "remo-barra",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/remo-con-barra.mp4",
+    "nombre": "Remo con barra",
+    "grupoMuscular": "Espalda",
+    "subgrupoMuscular": "Dorsal y romboides",
+    "equipamiento": "Barra",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio de tracción para desarrollar la espalda.",
+    "instrucciones": [
+      "Colócate de pie sujetando la barra.",
+      "Inclina el torso manteniendo la espalda recta.",
+      "Tira de la barra hacia el abdomen.",
+      "Baja la barra de forma controlada."
+    ],
+    "consejosTecnicos": [
+      "Mantén la espalda neutra.",
+      "Lleva los codos hacia atrás.",
+      "Evita balancear el cuerpo."
+    ],
+    "erroresComunes": [
+      "Redondear la espalda.",
+      "Tirar con impulso.",
+      "Elevar los hombros."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "sentadilla-45-pausa",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/sentadilla-45-pausa.mp4",
+    "nombre": "Sentadilla 45º pausa",
+    "grupoMuscular": "Pierna",
+    "subgrupoMuscular": "Cuádriceps y glúteos",
+    "equipamiento": "Peso corporal",
+    "nivel": "Principiante",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Sentadilla parcial con pausa para mejorar control y estabilidad.",
+    "instrucciones": [
+      "Colócate de pie con los pies al ancho de los hombros.",
+      "Desciende hasta aproximadamente 45 grados.",
+      "Mantén una pausa breve en la posición.",
+      "Sube empujando con los pies."
+    ],
+    "consejosTecnicos": [
+      "Mantén el pecho erguido.",
+      "Controla la pausa.",
+      "No dejes que las rodillas colapsen hacia dentro."
+    ],
+    "erroresComunes": [
+      "Rebotar en la pausa.",
+      "Inclinar demasiado el tronco.",
+      "Perder estabilidad en los pies."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "superman",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/superman.mp4",
+    "nombre": "Superman",
+    "grupoMuscular": "Espalda",
+    "subgrupoMuscular": "Zona lumbar",
+    "equipamiento": "Peso corporal",
+    "nivel": "Principiante",
+    "tipoMovimiento": "Aislamiento",
+    "descripcionCorta": "Ejercicio para fortalecer la zona lumbar y la cadena posterior.",
+    "instrucciones": [
+      "Acuéstate boca abajo en el suelo.",
+      "Extiende brazos y piernas.",
+      "Eleva brazos, pecho y piernas ligeramente.",
+      "Baja de forma controlada."
+    ],
+    "consejosTecnicos": [
+      "No fuerces el cuello.",
+      "Mantén el movimiento suave.",
+      "Aprieta glúteos al subir."
+    ],
+    "erroresComunes": [
+      "Elevar demasiado el tronco.",
+      "Hacer el movimiento con tirones.",
+      "Mirar hacia arriba forzando el cuello."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "crunch-l-sit",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/crunch-l-sit.mp4",
+    "nombre": "Crunch L-Sit",
+    "grupoMuscular": "Core",
+    "subgrupoMuscular": "Abdominales",
+    "equipamiento": "Peso corporal",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Aislamiento",
+    "descripcionCorta": "Crunch avanzado con posición de piernas en L para trabajar el abdomen.",
+    "instrucciones": [
+      "Siéntate o túmbate manteniendo las piernas elevadas.",
+      "Activa el abdomen.",
+      "Acerca el torso hacia las piernas.",
+      "Vuelve lentamente a la posición inicial."
+    ],
+    "consejosTecnicos": [
+      "Mantén tensión abdominal.",
+      "Evita tirar del cuello.",
+      "Controla la bajada."
+    ],
+    "erroresComunes": [
+      "Usar impulso.",
+      "Redondear el cuello.",
+      "Bajar las piernas sin control."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "dead-bug-2-2",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/dead-bug-2-2.mp4",
+    "nombre": "Dead bug 2-2",
+    "grupoMuscular": "Core",
+    "subgrupoMuscular": "Abdominal profundo",
+    "equipamiento": "Peso corporal",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Estabilidad",
+    "descripcionCorta": "Variante de dead bug para mejorar estabilidad y control del core.",
+    "instrucciones": [
+      "Acuéstate boca arriba con brazos y piernas elevados.",
+      "Mantén la zona lumbar controlada.",
+      "Extiende brazo y pierna de forma coordinada.",
+      "Vuelve al centro y repite."
+    ],
+    "consejosTecnicos": [
+      "No arquees la espalda.",
+      "Muévete lentamente.",
+      "Mantén la respiración controlada."
+    ],
+    "erroresComunes": [
+      "Perder contacto lumbar.",
+      "Ir demasiado rápido.",
+      "Extender más de lo que puedes controlar."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "jalon",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/jalon.mp4",
+    "nombre": "Jalón",
+    "grupoMuscular": "Espalda",
+    "subgrupoMuscular": "Dorsal ancho",
+    "equipamiento": "Polea",
+    "nivel": "Principiante",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio de tracción vertical para trabajar la espalda.",
+    "instrucciones": [
+      "Siéntate frente a la polea alta.",
+      "Sujeta la barra con agarre cómodo.",
+      "Tira de la barra hacia la parte alta del pecho.",
+      "Vuelve lentamente hasta extender los brazos."
+    ],
+    "consejosTecnicos": [
+      "Mantén el pecho elevado.",
+      "No uses impulso.",
+      "Lleva los codos hacia abajo."
+    ],
+    "erroresComunes": [
+      "Tirar detrás de la nuca.",
+      "Balancear el tronco.",
+      "Encoger los hombros."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "plancha-dinamica",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/plancha-dinamica.mp4",
+    "nombre": "Plancha dinámica",
+    "grupoMuscular": "Core",
+    "subgrupoMuscular": "Abdominales",
+    "equipamiento": "Peso corporal",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Estabilidad",
+    "descripcionCorta": "Variante de plancha con movimiento para aumentar la demanda del core.",
+    "instrucciones": [
+      "Colócate en posición de plancha.",
+      "Mantén el cuerpo alineado.",
+      "Realiza el movimiento indicado sin perder estabilidad.",
+      "Vuelve siempre a una posición controlada."
+    ],
+    "consejosTecnicos": [
+      "Mantén abdomen y glúteos activos.",
+      "Evita balancear la cadera.",
+      "Controla cada repetición."
+    ],
+    "erroresComunes": [
+      "Hundirse en la zona lumbar.",
+      "Mover la cadera en exceso.",
+      "Perder la alineación corporal."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "press-militar-mancuernas",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/press-militar-con-mancuernas.mp4",
+    "nombre": "Press militar con mancuernas",
+    "grupoMuscular": "Hombros",
+    "subgrupoMuscular": "Deltoides",
+    "equipamiento": "Mancuernas",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio de empuje vertical para fortalecer los hombros.",
+    "instrucciones": [
+      "Siéntate o colócate de pie con una mancuerna en cada mano.",
+      "Sitúa las mancuernas a la altura de los hombros.",
+      "Empuja hacia arriba hasta extender los brazos.",
+      "Baja lentamente hasta la posición inicial."
+    ],
+    "consejosTecnicos": [
+      "Mantén el abdomen activo.",
+      "No arquees la espalda.",
+      "Controla el recorrido."
+    ],
+    "erroresComunes": [
+      "Usar impulso con las piernas.",
+      "Arquear la zona lumbar.",
+      "Bajar demasiado rápido."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "remo-unilateral-base-asimetrica",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/remo-unilateral-base-asimetrica.mp4",
+    "nombre": "Remo unilateral base asimétrica",
+    "grupoMuscular": "Espalda",
+    "subgrupoMuscular": "Dorsal y core",
+    "equipamiento": "Mancuerna",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Remo a una mano con base asimétrica para trabajar espalda y estabilidad.",
+    "instrucciones": [
+      "Colócate con una base de apoyo asimétrica.",
+      "Sujeta una mancuerna con una mano.",
+      "Tira del codo hacia atrás acercando la mancuerna al torso.",
+      "Baja lentamente manteniendo el control."
+    ],
+    "consejosTecnicos": [
+      "Mantén el tronco estable.",
+      "Evita rotar la cadera.",
+      "Lleva el codo hacia la espalda."
+    ],
+    "erroresComunes": [
+      "Girar el tronco en exceso.",
+      "Encoger el hombro.",
+      "Usar impulso."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "sentadilla-75-pausa",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/sentadilla-75-pausa.mp4",
+    "nombre": "Sentadilla 75º pausa",
+    "grupoMuscular": "Pierna",
+    "subgrupoMuscular": "Cuádriceps y glúteos",
+    "equipamiento": "Peso corporal",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Sentadilla parcial profunda con pausa para mejorar fuerza y control.",
+    "instrucciones": [
+      "Colócate de pie con los pies al ancho de los hombros.",
+      "Desciende hasta aproximadamente 75 grados.",
+      "Mantén una pausa breve en la posición.",
+      "Sube de forma controlada hasta extender la cadera."
+    ],
+    "consejosTecnicos": [
+      "Mantén el peso repartido en todo el pie.",
+      "Controla la pausa.",
+      "Mantén el pecho firme."
+    ],
+    "erroresComunes": [
+      "Rebotar al final del movimiento.",
+      "Dejar que las rodillas colapsen.",
+      "Inclinar demasiado el tronco."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "zancada-hacia-delante",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/zancanda-hacia-delante.mp4",
+    "nombre": "Zancada hacia delante",
+    "grupoMuscular": "Pierna",
+    "subgrupoMuscular": "Cuádriceps y glúteos",
+    "equipamiento": "Peso corporal",
+    "nivel": "Principiante",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio unilateral para fortalecer piernas y mejorar estabilidad.",
+    "instrucciones": [
+      "Colócate de pie con el cuerpo erguido.",
+      "Da un paso hacia delante.",
+      "Flexiona ambas rodillas hasta bajar de forma controlada.",
+      "Empuja con la pierna delantera para volver al inicio."
+    ],
+    "consejosTecnicos": [
+      "Mantén el tronco estable.",
+      "No dejes que la rodilla se vaya hacia dentro.",
+      "Apoya bien el pie delantero."
+    ],
+    "erroresComunes": [
+      "Dar un paso demasiado corto.",
+      "Inclinar el tronco en exceso.",
+      "Golpear la rodilla trasera contra el suelo."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "curl-arana",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/curl-arana.mp4",
+    "nombre": "Curl araña",
+    "grupoMuscular": "Brazos",
+    "subgrupoMuscular": "Bíceps",
+    "equipamiento": "Mancuernas",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Aislamiento",
+    "descripcionCorta": "Curl de bíceps con apoyo para reducir el impulso.",
+    "instrucciones": [
+      "Apoya el pecho sobre un banco inclinado.",
+      "Deja los brazos colgando con las mancuernas.",
+      "Flexiona los codos llevando las mancuernas hacia arriba.",
+      "Baja lentamente hasta extender los brazos."
+    ],
+    "consejosTecnicos": [
+      "Mantén los codos fijos.",
+      "No balancees el cuerpo.",
+      "Contrae el bíceps arriba."
+    ],
+    "erroresComunes": [
+      "Mover los hombros.",
+      "Subir con impulso.",
+      "Bajar demasiado rápido."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "encogimientos",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/encogimientos.mp4",
+    "nombre": "Encogimientos",
+    "grupoMuscular": "Espalda",
+    "subgrupoMuscular": "Trapecio",
+    "equipamiento": "Mancuernas",
+    "nivel": "Principiante",
+    "tipoMovimiento": "Aislamiento",
+    "descripcionCorta": "Ejercicio para fortalecer el trapecio mediante elevación de hombros.",
+    "instrucciones": [
+      "Colócate de pie sujetando peso a los lados.",
+      "Mantén los brazos extendidos.",
+      "Eleva los hombros hacia arriba.",
+      "Baja lentamente hasta la posición inicial."
+    ],
+    "consejosTecnicos": [
+      "No gires los hombros.",
+      "Mantén el cuello relajado.",
+      "Controla la bajada."
+    ],
+    "erroresComunes": [
+      "Rotar los hombros.",
+      "Flexionar los codos.",
+      "Usar impulso."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "kettlebell-swing",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/kettlebell-swing.mp4",
+    "nombre": "Kettlebell swing",
+    "grupoMuscular": "Pierna",
+    "subgrupoMuscular": "Glúteos e isquiosurales",
+    "equipamiento": "Kettlebell",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio explosivo de bisagra de cadera para cadena posterior.",
+    "instrucciones": [
+      "Colócate de pie con la kettlebell delante.",
+      "Flexiona la cadera manteniendo la espalda neutra.",
+      "Impulsa la kettlebell extendiendo la cadera.",
+      "Deja que vuelva entre las piernas de forma controlada."
+    ],
+    "consejosTecnicos": [
+      "El movimiento nace de la cadera.",
+      "Mantén la espalda recta.",
+      "No levantes la kettlebell con los brazos."
+    ],
+    "erroresComunes": [
+      "Hacer una sentadilla en lugar de bisagra.",
+      "Usar demasiado los hombros.",
+      "Redondear la espalda."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "plancha",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/plancha.mp4",
     "nombre": "Plancha",
-    "grupoMuscular": "Abdominales",
+    "grupoMuscular": "Core",
+    "subgrupoMuscular": "Abdominales",
     "equipamiento": "Peso corporal",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/plancha.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=ASdvN_XEl_c",
-    "instrucciones": "1. Codos al suelo.\n2. Cuerpo recto.\n3. Aguanta isométrico."
+    "nivel": "Principiante",
+    "tipoMovimiento": "Estabilidad",
+    "descripcionCorta": "Ejercicio isométrico para fortalecer el core.",
+    "instrucciones": [
+      "Apoya antebrazos y puntas de los pies en el suelo.",
+      "Mantén el cuerpo alineado de cabeza a pies.",
+      "Activa abdomen y glúteos.",
+      "Mantén la posición durante el tiempo indicado."
+    ],
+    "consejosTecnicos": [
+      "No hundas la zona lumbar.",
+      "Mantén el cuello neutro.",
+      "Respira de forma controlada."
+    ],
+    "erroresComunes": [
+      "Elevar demasiado la cadera.",
+      "Hundirse en los hombros.",
+      "Relajar el abdomen."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   },
   {
-    "nombre": "Crunch",
-    "grupoMuscular": "Abdominales",
-    "equipamiento": "Peso corporal",
-    "dificultad": "Principiante",
-    "imagenUrl": "/imagenes/crunch.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=Xyd_fa5zoEU",
-    "instrucciones": "1. Eleva hombros.\n2. Contrae abdomen.\n3. No tires del cuello."
+    "slug": "press-plano-mancuernas",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/press-plano-con-mancuernas.mp4",
+    "nombre": "Press plano con mancuernas",
+    "grupoMuscular": "Pecho",
+    "subgrupoMuscular": "Pectoral medio",
+    "equipamiento": "Mancuernas",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio de empuje horizontal para trabajar el pecho.",
+    "instrucciones": [
+      "Acuéstate en un banco plano.",
+      "Sujeta las mancuernas a los lados del pecho.",
+      "Empuja hacia arriba hasta extender los brazos.",
+      "Baja lentamente de forma controlada."
+    ],
+    "consejosTecnicos": [
+      "Mantén los pies firmes.",
+      "Controla la bajada.",
+      "No bloquees los codos con fuerza."
+    ],
+    "erroresComunes": [
+      "Bajar las mancuernas sin control.",
+      "Arquear demasiado la espalda.",
+      "Chocar las mancuernas arriba."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   },
   {
-    "nombre": "Elevación Piernas",
-    "grupoMuscular": "Abdominales",
-    "equipamiento": "Peso corporal",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/elevaciones_piernas.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=JB2oyawG9y0",
-    "instrucciones": "1. Cuelga o túmbate.\n2. Sube piernas.\n3. Controla la bajada."
+    "slug": "remo-unilateral-mancuerna-bird-dog",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/remo-unilateral-con-mancuerna-bird-dog.mp4",
+    "nombre": "Remo unilateral con mancuerna + Bird dog",
+    "grupoMuscular": "Espalda",
+    "subgrupoMuscular": "Dorsal y core",
+    "equipamiento": "Mancuerna",
+    "nivel": "Avanzado",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Remo unilateral combinado con bird dog para espalda y estabilidad.",
+    "instrucciones": [
+      "Colócate en posición de bird dog con una mancuerna.",
+      "Mantén la pierna contraria extendida.",
+      "Realiza un remo llevando el codo hacia atrás.",
+      "Baja la mancuerna lentamente sin perder estabilidad."
+    ],
+    "consejosTecnicos": [
+      "Mantén la cadera estable.",
+      "Evita rotar el tronco.",
+      "Realiza el remo de forma controlada."
+    ],
+    "erroresComunes": [
+      "Perder el equilibrio.",
+      "Girar la cadera.",
+      "Usar impulso para tirar."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   },
   {
-    "nombre": "Burpees",
-    "grupoMuscular": "Cardio",
+    "slug": "sentadilla",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/sentadilla.mp4",
+    "nombre": "Sentadilla",
+    "grupoMuscular": "Pierna",
+    "subgrupoMuscular": "Cuádriceps y glúteos",
     "equipamiento": "Peso corporal",
-    "dificultad": "Avanzado",
-    "imagenUrl": "/imagenes/burpees.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=TU8QYXL8gEQ",
-    "instrucciones": "1. Flexión.\n2. Recoge.\n3. Salto."
+    "nivel": "Principiante",
+    "tipoMovimiento": "Compuesto",
+    "descripcionCorta": "Ejercicio básico para fortalecer piernas y glúteos.",
+    "instrucciones": [
+      "Colócate de pie con los pies al ancho de los hombros.",
+      "Desciende flexionando cadera y rodillas.",
+      "Mantén el pecho erguido.",
+      "Sube empujando el suelo con los pies."
+    ],
+    "consejosTecnicos": [
+      "Mantén las rodillas alineadas con los pies.",
+      "Controla la profundidad.",
+      "Mantén el abdomen activo."
+    ],
+    "erroresComunes": [
+      "Juntar las rodillas hacia dentro.",
+      "Levantar los talones.",
+      "Inclinar demasiado el tronco."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   },
   {
-    "nombre": "Mountain Climbers",
-    "grupoMuscular": "Cardio",
+    "slug": "aperturas-mancuerna",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/aperturas-con-mancuerna.mp4",
+    "nombre": "Aperturas con mancuerna",
+    "grupoMuscular": "Pecho",
+    "subgrupoMuscular": "Pectoral",
+    "equipamiento": "Mancuernas",
+    "nivel": "Intermedio",
+    "tipoMovimiento": "Aislamiento",
+    "descripcionCorta": "Ejercicio de aislamiento para trabajar el pecho con mancuernas.",
+    "instrucciones": [
+      "Acuéstate en un banco sujetando las mancuernas.",
+      "Coloca los brazos extendidos sobre el pecho con ligera flexión de codos.",
+      "Abre los brazos hacia los lados de forma controlada.",
+      "Vuelve a juntar las mancuernas arriba."
+    ],
+    "consejosTecnicos": [
+      "Mantén una ligera flexión de codos.",
+      "Controla el rango de movimiento.",
+      "No rebotes abajo."
+    ],
+    "erroresComunes": [
+      "Bajar demasiado los brazos.",
+      "Flexionar y extender como si fuera press.",
+      "Usar peso excesivo."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
+  },
+  {
+    "slug": "dead-bug-1-1",
+    "videoUrl": "https://res.cloudinary.com/defpcfopi/video/upload/nextfit/ejercicios/videos/dead-bug-1-1.mp4",
+    "nombre": "Dead bug 1-1",
+    "grupoMuscular": "Core",
+    "subgrupoMuscular": "Abdominal profundo",
     "equipamiento": "Peso corporal",
-    "dificultad": "Intermedio",
-    "imagenUrl": "/imagenes/mountain_climbers.jpg",
-    "videoUrl": "https://www.youtube.com/watch?v=nmwgirgXLIg",
-    "instrucciones": "1. Posición plancha.\n2. Rodillas al pecho.\n3. Rápido."
+    "nivel": "Principiante",
+    "tipoMovimiento": "Estabilidad",
+    "descripcionCorta": "Variante básica de dead bug para mejorar control abdominal.",
+    "instrucciones": [
+      "Acuéstate boca arriba con brazos y piernas elevados.",
+      "Mantén la zona lumbar estable.",
+      "Extiende una extremidad de forma controlada.",
+      "Vuelve al centro y repite."
+    ],
+    "consejosTecnicos": [
+      "No arquees la espalda.",
+      "Muévete lentamente.",
+      "Mantén el abdomen activo."
+    ],
+    "erroresComunes": [
+      "Despegar la zona lumbar.",
+      "Moverse demasiado rápido.",
+      "Perder la respiración controlada."
+    ],
+    "imagenPrincipal": null,
+    "imagenPaso1": null,
+    "imagenPaso2": null,
+    "imagenPaso3": null,
+    "tieneAnimacion": false,
+    "tipoVisual": "secuencia",
+    "origen": "PROPIO",
+    "activo": true
   }
 ]

@@ -80,42 +80,174 @@ export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) 
 
     const styles = {
         page: { 
-            padding: '30px', 
+            padding: 'var(--spacing-xl) var(--spacing-2xl)', 
             color: 'white', 
             minHeight: '100vh', 
             background: isCoachMode ? '#000000' : '#09090b', // Fondo distinto para Coach
             fontFamily: 'sans-serif', 
-            paddingBottom: '100px' 
+            paddingBottom: '100px',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-lg) var(--spacing-md)',
+                paddingBottom: 'var(--spacing-2xl)'
+            }
         },
-        header: { display: 'flex', alignItems: 'center', marginBottom: '30px', gap:'15px' },
-        title: { fontSize: '1.8rem', fontWeight: '900', textTransform: 'uppercase', margin: 0 },
-        subTitle: { fontSize: '1.4rem', fontWeight: '900', marginBottom: '15px', textTransform: 'uppercase', color: '#e4e4e7' },
+        header: { 
+            display: 'flex', 
+            alignItems: 'center', 
+            marginBottom: 'var(--spacing-xl)', 
+            gap:'var(--spacing-md)',
+            '@media (max-width: 767px)': {
+                marginBottom: 'var(--spacing-lg)',
+                flexWrap: 'wrap'
+            }
+        },
+        title: { 
+            fontSize: 'clamp(1.5rem, 4vw, 1.8rem)', 
+            fontWeight: '900', 
+            textTransform: 'uppercase', 
+            margin: 0 
+        },
+        subTitle: { 
+            fontSize: 'clamp(1.2rem, 3vw, 1.4rem)', 
+            fontWeight: '900', 
+            marginBottom: '15px', 
+            textTransform: 'uppercase', 
+            color: '#e4e4e7' 
+        },
         
-        grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '30px' },
-        statCard: { background: '#121214', padding: '20px', borderRadius: '12px', border: '1px solid #27272a' },
-        statLabel: { color: '#71717a', fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '5px' },
-        statValue: { fontSize: '1.5rem', fontWeight: '900', color: 'white' },
-        iconBox: { marginBottom: '10px', color: '#FACC15' },
+        grid: { 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+            gap: 'var(--spacing-md)', 
+            marginBottom: 'var(--spacing-xl)',
+            '@media (max-width: 767px)': {
+                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                gap: 'var(--spacing-sm)',
+                marginBottom: 'var(--spacing-lg)'
+            }
+        },
+        statCard: { 
+            background: '#121214', 
+            padding: 'var(--spacing-lg)', 
+            borderRadius: '12px', 
+            border: '1px solid #27272a',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-md)',
+                borderRadius: '8px'
+            }
+        },
+        statLabel: { 
+            color: '#71717a', 
+            fontSize: '0.8rem', 
+            fontWeight: 'bold', 
+            textTransform: 'uppercase', 
+            marginBottom: '5px' 
+        },
+        statValue: { 
+            fontSize: '1.5rem', 
+            fontWeight: '900', 
+            color: 'white',
+            '@media (max-width: 767px)': {
+                fontSize: '1.3rem'
+            }
+        },
+        iconBox: { 
+            marginBottom: '10px', 
+            color: '#FACC15' 
+        },
 
-        divider: { height: '1px', background: '#27272a', margin: '40px 0' },
+        divider: { 
+            height: '1px', 
+            background: '#27272a', 
+            margin: 'var(--spacing-2xl) 0',
+            '@media (max-width: 767px)': {
+                margin: 'var(--spacing-xl) 0'
+            }
+        },
         
-        topChartsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' },
-        midSectionGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px', marginBottom: '30px' },
+        topChartsGrid: { 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+            gap: 'var(--spacing-lg)', 
+            marginBottom: 'var(--spacing-lg)',
+            '@media (max-width: 767px)': {
+                gridTemplateColumns: '1fr',
+                gap: 'var(--spacing-md)'
+            }
+        },
+        midSectionGrid: { 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', 
+            gap: 'var(--spacing-lg)', 
+            marginBottom: 'var(--spacing-xl)',
+            '@media (max-width: 767px)': {
+                gridTemplateColumns: '1fr',
+                gap: 'var(--spacing-md)'
+            }
+        },
 
-        selectorContainer: { marginBottom: '20px' },
-        select: { width: '100%', padding: '12px', background: '#18181b', color: 'white', border: '1px solid #333', borderRadius: '8px', fontSize: '1rem', outline: 'none', cursor: 'pointer' }
+        selectorContainer: { 
+            marginBottom: 'var(--spacing-lg)' 
+        },
+        select: { 
+            width: '100%', 
+            padding: '12px', 
+            background: '#18181b', 
+            color: 'white', 
+            border: '1px solid #333', 
+            borderRadius: '8px', 
+            fontSize: '1rem', 
+            outline: 'none', 
+            cursor: 'pointer',
+            '@media (max-width: 767px)': {
+                padding: '14px',
+                fontSize: '1.1rem',
+                minHeight: '48px'
+            }
+        }
     };
 
     return (
         <div style={styles.page}>
             <div style={styles.header}>
                 {/* 3. BOTÓN VOLVER (Importante para el entrenador) */}
-                <button onClick={() => navigate(-1)} style={{background:'none', border:'none', color:'#777', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}>
+                <button 
+                    onClick={() => navigate(-1)} 
+                    style={{
+                        background:'none', 
+                        border:'none', 
+                        color:'#777', 
+                        cursor:'pointer', 
+                        display:'flex', 
+                        alignItems:'center', 
+                        gap:'5px',
+                        padding: 'var(--spacing-sm)',
+                        borderRadius: '6px',
+                        transition: 'background 0.2s',
+                        '@media (max-width: 767px)': {
+                            padding: 'var(--spacing-xs)',
+                            fontSize: '0.9rem'
+                        }
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                >
                     <ArrowLeft/> {isCoachMode ? 'VOLVER' : ''}
                 </button>
                 <div>
                     <h1 style={styles.title}>Progreso {isCoachMode ? 'del Atleta' : ''}</h1>
-                    {isCoachMode && <span style={{color:'#FACC15', fontSize:'0.75rem', fontWeight:'bold', background:'#222', padding:'2px 8px', borderRadius:'4px'}}>VISTA ENTRENADOR</span>}
+                    {isCoachMode && <span style={{
+                        color:'#FACC15', 
+                        fontSize:'0.75rem', 
+                        fontWeight:'bold', 
+                        background:'#222', 
+                        padding:'2px 8px', 
+                        borderRadius:'4px',
+                        '@media (max-width: 767px)': {
+                            fontSize: '0.7rem',
+                            padding: '2px 6px'
+                        }
+                    }}>VISTA ENTRENADOR</span>}
                 </div>
             </div>
 

@@ -72,6 +72,8 @@ public interface EjercicioDAO extends JpaRepository<Ejercicio, UUID> {
     // --- BUSCAR POR TEXTO ---
     Optional<Ejercicio> findFirstByNombreContainingIgnoreCase(String texto);
 
+    Optional<Ejercicio> findBySlug(String slug);
+
     // --- CONTROL DE DUPLICADOS API ---
     boolean existsByApiId(String apiId);
 

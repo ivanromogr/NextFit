@@ -47,7 +47,7 @@ export default function LoginScreen() {
       };
 
       const body = new URLSearchParams(loginData).toString();
-      const AUTH_HOST = 'http://192.168.1.46:8080';
+      const AUTH_HOST = 'http://192.168.1.47:8080';
 
       const resp = await axios.post(`${AUTH_HOST}/login`, body, {
          headers: { "Content-Type": "application/x-www-form-urlencoded" }

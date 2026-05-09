@@ -18,8 +18,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.tuap.backend.controladores.EjercicioController;
 import com.tuap.backend.dominio.entidades.Ejercicio;
+import com.tuap.backend.dominio.gestores.GestorEjerciciosApi;
 import com.tuap.backend.dto.EjercicioResponse;
 import com.tuap.backend.persistencia.EjercicioDAO;
+import com.tuap.backend.servicios.EjercicioSeeder;
+import com.tuap.backend.servicios.TraductorEjercicios;
 
 @ExtendWith(MockitoExtension.class)
 class EjercicioControllerTest {
@@ -30,6 +33,15 @@ class EjercicioControllerTest {
     @Mock
     private EjercicioDAO ejercicioDAO;
 
+    @Mock
+    private GestorEjerciciosApi gestorEjerciciosApi;
+
+    @Mock
+    private EjercicioSeeder ejercicioSeeder;
+
+    @Mock
+    private TraductorEjercicios traductorEjercicios;
+
     private Ejercicio ejercicioMock;
 
     @BeforeEach
@@ -38,6 +50,7 @@ class EjercicioControllerTest {
         ejercicioMock.setId(UUID.randomUUID());
         ejercicioMock.setNombre("Dominadas");
         ejercicioMock.setGrupoMuscular("Espalda");
+        ejercicioMock.setEquipamiento("Peso corporal");
     }
 
     // 🟢 TEST 1: Obtener todos los ejercicios
@@ -45,6 +58,7 @@ class EjercicioControllerTest {
     void obtenerTodos_DevuelveListaDeEjercicios() {
         // --- PREPARACIÓN ---
         when(ejercicioDAO.findAll()).thenReturn(Arrays.asList(ejercicioMock));
+        when(traductorEjercicios.traducirMusculoAEspanol("Espalda")).thenReturn("Espalda");
 
         // --- ACCIÓN ---
         List<EjercicioResponse> resultado = ejercicioController.obtenerTodos();
@@ -59,7 +73,9 @@ class EjercicioControllerTest {
     @Test
     void buscar_ConParametrosValidos_LlamaADaoConFiltros() {
         // --- PREPARACIÓN ---
-        when(ejercicioDAO.buscarAvanzado("Dominadas", "Espalda")).thenReturn(Arrays.asList(ejercicioMock));
+        when(ejercicioDAO.buscarAvanzadoConListaMusculos("Dominadas", Arrays.asList("back", "lats", "traps", "spine", "rhomboids")))
+                .thenReturn(Arrays.asList(ejercicioMock));
+        when(traductorEjercicios.traducirMusculoAEspanol("Espalda")).thenReturn("Espalda");
 
         // --- ACCIÓN ---
         List<EjercicioResponse> resultado = ejercicioController.buscar("Dominadas", "Espalda");
@@ -67,7 +83,8 @@ class EjercicioControllerTest {
         // --- COMPROBACIÓN ---
         assertEquals(1, resultado.size());
         // Verificamos que le pasó los parámetros correctos a la BBDD
-        verify(ejercicioDAO, times(1)).buscarAvanzado("Dominadas", "Espalda");
+        verify(ejercicioDAO, times(1))
+                .buscarAvanzadoConListaMusculos("Dominadas", Arrays.asList("back", "lats", "traps", "spine", "rhomboids"));
     }
 
     // 🟢 TEST 3: Buscar con textos vacíos ("") los convierte a null
@@ -75,7 +92,8 @@ class EjercicioControllerTest {
     void buscar_ConTextosVacios_LlamaADaoConNulos() {
         // --- PREPARACIÓN ---
         // Si le pasamos nulls, la base de datos devuelve todos
-        when(ejercicioDAO.buscarAvanzado(null, null)).thenReturn(Arrays.asList(ejercicioMock));
+        when(ejercicioDAO.findAll()).thenReturn(Arrays.asList(ejercicioMock));
+        when(traductorEjercicios.traducirMusculoAEspanol("Espalda")).thenReturn("Espalda");
 
         // --- ACCIÓN ---
         // Simulamos que el frontend (el móvil) manda los campos de búsqueda vacíos
@@ -86,6 +104,6 @@ class EjercicioControllerTest {
         
         // ¡Magia! Verificamos que tu lógica del controlador (el operador ternario '? :') 
         // transformó los "" en nulls antes de hablar con la BBDD
-        verify(ejercicioDAO, times(1)).buscarAvanzado(null, null);
+        verify(ejercicioDAO, times(1)).findAll();
     }
 }

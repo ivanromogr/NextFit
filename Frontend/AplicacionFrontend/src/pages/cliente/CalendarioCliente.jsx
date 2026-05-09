@@ -197,22 +197,105 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
 
     // --- ESTILOS PREMIUM ---
     const styles = {
-        page: { padding: '30px 40px', color: 'white', minHeight: '100vh', background: modoEntrenador ? '#000000' : '#050505', fontFamily: "'Inter', sans-serif" },
-        header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
-        title: { fontSize: '2rem', fontWeight: 900, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '15px', letterSpacing: '-0.5px' },
-        navBtn: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', cursor: 'pointer', padding: '10px', display: 'flex', alignItems: 'center', transition: 'all 0.2s' },
-        grid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '12px' },
-        dayHeader: { textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: 800, padding: '10px 0', letterSpacing: '1px' },
+        page: { 
+            padding: 'var(--spacing-xl) var(--spacing-2xl)', 
+            color: 'white', 
+            minHeight: '100vh', 
+            background: modoEntrenador ? '#000000' : '#050505', 
+            fontFamily: "'Inter', sans-serif",
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-md) var(--spacing-sm)'
+            }
+        },
+        header: { 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: 'var(--spacing-xl)',
+            '@media (max-width: 767px)': {
+                marginBottom: 'var(--spacing-lg)',
+                flexWrap: 'wrap',
+                gap: 'var(--spacing-md)'
+            }
+        },
+        title: { 
+            fontSize: 'clamp(1.5rem, 4vw, 2rem)', 
+            fontWeight: 900, 
+            textTransform: 'uppercase', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '15px', 
+            letterSpacing: '-0.5px',
+            '@media (max-width: 767px)': {
+                order: 2,
+                width: '100%',
+                justifyContent: 'center'
+            }
+        },
+        navBtn: { 
+            background: 'rgba(255,255,255,0.05)', 
+            border: '1px solid rgba(255,255,255,0.1)', 
+            borderRadius: '12px', 
+            color: 'white', 
+            cursor: 'pointer', 
+            padding: '10px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            transition: 'all 0.2s',
+            '@media (max-width: 767px)': {
+                padding: '8px'
+            }
+        },
+        grid: { 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(7, 1fr)', 
+            gap: 'var(--spacing-sm)',
+            '@media (max-width: 767px)': {
+                gap: 'var(--spacing-xs)'
+            }
+        },
+        dayHeader: { 
+            textAlign: 'center', 
+            color: 'rgba(255,255,255,0.4)', 
+            fontSize: '0.8rem', 
+            fontWeight: 800, 
+            padding: '10px 0', 
+            letterSpacing: '1px',
+            '@media (max-width: 767px)': {
+                fontSize: '0.7rem',
+                padding: '8px 0'
+            }
+        },
         
         // Celda del día interactiva
         dayCell: (isSameMonth, isToday, isHovered) => ({
             background: isSameMonth ? (isHovered ? 'rgba(250, 204, 21, 0.03)' : 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)') : 'transparent', 
             border: isToday ? '2px solid rgba(250, 204, 21, 0.5)' : (isHovered ? '1px solid rgba(250, 204, 21, 0.3)' : '1px solid rgba(255,255,255,0.05)'), 
-            borderRadius: '16px', minHeight: '140px', padding: '12px', cursor: 'pointer', opacity: isSameMonth ? 1 : 0.2,
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative', overflow: 'hidden'
+            borderRadius: '16px', 
+            minHeight: '140px', 
+            padding: 'var(--spacing-sm)', 
+            cursor: 'pointer', 
+            opacity: isSameMonth ? 1 : 0.2,
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', 
+            position: 'relative', 
+            overflow: 'hidden',
+            '@media (max-width: 767px)': {
+                minHeight: '100px',
+                padding: 'var(--spacing-xs)',
+                borderRadius: '12px'
+            }
         }),
         dateNum: (isToday, isHovered) => ({
-            fontSize: '1rem', fontWeight: 900, color: isToday ? '#FACC15' : (isHovered ? 'white' : 'rgba(255,255,255,0.5)'), marginBottom: '10px', pointerEvents: 'none', transition: 'color 0.2s'
+            fontSize: '1rem', 
+            fontWeight: 900, 
+            color: isToday ? '#FACC15' : (isHovered ? 'white' : 'rgba(255,255,255,0.5)'), 
+            marginBottom: '10px', 
+            pointerEvents: 'none', 
+            transition: 'color 0.2s',
+            '@media (max-width: 767px)': {
+                fontSize: '0.9rem',
+                marginBottom: '6px'
+            }
         }),
         
         // Botón flotante al hacer hover
@@ -236,8 +319,35 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         },
         
         // Estilos Modal Inteligente
-        modalOverlay: { position: 'fixed', inset:0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
-        modalCard: { background: '#09090b', padding: '40px', borderRadius: '24px', width: '90%', maxWidth: '450px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', position: 'relative' },
+        modalOverlay: { 
+            position: 'fixed', 
+            inset:0, 
+            background: 'rgba(0,0,0,0.85)', 
+            backdropFilter: 'blur(8px)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            zIndex: 100,
+            padding: 'var(--spacing-md)',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-sm)'
+            }
+        },
+        modalCard: { 
+            background: '#09090b', 
+            padding: 'var(--spacing-2xl)', 
+            borderRadius: '24px', 
+            width: '90%', 
+            maxWidth: '450px', 
+            border: '1px solid rgba(255,255,255,0.1)', 
+            boxShadow: '0 25px 50px rgba(0,0,0,0.5)', 
+            position: 'relative',
+            '@media (max-width: 767px)': {
+                padding: 'var(--spacing-lg)',
+                borderRadius: '16px',
+                maxWidth: '95%'
+            }
+        },
         closeBtn: { position: 'absolute', top: '20px', right: '20px', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
         rutinaItemBtn: { width: '100%', display: 'flex', alignItems: 'center', gap: '15px', padding: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', color: 'white', cursor: 'pointer', marginBottom: '10px', transition: 'all 0.2s', textAlign: 'left' }
     };
@@ -252,19 +362,67 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
     return (
         <div style={styles.page}>
             {modoEntrenador && (
-                <button onClick={() => navigate(-1)} style={{display:'flex', alignItems:'center', gap:'8px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'white', cursor:'pointer', marginBottom:'20px', padding:'8px 16px', borderRadius:'12px', fontWeight:700}}>
+                <button 
+                    onClick={() => navigate(-1)} 
+                    style={{
+                        display:'flex', 
+                        alignItems:'center', 
+                        gap:'8px', 
+                        background:'rgba(255,255,255,0.05)', 
+                        border:'1px solid rgba(255,255,255,0.1)', 
+                        color:'white', 
+                        cursor:'pointer', 
+                        marginBottom:'var(--spacing-lg)', 
+                        padding:'var(--spacing-sm) var(--spacing-md)', 
+                        borderRadius:'12px', 
+                        fontWeight:700,
+                        '@media (max-width: 767px)': {
+                            marginBottom: 'var(--spacing-md)',
+                            padding: 'var(--spacing-xs) var(--spacing-sm)',
+                            fontSize: '0.9rem'
+                        }
+                    }}
+                >
                     <ArrowLeft size={16}/> VOLVER AL PERFIL
                 </button>
             )}
 
             <div style={styles.header}>
-                <button style={styles.navBtn} onClick={() => setCurrentDate(subMonths(currentDate, 1))} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}><ChevronLeft/></button>
+                <button 
+                    style={{...styles.navBtn, '@media (max-width: 767px)': { order: 1 }}} 
+                    onClick={() => setCurrentDate(subMonths(currentDate, 1))} 
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} 
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                >
+                    <ChevronLeft/>
+                </button>
                 <h2 style={styles.title}>
                     <Dumbbell size={28} color="#FACC15"/> 
                     {format(currentDate, 'MMMM yyyy', { locale: es })}
-                    {modoEntrenador && <span style={{fontSize:'0.7rem', background:'rgba(255,255,255,0.1)', padding:'6px 12px', borderRadius:'20px', color:'white', marginLeft:'15px', letterSpacing:'1px'}}>MODO ENTRENADOR</span>}
+                    {modoEntrenador && <span style={{
+                        fontSize:'0.7rem', 
+                        background:'rgba(255,255,255,0.1)', 
+                        padding:'6px 12px', 
+                        borderRadius:'20px', 
+                        color:'white', 
+                        marginLeft:'15px', 
+                        letterSpacing:'1px',
+                        '@media (max-width: 767px)': {
+                            display: 'block',
+                            marginLeft: 0,
+                            marginTop: 'var(--spacing-xs)',
+                            textAlign: 'center'
+                        }
+                    }}>MODO ENTRENADOR</span>}
                 </h2>
-                <button style={styles.navBtn} onClick={() => setCurrentDate(addMonths(currentDate, 1))} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}><ChevronRight/></button>
+                <button 
+                    style={{...styles.navBtn, '@media (max-width: 767px)': { order: 3 }}} 
+                    onClick={() => setCurrentDate(addMonths(currentDate, 1))} 
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} 
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                >
+                    <ChevronRight/>
+                </button>
             </div>
 
             <div style={styles.grid}>
