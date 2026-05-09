@@ -26,7 +26,7 @@ public class SecurityConfig {
 
     private static final String LOGIN_URL = "/login";
 
-    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173,https://next-fit-azure.vercel.app,https://next-fit-iyrm.vercel.app,https://*.vercel.app}")
     private String allowedOrigins;
 
     private final CustomUserDetailsService userDetailsService;
@@ -66,9 +66,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(
+        configuration.setAllowedOriginPatterns(
             Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
+                .filter(origin -> !origin.isBlank())
                 .toList()
         );
 
