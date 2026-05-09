@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCliente } from '../../api/endpoints'; // Asegúrate de que esta importación es correcta
+import { actualizarCliente, getCliente } from '../../api/endpoints'; // Asegúrate de que esta importación es correcta
 import { useAuth } from '../../context/AuthContext';
 import { User, Save, ChevronLeft, Camera, Mail, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 import ImageUpload from '../../components/ui/ImageUpload';
@@ -79,17 +79,7 @@ const EditarPerfil = () => {
 
       console.log('📤 Enviando payload cliente:', payload);
 
-      const response = await fetch(`http://localhost:8080/api/clientes/${userId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMsg = typeof errorData === 'string' ? errorData : JSON.stringify(errorData);
-        throw new Error(`HTTP ${response.status}: ${errorMsg}`);
-      }
+      await actualizarCliente(userId, payload);
 
       showToast('Perfil actualizado correctamente', 'success');
       setTimeout(() => navigate('/cliente/dashboard'), 1500);

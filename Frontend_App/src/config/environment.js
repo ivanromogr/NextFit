@@ -5,27 +5,34 @@
  * - PRODUCCIÓN: Apunta al servidor desplegado
  */
 
-const isDevelopment = __DEV__;
+const DEFAULT_BASE_URL = 'https://nextfit-pa8i.onrender.com';
+const envBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || DEFAULT_BASE_URL;
+const normalizedBaseUrl = envBaseUrl.replace(/\/$/, '');
 
 const ENVIRONMENTS = {
   development: {
-    BASE_URL: 'http://192.168.1.47:8080',
-    API_URL: 'http://192.168.1.47:8080/api',
+    BASE_URL: normalizedBaseUrl,
+    API_URL: `${normalizedBaseUrl}/api`,
     NAME: 'DEVELOPMENT',
   },
   production: {
-    BASE_URL: 'https://nextfit-pa8i.onrender.com',
-    API_URL: 'https://nextfit-pa8i.onrender.com/api',
+    BASE_URL: normalizedBaseUrl,
+    API_URL: `${normalizedBaseUrl}/api`,
     NAME: 'PRODUCTION',
   },
 };
 
-const currentEnvironment = isDevelopment
+const currentEnvironment = __DEV__
   ? ENVIRONMENTS.development
   : ENVIRONMENTS.production;
+
+const WS_URL = currentEnvironment.BASE_URL
+  .replace(/^https/, 'wss')
+  .replace(/^http/, 'ws') + '/ws';
 
 console.log(`[ENVIRONMENT] 🌍 Modo: ${currentEnvironment.NAME}`);
 console.log(`[ENVIRONMENT] 🔗 Base URL: ${currentEnvironment.BASE_URL}`);
 
 export const { BASE_URL, API_URL, NAME } = currentEnvironment;
+export { WS_URL };
 export const ENV = currentEnvironment;

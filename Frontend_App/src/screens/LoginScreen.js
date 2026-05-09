@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock, ArrowRight } from 'lucide-react-native'; 
-import { api } from '../api/api';
 import axios from 'axios';
 import { useAuth } from '../components/context/AuthContext';
+import { BASE_URL } from '../config/environment';
 
 // Componentes UI reutilizables
 import GymButton from '../components/ui/GymButton';
@@ -47,9 +47,8 @@ export default function LoginScreen() {
       };
 
       const body = new URLSearchParams(loginData).toString();
-      const AUTH_HOST = 'http://192.168.1.47:8080';
 
-      const resp = await axios.post(`${AUTH_HOST}/login`, body, {
+      const resp = await axios.post(`${BASE_URL}/login`, body, {
          headers: { "Content-Type": "application/x-www-form-urlencoded" }
       });
 

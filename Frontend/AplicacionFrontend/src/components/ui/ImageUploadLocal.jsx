@@ -1,5 +1,6 @@
 import React from "react";
 import { Upload, Image as ImageIcon } from "lucide-react";
+import { API_BASE_URL } from "../../api/config";
 
 export default function ImageUploadLocal({ onUploadSuccess }) {
     
@@ -19,7 +20,7 @@ export default function ImageUploadLocal({ onUploadSuccess }) {
                 
                
                 try {
-                    const response = await fetch('http://localhost:8080/api/upload/base64', {
+                    const response = await fetch(`${API_BASE_URL}/api/upload/base64`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ base64: base64String })

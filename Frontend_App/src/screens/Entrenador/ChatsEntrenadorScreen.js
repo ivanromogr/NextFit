@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Tus endpoints y contexto
 import { obtenerClientesEntrenador, getCliente, buscarUsuarioPorEmail } from '../../api/endpoints';
 import { useAuth } from '../../components/context/AuthContext';
+import { BASE_URL } from '../../config/environment';
 
 // WebSockets 
 const Stomp = require('stompjs/lib/stomp.js').Stomp;
@@ -71,8 +72,7 @@ export default function ChatsEntrenadorScreen() {
     };
 
     const conectarSocketGlobal = () => {
-        // ⚠️ RECUERDA PONER TU IP AQUÍ (ej: 192.168.1.X)
-        const socket = new SockJS('http://192.168.1.24:8080/ws'); 
+        const socket = new SockJS(`${BASE_URL}/ws`); 
         const client = Stomp.over(socket);
         client.debug = null;
 

@@ -24,6 +24,7 @@ import 'react-native-get-random-values';
 
 import * as ImagePicker from 'expo-image-picker';
 import { obtenerHistorialChat, api, getImageUrl } from '../../api/endpoints';
+import { WS_URL } from '../../config/environment';
 
 export default function ChatComponent({ usuarioId, destinatarioId, nombreDestinatario }) {
     const [mensajes, setMensajes] = useState([]);
@@ -67,7 +68,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
 
     const conectarWebSocket = () => {
         const client = new Client({
-            brokerURL: 'ws://192.168.1.47:8080/ws', 
+            brokerURL: WS_URL,
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,

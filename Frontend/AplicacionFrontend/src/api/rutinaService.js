@@ -1,4 +1,6 @@
-const API_BASE_URL = "http://localhost:8080/api";
+import { API_BASE_URL } from "./config";
+
+const API_URL = `${API_BASE_URL}/api`;
 
 export const RutinaService = {
   
@@ -7,7 +9,7 @@ export const RutinaService = {
    */
   async generarRutinaAuto(requestData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/rutinas/generar`, {
+      const response = await fetch(`${API_URL}/rutinas/generar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestData),
@@ -26,7 +28,7 @@ export const RutinaService = {
    */
   async crearRutinaManual(rutinaData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/rutinas/manual`, {
+      const response = await fetch(`${API_URL}/rutinas/manual`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(rutinaData),
@@ -44,7 +46,7 @@ export const RutinaService = {
    */
   async obtenerRutinasUsuario(idCliente) {
     try {
-      const response = await fetch(`${API_BASE_URL}/rutinas/cliente/${idCliente}`);
+      const response = await fetch(`${API_URL}/rutinas/cliente/${idCliente}`);
       if (!response.ok) return [];
       return await response.json(); 
     } catch (error) {
@@ -57,7 +59,7 @@ export const RutinaService = {
    */
   async obtenerEjercicios() {
     try {
-      const response = await fetch(`${API_BASE_URL}/ejercicios`);
+      const response = await fetch(`${API_URL}/ejercicios`);
       if (!response.ok) throw new Error("Error obteniendo ejercicios");
       return await response.json();
     } catch (error) {

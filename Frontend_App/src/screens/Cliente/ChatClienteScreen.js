@@ -13,6 +13,7 @@ import ChatComponent from "../../components/functional/ChatComponent";
 import { Search, User, Plus, X, ChevronLeft } from "lucide-react-native";
 import { Client } from '@stomp/stompjs';
 import 'react-native-get-random-values';
+import { WS_URL } from '../../config/environment';
 
 export default function ChatClienteScreen() {
     const { userId: clienteId } = useAuth();
@@ -57,7 +58,7 @@ export default function ChatClienteScreen() {
 
     const conectarSocketGlobal = () => {
         const client = new Client({
-            brokerURL: 'ws://192.168.1.XX:8080/ws', // PON TU IP AQUÍ
+            brokerURL: WS_URL,
             onConnect: () => {
                 client.subscribe(`/topic/mensajes/${clienteId}`, (payload) => {
                     const msg = JSON.parse(payload.body);

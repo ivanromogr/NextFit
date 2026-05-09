@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, Check, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from '../../api/config';
 
 const ImageUpload = ({ onUploadSuccess, label = 'Subir imagen' }) => {
   const [uploading, setUploading] = useState(false);
@@ -30,7 +31,7 @@ const ImageUpload = ({ onUploadSuccess, label = 'Subir imagen' }) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:8080/api/upload', {
+      const response = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         body: formData,
         headers: {

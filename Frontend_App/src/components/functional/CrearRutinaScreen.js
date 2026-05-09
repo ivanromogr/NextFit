@@ -179,7 +179,7 @@ export default function CrearRutinaScreen() {
         // Mostrar alerta visual al usuario en móvil
         Alert.alert(
           'Error de conexión',
-          'No se pudieron cargar los ejercicios. Verifica que el backend esté disponible en http://192.168.1.30:8080',
+          'No se pudieron cargar los ejercicios. Verifica que el backend esté disponible.',
           [{ text: 'OK', onPress: () => console.log('Alert cerrada') }]
         );
         
