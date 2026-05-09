@@ -34,6 +34,7 @@ export default function ClienteSidebar({ isOpen, onClose }) {
   const styles = {
     sidebar: {
       width: "250px",
+      flexShrink: 0,
       background: "#0c0c0e",
       borderRight: "1px solid #1f1f22",
       padding: "28px 18px",

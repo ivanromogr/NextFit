@@ -26,10 +26,17 @@ export default function ClienteLayout() {
     wrapper: {
       display: "flex",
       minHeight: "100vh",
+      width: "100%",
       background: "#09090b",
       fontFamily: "'Inter', sans-serif",
       color: "white",
       position: "relative",
+      overflowX: "hidden",
+    },
+    main: {
+      flex: 1,
+      minWidth: 0,
+      width: "100%",
     },
     mobileMenuButton: {
       display: isMobile ? "block" : "none",
