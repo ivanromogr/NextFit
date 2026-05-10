@@ -31,6 +31,12 @@ export default function ClienteLayout() {
       color: "white",
       position: "relative",
     },
+    main: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: "100vh",
+      background: "#050505",
+    },
     mobileMenuButton: {
       display: isMobile ? "block" : "none",
       position: "fixed",
