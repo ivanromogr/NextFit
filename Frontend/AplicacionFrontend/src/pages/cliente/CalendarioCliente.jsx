@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
     format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, 
     eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths 
@@ -52,6 +52,16 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [eventToDelete, setEventToDelete] = useState(null);
 
+    const cargarEventos = useCallback(async () => {
+        const start = format(startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        const end = format(endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        
+        const idFiltroEntrenador = modoEntrenador ? userId : null;
+        const data = await obtenerEventosCalendario(clienteId, start, end, idFiltroEntrenador);
+        
+        setEventos(data);
+    }, [currentDate, modoEntrenador, userId, clienteId]);
+
     useEffect(() => {
         if (!clienteId) return;
         cargarEventos();
@@ -61,17 +71,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         } else {
             obtenerRutinasCliente(clienteId).then(data => setRutinas(data || []));
         }
-    }, [currentDate, clienteId, modoEntrenador, userId]);
-
-    const cargarEventos = async () => {
-        const start = format(startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-        const end = format(endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-        
-        const idFiltroEntrenador = modoEntrenador ? userId : null;
-        const data = await obtenerEventosCalendario(clienteId, start, end, idFiltroEntrenador);
-        
-        setEventos(data);
-    };
+    }, [clienteId, modoEntrenador, userId, cargarEventos]);
 
     const rutinasDisponibles = rutinas; 
 

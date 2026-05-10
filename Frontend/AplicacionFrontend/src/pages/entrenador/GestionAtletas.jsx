@@ -73,8 +73,13 @@ export default function GestionAtletas() {
       setShowAddModal(false);
       setNewClientEmail("");
       cargarClientes();
-    } catch (e) { 
-        alert("Error al vincular el atleta"); 
+    } catch (e) {
+        const backendMessage =
+          e?.response?.data?.message ||
+          e?.response?.data?.error ||
+          e?.message ||
+          "Error al vincular el atleta";
+        alert(backendMessage);
     }
   };
 

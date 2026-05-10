@@ -65,7 +65,7 @@ public class EntrenadorController {
 
             for (Cliente c : clientes) {
                 Map<String, Object> item = new HashMap<>();
-                item.put("cliente", c);
+                item.put("cliente", serializarClienteResumen(c));
                 long sesionesEstaSemana = obtenerConteoSesionesSeguro(c.getId(), inicio, fin);
                 item.put("semanaCompletada", sesionesEstaSemana >= 3);
                 item.put("sesionesHechas", sesionesEstaSemana);
@@ -84,6 +84,17 @@ public class EntrenadorController {
            
             return 0;
         }
+    }
+
+    private Map<String, Object> serializarClienteResumen(Cliente cliente) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", cliente.getId());
+        data.put("nombre", cliente.getNombre());
+        data.put("apellido", cliente.getApellido());
+        data.put("email", cliente.getEmail());
+        data.put("objetivo", cliente.getObjetivo());
+        data.put("fotoPerfil", cliente.getFotoPerfil());
+        return data;
     }
 
     @GetMapping("/{id}/reviews")

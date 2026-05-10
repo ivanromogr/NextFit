@@ -274,7 +274,7 @@ export default function SesionEntrenamiento() {
     };
 
    const confirmFinish = async () => {
-        if (!userId) {
+        if (!targetUserId) {
             toast.error("Error: Sesión caducada.");
             return;
         }
@@ -302,7 +302,7 @@ export default function SesionEntrenamiento() {
             });
 
             const payload = {
-                clienteId: userId,
+                clienteId: targetUserId,
                 rutinaId: rutinaId,
                 duracionSegundos: tiempo,
                 notasGenerales: notasUnificadas || "Sesión finalizada.",
