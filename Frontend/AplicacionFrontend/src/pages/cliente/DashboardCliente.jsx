@@ -124,7 +124,6 @@ export default function DashboardCliente() {
             padding: 'var(--spacing-xl) var(--spacing-2xl)', 
             background: '#050505', 
             minHeight: '100vh', 
-            width: '100%',
             color: 'white', 
             fontFamily: "'Inter', system-ui, sans-serif",
             '@media (max-width: 767px)': {
