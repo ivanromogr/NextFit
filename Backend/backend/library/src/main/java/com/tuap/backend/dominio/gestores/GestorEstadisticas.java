@@ -130,6 +130,46 @@ public class GestorEstadisticas {
         return prList;
     }
 
+    public List<Map<String, Object>> obtenerEjerciciosConHistorial(UUID clienteId, UUID entrenadorId) {
+        List<SesionEntrenamiento> sesiones = filtrarPorEntrenador(sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId), entrenadorId);
+        Map<UUID, Map<String, Object>> ejercicios = new LinkedHashMap<>();
+
+        for (SesionEntrenamiento sesion : sesiones) {
+            for (SerieRealizada serie : sesion.getSeries()) {
+                if (!serie.isHecho() || serie.getEjercicio() == null) continue;
+                UUID ejercicioId = serie.getEjercicio().getId();
+                ejercicios.computeIfAbsent(ejercicioId, id -> {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("id", id);
+                    item.put("nombre", serie.getEjercicio().getNombre());
+                    item.put("nombreTraducido", serie.getEjercicio().getNombreTraducido());
+                    item.put("grupoMuscular", serie.getEjercicio().getGrupoMuscular());
+                    item.put("imagenUrl", serie.getEjercicio().getImagenUrl());
+                    return item;
+                });
+            }
+        }
+
+        return new ArrayList<>(ejercicios.values());
+    }
+
+    public List<Map<String, Object>> obtenerDatosProgreso(UUID clienteId, UUID ejercicioId, UUID entrenadorId) {
+        return serieDAO.findHistorialEjercicio(clienteId, ejercicioId).stream()
+                .filter(serie -> entrenadorId == null || (serie.getSesion().getRutina() != null
+                        && entrenadorId.equals(serie.getSesion().getRutina().getEntrenadorId())))
+                .map(serie -> {
+                    Map<String, Object> punto = new HashMap<>();
+                    punto.put("fecha", serie.getSesion().getFechaHora().format(DateTimeFormatter.ISO_LOCAL_DATE));
+                    punto.put("peso", serie.getPeso());
+                    punto.put("reps", serie.getReps());
+                    punto.put("rpe", serie.getRpe());
+                    punto.put("volumen", serie.getVolumenSerie());
+                    punto.put("valor", Math.round(calcularMax1RM(List.of(serie)) * 100.0) / 100.0);
+                    return punto;
+                })
+                .toList();
+    }
+
     // --- MÉTODOS PRIVADOS DE APOYO ---
 
     private double calcularMax1RM(List<SerieRealizada> seriesDia) {

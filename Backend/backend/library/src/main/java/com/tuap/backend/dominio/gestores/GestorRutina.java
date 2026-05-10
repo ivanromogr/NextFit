@@ -229,6 +229,7 @@ public class GestorRutina {
         Rutina existente = rutinaDAO.findById(id).orElseThrow(() -> new NoSuchElementException("Rutina no encontrada"));
         existente.setNombre(nuevosDatos.getNombre());
         existente.setObjetivo(nuevosDatos.getObjetivo());
+        existente.setDescripcion(nuevosDatos.getDescripcion());
         existente.setNivel(nuevosDatos.getNivel());
         existente.getDetalles().clear();
 
@@ -239,6 +240,48 @@ public class GestorRutina {
                 existente.getDetalles().add(d);
             }
         }
+        return rutinaDAO.save(existente);
+    }
+
+    @Transactional
+    public Rutina actualizarRutina(UUID id, RutinaRequest request) {
+        Rutina existente = rutinaDAO.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Rutina no encontrada"));
+
+        existente.setNombre(request.getNombre());
+        existente.setDescripcion(request.getDescripcion());
+        existente.setObjetivo(request.getObjetivo());
+        existente.setNivel(request.getNivel() != null ? request.getNivel() : NIVEL_PERSO);
+
+        if (request.getCreador() != null && !request.getCreador().isBlank()) {
+            existente.setCreador(determinarCreador(request.getCreador()));
+        }
+        if (request.getEntrenadorId() != null) {
+            existente.setEntrenadorId(request.getEntrenadorId());
+        }
+        if (request.getEsPlantilla() != null) {
+            existente.setEsPlantilla(request.getEsPlantilla());
+        }
+
+        existente.getDetalles().clear();
+        if (request.getEjercicios() != null) {
+            for (RutinaRequest.EjercicioDetalleDTO dto : request.getEjercicios()) {
+                Ejercicio ejercicio = ejercicioDAO.findById(dto.getIdEjercicio())
+                        .orElseThrow(() -> new NoSuchElementException("Ejercicio no encontrado con ID: " + dto.getIdEjercicio()));
+
+                DetalleRutina detalle = new DetalleRutina();
+                detalle.setRutina(existente);
+                detalle.setEjercicio(ejercicio);
+                detalle.setSeries(Math.max(dto.getSeries(), 1));
+                detalle.setRepeticiones(Math.max(dto.getRepeticiones(), 0));
+                detalle.setPeso(dto.getPeso() != null ? dto.getPeso() : 0.0f);
+                detalle.setRpe(dto.getRpe());
+                detalle.setNotas(dto.getNotas());
+                detalle.setDias(dto.getDias() > 0 ? dto.getDias() : 1);
+                existente.getDetalles().add(detalle);
+            }
+        }
+
         return rutinaDAO.save(existente);
     }
 

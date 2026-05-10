@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.DetalleRutina;
 import com.tuap.backend.dominio.entidades.Rutina;
@@ -65,11 +64,9 @@ public class RutinaController {
     @PutMapping("/{id}")
     public ResponseEntity<Object> actualizarRutina(@PathVariable UUID id, @RequestBody java.util.Map<String, Object> rutinaDatosDTO) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            Rutina rutinaDatos = mapper.convertValue(rutinaDatosDTO, Rutina.class);
-            
-            Rutina actualizada = gestorRutina.actualizarRutina(id, rutinaDatos);
-            return ResponseEntity.ok(actualizada);
+            RutinaRequest request = normalizarRutinaRequest(rutinaDatosDTO);
+            Rutina actualizada = gestorRutina.actualizarRutina(id, request);
+            return ResponseEntity.ok(mapRutinaResumen(actualizada));
     } catch (RuntimeException e) {
             
             return ResponseEntity.notFound().build();
@@ -106,7 +103,7 @@ public class RutinaController {
 
             if (entrenadorId != null) {
                 rutinas = rutinas.stream()
-                        .filter(r -> r.getEntrenadorId() != null && r.getEntrenadorId().toString().equals(entrenadorId))
+                        .filter(r -> r.getEntrenadorId() == null || r.getEntrenadorId().toString().equals(entrenadorId))
                         .toList();
             }
 
@@ -114,6 +111,74 @@ public class RutinaController {
         } catch (Exception e) {
     
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private RutinaRequest normalizarRutinaRequest(Map<String, Object> data) {
+        RutinaRequest request = new RutinaRequest();
+        request.setNombre((String) data.get("nombre"));
+        request.setDescripcion((String) data.get("descripcion"));
+        request.setObjetivo((String) data.get("objetivo"));
+        request.setNivel((String) data.get("nivel"));
+        request.setCreador((String) data.get("creador"));
+        request.setEsPlantilla((Boolean) data.get("esPlantilla"));
+
+        Object entrenadorId = data.get("entrenadorId");
+        if (entrenadorId != null && !entrenadorId.toString().isBlank()) {
+            request.setEntrenadorId(UUID.fromString(entrenadorId.toString()));
+        }
+
+        Object idCliente = data.get("idCliente");
+        if (idCliente != null && !idCliente.toString().isBlank()) {
+            request.setIdCliente(UUID.fromString(idCliente.toString()));
+        }
+
+        Object ejerciciosRaw = data.get("ejercicios");
+        if (ejerciciosRaw instanceof List<?> ejercicios) {
+            List<RutinaRequest.EjercicioDetalleDTO> detalles = new ArrayList<>();
+            for (Object item : ejercicios) {
+                if (!(item instanceof Map<?, ?> map)) continue;
+                RutinaRequest.EjercicioDetalleDTO detalle = new RutinaRequest.EjercicioDetalleDTO();
+
+                Object idEjercicio = map.get("idEjercicio");
+                if (idEjercicio == null && map.get("ejercicio") instanceof Map<?, ?> ejercicioMap) {
+                    idEjercicio = ejercicioMap.get("id");
+                }
+                if (idEjercicio == null || idEjercicio.toString().isBlank()) continue;
+
+                detalle.setIdEjercicio(UUID.fromString(idEjercicio.toString()));
+                detalle.setSeries(toInt(map.get("series"), 1));
+                detalle.setRepeticiones(toInt(map.get("repeticiones"), 0));
+                detalle.setPeso(toFloat(map.get("peso"), 0.0f));
+                detalle.setRpe(toInt(map.get("rpe"), 0));
+                detalle.setNotas((String) map.get("notas"));
+                detalle.setDias(toInt(map.get("dias"), 1));
+                detalles.add(detalle);
+            }
+            request.setEjercicios(detalles);
+        }
+
+        return request;
+    }
+
+    private int toInt(Object value, int fallback) {
+        if (value == null) return fallback;
+        if (value instanceof Number number) return number.intValue();
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    private Float toFloat(Object value, Float fallback) {
+        if (value == null) return fallback;
+        if (value instanceof Number number) return number.floatValue();
+        try {
+            return Float.parseFloat(value.toString());
+        } catch (NumberFormatException e) {
+            return fallback;
         }
     }
 

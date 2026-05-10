@@ -49,4 +49,21 @@ public class EstadisticasController {
         
         return ResponseEntity.ok(gestorEstadisticas.obtenerPersonalRecords(clienteId, entrenadorId));
     }
+
+    @GetMapping("/ejercicios/{clienteId}")
+    public ResponseEntity<Object> getEjerciciosConHistorial(
+            @PathVariable UUID clienteId,
+            @RequestParam(required = false) UUID entrenadorId) {
+
+        return ResponseEntity.ok(gestorEstadisticas.obtenerEjerciciosConHistorial(clienteId, entrenadorId));
+    }
+
+    @GetMapping("/progreso/{clienteId}/{ejercicioId}")
+    public ResponseEntity<Object> getDatosProgreso(
+            @PathVariable UUID clienteId,
+            @PathVariable UUID ejercicioId,
+            @RequestParam(required = false) UUID entrenadorId) {
+
+        return ResponseEntity.ok(gestorEstadisticas.obtenerDatosProgreso(clienteId, ejercicioId, entrenadorId));
+    }
 }

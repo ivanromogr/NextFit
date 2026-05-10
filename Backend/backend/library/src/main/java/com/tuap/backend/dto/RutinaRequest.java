@@ -9,6 +9,7 @@ public class RutinaRequest {
     private String nombre;
     private String descripcion;
     private String objetivo;
+    private String nivel;
     
     // ✅ 1. CAMPO NUEVO PARA SOLUCIONAR EL PRIMER ERROR
     private String creador; 
@@ -31,6 +32,9 @@ public class RutinaRequest {
 
     public String getObjetivo() { return objetivo; }
     public void setObjetivo(String objetivo) { this.objetivo = objetivo; }
+
+    public String getNivel() { return nivel; }
+    public void setNivel(String nivel) { this.nivel = nivel; }
 
     // ✅ Getter y Setter para Creador (¡ESTO ES LO QUE FALTABA!)
     public String getCreador() { return creador; }

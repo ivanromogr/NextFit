@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { obtenerRutinasCliente, obtenerEjercicios, actualizarRutina } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -13,6 +13,7 @@ const MUSCLE_FILTERS = ["TODOS", "PECHO", "ESPALDA", "PIERNA", "HOMBRO", "BÍCEP
 const EditarRutina = () => {
     const { rutinaId, clienteId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { userId } = useAuth();
     const [loading, setLoading] = useState(true);
     
@@ -94,7 +95,7 @@ const EditarRutina = () => {
     
     const handleVolver = () => {
   // Si estamos en modo entrenador (ruta entrenador), volvemos a las rutinas del cliente
-  if (window.location.pathname.startsWith("/entrenador")) {
+  if (location.pathname.startsWith("/entrenador")) {
     navigate(`/entrenador/cliente/${clienteId}/rutinas`);
     return;
   }

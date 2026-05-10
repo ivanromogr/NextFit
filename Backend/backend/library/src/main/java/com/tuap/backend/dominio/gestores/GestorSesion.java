@@ -70,7 +70,8 @@ public class GestorSesion {
         sesion.setDuracionSegundos(req.getDuracionSegundos());
         sesion.setNotasGenerales(req.getNotasGenerales());
 
-        if (req.getEventoCalendarioId() != null) {
+        if (req.getEventoCalendarioId() != null
+                && sesionDAO.findByEventoCalendario_Id(req.getEventoCalendarioId()) == null) {
             eventoDAO.findById(req.getEventoCalendarioId()).ifPresent(sesion::setEventoCalendario);
         }
 
