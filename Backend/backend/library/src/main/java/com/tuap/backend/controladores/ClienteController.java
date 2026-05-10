@@ -1,6 +1,7 @@
 package com.tuap.backend.controladores;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,8 +35,36 @@ public class ClienteController {
     }
 
     @GetMapping("/{id}")
-    public Cliente obtener(@PathVariable UUID id) {
-        return clienteDAO.findById(id).orElse(null);
+    public ResponseEntity<Object> obtener(@PathVariable UUID id) {
+        Optional<Cliente> clienteOpt = clienteDAO.findById(id);
+        if (clienteOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Cliente cliente = clienteOpt.get();
+        Map<String, Object> response = new java.util.HashMap<>();
+        response.put("id", cliente.getId());
+        response.put("nombre", cliente.getNombre());
+        response.put("apellido", cliente.getApellido());
+        response.put("email", cliente.getEmail());
+        response.put("rol", cliente.getRol());
+        response.put("peso", cliente.getPeso());
+        response.put("altura", cliente.getAltura());
+        response.put("edad", cliente.getEdad());
+        response.put("objetivo", cliente.getObjetivo());
+        response.put("fotoPerfil", cliente.getFotoPerfil());
+        response.put("genero", cliente.getGenero());
+
+        if (cliente.getEntrenador() != null) {
+            response.put("entrenador", Map.of(
+                    "id", cliente.getEntrenador().getId(),
+                    "nombre", cliente.getEntrenador().getNombre(),
+                    "apellido", cliente.getEntrenador().getApellido(),
+                    "fotoPerfil", cliente.getEntrenador().getFotoPerfil()
+            ));
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/buscar")

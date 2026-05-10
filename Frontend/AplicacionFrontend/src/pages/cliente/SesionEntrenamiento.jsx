@@ -11,8 +11,70 @@ import { useAuth } from '../../context/AuthContext';
 import {
     ChevronLeft, Check, Clock, Save,
     Plus, Info, Trash2, X, MessageSquare, Activity,
-    Trophy, Youtube, Eye 
+    Trophy, Eye 
 } from 'lucide-react';
+
+const obtenerYoutubeId = (url = "") => {
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^?&/]+)/);
+    return match?.[1] || null;
+};
+
+const obtenerYoutubeEmbedUrl = (url = "") => {
+    const videoId = obtenerYoutubeId(url);
+    if (!videoId) return null;
+
+    const params = new URLSearchParams({
+        autoplay: "1",
+        mute: "1",
+        loop: "1",
+        playlist: videoId,
+        controls: "0",
+        rel: "0",
+        modestbranding: "1",
+        playsinline: "1"
+    });
+
+    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+};
+
+const obtenerYoutubeThumbnail = (url = "") => {
+    const videoId = obtenerYoutubeId(url);
+    return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+};
+
+const esVideoDirecto = (url = "") => /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
+
+const VideoEjercicio = ({ src, title, style }) => {
+    const youtubeEmbedUrl = obtenerYoutubeEmbedUrl(src);
+
+    if (youtubeEmbedUrl) {
+        return (
+            <iframe
+                src={youtubeEmbedUrl}
+                title={title}
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                style={{ ...style, border: 0 }}
+            />
+        );
+    }
+
+    if (esVideoDirecto(src)) {
+        return (
+            <video
+                src={src}
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls={false}
+                style={style}
+            />
+        );
+    }
+
+    return null;
+};
 
 export default function SesionEntrenamiento() {
     const { rutinaId } = useParams();
@@ -577,7 +639,7 @@ export default function SesionEntrenamiento() {
         },
         modalTag: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(250, 204, 21, 0.1)', color: '#FACC15', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '15px' },
         infoTitle: { fontSize: '1.6rem', fontWeight: '900', color: 'white', marginBottom: '15px', lineHeight: 1, textTransform: 'uppercase' },
-        infoText: { color: '#a1a1aa', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '25px' },
+        infoText: { color: '#a1a1aa', fontSize: '0.95rem', lineHeight: 1.42, marginBottom: 0 },
         closeBtn: { position: 'absolute', top: '20px', right: '20px', background: '#1f1f22', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' },
         ytBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", background: "#FACC15", color: "black", textDecoration: "none", padding: "12px", borderRadius: "8px", fontWeight: "900", fontSize: "0.9rem", width: "100%", textTransform: "uppercase", marginTop: '10px' },
         modalActions: { display: 'flex', gap: '10px' },
@@ -686,8 +748,10 @@ export default function SesionEntrenamiento() {
                     <div key={ej.id} style={styles.card}>
                         <div style={styles.cardHeader}>
                             <div style={styles.imgBox}>
-                                {ej.ejercicio.imagenUrl ?
-                                    <img src={ej.ejercicio.imagenUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="ejercicio" /> :
+                                {ej.ejercicio.imagenUrl || obtenerYoutubeThumbnail(ej.ejercicio.videoUrl) ?
+                                    <img src={ej.ejercicio.imagenUrl || obtenerYoutubeThumbnail(ej.ejercicio.videoUrl)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="ejercicio" /> :
+                                    esVideoDirecto(ej.ejercicio.videoUrl) ?
+                                    <video src={ej.ejercicio.videoUrl} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
                                     <Activity color="#555" />
                                 }
                             </div>
@@ -806,12 +870,16 @@ export default function SesionEntrenamiento() {
                         <button style={styles.closeBtn} onClick={() => setInfoExercise(null)}><X size={18} /></button>
                         <div style={styles.modalTag}><Activity size={12} /> TÉCNICA</div>
                         <h2 style={styles.infoTitle}>{infoExercise.nombre}</h2>
-                        <div style={styles.infoText}>{infoExercise.instrucciones || "No hay instrucciones detalladas para este ejercicio."}</div>
                         {infoExercise.videoUrl && (
-                            <a href={infoExercise.videoUrl} target="_blank" rel="noreferrer" style={styles.ytBtn}>
-                                <Youtube size={20} color="black" /> VER VIDEO
-                            </a>
+                            <div style={{ width: '100%', height: 'clamp(380px, calc(80vh - 210px), 460px)', background: '#050505', borderRadius: '12px', overflow: 'hidden', border: '1px solid #27272a', marginBottom: '14px', position: 'relative' }}>
+                                <VideoEjercicio
+                                    src={infoExercise.videoUrl}
+                                    title={`Video de ${infoExercise.nombre}`}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', background: '#000' }}
+                                />
+                            </div>
                         )}
+                        <div style={styles.infoText}>{infoExercise.instrucciones || "No hay instrucciones detalladas para este ejercicio."}</div>
                     </div>
                 </div>
             )}

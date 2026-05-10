@@ -10,7 +10,6 @@ const IconPlus = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="non
 const IconDumbbell = () => <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><path d="M6 20v-3.5a2.5 2.5 0 0 1 5 0V20"></path><path d="M18 20v-3.5a2.5 2.5 0 0 0-5 0V20"></path><path d="M6 4v3.5a2.5 2.5 0 0 0 5 0V4"></path><path d="M18 4v3.5a2.5 2.5 0 0 1-5 0V4"></path></svg>;
 const IconInfo = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
 const IconClose = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
-const IconVideo = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>;
 const IconSave = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>;
 const IconImageOff = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>;
 const IconChevronLeft = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>;
@@ -76,6 +75,68 @@ const coincideBusquedaEjercicio = (ejercicio, busqueda, filtroMusculo) => {
     });
 
   return cumpleBusqueda && cumpleMusculo;
+};
+
+const obtenerYoutubeId = (url = "") => {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^?&/]+)/);
+  return match?.[1] || null;
+};
+
+const obtenerYoutubeEmbedUrl = (url = "") => {
+  const videoId = obtenerYoutubeId(url);
+  if (!videoId) return null;
+
+  const params = new URLSearchParams({
+    autoplay: "1",
+    mute: "1",
+    loop: "1",
+    playlist: videoId,
+    controls: "0",
+    rel: "0",
+    modestbranding: "1",
+    playsinline: "1"
+  });
+
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+};
+
+const obtenerYoutubeThumbnail = (url = "") => {
+  const videoId = obtenerYoutubeId(url);
+  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+};
+
+const esVideoDirecto = (url = "") => /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
+
+const VideoEjercicio = ({ src, title, style }) => {
+  const youtubeEmbedUrl = obtenerYoutubeEmbedUrl(src);
+
+  if (youtubeEmbedUrl) {
+    return (
+      <iframe
+        src={youtubeEmbedUrl}
+        title={title}
+        allow="autoplay; encrypted-media; picture-in-picture"
+        allowFullScreen
+        style={{ ...style, border: 0 }}
+      />
+    );
+  }
+
+  if (esVideoDirecto(src)) {
+    return (
+      <video
+        src={src}
+        autoPlay
+        muted
+        loop
+        playsInline
+        controls={false}
+        style={style}
+      />
+    );
+  }
+
+  return null;
 };
 
 const CrearEntrenamiento = ({
@@ -288,14 +349,28 @@ const CrearEntrenamiento = ({
     }
   };
 
-  const ImageWithFallback = ({ src, alt, style }) => {
+  const ImageWithFallback = ({ src, alt, style, videoUrl }) => {
     const [error, setError] = useState(false);
+    const thumbnailVideo = obtenerYoutubeThumbnail(videoUrl);
+    const imageSrc = src || thumbnailVideo;
 
     useEffect(() => {
       setError(false);
-    }, [src]);
+    }, [imageSrc]);
 
-    if (error || !src) {
+    if ((error || !imageSrc) && esVideoDirecto(videoUrl)) {
+      return (
+        <video
+          src={videoUrl}
+          muted
+          playsInline
+          preload="metadata"
+          style={style}
+        />
+      );
+    }
+
+    if (error || !imageSrc) {
       return (
         <div style={{ ...style, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#111', border:'1px solid #333' }}>
           <IconImageOff />
@@ -306,7 +381,7 @@ const CrearEntrenamiento = ({
       );
     }
 
-    return <img src={src} alt={alt} style={style} onError={() => setError(true)} />;
+    return <img src={imageSrc} alt={alt} style={style} onError={() => setError(true)} />;
   };
 
   const styles = {
@@ -402,6 +477,7 @@ const CrearEntrenamiento = ({
                 <ImageWithFallback
                   src={ej.imagenUrl}
                   alt={ej.nombreTraducido || ej.nombre}
+                  videoUrl={ej.videoUrl}
                   style={{width:'45px', height:'45px', borderRadius:'8px', objectFit:'cover', background:'#000'}}
                 />
 
@@ -487,6 +563,7 @@ const CrearEntrenamiento = ({
                   <ImageWithFallback
                     src={ej.imagen}
                     alt={ej.nombre}
+                    videoUrl={ej.videoLink}
                     style={{width:'100%', height:'100%', objectFit:'cover'}}
                   />
 
@@ -558,13 +635,25 @@ const CrearEntrenamiento = ({
               </button>
             </div>
 
-            <div style={{position: 'relative', width:'100%', height:'300px', background:'black'}}>
-              <ImageWithFallback src={infoEjercicio.imagen} alt={infoEjercicio.nombre} style={{width:'100%', height:'100%', objectFit:'cover', objectPosition: 'center'}} />
+            <div style={{position: 'relative', width:'100%', height:'clamp(400px, calc(92vh - 230px), 500px)', background:'black'}}>
+              {infoEjercicio.videoLink ? (
+                <VideoEjercicio
+                  src={infoEjercicio.videoLink}
+                  title={`Video de ${infoEjercicio.nombre}`}
+                  style={{width:'100%', height:'100%', objectFit:'cover', objectPosition: 'center', background: '#000'}}
+                />
+              ) : (
+                <ImageWithFallback
+                  src={infoEjercicio.imagen}
+                  alt={infoEjercicio.nombre}
+                  style={{width:'100%', height:'100%', objectFit:'cover', objectPosition: 'center'}}
+                />
+              )}
               <div style={{position:'absolute', bottom:0, left:0, width:'100%', height:'60px', background:'linear-gradient(to top, #111, transparent)'}}></div>
             </div>
 
-            <div style={{padding:'30px'}}>
-              <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
+            <div style={{padding:'18px 30px 22px'}}>
+              <div style={{display:'flex', gap:'10px', marginBottom:'12px'}}>
                 <span style={{background: isTemplate ? '#60A5FA' : '#FACC15', color:'black', padding:'4px 12px', borderRadius:'4px', fontSize:'0.75rem', fontWeight:'bold', textTransform:'uppercase'}}>
                   {infoEjercicio.musculo}
                 </span>
@@ -575,22 +664,10 @@ const CrearEntrenamiento = ({
                 )}
               </div>
 
-              <p style={{color:'#ccc', lineHeight:'1.6', fontSize:'1rem', whiteSpace: 'pre-line'}}>
+              <p style={{color:'#ccc', lineHeight:'1.42', fontSize:'0.98rem', whiteSpace: 'pre-line', margin: 0}}>
                 {infoEjercicio.descripcion || "No hay instrucciones detalladas disponibles."}
               </p>
 
-              {infoEjercicio.videoLink && (
-                <a
-                  href={infoEjercicio.videoLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{display:'inline-flex', alignItems:'center', gap:'10px', color:'black', background: isTemplate ? '#60A5FA' : '#FACC15', textDecoration:'none', marginTop:'25px', fontWeight:'bold', padding: '12px 20px', borderRadius: '8px', transition: 'filter 0.2s'}}
-                  onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.1)'}
-                  onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
-                >
-                  <IconVideo /> VER TUTORIAL EN YOUTUBE
-                </a>
-              )}
             </div>
           </div>
         </div>
