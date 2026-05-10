@@ -235,6 +235,7 @@ public class RutinaController {
         if (detalle.getEjercicio() != null) {
             Map<String, Object> ejercicio = new HashMap<>();
             ejercicio.put("id", detalle.getEjercicio().getId());
+            ejercicio.put("apiId", detalle.getEjercicio().getApiId());
             ejercicio.put("nombre", detalle.getEjercicio().getNombre());
             ejercicio.put("nombreTraducido", detalle.getEjercicio().getNombreTraducido());
             ejercicio.put("grupoMuscular", detalle.getEjercicio().getGrupoMuscular());

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, Check, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../../api/config';
+import { resolveMediaUrl } from '../../utils/media';
 
 const ImageUpload = ({ onUploadSuccess, label = 'Subir imagen' }) => {
   const [uploading, setUploading] = useState(false);
@@ -47,7 +48,7 @@ const ImageUpload = ({ onUploadSuccess, label = 'Subir imagen' }) => {
       console.log('✅ Imagen subida:', data.url);
       
       if (onUploadSuccess) {
-        onUploadSuccess(data.url);
+        onUploadSuccess(resolveMediaUrl(data.url));
       }
       
       setMessage('Imagen subida correctamente');

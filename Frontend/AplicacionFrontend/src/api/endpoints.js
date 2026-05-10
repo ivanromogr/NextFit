@@ -1,5 +1,6 @@
 import axios from "axios";
 import { API_BASE_URL } from "./config";
+import { resolveExerciseImageUrl, resolveMediaUrl } from "../utils/media";
 
 // --- 1. CONFIGURACIÓN AXIOS ---
 export const api = axios.create({
@@ -18,6 +19,35 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+const normalizarPerfil = (data) => {
+  if (!data || typeof data !== "object") return data;
+  return {
+    ...data,
+    fotoPerfil: resolveMediaUrl(data.fotoPerfil),
+  };
+};
+
+const normalizarEjercicio = (ejercicio) => {
+  if (!ejercicio || typeof ejercicio !== "object") return ejercicio;
+  return {
+    ...ejercicio,
+    imagenUrl: resolveExerciseImageUrl(ejercicio),
+  };
+};
+
+const normalizarRutina = (rutina) => {
+  if (!rutina || typeof rutina !== "object") return rutina;
+  return {
+    ...rutina,
+    detalles: Array.isArray(rutina.detalles)
+      ? rutina.detalles.map((detalle) => ({
+          ...detalle,
+          ejercicio: normalizarEjercicio(detalle.ejercicio),
+        }))
+      : rutina.detalles,
+  };
+};
 
 // --- 2. AUTENTICACIÓN (LOGIN) ---
 export const loginForm = async ({ email, password }) => {
@@ -43,7 +73,7 @@ export const registerUser = async (payload) => {
 export const getCliente = async (id) => {
   if (!id) throw new Error("ID no encontrado");
   const response = await api.get(`/api/clientes/${id}`);
-  return response.data;
+  return normalizarPerfil(response.data);
 };
 
 // --- ACTUALIZAR PERFIL CLIENTE ---
@@ -66,7 +96,7 @@ export const completarOnboardingEntrenador = async (payload) => {
 // --- 6. EJERCICIOS Y RUTINAS ---
 export const obtenerEjercicios = async () => {
   const response = await api.get("/api/ejercicios");
-  return response.data;
+  return Array.isArray(response.data) ? response.data.map(normalizarEjercicio) : [];
 };
 
 export const generarRutinaAuto = async (payload) => {
@@ -100,7 +130,7 @@ export const obtenerRutinasCliente = async (idCliente, options = {}) => {
 
   const request = api.get(`/api/rutinas/cliente/${idCliente}`)
     .then((response) => {
-      return Array.isArray(response.data) ? response.data : [];
+      return Array.isArray(response.data) ? response.data.map(normalizarRutina) : [];
     })
     .catch((error) => {
       console.warn("No se pudieron cargar las rutinas del cliente:", error?.response?.status || error?.message);
@@ -129,7 +159,7 @@ export const obtenerRutinasAsignadasPorEntrenador = async (idCliente, entrenador
 
   const request = api.get(url)
     .then((response) => {
-      return Array.isArray(response.data) ? response.data : [];
+      return Array.isArray(response.data) ? response.data.map(normalizarRutina) : [];
     })
     .catch((error) => {
       console.warn("No se pudieron cargar las rutinas del entrenador:", error?.response?.status || error?.message);
@@ -157,7 +187,7 @@ export const ficharCliente = async (idEntrenador, emailCliente) => {
 export const getEntrenador = async (id) => {
   if (!id) throw new Error("ID no encontrado");
   const response = await api.get(`/api/entrenador/${id}`);
-  return response.data.entrenador || response.data;
+  return normalizarPerfil(response.data.entrenador || response.data);
 };
 
 export const actualizarEntrenador = async (id, payload) => {
