@@ -68,8 +68,11 @@ public class SesionEntrenamientoController {
 
     @GetMapping("/cliente/{clienteId}")
     @Transactional(readOnly = true)
-    public ResponseEntity<List<SesionEntrenamiento>> listarSesiones(@PathVariable UUID clienteId) {
-        return ResponseEntity.ok(sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId));
+    public ResponseEntity<List<Map<String, Object>>> listarSesiones(@PathVariable UUID clienteId) {
+        return ResponseEntity.ok(sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId)
+                .stream()
+                .map(this::mapSesionResumen)
+                .toList());
     }
 
     @GetMapping("/evento/{eventoId}")
@@ -89,6 +92,7 @@ public class SesionEntrenamientoController {
         respuesta.put("notas", sesion.getNotasGenerales());
 
         List<Map<String, Object>> ejerciciosRealizados = sesion.getSeries().stream()
+            .filter(serie -> serie.getEjercicio() != null)
             .collect(java.util.stream.Collectors.groupingBy(serie -> serie.getEjercicio().getNombre()))
             .entrySet().stream()
             .map(entry -> {
@@ -110,6 +114,42 @@ public class SesionEntrenamientoController {
 
         respuesta.put("ejercicios", ejerciciosRealizados);
         return ResponseEntity.ok(respuesta);
+    }
+
+    private Map<String, Object> mapSesionResumen(SesionEntrenamiento sesion) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", sesion.getId());
+        map.put("nombre", sesion.getNombre());
+        map.put("fechaHora", sesion.getFechaHora());
+        map.put("duracionSegundos", sesion.getDuracionSegundos());
+        map.put("volumenTotal", sesion.getVolumenTotal());
+        map.put("notasGenerales", sesion.getNotasGenerales());
+        map.put("clienteId", sesion.getCliente() != null ? sesion.getCliente().getId() : null);
+        map.put("rutinaId", sesion.getRutina() != null ? sesion.getRutina().getId() : null);
+        map.put("rutinaNombre", sesion.getRutina() != null ? sesion.getRutina().getNombre() : sesion.getNombre());
+        map.put("eventoCalendarioId", sesion.getEventoCalendario() != null ? sesion.getEventoCalendario().getId() : null);
+
+        List<Map<String, Object>> series = sesion.getSeries() == null
+                ? List.of()
+                : sesion.getSeries().stream()
+                    .filter(serie -> serie.getEjercicio() != null)
+                    .map(serie -> {
+                        Map<String, Object> serieMap = new HashMap<>();
+                        serieMap.put("id", serie.getId());
+                        serieMap.put("ejercicioId", serie.getEjercicio().getId());
+                        serieMap.put("ejercicioNombre", serie.getEjercicio().getNombre());
+                        serieMap.put("setIndex", serie.getSetIndex());
+                        serieMap.put("peso", serie.getPeso());
+                        serieMap.put("reps", serie.getReps());
+                        serieMap.put("rpe", serie.getRpe());
+                        serieMap.put("hecho", serie.isHecho());
+                        serieMap.put("volumenSerie", serie.getVolumenSerie());
+                        return serieMap;
+                    })
+                    .toList();
+
+        map.put("series", series);
+        return map;
     }
 
     @GetMapping("/ultima")

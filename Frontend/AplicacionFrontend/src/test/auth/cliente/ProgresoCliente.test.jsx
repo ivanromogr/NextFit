@@ -27,6 +27,7 @@ vi.mock('../../../components/ui/PersonalRecordsList', () => ({ default: () => <d
 vi.mock('../../../api/endpoints', () => ({
     obtenerStatsGlobales: vi.fn(),
     obtenerProgresoEjercicio: vi.fn(),
+    obtenerEjerciciosConHistorial: vi.fn(),
     obtenerEjercicios: vi.fn(),
     obtenerPRs: vi.fn()
 }));
@@ -47,6 +48,7 @@ describe('Página ProgresoCliente', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        endpoints.obtenerEjerciciosConHistorial.mockResolvedValue([]);
     });
 
     const renderComponent = (props = {}) => {
@@ -60,6 +62,7 @@ describe('Página ProgresoCliente', () => {
     it('carga y muestra los KPIs principales correctamente', async () => {
         endpoints.obtenerStatsGlobales.mockResolvedValue(mockStats);
         endpoints.obtenerPRs.mockResolvedValue([]);
+        endpoints.obtenerEjerciciosConHistorial.mockResolvedValue(mockEjercicios);
         endpoints.obtenerEjercicios.mockResolvedValue(mockEjercicios);
         endpoints.obtenerProgresoEjercicio.mockResolvedValue([]);
 
@@ -76,6 +79,7 @@ describe('Página ProgresoCliente', () => {
 
     it('cambia la gráfica al seleccionar un ejercicio diferente', async () => {
         endpoints.obtenerStatsGlobales.mockResolvedValue(mockStats);
+        endpoints.obtenerEjerciciosConHistorial.mockResolvedValue(mockEjercicios);
         endpoints.obtenerEjercicios.mockResolvedValue(mockEjercicios);
         endpoints.obtenerProgresoEjercicio.mockResolvedValue({ grafica: [], pr: 100 });
 
@@ -90,7 +94,8 @@ describe('Página ProgresoCliente', () => {
             // Verificamos que se llamó a la API con el nuevo ID de ejercicio
             expect(endpoints.obtenerProgresoEjercicio).toHaveBeenCalledWith(
                 expect.any(String), 
-                'ex-2'
+                'ex-2',
+                null
             );
         });
     });
@@ -112,6 +117,7 @@ describe('Página ProgresoCliente', () => {
 
     it('muestra mensaje de error si no hay ejercicios disponibles', async () => {
         endpoints.obtenerStatsGlobales.mockResolvedValue(mockStats);
+        endpoints.obtenerEjerciciosConHistorial.mockResolvedValue([]);
         endpoints.obtenerEjercicios.mockResolvedValue([]); // Lista vacía
         
         renderComponent();

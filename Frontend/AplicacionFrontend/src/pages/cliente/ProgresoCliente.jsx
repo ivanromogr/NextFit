@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'; // 👈 Necesario para el botón
 import { 
     obtenerStatsGlobales, 
     obtenerProgresoEjercicio, 
-    obtenerEjercicios, 
+    obtenerEjercicios,
+    obtenerEjerciciosConHistorial,
     obtenerPRs 
 } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
@@ -34,24 +35,28 @@ export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) 
     useEffect(() => {
         if (!clienteId) return;
 
+        const entrenadorId = isCoachMode ? userId : null;
+
         // 1. Cargar Estadísticas Globales
-        obtenerStatsGlobales(clienteId).then(setGlobalStats).catch(console.error);
+        obtenerStatsGlobales(clienteId, entrenadorId).then(setGlobalStats).catch(console.error);
 
         // 2. Cargar Récords Personales (PRs)
-        obtenerPRs(clienteId).then(setPrs).catch(console.error);
+        obtenerPRs(clienteId, entrenadorId).then(setPrs).catch(console.error);
 
-        // 3. Cargar Lista de Ejercicios
-        obtenerEjercicios().then(lista => {
+        // 3. Cargar primero ejercicios con historial; si no hay, usar biblioteca como fallback.
+        obtenerEjerciciosConHistorial(clienteId, entrenadorId).then(async listaHistorial => {
+            const lista = listaHistorial?.length ? listaHistorial : await obtenerEjercicios();
             setEjercicios(lista || []);
-            if (lista && lista.length > 0) setSelectedEjercicio(lista[0].id);
+            setSelectedEjercicio(lista?.[0]?.id || "");
         }).catch(console.error);
-    }, [clienteId]);
+    }, [clienteId, isCoachMode, userId]);
 
     useEffect(() => {
         if (!clienteId || !selectedEjercicio) return;
 
         setLoadingChart(true);
-        obtenerProgresoEjercicio(clienteId, selectedEjercicio).then(data => {
+        const entrenadorId = isCoachMode ? userId : null;
+        obtenerProgresoEjercicio(clienteId, selectedEjercicio, entrenadorId).then(data => {
             if (data) {
                 // Adaptamos si el backend devuelve estructura diferente
                 const datos = Array.isArray(data) ? data : (data.grafica || []);
@@ -63,7 +68,7 @@ export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) 
             }
             setLoadingChart(false);
         }).catch(() => setLoadingChart(false));
-    }, [selectedEjercicio, clienteId]);
+    }, [selectedEjercicio, clienteId, isCoachMode, userId]);
 
     const renderCambioVolumen = () => {
         const cambio = globalStats?.comparativaVolumen || 0;

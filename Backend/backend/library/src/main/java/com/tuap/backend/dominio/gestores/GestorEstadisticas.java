@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.tuap.backend.dominio.entidades.SerieRealizada;
 import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
@@ -41,6 +42,7 @@ public class GestorEstadisticas {
                 .toList(); 
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> obtenerStatsGlobales(UUID clienteId, UUID entrenadorId) {
         List<SesionEntrenamiento> todasLasSesiones = sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId);
         List<SesionEntrenamiento> sesiones = filtrarPorEntrenador(todasLasSesiones, entrenadorId);
@@ -67,6 +69,7 @@ public class GestorEstadisticas {
         return stats;
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> obtenerProgresoEjercicio(UUID clienteId, UUID ejercicioId, UUID entrenadorId) {
          List<SerieRealizada> historia = serieDAO.findHistorialEjercicio(clienteId, ejercicioId).stream()
                  .filter(serie -> entrenadorId == null || (serie.getSesion().getRutina() != null && 
@@ -102,6 +105,7 @@ public class GestorEstadisticas {
          return respuesta;
     }
 
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> obtenerPersonalRecords(UUID clienteId, UUID entrenadorId) {
         List<SesionEntrenamiento> sesiones = filtrarPorEntrenador(sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId), entrenadorId);
         Map<String, SerieRealizada> mejoresLevantamientos = buscarMejoresLevantamientos(sesiones);
@@ -130,6 +134,7 @@ public class GestorEstadisticas {
         return prList;
     }
 
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> obtenerEjerciciosConHistorial(UUID clienteId, UUID entrenadorId) {
         List<SesionEntrenamiento> sesiones = filtrarPorEntrenador(sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId), entrenadorId);
         Map<UUID, Map<String, Object>> ejercicios = new LinkedHashMap<>();
@@ -153,6 +158,7 @@ public class GestorEstadisticas {
         return new ArrayList<>(ejercicios.values());
     }
 
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> obtenerDatosProgreso(UUID clienteId, UUID ejercicioId, UUID entrenadorId) {
         return serieDAO.findHistorialEjercicio(clienteId, ejercicioId).stream()
                 .filter(serie -> entrenadorId == null || (serie.getSesion().getRutina() != null
