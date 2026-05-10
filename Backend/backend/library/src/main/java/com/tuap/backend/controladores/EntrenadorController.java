@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,13 +43,16 @@ public class EntrenadorController {
     private final EntrenadorDAO entrenadorDAO;
     private final SesionEntrenamientoDAO sesionDAO; 
     private final ResenaDAO resenaDAO;
+    private final PasswordEncoder passwordEncoder;
 
     public EntrenadorController(ClienteDAO clienteDAO, EntrenadorDAO entrenadorDAO, 
-                                SesionEntrenamientoDAO sesionDAO, ResenaDAO resenaDAO) {
+                                SesionEntrenamientoDAO sesionDAO, ResenaDAO resenaDAO,
+                                PasswordEncoder passwordEncoder) {
         this.clienteDAO = clienteDAO;
         this.entrenadorDAO = entrenadorDAO;
         this.sesionDAO = sesionDAO;
         this.resenaDAO = resenaDAO;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // --- 1. OBTENER CLIENTES ---
@@ -101,7 +105,7 @@ public class EntrenadorController {
     public ResponseEntity<Object> getReviewsEntrenador(@PathVariable UUID id) {
         try {
             List<Resena> listaResenas = resenaDAO.findByEntrenadorIdOrderByFechaDesc(id);
-            return ResponseEntity.ok(listaResenas);
+            return ResponseEntity.ok(listaResenas.stream().map(this::serializarResena).toList());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error al obtener las reseñas: " + e.getMessage());
         }
@@ -162,10 +166,11 @@ public class EntrenadorController {
             List<Resena> listaResenas = resenaDAO.findByEntrenadorIdOrderByFechaDesc(id);
             long totalClientes = clienteDAO.countByEntrenador_Id(id); 
 
-            Map<String, Object> respuesta = new HashMap<>();
-            respuesta.put("entrenador", ent);
+            Map<String, Object> entrenador = serializarEntrenador(ent);
+            Map<String, Object> respuesta = new HashMap<>(entrenador);
+            respuesta.put("entrenador", entrenador);
             respuesta.put("valoracionMedia", media != null ? Math.round(media * 10.0) / 10.0 : 0.0);
-            respuesta.put("resenas", listaResenas);
+            respuesta.put("resenas", listaResenas.stream().map(this::serializarResena).toList());
             respuesta.put("numeroClientes", totalClientes); 
 
             return ResponseEntity.ok(respuesta);
@@ -205,32 +210,98 @@ public class EntrenadorController {
     }
 
     private void actualizarCamposPerfil(Entrenador e, Map<String, Object> p) {
-        if (p.containsKey("nombre")) e.setNombre((String) p.get("nombre"));
-        if (p.containsKey("apellido")) e.setApellido((String) p.get("apellido"));
-        if (p.containsKey("fotoPerfil")) e.setFotoPerfil((String) p.get("fotoPerfil"));
-        if (p.containsKey("especialidad")) e.setEspecialidad((String) p.get("especialidad"));
-        if (p.containsKey("descripcionPerfil")) e.setDescripcionPerfil((String) p.get("descripcionPerfil"));
-        if (p.containsKey("perfilPublico")) e.setPerfilPublico(Boolean.parseBoolean(p.get("perfilPublico").toString()));
-        if (p.containsKey(PARAM_TARIFA) && p.get(PARAM_TARIFA) != null) e.setTarifaMensual(Double.parseDouble(p.get(PARAM_TARIFA).toString()));
-        if (p.containsKey(PARAM_EXPERIENCIA) && p.get(PARAM_EXPERIENCIA) != null) e.setAniosExperiencia(Integer.parseInt(p.get(PARAM_EXPERIENCIA).toString()));
+        if (p.containsKey("nombre")) e.setNombre(toStringOrNull(p.get("nombre")));
+        if (p.containsKey("apellido")) e.setApellido(toStringOrNull(p.get("apellido")));
+        if (p.containsKey("email")) e.setEmail(toStringOrNull(p.get("email")));
+        if (p.containsKey("fotoPerfil")) e.setFotoPerfil(toStringOrNull(p.get("fotoPerfil")));
+        if (p.containsKey("especialidad")) e.setEspecialidad(toStringOrNull(p.get("especialidad")));
+        if (p.containsKey(PARAM_EXPERIENCIA)) e.setAniosExperiencia(toIntegerOrNull(p.get(PARAM_EXPERIENCIA)));
+        if (p.containsKey("formacion")) e.setFormacion(toStringOrNull(p.get("formacion")));
+        if (p.containsKey("descripcionPerfil")) {
+            e.setDescripcionPerfil(toStringOrNull(p.get("descripcionPerfil")));
+            e.setBiografia(toStringOrNull(p.get("descripcionPerfil")));
+        }
+        if (p.containsKey("biografia")) e.setBiografia(toStringOrNull(p.get("biografia")));
+        if (p.containsKey("modalidadTrabajo")) e.setModalidadTrabajo(toStringOrNull(p.get("modalidadTrabajo")));
+        if (p.containsKey("genero")) e.setGenero(toStringOrNull(p.get("genero")));
+        if (p.containsKey("tituloAcademico")) e.setTituloAcademico(toStringOrNull(p.get("tituloAcademico")));
+        if (p.containsKey("titulacion")) e.setTitulacion(toStringOrNull(p.get("titulacion")));
+        if (p.containsKey("perfilPublico")) e.setPerfilPublico(toBoolean(p.get("perfilPublico")));
+        if (p.containsKey(PARAM_TARIFA)) e.setTarifaMensual(toDoubleOrNull(p.get(PARAM_TARIFA)));
+        if (p.containsKey("contrasena") && p.get("contrasena") != null && !p.get("contrasena").toString().trim().isEmpty()) {
+            e.setContrasena(passwordEncoder.encode(p.get("contrasena").toString().trim()));
+        }
     }
 
     @GetMapping("/publicos")
-    public ResponseEntity<List<Entrenador>> obtenerEntrenadoresPublicos(
+    public ResponseEntity<List<Map<String, Object>>> obtenerEntrenadoresPublicos(
             @RequestParam(required = false) String modalidad,
             @RequestParam(required = false) String especialidad,
             @RequestParam(required = false) Double tarifaMax,
             @RequestParam(required = false) Integer expMin) {
         
-        List<Entrenador> filtrados = entrenadorDAO.findByPerfilPublicoTrue().stream()
+        List<Map<String, Object>> filtrados = entrenadorDAO.findByPerfilPublicoTrue().stream()
             .filter(e -> modalidad == null || modalidad.trim().isEmpty() || (e.getModalidadTrabajo() != null && e.getModalidadTrabajo().equalsIgnoreCase(modalidad)))
             .filter(e -> especialidad == null || especialidad.trim().isEmpty() || (e.getEspecialidad() != null && e.getEspecialidad().toLowerCase().contains(especialidad.toLowerCase())))
             .filter(e -> tarifaMax == null || (e.getTarifaMensual() != null && e.getTarifaMensual() <= tarifaMax))
             .filter(e -> expMin == null || (e.getAniosExperiencia() != null && e.getAniosExperiencia() >= expMin))
+            .map(this::serializarEntrenador)
             .toList();
 
-        filtrados.forEach(e -> e.setContrasena(null));
         return ResponseEntity.ok(filtrados);
+    }
+
+    private Map<String, Object> serializarEntrenador(Entrenador entrenador) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", entrenador.getId());
+        data.put("nombre", entrenador.getNombre());
+        data.put("apellido", entrenador.getApellido());
+        data.put("email", entrenador.getEmail());
+        data.put("rol", entrenador.getRol());
+        data.put("especialidad", entrenador.getEspecialidad());
+        data.put("edad", entrenador.getEdad());
+        data.put("genero", entrenador.getGenero());
+        data.put("aniosExperiencia", entrenador.getAniosExperiencia());
+        data.put("formacion", entrenador.getFormacion());
+        data.put("descripcionPerfil", entrenador.getDescripcionPerfil());
+        data.put("modalidadTrabajo", entrenador.getModalidadTrabajo());
+        data.put("biografia", entrenador.getBiografia());
+        data.put("fotoPerfil", entrenador.getFotoPerfil());
+        data.put("tituloAcademico", entrenador.getTituloAcademico());
+        data.put("titulacion", entrenador.getTitulacion());
+        data.put("tarifaMensual", entrenador.getTarifaMensual());
+        data.put("perfilPublico", entrenador.isPerfilPublico());
+        return data;
+    }
+
+    private Map<String, Object> serializarResena(Resena resena) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", resena.getId());
+        data.put("estrellas", resena.getEstrellas());
+        data.put("comentario", resena.getComentario());
+        data.put("fecha", resena.getFecha());
+        if (resena.getCliente() != null) {
+            data.put("cliente", serializarClienteResumen(resena.getCliente()));
+        }
+        return data;
+    }
+
+    private String toStringOrNull(Object value) {
+        return value == null ? null : value.toString().trim();
+    }
+
+    private Integer toIntegerOrNull(Object value) {
+        if (value == null || value.toString().trim().isEmpty()) return null;
+        return Integer.parseInt(value.toString());
+    }
+
+    private Double toDoubleOrNull(Object value) {
+        if (value == null || value.toString().trim().isEmpty()) return null;
+        return Double.parseDouble(value.toString());
+    }
+
+    private boolean toBoolean(Object value) {
+        return value != null && Boolean.parseBoolean(value.toString());
     }
    
     @PostMapping("/{id}/fichar")
