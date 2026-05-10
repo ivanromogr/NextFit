@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.slf4j.Logger; 
 import org.slf4j.LoggerFactory; 
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -66,11 +67,13 @@ public class SesionEntrenamientoController {
     }
 
     @GetMapping("/cliente/{clienteId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<SesionEntrenamiento>> listarSesiones(@PathVariable UUID clienteId) {
         return ResponseEntity.ok(sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId));
     }
 
     @GetMapping("/evento/{eventoId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> getDetalleSesionPorEvento(@PathVariable UUID eventoId) {
         SesionEntrenamiento sesion = sesionDAO.findByEventoCalendario_Id(eventoId);
         
@@ -110,6 +113,7 @@ public class SesionEntrenamientoController {
     }
 
     @GetMapping("/ultima")
+    @Transactional(readOnly = true)
     public ResponseEntity<UltimaSesionResponse> obtenerUltimaSesion(
             @RequestParam(name = CLIENTE_ID_PARAM) UUID clienteId, 
             @RequestParam UUID rutinaId) {
@@ -121,12 +125,16 @@ public class SesionEntrenamientoController {
         
         SesionEntrenamiento sesion = sesionOpt.get();
         List<UltimaSesionResponse.SerieResponse> series = new ArrayList<>();
-        sesion.getSeries().forEach(s -> 
-            series.add(new UltimaSesionResponse.SerieResponse(
-                s.getEjercicio().getId(), s.getEjercicio().getNombre(), s.getSetIndex(),
-                s.getPeso(), s.getReps(), s.getRpe(), s.isHecho()
-            ))
-        );
+        if (sesion.getSeries() != null) {
+            sesion.getSeries().stream()
+                .filter(s -> s.getEjercicio() != null)
+                .forEach(s -> 
+                    series.add(new UltimaSesionResponse.SerieResponse(
+                        s.getEjercicio().getId(), s.getEjercicio().getNombre(), s.getSetIndex(),
+                        s.getPeso(), s.getReps(), s.getRpe(), s.isHecho()
+                    ))
+                );
+        }
         
         UltimaSesionResponse response = new UltimaSesionResponse(
             sesion.getId(), sesion.getNombre(), sesion.getFechaHora(),

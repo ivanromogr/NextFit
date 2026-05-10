@@ -417,6 +417,10 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
                                     onDragEnd={handleDragEnd}
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        if (!ev.rutinaId) {
+                                            toast.error("Esta rutina ya no está disponible.");
+                                            return;
+                                        }
                                         if (modoEntrenador || ev.estado !== 'COMPLETADO') irAEntrenar(ev.rutinaId, ev.id);
                                     }}
                                 >

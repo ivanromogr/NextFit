@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +32,7 @@ public class DashboardController {
     @Autowired private SesionEntrenamientoDAO sesionDAO;
 
     @GetMapping("/resumen/{clienteId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> getResumen(@PathVariable UUID clienteId) {
         LocalDate hoy = LocalDate.now();
         
@@ -104,8 +106,8 @@ public class DashboardController {
         if (eventoHoy != null) {
             Map<String, Object> hoyMap = new HashMap<>();
             hoyMap.put("id", eventoHoy.getId());
-            hoyMap.put("rutinaId", eventoHoy.getRutina().getId());
-            hoyMap.put("rutinaNombre", eventoHoy.getRutina().getNombre());
+            hoyMap.put("rutinaId", eventoHoy.getRutina() != null ? eventoHoy.getRutina().getId() : null);
+            hoyMap.put("rutinaNombre", eventoHoy.getRutina() != null ? eventoHoy.getRutina().getNombre() : "Rutina no disponible");
             hoyMap.put("completado", eventoHoy.isCompletado());
             response.put("eventoHoy", hoyMap);
         } else {

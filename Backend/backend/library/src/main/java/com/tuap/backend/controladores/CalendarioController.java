@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import com.tuap.backend.dominio.entidades.Cliente;
@@ -35,6 +36,7 @@ public class CalendarioController {
     }
 
     @GetMapping("/{clienteId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> getEventos(
             @PathVariable UUID clienteId,
             @RequestParam String inicio, 
@@ -51,18 +53,21 @@ public class CalendarioController {
             eventos = eventos.stream()
                     .filter(e -> {
                         boolean eventoEsMio = e.getEntrenadorId() != null && e.getEntrenadorId().toString().equals(entrenadorId);
-                        boolean rutinaEsMia = e.getRutina().getEntrenadorId() != null && e.getRutina().getEntrenadorId().toString().equals(entrenadorId);
+                        Rutina rutina = e.getRutina();
+                        boolean rutinaEsMia = rutina != null && rutina.getEntrenadorId() != null && rutina.getEntrenadorId().toString().equals(entrenadorId);
                         return eventoEsMio || rutinaEsMia;
                     })
                     .collect(Collectors.toList());
         }
 
-        List<Map<String, Object>> respuesta = eventos.stream().map(e -> {
+        List<Map<String, Object>> respuesta = eventos.stream()
+        .map(e -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", e.getId());
             map.put("fecha", e.getFecha());
-            map.put("rutinaNombre", e.getRutina().getNombre());
-            map.put("rutinaId", e.getRutina().getId());
+            Rutina rutina = e.getRutina();
+            map.put("rutinaNombre", rutina != null ? rutina.getNombre() : "Rutina no disponible");
+            map.put("rutinaId", rutina != null ? rutina.getId() : null);
             map.put("completado", e.isCompletado());
             map.put("duracion", e.getDuracionSegundos());
             map.put("volumen", e.getVolumenTotal());
@@ -78,7 +83,8 @@ public class CalendarioController {
             map.put("estado", estado);
 
             return map;
-        }).collect(Collectors.toList());
+        })
+        .collect(Collectors.toList());
 
         return ResponseEntity.ok(respuesta);
     }

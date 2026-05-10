@@ -41,6 +41,13 @@ public class GestorSesion {
         Cliente cliente = clienteDAO.findById(req.getClienteId())
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
+        if (req.getEventoCalendarioId() != null) {
+            SesionEntrenamiento existente = sesionDAO.findByEventoCalendario_Id(req.getEventoCalendarioId());
+            if (existente != null) {
+                return existente;
+            }
+        }
+
         SesionEntrenamiento sesion = inicializarSesion(req, cliente);
         
         // Procesamos series y calculamos volumen
