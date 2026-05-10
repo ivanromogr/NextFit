@@ -122,7 +122,7 @@ public class RutinaController {
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> obtenerPlantillas(@PathVariable UUID entrenadorId) {
         try {
-            List<Rutina> plantillas = rutinaDAO.findByEntrenadorIdAndEsPlantillaTrue(entrenadorId);
+            List<Rutina> plantillas = rutinaDAO.findPlantillasDisponiblesParaEntrenador(entrenadorId);
             return ResponseEntity.ok(plantillas.stream().map(this::mapRutinaResumen).toList());
         } catch (Exception e) {
            

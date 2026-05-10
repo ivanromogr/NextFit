@@ -53,8 +53,10 @@ public class GestorSesion {
 
         SesionEntrenamiento guardada = sesionDAO.save(sesion);
 
-        // Actualización asíncrona lógica del calendario
-        if (req.getRutinaId() != null) {
+        // Actualización lógica del calendario, sin impedir que la sesión quede guardada.
+        if (req.getEventoCalendarioId() != null) {
+            actualizarEstadoCalendarioPorId(req.getEventoCalendarioId(), guardada);
+        } else if (req.getRutinaId() != null) {
             actualizarEstadoCalendario(req.getClienteId(), req.getRutinaId(), guardada);
         }
 
@@ -67,6 +69,10 @@ public class GestorSesion {
         sesion.setFechaHora(LocalDateTime.now());
         sesion.setDuracionSegundos(req.getDuracionSegundos());
         sesion.setNotasGenerales(req.getNotasGenerales());
+
+        if (req.getEventoCalendarioId() != null) {
+            eventoDAO.findById(req.getEventoCalendarioId()).ifPresent(sesion::setEventoCalendario);
+        }
 
         if (req.getRutinaId() != null) {
             rutinaDAO.findById(req.getRutinaId()).ifPresent(r -> {
@@ -81,6 +87,9 @@ public class GestorSesion {
 
     private List<SerieRealizada> procesarSeries(List<GuardarSesionRequest.SerieDTO> dtos, SesionEntrenamiento sesion) {
     List<SerieRealizada> lista = new ArrayList<>();
+    if (dtos == null) {
+        return lista;
+    }
     for (GuardarSesionRequest.SerieDTO dto : dtos) {
        
         ejercicioDAO.findById(dto.getEjercicioId()).ifPresent(ej -> {
@@ -105,6 +114,21 @@ public class GestorSesion {
     }
     return lista;
 }
+
+    private void actualizarEstadoCalendarioPorId(UUID eventoCalendarioId, SesionEntrenamiento sesion) {
+        try {
+            eventoDAO.findById(eventoCalendarioId)
+                .ifPresent(evento -> {
+                    evento.setCompletado(true);
+                    evento.setDuracionSegundos(sesion.getDuracionSegundos());
+                    evento.setVolumenTotal(sesion.getVolumenTotal());
+                    eventoDAO.save(evento);
+                    sesion.setEventoCalendario(evento);
+                });
+        } catch (Exception e) {
+            // Mantener el guardado de sesión aunque falle la marca del calendario.
+        }
+    }
 
     private void actualizarEstadoCalendario(UUID clienteId, UUID rutinaId, SesionEntrenamiento sesion) {
         try {

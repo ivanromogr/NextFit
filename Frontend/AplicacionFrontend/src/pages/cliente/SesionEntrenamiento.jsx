@@ -77,7 +77,7 @@ const VideoEjercicio = ({ src, title, style }) => {
 };
 
 export default function SesionEntrenamiento() {
-    const { rutinaId } = useParams();
+    const { rutinaId, clienteId: routeClienteId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const toast = useToast();
@@ -88,7 +88,7 @@ export default function SesionEntrenamiento() {
     const isReadOnly = location.state?.isReadOnly || false;
     const coachClienteId = location.state?.clienteId;
     
-    const targetUserId = isReadOnly && coachClienteId ? coachClienteId : userId;
+    const targetUserId = coachClienteId || routeClienteId || userId;
 
     // --- ESTADOS ---
     const [rutina, setRutina] = useState(null);

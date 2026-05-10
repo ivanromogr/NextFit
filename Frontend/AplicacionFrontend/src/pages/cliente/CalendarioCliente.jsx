@@ -20,6 +20,23 @@ import { useAuth } from '../../context/AuthContext';
 
 import ModalResultados from '../../components/functional/ModalResultados';
 
+const normalizarFechaEvento = (fecha) => {
+    if (typeof fecha === "string") return fecha.split("T")[0];
+    if (Array.isArray(fecha) && fecha.length >= 3) {
+        const [year, month, day] = fecha;
+        return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+    if (fecha && typeof fecha === "object") {
+        const year = fecha.year ?? fecha.y;
+        const month = fecha.monthValue ?? fecha.month ?? fecha.m;
+        const day = fecha.dayOfMonth ?? fecha.day ?? fecha.d;
+        if (year && month && day) {
+            return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        }
+    }
+    return "";
+};
+
 export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }) {
     const navigate = useNavigate();
     const params = useParams(); 
@@ -59,7 +76,10 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         const idFiltroEntrenador = modoEntrenador ? userId : null;
         const data = await obtenerEventosCalendario(clienteId, start, end, idFiltroEntrenador);
         
-        setEventos(data);
+        setEventos((data || []).map(evento => ({
+            ...evento,
+            fecha: normalizarFechaEvento(evento.fecha),
+        })));
     }, [currentDate, modoEntrenador, userId, clienteId]);
 
     useEffect(() => {
@@ -186,7 +206,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             return;
         }
        
-        navigate(`/cliente/sesion/${rutinaId}`, { state: { eventoId: eventoId } });
+        navigate(`/cliente/sesion/${rutinaId}`, { state: { eventoId: eventoId, clienteId } });
     };
 
     const formatDuracion = (seg) => {

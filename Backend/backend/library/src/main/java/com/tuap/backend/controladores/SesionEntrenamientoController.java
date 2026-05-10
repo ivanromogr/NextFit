@@ -49,7 +49,16 @@ public class SesionEntrenamientoController {
     public ResponseEntity<Object> guardarSesion(@RequestBody GuardarSesionRequest req) {
         try {
             SesionEntrenamiento guardada = gestorSesion.guardarSesion(req);
-            return ResponseEntity.ok(guardada);
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", guardada.getId());
+            response.put("nombre", guardada.getNombre());
+            response.put("clienteId", guardada.getCliente().getId());
+            response.put("rutinaId", guardada.getRutina() != null ? guardada.getRutina().getId() : null);
+            response.put("fechaHora", guardada.getFechaHora());
+            response.put("duracionSegundos", guardada.getDuracionSegundos());
+            response.put("volumenTotal", guardada.getVolumenTotal());
+            response.put("seriesGuardadas", guardada.getSeries() != null ? guardada.getSeries().size() : 0);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error al guardar sesión", e);
             return ResponseEntity.badRequest().body("Error al guardar sesión: " + e.getMessage());

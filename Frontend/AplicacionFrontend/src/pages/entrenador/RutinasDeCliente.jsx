@@ -85,6 +85,10 @@ export default function RutinasDeCliente() {
 
   // --- LÓGICA DE PLANTILLAS MAESTRAS ---
   const abrirModalPlantillas = async () => {
+      if (!entrenadorId) {
+          toast.error("No se ha podido identificar al entrenador.");
+          return;
+      }
       setShowPlantillasModal(true);
       try {
           // Llama al backend para traer tus plantillas reales
@@ -109,6 +113,11 @@ export default function RutinasDeCliente() {
       } finally {
           setIsImporting(false);
       }
+  };
+
+  const handleCrearPlantilla = () => {
+      setShowPlantillasModal(false);
+      navigate("/entrenador/plantillas/crear");
   };
 
   // --- ESTILOS ---
@@ -283,7 +292,7 @@ export default function RutinasDeCliente() {
                 
                 <button 
                     style={{ width: '100%', marginTop: '25px', padding: '15px', background: 'transparent', border: '1px dashed rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.6)', borderRadius: '14px', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
-                    onClick={handleCrearNueva}
+                    onClick={handleCrearPlantilla}
                     onMouseEnter={e => {e.currentTarget.style.color='white'; e.currentTarget.style.borderColor='rgba(255,255,255,0.5)'}}
                     onMouseLeave={e => {e.currentTarget.style.color='rgba(255,255,255,0.6)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.2)'}}
                 >

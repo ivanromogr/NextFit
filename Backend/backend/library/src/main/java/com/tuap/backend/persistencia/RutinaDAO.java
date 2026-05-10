@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.tuap.backend.dominio.entidades.Rutina;
@@ -19,4 +21,11 @@ public interface RutinaDAO extends JpaRepository<Rutina, UUID> {
     
     // --- NUEVO: Buscar las plantillas de un entrenador ---
     List<Rutina> findByEntrenadorIdAndEsPlantillaTrue(UUID entrenadorId);
+
+    @Query("""
+        SELECT r FROM Rutina r
+        WHERE r.esPlantilla = true
+        AND (r.entrenadorId = :entrenadorId OR (r.entrenadorId IS NULL AND UPPER(r.creador) = 'ENTRENADOR'))
+        """)
+    List<Rutina> findPlantillasDisponiblesParaEntrenador(@Param("entrenadorId") UUID entrenadorId);
 }

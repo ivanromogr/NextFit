@@ -116,7 +116,10 @@ export default function DashboardCliente() {
     const progresoSemana = resumen && resumen.entrenosObjetivo > 0 
         ? Math.min((resumen.entrenosHechos / resumen.entrenosObjetivo) * 100, 100) 
         : 0;
-    const irASesion = (rutinaId) => navigate(`/cliente/sesion/${rutinaId}`);
+    const irASesion = (rutinaId, eventoId = null) => navigate(
+        `/cliente/sesion/${rutinaId}`,
+        eventoId ? { state: { eventoId } } : undefined
+    );
 
     // --- ESTILOS PREMIUM ---
     const styles = {
@@ -440,7 +443,7 @@ export default function DashboardCliente() {
                                 <h2 style={styles.heroTitle}>{resumen.eventoHoy.rutinaNombre}</h2>
                                 <p style={styles.heroSub}>Todo programado en tu calendario. Prepárate y dale caña cuando estés listo.</p>
                             </div>
-                            <button style={styles.playBtn} onClick={() => irASesion(resumen.eventoHoy.rutinaId)} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                            <button style={styles.playBtn} onClick={() => irASesion(resumen.eventoHoy.rutinaId, resumen.eventoHoy.id)} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                                 <Play size={20} fill="black"/> EMPEZAR SESIÓN
                             </button>
                         </div>
