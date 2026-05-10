@@ -6,7 +6,7 @@ import { Search, Edit, User, MessageSquare, Plus, X, Check } from "lucide-react"
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
 import { useAuth } from "../../context/AuthContext"; // Usando tu nuevo Contexto de Copilot
-import { WS_BASE_URL } from "../../api/config";
+import { SOCKJS_URL } from "../../api/config";
 
 export default function ChatClientePage() {
     const { userId: clienteId } = useAuth(); // Pillamos el ID del contexto blindado
@@ -109,7 +109,7 @@ export default function ChatClientePage() {
     };
 
     const conectarSocketGlobal = () => {
-    const socket = new SockJS(`${WS_BASE_URL}/ws`);
+    const socket = new SockJS(SOCKJS_URL);
     const client = Stomp.over(socket);
     client.debug = null;
 

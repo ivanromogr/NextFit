@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import CrearEntrenamiento from '../../components/functional/CrearEntrenamiento';
+import { guardarRutinaManual, obtenerEjercicios } from '../../api/endpoints';
 
 // 1. MOCKS DE INFRAESTRUCTURA
 const mockNavigate = vi.fn();
@@ -17,6 +18,12 @@ vi.mock('../../context/AuthContext', () => ({
   AuthProvider: ({ children }) => <div>{children}</div>
 }));
 
+vi.mock('../../api/endpoints', () => ({
+  actualizarRutina: vi.fn(),
+  guardarRutinaManual: vi.fn(),
+  obtenerEjercicios: vi.fn()
+}));
+
 vi.stubGlobal('crypto', { randomUUID: () => 'test-uuid' });
 
 describe('Componente CrearEntrenamiento', () => {
@@ -24,7 +31,6 @@ describe('Componente CrearEntrenamiento', () => {
   beforeEach(() => {
     // Empezamos con relojes reales por defecto
     vi.useRealTimers();
-    vi.stubGlobal('fetch', vi.fn());
     vi.stubGlobal('localStorage', {
       getItem: vi.fn().mockReturnValue('cliente-456'),
       setItem: vi.fn(),
@@ -46,12 +52,7 @@ describe('Componente CrearEntrenamiento', () => {
  it('permite buscar y añadir un ejercicio a la rutina', async () => {
     // 1. Preparamos el mock de datos
     const mockEjercicios = [{ id: 1, nombre: 'Press Banca', grupoMuscular: 'Pecho' }];
-    
-    // Usamos vi.fn().mockResolvedValue para que la promesa sea controlable
-    fetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockEjercicios)
-    });
+    obtenerEjercicios.mockResolvedValue(mockEjercicios);
 
     renderComponent();
 
@@ -79,7 +80,7 @@ describe('Componente CrearEntrenamiento', () => {
   });
 
   it('valida que la rutina tenga nombre antes de guardar', async () => {
-    fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve([]) });
+    obtenerEjercicios.mockResolvedValue([]);
     renderComponent();
     
     const saveBtn = screen.getByText(/GUARDAR/i);
@@ -93,10 +94,8 @@ describe('Componente CrearEntrenamiento', () => {
 
   it('guarda la rutina correctamente y redirige', async () => {
     const mockEj = [{ id: 1, nombre: 'Deadlift', grupoMuscular: 'Espalda' }];
-    
-    fetch
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockEj) }) // Búsqueda inicial
-      .mockResolvedValueOnce({ ok: true }); // Guardado
+    obtenerEjercicios.mockResolvedValue(mockEj);
+    guardarRutinaManual.mockResolvedValue({ success: true });
 
     renderComponent();
 
@@ -118,10 +117,10 @@ describe('Componente CrearEntrenamiento', () => {
     fireEvent.click(screen.getByText(/GUARDAR/i));
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/rutinas/manual"),
-        expect.objectContaining({ method: "POST" })
-      );
+      expect(guardarRutinaManual).toHaveBeenCalledWith(expect.objectContaining({
+        nombre: 'Rutina Pesada',
+        ejercicios: expect.any(Array)
+      }));
     });
   });
 });

@@ -11,8 +11,13 @@ import {
   TextInput,
   Image,
   KeyboardAvoidingView,
-  useWindowDimensions
+  useWindowDimensions,
+  Modal,
+  Linking,
+  Vibration
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
+import { WebView } from 'react-native-webview';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   ChevronLeft,
@@ -27,7 +32,11 @@ import {
   Plus,
   Trash2,
   Save,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Info,
+  X,
+  Activity,
+  Youtube
 } from 'lucide-react-native';
 
 import {
@@ -39,6 +48,88 @@ import {
 import { useAuth } from '../../components/context/AuthContext';
 
 const MUSCULOS = ["Todos", "Pecho", "Espalda", "Piernas", "Hombros", "Brazos", "Abdominales"];
+
+const obtenerYoutubeId = (url = "") => {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^?&/]+)/);
+  return match?.[1] || null;
+};
+
+const obtenerYoutubeThumbnail = (url = "") => {
+  const videoId = obtenerYoutubeId(url);
+  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+};
+
+const obtenerYoutubeEmbedUrl = (url = "") => {
+  const videoId = obtenerYoutubeId(url);
+  if (!videoId) return null;
+
+  const params = new URLSearchParams({
+    autoplay: "1",
+    mute: "1",
+    loop: "1",
+    playlist: videoId,
+    controls: "0",
+    rel: "0",
+    modestbranding: "1",
+    playsinline: "1"
+  });
+
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+};
+
+const esVideoDirecto = (url = "") => /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
+
+const ExerciseMediaThumb = ({ imageUrl, videoUrl, style, placeholder }) => {
+  const thumbnail = imageUrl || obtenerYoutubeThumbnail(videoUrl);
+
+  if (thumbnail) return <Image source={{ uri: thumbnail }} style={style} />;
+
+  if (esVideoDirecto(videoUrl)) {
+    return (
+      <Video
+        source={{ uri: videoUrl }}
+        style={style}
+        resizeMode={ResizeMode.COVER}
+        shouldPlay={false}
+        isMuted
+        useNativeControls={false}
+      />
+    );
+  }
+
+  return placeholder;
+};
+
+const ExerciseVideo = ({ videoUrl, style }) => {
+  const youtubeEmbedUrl = obtenerYoutubeEmbedUrl(videoUrl);
+
+  if (youtubeEmbedUrl) {
+    return (
+      <WebView
+        source={{ uri: youtubeEmbedUrl }}
+        style={style}
+        allowsInlineMediaPlayback
+        mediaPlaybackRequiresUserAction={false}
+        javaScriptEnabled
+        scrollEnabled={false}
+      />
+    );
+  }
+
+  if (!esVideoDirecto(videoUrl)) return null;
+
+  return (
+    <Video
+      source={{ uri: videoUrl }}
+      style={style}
+      resizeMode={ResizeMode.COVER}
+      shouldPlay
+      isLooping
+      isMuted
+      useNativeControls={false}
+    />
+  );
+};
 
 const normalizarTexto = (texto = "") =>
   texto
@@ -143,7 +234,10 @@ export default function CrearRutinaScreen() {
   const [filtroMusculo, setFiltroMusculo] = useState("Todos");
   const [todosEjercicios, setTodosEjercicios] = useState([]);
   const [loadingEjercicios, setLoadingEjercicios] = useState(false);
-  const [mostrarBiblioteca, setMostrarBiblioteca] = useState(true);
+  const [bibliotecaAbierta, setBibliotecaAbierta] = useState(false);
+  const [infoEjercicio, setInfoEjercicio] = useState(null);
+  const [toast, setToast] = useState({ visible: false, message: "" });
+  const [ultimoAñadidoId, setUltimoAñadidoId] = useState(null);
 
   useEffect(() => {
     const cargarEjercicios = async () => {
@@ -207,6 +301,9 @@ export default function CrearRutinaScreen() {
           detalle?.musculo ||
           "",
         imagen: detalle?.ejercicio?.imagenUrl || detalle?.imagenUrl || null,
+        videoLink: detalle?.ejercicio?.videoUrl || detalle?.videoUrl || null,
+        descripcion: detalle?.ejercicio?.instrucciones || detalle?.instrucciones || "",
+        dificultad: detalle?.ejercicio?.dificultad || detalle?.dificultad || "",
         series: String(detalle?.series ?? 3),
         reps: String(detalle?.repeticiones ?? 12),
         peso: String(detalle?.peso ?? 0),
@@ -278,6 +375,9 @@ export default function CrearRutinaScreen() {
       nombre: ej.nombreTraducido || ej.nombre,
       musculo: ej.grupoMuscularTraducido || ej.grupoMuscular,
       imagen: ej.imagenUrl,
+      videoLink: ej.videoUrl,
+      descripcion: ej.instrucciones,
+      dificultad: ej.dificultad,
       series: "3",
       reps: "12",
       peso: "0",
@@ -287,6 +387,12 @@ export default function CrearRutinaScreen() {
     };
 
     setEjerciciosSeleccionados((prev) => [...prev, nuevo]);
+    setUltimoAñadidoId(ej.id);
+    setToast({ visible: true, message: `${ej.nombreTraducido || ej.nombre} añadido` });
+    Vibration.vibrate(35);
+
+    setTimeout(() => setUltimoAñadidoId(null), 900);
+    setTimeout(() => setToast({ visible: false, message: "" }), 1800);
   };
 
   const actualizarCampo = (tempId, campo, valor) => {
@@ -309,35 +415,55 @@ export default function CrearRutinaScreen() {
     }
 
     const isEditing = rutinaInicial && rutinaInicial.id;
+    const clienteDestinoId = clienteIdProp || atletaId || userId || user?.id;
+    const entrenadorActualId = userId || user?.id;
+
+    if (!isTemplate && !clienteDestinoId) {
+      return Alert.alert(
+        "Sesión no encontrada",
+        "No se pudo identificar el cliente para guardar la rutina. Cierra sesión y vuelve a entrar."
+      );
+    }
+
+    if (isTemplate && !entrenadorActualId) {
+      return Alert.alert(
+        "Sesión no encontrada",
+        "No se pudo identificar el entrenador para guardar la plantilla. Cierra sesión y vuelve a entrar."
+      );
+    }
 
     const formatoCrear = ejerciciosSeleccionados.map((e) => ({
       idEjercicio: e.idEjercicio,
-      series: parseInt(e.series, 10) || 0,
-      repeticiones: parseInt(e.reps, 10) || 0,
-      peso: parseFloat(e.peso) || 0,
-      rpe: parseInt(e.rpe, 10) || 0,
+      series: Math.max(parseInt(e.series, 10) || 1, 1),
+      repeticiones: Math.max(parseInt(e.reps, 10) || 1, 1),
+      peso: Number.isFinite(parseFloat(e.peso)) ? parseFloat(e.peso) : 0,
+      rpe: Math.max(parseInt(e.rpe, 10) || 0, 0),
       notas: e.notas || "",
       dias: 1
-    }));
+    })).filter((e) => !!e.idEjercicio);
 
     const formatoEditar = ejerciciosSeleccionados.map((e) => ({
       ejercicio: { id: e.idEjercicio },
       idEjercicio: e.idEjercicio,
-      series: parseInt(e.series, 10) || 0,
-      repeticiones: parseInt(e.reps, 10) || 0,
-      peso: parseFloat(e.peso) || 0,
-      rpe: parseInt(e.rpe, 10) || 0,
+      series: Math.max(parseInt(e.series, 10) || 1, 1),
+      repeticiones: Math.max(parseInt(e.reps, 10) || 1, 1),
+      peso: Number.isFinite(parseFloat(e.peso)) ? parseFloat(e.peso) : 0,
+      rpe: Math.max(parseInt(e.rpe, 10) || 0, 0),
       notas: e.notas || ""
-    }));
+    })).filter((e) => !!e.idEjercicio);
+
+    if (formatoCrear.length === 0) {
+      return Alert.alert("Rutina vacía", "No se pudo leer ningún ejercicio válido para guardar.");
+    }
 
     const payload = {
-      nombre: nombreRutina,
-      descripcion: descripcionRutina,
+      nombre: nombreRutina.trim(),
+      descripcion: descripcionRutina?.trim() || "",
       objetivo: isTemplate ? "Plantilla Maestra" : "Personalizado",
       creador: isTemplate || clienteIdProp || atletaId ? "ENTRENADOR" : "CLIENTE",
       esPlantilla: isTemplate,
-      entrenadorId: isTemplate ? userId : undefined,
-      idCliente: !isTemplate ? (clienteIdProp || atletaId || userId) : undefined,
+      entrenadorId: isTemplate ? entrenadorActualId : (clienteIdProp || atletaId ? entrenadorActualId : undefined),
+      idCliente: !isTemplate ? clienteDestinoId : undefined,
       ejercicios: isEditing ? formatoEditar : formatoCrear,
       detalles: isEditing ? formatoEditar : undefined
     };
@@ -357,25 +483,55 @@ export default function CrearRutinaScreen() {
         ]);
       }
     } catch (error) {
-      console.error("Error al guardar rutina:", error);
-      Alert.alert("Error al guardar", "Revisa tu conexión.");
+      console.error("Error al guardar rutina:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        payload
+      });
+      Alert.alert(
+        "Error al guardar",
+        typeof error.response?.data === "string"
+          ? error.response.data
+          : "Revisa los datos de la rutina e inténtalo de nuevo."
+      );
     }
   };
 
+  const abrirInfoEjercicio = (ejercicio) => {
+    const datosInfo = {
+      nombre: ejercicio.nombreTraducido || ejercicio.nombre,
+      musculo: ejercicio.grupoMuscularTraducido || ejercicio.grupoMuscular || ejercicio.musculo,
+      videoLink: ejercicio.videoUrl || ejercicio.videoLink,
+      descripcion: ejercicio.instrucciones || ejercicio.descripcion,
+      dificultad: ejercicio.dificultad,
+      imagen: ejercicio.imagenUrl || ejercicio.imagen
+    };
+
+    if (bibliotecaAbierta) {
+      setBibliotecaAbierta(false);
+      setTimeout(() => setInfoEjercicio(datosInfo), 250);
+      return;
+    }
+
+    setInfoEjercicio(datosInfo);
+  };
+
   const renderLibraryItem = (item) => (
-    <TouchableOpacity
+    <View
       key={item.id}
       style={styles.libItem}
-      onPress={() => agregarAlWorkout(item)}
-      activeOpacity={0.85}
     >
-      {item.imagenUrl ? (
-        <Image source={{ uri: item.imagenUrl }} style={styles.libImg} />
-      ) : (
-        <View style={styles.libImgPlaceholder}>
-          <ImageIcon color="#444" size={20} />
-        </View>
-      )}
+      <ExerciseMediaThumb
+        imageUrl={item.imagenUrl}
+        videoUrl={item.videoUrl}
+        style={styles.libImg}
+        placeholder={(
+          <View style={styles.libImgPlaceholder}>
+            <ImageIcon color="#444" size={20} />
+          </View>
+        )}
+      />
 
       <View style={styles.libTextWrap}>
         <Text style={styles.libName} numberOfLines={2}>
@@ -386,27 +542,48 @@ export default function CrearRutinaScreen() {
         </Text>
       </View>
 
-      <View style={styles.libAddIcon}>
-        <Plus color="#FACC15" size={18} />
-      </View>
-    </TouchableOpacity>
+      <TouchableOpacity style={styles.libInfoIcon} onPress={() => abrirInfoEjercicio(item)}>
+        <Info color="#aaa" size={18} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.libAddIcon, ultimoAñadidoId === item.id && styles.libAddIconDone]}
+        onPress={() => agregarAlWorkout(item)}
+      >
+        {ultimoAñadidoId === item.id ? (
+          <CheckCircle2 color="#0A0A0A" size={18} />
+        ) : (
+          <Plus color="#FACC15" size={18} />
+        )}
+      </TouchableOpacity>
+    </View>
   );
 
   const renderExerciseCard = (item) => (
     <View key={item.tempId} style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
-        {item.imagen ? (
-          <Image source={{ uri: item.imagen }} style={styles.exerciseImg} />
-        ) : (
-          <View style={styles.exerciseImgPlaceholder}>
-            <ImageIcon color="#333" size={22} />
-          </View>
-        )}
+        <ExerciseMediaThumb
+          imageUrl={item.imagen}
+          videoUrl={item.videoLink}
+          style={styles.exerciseImg}
+          placeholder={(
+            <View style={styles.exerciseImgPlaceholder}>
+              <ImageIcon color="#333" size={22} />
+            </View>
+          )}
+        />
 
         <View style={styles.exerciseHeaderText}>
           <Text style={styles.exerciseName} numberOfLines={2}>{item.nombre}</Text>
           <Text style={styles.exerciseMuscle} numberOfLines={1}>{item.musculo}</Text>
         </View>
+
+        <TouchableOpacity
+          onPress={() => abrirInfoEjercicio(item)}
+          style={styles.exerciseInfoBtn}
+        >
+          <Info color="#aaa" size={19} />
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => eliminarEjercicio(item.tempId)} style={styles.trashBtn}>
           <Trash2 color="#EF4444" size={20} />
@@ -717,76 +894,21 @@ export default function CrearRutinaScreen() {
               )}
             </View>
 
-            <View style={styles.sectionBlock}>
-              <View style={styles.sectionBlockHeader}>
-                <Text style={styles.sectionBlockTitle}>BIBLIOTECA DE EJERCICIOS</Text>
-                <TouchableOpacity
-                  style={styles.sectionToggleBtn}
-                  onPress={() => setMostrarBiblioteca(!mostrarBiblioteca)}
-                >
-                  <Text style={styles.sectionToggleText}>
-                    {mostrarBiblioteca ? 'OCULTAR' : 'MOSTRAR'}
-                  </Text>
+            <View style={styles.workoutArea}>
+              <View style={styles.workspaceHeader}>
+                <Text style={styles.workspaceTitle}>TU RUTINA ({ejerciciosSeleccionados.length})</Text>
+                <TouchableOpacity style={styles.addExerciseBtn} onPress={() => setBibliotecaAbierta(true)}>
+                  <Plus color="#0A0A0A" size={18} />
+                  <Text style={styles.addExerciseBtnText}>AGREGAR EJERCICIO</Text>
                 </TouchableOpacity>
               </View>
-
-              <View style={styles.searchBoxInline}>
-                <TextInput
-                  style={styles.searchInputInline}
-                  placeholder="Buscar ejercicio..."
-                  placeholderTextColor="#666"
-                  value={busqueda}
-                  onChangeText={setBusqueda}
-                />
-                <Search color="#666" size={18} />
-              </View>
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filtersRow}
-              >
-                {MUSCULOS.map((m) => (
-                  <TouchableOpacity
-                    key={m}
-                    style={[styles.filterPill, filtroMusculo === m && styles.filterPillActive]}
-                    onPress={() => setFiltroMusculo(m)}
-                  >
-                    <Text style={[styles.filterPillText, filtroMusculo === m && styles.filterPillTextActive]}>
-                      {m}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              <Text style={styles.resultsCount}>
-                {loadingEjercicios ? 'Cargando ejercicios...' : `${listaEjercicios.length} ejercicios`}
-              </Text>
-
-              {mostrarBiblioteca && (
-                <View style={styles.libraryInlineArea}>
-                  {loadingEjercicios ? (
-                    <ActivityIndicator color="#FACC15" style={{ marginTop: 24 }} />
-                  ) : listaEjercicios.length === 0 ? (
-                    <View style={styles.emptyLibraryBox}>
-                      <Text style={styles.emptyLibraryText}>No se encontraron ejercicios</Text>
-                    </View>
-                  ) : (
-                    listaEjercicios.slice(0, 30).map(renderLibraryItem)
-                  )}
-                </View>
-              )}
-            </View>
-
-            <View style={styles.workoutArea}>
-              <Text style={styles.workspaceTitle}>TU RUTINA ({ejerciciosSeleccionados.length})</Text>
 
               {ejerciciosSeleccionados.length === 0 ? (
                 <View style={styles.emptyWorkspace}>
                   <Dumbbell color="#1A1A1A" size={56} />
                   <Text style={styles.emptyWorkspaceTitle}>AÚN NO HAS AÑADIDO EJERCICIOS</Text>
                   <Text style={styles.emptyWorkspaceSub}>
-                    Busca y añade ejercicios desde la biblioteca superior.
+                    Pulsa Agregar ejercicio para abrir la biblioteca.
                   </Text>
                 </View>
               ) : (
@@ -807,6 +929,106 @@ export default function CrearRutinaScreen() {
           )}
         </View>
       </KeyboardAvoidingView>
+
+      <Modal visible={bibliotecaAbierta} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.libraryModal}>
+          {toast.visible && (
+            <View style={styles.toast}>
+              <CheckCircle2 color="#0A0A0A" size={16} />
+              <Text style={styles.toastText}>{toast.message}</Text>
+            </View>
+          )}
+
+          <View style={styles.libraryModalHeader}>
+            <Text style={styles.libraryModalTitle}>Agregar ejercicio</Text>
+            <TouchableOpacity onPress={() => setBibliotecaAbierta(false)} style={styles.modalCloseBtn}>
+              <X color="#aaa" size={22} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.searchBoxInline}>
+            <TextInput
+              style={styles.searchInputInline}
+              placeholder="Buscar ejercicio..."
+              placeholderTextColor="#666"
+              value={busqueda}
+              onChangeText={setBusqueda}
+            />
+            <Search color="#666" size={18} />
+          </View>
+
+          <View style={styles.filtersGrid}>
+            {MUSCULOS.map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={[styles.filterPill, filtroMusculo === m && styles.filterPillActive]}
+                onPress={() => setFiltroMusculo(m)}
+              >
+                <Text style={[styles.filterPillText, filtroMusculo === m && styles.filterPillTextActive]}>
+                  {m}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.resultsCount}>
+            {loadingEjercicios ? 'Cargando ejercicios...' : `${listaEjercicios.length} ejercicios`}
+          </Text>
+
+          <ScrollView style={styles.libraryList} showsVerticalScrollIndicator={false}>
+            {loadingEjercicios ? (
+              <ActivityIndicator color="#FACC15" style={{ marginTop: 30 }} />
+            ) : listaEjercicios.length === 0 ? (
+              <View style={styles.emptyLibraryBox}>
+                <Text style={styles.emptyLibraryText}>No se encontraron ejercicios</Text>
+              </View>
+            ) : (
+              listaEjercicios.map(renderLibraryItem)
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      <Modal visible={!!infoEjercicio} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.infoModalCard}>
+            <TouchableOpacity style={styles.infoCloseBtn} onPress={() => setInfoEjercicio(null)}>
+              <X color="white" size={20} />
+            </TouchableOpacity>
+
+            <View style={styles.modalTag}>
+              <Activity size={14} color="#FACC15" />
+              <Text style={styles.modalTagText}>TÉCNICA</Text>
+            </View>
+
+            <Text style={styles.infoTitle}>{infoEjercicio?.nombre}</Text>
+
+            {infoEjercicio?.videoLink ? (
+              <ExerciseVideo videoUrl={infoEjercicio.videoLink} style={styles.infoVideo} />
+            ) : infoEjercicio?.imagen ? (
+              <Image source={{ uri: infoEjercicio.imagen }} style={styles.infoVideo} />
+            ) : null}
+
+            <View style={styles.infoBadges}>
+              {!!infoEjercicio?.musculo && <Text style={styles.infoBadgeMain}>{infoEjercicio.musculo}</Text>}
+              {!!infoEjercicio?.dificultad && <Text style={styles.infoBadge}>{infoEjercicio.dificultad}</Text>}
+            </View>
+
+            <ScrollView style={styles.infoTextScroll}>
+              <Text style={styles.infoText}>
+                {infoEjercicio?.descripcion || "No hay instrucciones detalladas para este ejercicio."}
+              </Text>
+            </ScrollView>
+
+            {infoEjercicio?.videoLink && !obtenerYoutubeEmbedUrl(infoEjercicio.videoLink) && !esVideoDirecto(infoEjercicio.videoLink) && (
+              <TouchableOpacity style={styles.ytBtn} onPress={() => Linking.openURL(infoEjercicio.videoLink)}>
+                <Youtube color="black" size={20} />
+                <Text style={styles.ytBtnText}>VER TUTORIAL</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1028,6 +1250,13 @@ const styles = StyleSheet.create({
     gap: 10
   },
 
+  filtersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10
+  },
+
   resultsCount: {
     color: '#666',
     fontSize: 12,
@@ -1051,13 +1280,31 @@ const styles = StyleSheet.create({
   },
 
   workoutArea: { paddingHorizontal: 16, paddingBottom: 40 },
+  workspaceHeader: {
+    marginBottom: 16,
+    gap: 12
+  },
   workspaceTitle: {
     color: '#555',
     fontWeight: '800',
     fontSize: 12,
     letterSpacing: 1,
-    marginBottom: 16,
     marginTop: 4
+  },
+  addExerciseBtn: {
+    backgroundColor: '#FACC15',
+    minHeight: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8
+  },
+  addExerciseBtnText: {
+    color: '#0A0A0A',
+    fontWeight: '900',
+    fontSize: 13,
+    letterSpacing: 0.5
   },
 
   emptyWorkspace: {
@@ -1120,6 +1367,15 @@ const styles = StyleSheet.create({
   exerciseHeaderText: { flex: 1, paddingRight: 8 },
   exerciseName: { color: 'white', fontWeight: '700', fontSize: 15, marginBottom: 2 },
   exerciseMuscle: { color: '#888', fontSize: 12 },
+  exerciseInfoBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#141414',
+    marginRight: 6
+  },
   trashBtn: { padding: 4 },
 
   inputsGrid: {
@@ -1143,27 +1399,31 @@ const styles = StyleSheet.create({
   },
 
   filterPill: {
-    backgroundColor: '#1A1A1A',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: '#121214',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#222'
+    borderColor: '#242424',
+    minWidth: '30%',
+    alignItems: 'center',
+    flexGrow: 1
   },
 
   filterPillActive: {
-    backgroundColor: '#27272A',
-    borderColor: '#444'
+    backgroundColor: '#FACC15',
+    borderColor: '#FACC15'
   },
 
   filterPillText: {
-    color: '#888',
-    fontWeight: '600',
-    fontSize: 13
+    color: '#a1a1aa',
+    fontWeight: '800',
+    fontSize: 12,
+    textTransform: 'uppercase'
   },
 
   filterPillTextActive: {
-    color: 'white'
+    color: '#0A0A0A'
   },
 
   libItem: {
@@ -1216,6 +1476,180 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(250, 204, 21, 0.1)'
+  },
+  libAddIconDone: {
+    backgroundColor: '#FACC15'
+  },
+  libInfoIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#151515',
+    marginRight: 8
+  },
+
+  libraryModal: {
+    flex: 1,
+    backgroundColor: '#050505',
+    paddingTop: Platform.OS === 'ios' ? 58 : 34,
+    paddingHorizontal: 16
+  },
+  toast: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 58 : 34,
+    left: 16,
+    right: 16,
+    zIndex: 20,
+    minHeight: 42,
+    borderRadius: 14,
+    backgroundColor: '#FACC15',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 14
+  },
+  toastText: {
+    color: '#0A0A0A',
+    fontWeight: '900',
+    fontSize: 13
+  },
+  libraryModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16
+  },
+  libraryModalTitle: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: '900',
+    textTransform: 'uppercase'
+  },
+  modalCloseBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#151515',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  libraryList: {
+    flex: 1,
+    marginTop: 6
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 18
+  },
+  infoModalCard: {
+    width: '100%',
+    maxHeight: '88%',
+    backgroundColor: '#111',
+    borderRadius: 24,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: '#2A2A2A'
+  },
+  infoCloseBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    zIndex: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#222',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  modalTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: 'rgba(250,204,21,0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    marginBottom: 12
+  },
+  modalTagText: {
+    color: '#FACC15',
+    fontWeight: '900',
+    fontSize: 10
+  },
+  infoTitle: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    marginBottom: 14,
+    paddingRight: 34
+  },
+  infoVideo: {
+    width: '100%',
+    height: 260,
+    borderRadius: 16,
+    backgroundColor: '#000',
+    marginBottom: 14,
+    overflow: 'hidden'
+  },
+  infoBadges: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+    flexWrap: 'wrap'
+  },
+  infoBadgeMain: {
+    backgroundColor: '#FACC15',
+    color: '#0A0A0A',
+    fontWeight: '900',
+    fontSize: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    textTransform: 'uppercase'
+  },
+  infoBadge: {
+    color: '#888',
+    borderWidth: 1,
+    borderColor: '#333',
+    fontWeight: '700',
+    fontSize: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    textTransform: 'uppercase'
+  },
+  infoTextScroll: {
+    maxHeight: 150,
+    marginBottom: 14
+  },
+  infoText: {
+    color: '#ccc',
+    fontSize: 14,
+    lineHeight: 21
+  },
+  ytBtn: {
+    backgroundColor: '#FACC15',
+    minHeight: 46,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8
+  },
+  ytBtnText: {
+    color: '#0A0A0A',
+    fontWeight: '900',
+    fontSize: 13
   },
 
   mobileBottomBar: {

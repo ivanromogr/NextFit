@@ -7,17 +7,32 @@ console.log('[API CONFIG] 🔧 Conectando a:', API_URL);
 
 export const api = axios.create({
     baseURL: API_URL,
-    timeout: 15000, 
+    timeout: 45000, 
 });
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getStoredToken = async () => {
+    const directToken = await AsyncStorage.getItem('token');
+    if (directToken) return directToken;
+
+    const sessionData = await AsyncStorage.getItem('auth_session');
+    if (!sessionData) return null;
+
+    try {
+        const session = JSON.parse(sessionData);
+        return session.token || session.accessToken || session.jwt || null;
+    } catch {
+        return null;
+    }
+};
 
 // ✅ LA BARRERA DE SEGURIDAD (Interceptor)
 // Antes de que cualquier petición salga de la app, hacemos esto:
 api.interceptors.request.use(
     async (config) => {
         try {
-            // Leemos el token del almacenamiento del móvil
-            // ⚠️ OJO: Si en tu AuthContext guardaste el token con otro nombre (ej: 'jwt' o 'userToken'), cámbialo aquí abajo:
-            const token = await AsyncStorage.getItem('token'); 
+            const token = await getStoredToken(); 
             
             if (token) {
                 // Si hay token, lo pegamos en la cabecera Authorization
@@ -51,14 +66,31 @@ api.interceptors.response.use(
         });
         return response;
     },
-    (error) => {
-        console.error('[API ERROR] ❌', {
-            status: error.response?.status,
-            url: error.config?.url,
-            fullUrl: `${error.config?.baseURL}${error.config?.url}`,
-            message: error.message,
-            errorMessage: error.response?.data?.message,
-        });
+    async (error) => {
+        const config = error.config || {};
+        const shouldRetry =
+            !config.__retry &&
+            (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || !error.response);
+
+        if (shouldRetry) {
+            config.__retry = true;
+            console.warn('[API RETRY] 🔁 Reintentando petición tras timeout/red lenta:', {
+                url: config.url,
+                fullUrl: `${config.baseURL}${config.url}`,
+            });
+            await sleep(2500);
+            return api(config);
+        }
+
+        if (!config.silentError) {
+            console.error('[API ERROR] ❌', {
+                status: error.response?.status,
+                url: error.config?.url,
+                fullUrl: `${error.config?.baseURL}${error.config?.url}`,
+                message: error.message,
+                errorMessage: error.response?.data?.message,
+            });
+        }
         return Promise.reject(error);
     }
 );

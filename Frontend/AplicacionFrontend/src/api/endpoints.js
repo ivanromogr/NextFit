@@ -88,30 +88,59 @@ export const eliminarRutina = async (id) => {
   return api.delete(`/api/rutinas/${id}`);
 };
 
+const pendingRutinasCliente = new Map();
+const pendingRutinasEntrenador = new Map();
+
 // CLIENTE: Obtener TODAS las rutinas (Propias + Entrenador)
-export const obtenerRutinasCliente = async (idCliente) => {
-  try {
-    const response = await api.get(`/api/rutinas/cliente/${idCliente}`);
-    return Array.isArray(response.data) ? response.data : [];
-  } catch (error) {
-    console.error("Error obteniendo rutinas:", error);
-    return [];
-  }
+export const obtenerRutinasCliente = async (idCliente, options = {}) => {
+  if (!idCliente) return [];
+
+  const key = String(idCliente);
+  if (pendingRutinasCliente.has(key)) return pendingRutinasCliente.get(key);
+
+  const request = api.get(`/api/rutinas/cliente/${idCliente}`)
+    .then((response) => {
+      return Array.isArray(response.data) ? response.data : [];
+    })
+    .catch((error) => {
+      console.warn("No se pudieron cargar las rutinas del cliente:", error?.response?.status || error?.message);
+      if (options.throwOnError) throw error;
+      return [];
+    })
+    .finally(() => {
+      pendingRutinasCliente.delete(key);
+    });
+
+  pendingRutinasCliente.set(key, request);
+  return request;
 };
 
 // ENTRENADOR: Obtener SOLO las creadas por él para ese cliente
 export const obtenerRutinasAsignadasPorEntrenador = async (idCliente, entrenadorId) => {
-  try {
-    let url = `/api/rutinas/cliente/${idCliente}/entrenador`;
-    if (entrenadorId) {
-      url += `?entrenadorId=${entrenadorId}`;
-    }
-    const response = await api.get(url);
-    return Array.isArray(response.data) ? response.data : [];
-  } catch (error) {
-    console.error("Error obteniendo rutinas entrenador:", error);
-    return [];
+  if (!idCliente) return [];
+
+  const key = `${idCliente}:${entrenadorId || "all"}`;
+  if (pendingRutinasEntrenador.has(key)) return pendingRutinasEntrenador.get(key);
+
+  let url = `/api/rutinas/cliente/${idCliente}/entrenador`;
+  if (entrenadorId) {
+    url += `?entrenadorId=${entrenadorId}`;
   }
+
+  const request = api.get(url)
+    .then((response) => {
+      return Array.isArray(response.data) ? response.data : [];
+    })
+    .catch((error) => {
+      console.warn("No se pudieron cargar las rutinas del entrenador:", error?.response?.status || error?.message);
+      return [];
+    })
+    .finally(() => {
+      pendingRutinasEntrenador.delete(key);
+    });
+
+  pendingRutinasEntrenador.set(key, request);
+  return request;
 };
 
 // --- 7. ZONA ENTRENADOR ---

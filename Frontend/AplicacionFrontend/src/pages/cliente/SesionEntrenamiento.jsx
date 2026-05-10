@@ -339,11 +339,7 @@ export default function SesionEntrenamiento() {
             minHeight: '100vh', 
             color: 'white', 
             fontFamily: 'sans-serif', 
-            paddingBottom: '100px',
-            '@media (max-width: 767px)': {
-                paddingBottom: 'var(--spacing-xl)'
-            }
-        },
+            paddingBottom: '100px'},
         topBar: { 
             position: 'sticky', 
             top: 0, 
@@ -353,46 +349,24 @@ export default function SesionEntrenamiento() {
             padding: '15px 20px', 
             display: 'flex', 
             justifyContent: 'space-between', 
-            alignItems: 'center',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-md) var(--spacing-md)',
-                flexWrap: 'wrap',
-                gap: 'var(--spacing-sm)'
-            }
-        },
+            alignItems: 'center'},
         headerTitle: { 
             fontSize: '1.1rem', 
             fontWeight: '900', 
             textTransform: 'uppercase', 
             display: 'flex', 
             alignItems: 'center', 
-            gap: '10px',
-            '@media (max-width: 767px)': {
-                fontSize: '1rem',
-                gap: 'var(--spacing-sm)'
-            }
-        },
+            gap: '10px'},
         statsBar: { 
             display: 'flex', 
             justifyContent: 'space-around', 
             padding: '20px 0', 
             background: '#0c0c0e', 
-            borderBottom: '1px solid #1f1f22',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-md) 0',
-                flexWrap: 'wrap',
-                gap: 'var(--spacing-md)'
-            }
-        },
+            borderBottom: '1px solid #1f1f22'},
         statItem: { 
             display: 'flex', 
             flexDirection: 'column', 
-            alignItems: 'center',
-            '@media (max-width: 767px)': {
-                flex: 1,
-                minWidth: '80px'
-            }
-        },
+            alignItems: 'center'},
         statLabel: { 
             fontSize: '0.65rem', 
             color: '#71717a', 
@@ -420,23 +394,12 @@ export default function SesionEntrenamiento() {
             borderRadius: '12px', 
             border: '1px solid #27272a', 
             margin: '20px', 
-            overflow: 'hidden',
-            '@media (max-width: 767px)': {
-                margin: 'var(--spacing-md)',
-                borderRadius: '8px'
-            }
-        },
+            overflow: 'hidden'},
         cardHeader: { 
             padding: '20px', 
             borderBottom: '1px solid #222', 
             display: 'flex', 
-            gap: '15px',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-md)',
-                gap: 'var(--spacing-sm)',
-                flexWrap: 'wrap'
-            }
-        },
+            gap: '15px'},
         noteWrapper: { marginTop: '8px' },
         notePlaceholder: { color: '#71717a', fontSize: '0.85rem', cursor: isReadOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontStyle: 'italic' },
         noteDisplay: { color: '#ccc', fontSize: '0.85rem', cursor: isReadOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '6px', width: 'fit-content' },
@@ -448,11 +411,7 @@ export default function SesionEntrenamiento() {
             fontWeight: '900', 
             textTransform: 'uppercase', 
             color: '#FACC15', 
-            marginBottom: '2px',
-            '@media (max-width: 767px)': {
-                fontSize: '1rem'
-            }
-        },
+            marginBottom: '2px'},
         imgBox: { 
             width: '60px', 
             height: '60px', 
@@ -462,13 +421,7 @@ export default function SesionEntrenamiento() {
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center', 
-            border: '1px solid #333',
-            '@media (max-width: 767px)': {
-                width: '50px',
-                height: '50px',
-                borderRadius: '6px'
-            }
-        },
+            border: '1px solid #333'},
 
         // ✅ TABLA Y GRID INTACTOS COMO EN LA VERSIÓN "LIMPIA"
         tableHeader: { 
@@ -481,13 +434,7 @@ export default function SesionEntrenamiento() {
             fontWeight: '900', 
             letterSpacing: '0.5px', 
             textAlign: 'center', 
-            textTransform: 'uppercase',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-sm) var(--spacing-md)',
-                fontSize: '0.6rem',
-                gridTemplateColumns: '0.5fr 1fr 0.9fr 0.9fr 0.7fr 0.7fr'
-            }
-        },
+            textTransform: 'uppercase'},
         tableRow: (hecho) => ({ 
             display: 'grid', 
             gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', 
@@ -495,12 +442,7 @@ export default function SesionEntrenamiento() {
             borderBottom: '1px solid #1f1f22', 
             alignItems: 'center', 
             background: hecho ? 'rgba(34, 197, 94, 0.05)' : 'transparent', 
-            transition: 'background 0.2s',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-sm) var(--spacing-md)',
-                gridTemplateColumns: '0.5fr 1fr 0.9fr 0.9fr 0.7fr 0.7fr'
-            }
-        }),
+            transition: 'background 0.2s'}),
 
         // ✅ INPUT INTACTO (Fondo oscuro, sin bordes amarillos)
         input: { 
@@ -513,13 +455,7 @@ export default function SesionEntrenamiento() {
             textAlign: 'center', 
             fontWeight: 'bold', 
             outline: 'none', 
-            fontSize: '0.95rem',
-            '@media (max-width: 767px)': {
-                padding: '10px 6px',
-                fontSize: '1rem',
-                minHeight: '44px'
-            }
-        },
+            fontSize: '0.95rem'},
         checkBtn: (hecho) => ({ 
             width: '32px', 
             height: '32px', 
@@ -531,14 +467,7 @@ export default function SesionEntrenamiento() {
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center', 
-            transition: 'all 0.2s',
-            '@media (max-width: 767px)': {
-                width: '40px',
-                height: '40px',
-                minWidth: '44px',
-                minHeight: '44px'
-            }
-        }),
+            transition: 'all 0.2s'}),
 
         addSetBtn: { 
             width: '100%', 
@@ -555,12 +484,7 @@ export default function SesionEntrenamiento() {
             fontSize: '0.75rem', 
             borderTop: '1px solid #222', 
             textTransform: 'uppercase', 
-            letterSpacing: '1px',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-md)',
-                fontSize: '0.8rem'
-            }
-        },
+            letterSpacing: '1px'},
 
         finishBtn: { 
             background: '#FACC15', 
@@ -572,13 +496,7 @@ export default function SesionEntrenamiento() {
             cursor: 'pointer', 
             textTransform: 'uppercase', 
             fontSize: '0.75rem', 
-            letterSpacing: '0.5px',
-            '@media (max-width: 767px)': {
-                padding: '10px 20px',
-                fontSize: '0.85rem',
-                borderRadius: '25px'
-            }
-        },
+            letterSpacing: '0.5px'},
         iconBtn: { background: 'transparent', border: 'none', color: '#71717a', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
 
         modalOverlay: { 
@@ -593,11 +511,7 @@ export default function SesionEntrenamiento() {
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
-            padding: 'var(--spacing-md)',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-sm)'
-            }
-        },
+            padding: 'var(--spacing-md)'},
         finishModalCard: { 
             background: '#121212', 
             borderRadius: '20px', 
@@ -607,13 +521,7 @@ export default function SesionEntrenamiento() {
             textAlign: 'center', 
             border: '1px solid #333', 
             boxShadow: '0 20px 50px rgba(0,0,0,0.8)', 
-            position: 'relative',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-lg)',
-                borderRadius: '16px',
-                maxWidth: '95%'
-            }
-        },
+            position: 'relative'},
         finishTitle: { fontSize: '1.6rem', fontWeight: '900', color: 'white', margin: '15px 0 5px 0', textTransform: 'uppercase' },
         finishSub: { color: '#a1a1aa', fontSize: '0.9rem', marginBottom: '25px' },
         statsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '30px', background: '#18181b', padding: '15px', borderRadius: '12px', border: '1px solid #27272a' },
@@ -629,14 +537,7 @@ export default function SesionEntrenamiento() {
             position: 'relative', 
             border: '1px solid #333', 
             maxHeight: '80vh', 
-            overflowY: 'auto',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-lg)',
-                borderRadius: '16px',
-                maxWidth: '95%',
-                maxHeight: '85vh'
-            }
-        },
+            overflowY: 'auto'},
         modalTag: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(250, 204, 21, 0.1)', color: '#FACC15', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '15px' },
         infoTitle: { fontSize: '1.6rem', fontWeight: '900', color: 'white', marginBottom: '15px', lineHeight: 1, textTransform: 'uppercase' },
         infoText: { color: '#a1a1aa', fontSize: '0.95rem', lineHeight: 1.42, marginBottom: 0 },
@@ -662,12 +563,7 @@ export default function SesionEntrenamiento() {
                             maxWidth: '200px', 
                             overflow: 'hidden', 
                             textOverflow: 'ellipsis', 
-                            whiteSpace: 'nowrap',
-                            '@media (max-width: 767px)': {
-                                maxWidth: '150px',
-                                fontSize: '0.9rem'
-                            }
-                        }}>{rutina?.nombre}</span>
+                            whiteSpace: 'nowrap'}}>{rutina?.nombre}</span>
                         {/* ✅ MODO OBSERVADOR INDICADOR */}
                         {isReadOnly && (
                             <div style={{ 
@@ -677,11 +573,7 @@ export default function SesionEntrenamiento() {
                                 marginTop: '2px', 
                                 color: '#FACC15', 
                                 fontSize: '0.65rem', 
-                                letterSpacing: '1px',
-                                '@media (max-width: 767px)': {
-                                    fontSize: '0.6rem'
-                                }
-                            }}>
+                                letterSpacing: '1px'}}>
                                 <Eye size={12} /> MODO OBSERVADOR
                             </div>
                         )}
@@ -690,12 +582,7 @@ export default function SesionEntrenamiento() {
                 <div style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: '15px',
-                    '@media (max-width: 767px)': {
-                        gap: 'var(--spacing-sm)',
-                        flexWrap: 'wrap'
-                    }
-                }}>
+                    gap: '15px'}}>
                     <div style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -706,12 +593,7 @@ export default function SesionEntrenamiento() {
                         border: '1px solid #27272a', 
                         fontSize: '0.9rem', 
                         fontWeight: 'bold', 
-                        color: '#FACC15',
-                        '@media (max-width: 767px)': {
-                            padding: '4px 8px',
-                            fontSize: '0.8rem'
-                        }
-                    }}>
+                        color: '#FACC15'}}>
                         <Clock size={16} /> {formatoTiempo(tiempo)}
                     </div>
                     {/* ✅ OCULTAMOS TERMINAR EN MODO LECTURA */}

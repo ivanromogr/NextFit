@@ -5,7 +5,7 @@ import { Search, MessageSquare, User, Edit } from "lucide-react";
 import ChatComponent from "../../components/functional/ChatComponent";
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
-import { WS_BASE_URL } from "../../api/config";
+import { SOCKJS_URL } from "../../api/config";
 
 export default function ChatPage() {
     const { userId: entrenadorId } = useAuth();
@@ -25,7 +25,7 @@ export default function ChatPage() {
     }, [entrenadorId]);
 
    const conectarSocketGlobal = () => {
-    const socket = new SockJS(`${WS_BASE_URL}/ws`);
+    const socket = new SockJS(SOCKJS_URL);
     const client = Stomp.over(socket);
     client.debug = null;
 

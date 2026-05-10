@@ -63,7 +63,7 @@ describe('Componente ImageUploadLocal', () => {
     // Verificamos que se llamó a la API con el JSON correcto (Base64)
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:8080/api/upload/base64',
+        'http://localhost:8098/api/upload/base64',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ base64: 'data:image/png;base64,falsa-imagen-base64' })

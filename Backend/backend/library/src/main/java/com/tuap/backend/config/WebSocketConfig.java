@@ -20,9 +20,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns(
-                        "http://localhost:5173",
-                        "http://localhost:3000",
+                        "http://localhost:*",
+                        "https://localhost:*",
+                        "http://127.0.0.1:*",
+                        "https://127.0.0.1:*",
+                        "https://nextfit-pa8i.onrender.com",
                         "https://next-fit-azure.vercel.app",
+                        "https://next-fit-iyrm.vercel.app",
                         "https://*.vercel.app"
                 )
                 .withSockJS();

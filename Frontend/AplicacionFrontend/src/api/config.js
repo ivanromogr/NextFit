@@ -1,24 +1,26 @@
 const RENDER_BASE_URL = "https://nextfit-pa8i.onrender.com";
-const envApiUrl = import.meta.env.VITE_API_URL;
-const envWsUrl = import.meta.env.VITE_WS_URL;
+const envApiUrl = import.meta.env.VITE_API_URL?.trim();
+const envWsUrl = import.meta.env.VITE_WS_URL?.trim();
 const isLocalUrl = (url) => url && /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.)/.test(url);
+const trimTrailingSlash = (url) => url.replace(/\/+$/, "");
 
 export const API_BASE_URL =
-  import.meta.env.PROD && isLocalUrl(envApiUrl)
-    ? RENDER_BASE_URL
-    : envApiUrl || RENDER_BASE_URL;
+  trimTrailingSlash(
+    import.meta.env.PROD && isLocalUrl(envApiUrl)
+      ? RENDER_BASE_URL
+      : envApiUrl || RENDER_BASE_URL
+  );
 
-// Dynamically set WS_BASE_URL to match the current page's protocol
 const wsEnvUrl = import.meta.env.PROD && isLocalUrl(envWsUrl)
     ? RENDER_BASE_URL
-    : envWsUrl;
-let WS_BASE_URL;
-if (wsEnvUrl) {
-    const url = new URL(wsEnvUrl);
-    url.protocol = window.location.protocol;
-    WS_BASE_URL = url.toString();
-} else {
-    WS_BASE_URL = `${window.location.protocol}//${window.location.host}`;
-}
+    : envWsUrl || API_BASE_URL;
 
-export { WS_BASE_URL };
+const WS_BASE_URL = (() => {
+    const url = new URL(wsEnvUrl);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return trimTrailingSlash(url.toString());
+})();
+
+const SOCKJS_URL = `${API_BASE_URL}/ws`;
+
+export { SOCKJS_URL, WS_BASE_URL };

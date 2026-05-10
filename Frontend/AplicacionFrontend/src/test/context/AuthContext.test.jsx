@@ -97,12 +97,11 @@ describe("AuthContext (AuthProvider & useAuth)", () => {
     expect(result.current.isAuthenticated()).toBe(true);
   });
 
-  it("debe lanzar un error si useAuth se usa fuera de AuthProvider", () => {
-    // Evitamos que el error salga en la consola del test para que quede limpio
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
-    expect(() => renderHook(() => useAuth())).toThrow("useAuth debe usarse dentro de AuthProvider");
-    
-    consoleSpy.mockRestore();
+  it("fuera de AuthProvider debe comportarse como usuario no autenticado", () => {
+    const { result } = renderHook(() => useAuth());
+
+    expect(result.current.user).toBeNull();
+    expect(result.current.userId).toBeNull();
+    expect(result.current.isAuthenticated()).toBe(false);
   });
 });

@@ -42,7 +42,10 @@ export default function Register() {
             ? (dataBackend.clienteId || dataBackend.idCliente || dataBackend.id)
             : (dataBackend.entrenadorId || dataBackend.idEntrenador || dataBackend.id);
 
-        if (idUsuario) localStorage.setItem("registration_userId", idUsuario);
+        if (idUsuario) {
+          sessionStorage.setItem("registration_userId", idUsuario);
+          localStorage.setItem("registration_userId", idUsuario);
+        }
 
         const ruta = form.rol === "CLIENTE" ? "/cliente/onboarding" : "/entrenador/onboarding";
         navigate(ruta, { state: { userId: idUsuario } });

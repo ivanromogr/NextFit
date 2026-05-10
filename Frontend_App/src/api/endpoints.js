@@ -139,9 +139,10 @@ export const obtenerEjerciciosConHistorial = async (clienteId, entrenadorId = nu
 
 export const obtenerRutinasCliente = async (idCliente) => {
   try {
-    const response = await api.get(`/rutinas/cliente/${idCliente}`);
+    const response = await api.get(`/rutinas/cliente/${idCliente}`, { silentError: true });
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
+    console.warn('[obtenerRutinasCliente] No se pudieron cargar rutinas:', error.response?.status || error.message);
     return []; 
   }
 };
@@ -155,11 +156,12 @@ export const actualizarRutina = (id, payload) => api.put(`/rutinas/${id}`, paylo
 export const obtenerRutinasAsignadasPorEntrenador = async (idCliente, entrenadorId) => {
   try {
       const response = await api.get(`/rutinas/cliente/${idCliente}/entrenador`, {
-          params: { entrenadorId } // Pasamos el ID del coach logueado
+          params: { entrenadorId }, // Pasamos el ID del coach logueado
+          silentError: true
       });
       return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-      console.error("Error obteniendo rutinas asignadas:", error);
+      console.warn("No se pudieron cargar rutinas asignadas:", error.response?.status || error.message);
       return []; 
   }
 };

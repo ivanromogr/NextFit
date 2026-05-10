@@ -76,7 +76,7 @@ public class Rutina {
     public Cliente getCliente() { return cliente; }
     public void setCliente(Cliente cliente) { this.cliente = cliente; }
 
-    public boolean isEsPlantilla() { return esPlantilla; }
+    public boolean isEsPlantilla() { return Boolean.TRUE.equals(esPlantilla); }
     public void setEsPlantilla(boolean esPlantilla) { this.esPlantilla = esPlantilla; }
 
     public UUID getEntrenadorId() { return entrenadorId; }

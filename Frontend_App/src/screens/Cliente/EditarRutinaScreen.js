@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, 
   Image, Modal, ActivityIndicator, Platform, FlatList, Alert, KeyboardAvoidingView 
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { 
   Search, Trash2, Plus, X, ChevronLeft, Save, 
@@ -13,6 +14,39 @@ import { obtenerRutinasCliente, obtenerEjercicios, actualizarRutina } from '../.
 import { useAuth } from '../../components/context/AuthContext';
 
 const MUSCULOS = ["Todos", "Pecho", "Espalda", "Piernas", "Hombros", "Brazos", "Abdominales", "Cardio"];
+
+const obtenerYoutubeId = (url = "") => {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^?&/]+)/);
+  return match?.[1] || null;
+};
+
+const obtenerYoutubeThumbnail = (url = "") => {
+  const videoId = obtenerYoutubeId(url);
+  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+};
+
+const esVideoDirecto = (url = "") => /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
+
+const ExerciseMediaThumb = ({ imageUrl, videoUrl, style, placeholder }) => {
+  const thumbnail = imageUrl || obtenerYoutubeThumbnail(videoUrl);
+
+  if (thumbnail) return <Image source={{ uri: thumbnail }} style={style} />;
+
+  if (esVideoDirecto(videoUrl)) {
+    return (
+      <Video
+        source={{ uri: videoUrl }}
+        style={style}
+        resizeMode={ResizeMode.COVER}
+        shouldPlay={false}
+        isMuted
+        useNativeControls={false}
+      />
+    );
+  }
+
+  return placeholder;
+};
 
 export default function EditarRutinaScreen() {
   const navigation = useNavigation();
@@ -260,13 +294,16 @@ export default function EditarRutinaScreen() {
                   
                   {/* CABECERA DEL EJERCICIO */}
                   <View style={styles.exerciseHeader}>
-                    {detalle.ejercicio?.imagenUrl ? (
-                      <Image source={{uri: detalle.ejercicio.imagenUrl}} style={styles.exerciseImg} />
-                    ) : (
-                      <View style={styles.exerciseImgPlaceholder}>
-                        <ImageIcon color="#333" size={24} />
-                      </View>
-                    )}
+                    <ExerciseMediaThumb
+                      imageUrl={detalle.ejercicio?.imagenUrl}
+                      videoUrl={detalle.ejercicio?.videoUrl}
+                      style={styles.exerciseImg}
+                      placeholder={(
+                        <View style={styles.exerciseImgPlaceholder}>
+                          <ImageIcon color="#333" size={24} />
+                        </View>
+                      )}
+                    />
                     
                     <View style={styles.exerciseHeaderText}>
                       <Text style={styles.exerciseName}>{detalle.ejercicio?.nombre}</Text>
@@ -390,11 +427,12 @@ export default function EditarRutinaScreen() {
               contentContainerStyle={{paddingBottom: 40}}
               renderItem={({item}) => (
                 <TouchableOpacity style={styles.libItem} onPress={() => addExerciseToRoutine(item)}>
-                  {item.imagenUrl ? (
-                    <Image source={{uri: item.imagenUrl}} style={styles.libImg} />
-                  ) : (
-                    <View style={styles.libImgPlaceholder} />
-                  )}
+                  <ExerciseMediaThumb
+                    imageUrl={item.imagenUrl}
+                    videoUrl={item.videoUrl}
+                    style={styles.libImg}
+                    placeholder={<View style={styles.libImgPlaceholder} />}
+                  />
                   <View style={styles.libTextWrap}>
                     <Text style={styles.libName}>{item.nombre}</Text>
                     <Text style={styles.libMuscle}>{item.grupoMuscular}</Text>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { completarOnboardingCliente } from "../../api/endpoints";
+import { useAuth } from "../../context/AuthContext";
 
 // Iconos
 import { ChevronLeft, Check, Dumbbell, User, Ruler, Weight, Flame, Activity } from "lucide-react";
@@ -16,6 +17,7 @@ const STEPS = ["genero", "fechaNacimiento", "altura", "peso", "objetivo"];
 export default function ClienteOnboarding() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
 
   // Estados
   const [userId, setUserId] = useState(null);
@@ -36,7 +38,9 @@ export default function ClienteOnboarding() {
   // Recuperar ID al cargar (desde State o LocalStorage)
   useEffect(() => {
     let idRecuperado = location.state?.userId;
-    if (!idRecuperado) idRecuperado = localStorage.getItem("registration_userId");
+    if (!idRecuperado) {
+      idRecuperado = sessionStorage.getItem("registration_userId") || localStorage.getItem("registration_userId");
+    }
 
     if (idRecuperado) {
       setUserId(idRecuperado);
@@ -170,10 +174,13 @@ export default function ClienteOnboarding() {
 
       const idDevuelto = resp?.idCliente || resp?.id || userId;
       if (idDevuelto) {
+        sessionStorage.setItem("clienteId", idDevuelto);
         localStorage.setItem("clienteId", idDevuelto);
+        login(idDevuelto, "cliente");
         setUserId(idDevuelto);
       }
 
+      sessionStorage.removeItem("registration_userId");
       localStorage.removeItem("registration_userId");
       navigate("/cliente/dashboard");
     } catch (error) {

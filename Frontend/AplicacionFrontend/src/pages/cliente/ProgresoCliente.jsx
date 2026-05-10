@@ -85,22 +85,12 @@ export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) 
             minHeight: '100vh', 
             background: isCoachMode ? '#000000' : '#09090b', // Fondo distinto para Coach
             fontFamily: 'sans-serif', 
-            paddingBottom: '100px',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-lg) var(--spacing-md)',
-                paddingBottom: 'var(--spacing-2xl)'
-            }
-        },
+            paddingBottom: '100px'},
         header: { 
             display: 'flex', 
             alignItems: 'center', 
             marginBottom: 'var(--spacing-xl)', 
-            gap:'var(--spacing-md)',
-            '@media (max-width: 767px)': {
-                marginBottom: 'var(--spacing-lg)',
-                flexWrap: 'wrap'
-            }
-        },
+            gap:'var(--spacing-md)'},
         title: { 
             fontSize: 'clamp(1.5rem, 4vw, 1.8rem)', 
             fontWeight: '900', 
@@ -119,23 +109,12 @@ export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) 
             display: 'grid', 
             gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
             gap: 'var(--spacing-md)', 
-            marginBottom: 'var(--spacing-xl)',
-            '@media (max-width: 767px)': {
-                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                gap: 'var(--spacing-sm)',
-                marginBottom: 'var(--spacing-lg)'
-            }
-        },
+            marginBottom: 'var(--spacing-xl)'},
         statCard: { 
             background: '#121214', 
             padding: 'var(--spacing-lg)', 
             borderRadius: '12px', 
-            border: '1px solid #27272a',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-md)',
-                borderRadius: '8px'
-            }
-        },
+            border: '1px solid #27272a'},
         statLabel: { 
             color: '#71717a', 
             fontSize: '0.8rem', 
@@ -146,11 +125,7 @@ export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) 
         statValue: { 
             fontSize: '1.5rem', 
             fontWeight: '900', 
-            color: 'white',
-            '@media (max-width: 767px)': {
-                fontSize: '1.3rem'
-            }
-        },
+            color: 'white'},
         iconBox: { 
             marginBottom: '10px', 
             color: '#FACC15' 
@@ -159,32 +134,18 @@ export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) 
         divider: { 
             height: '1px', 
             background: '#27272a', 
-            margin: 'var(--spacing-2xl) 0',
-            '@media (max-width: 767px)': {
-                margin: 'var(--spacing-xl) 0'
-            }
-        },
+            margin: 'var(--spacing-2xl) 0'},
         
         topChartsGrid: { 
             display: 'grid', 
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
             gap: 'var(--spacing-lg)', 
-            marginBottom: 'var(--spacing-lg)',
-            '@media (max-width: 767px)': {
-                gridTemplateColumns: '1fr',
-                gap: 'var(--spacing-md)'
-            }
-        },
+            marginBottom: 'var(--spacing-lg)'},
         midSectionGrid: { 
             display: 'grid', 
             gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', 
             gap: 'var(--spacing-lg)', 
-            marginBottom: 'var(--spacing-xl)',
-            '@media (max-width: 767px)': {
-                gridTemplateColumns: '1fr',
-                gap: 'var(--spacing-md)'
-            }
-        },
+            marginBottom: 'var(--spacing-xl)'},
 
         selectorContainer: { 
             marginBottom: 'var(--spacing-lg)' 
@@ -198,13 +159,7 @@ export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) 
             borderRadius: '8px', 
             fontSize: '1rem', 
             outline: 'none', 
-            cursor: 'pointer',
-            '@media (max-width: 767px)': {
-                padding: '14px',
-                fontSize: '1.1rem',
-                minHeight: '48px'
-            }
-        }
+            cursor: 'pointer'}
     };
 
     return (
@@ -223,12 +178,7 @@ export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) 
                         gap:'5px',
                         padding: 'var(--spacing-sm)',
                         borderRadius: '6px',
-                        transition: 'background 0.2s',
-                        '@media (max-width: 767px)': {
-                            padding: 'var(--spacing-xs)',
-                            fontSize: '0.9rem'
-                        }
-                    }}
+                        transition: 'background 0.2s'}}
                     onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                 >
@@ -242,12 +192,7 @@ export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) 
                         fontWeight:'bold', 
                         background:'#222', 
                         padding:'2px 8px', 
-                        borderRadius:'4px',
-                        '@media (max-width: 767px)': {
-                            fontSize: '0.7rem',
-                            padding: '2px 6px'
-                        }
-                    }}>VISTA ENTRENADOR</span>}
+                        borderRadius:'4px'}}>VISTA ENTRENADOR</span>}
                 </div>
             </div>
 

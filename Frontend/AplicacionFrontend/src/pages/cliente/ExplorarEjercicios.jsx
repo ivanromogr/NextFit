@@ -38,12 +38,7 @@ export default function ExplorarEjercicios() {
       minHeight: '100vh', 
       paddingBottom: '80px', 
       maxWidth: '1200px', 
-      margin: '0 auto',
-      '@media (max-width: 767px)': {
-        padding: 'var(--spacing-lg) var(--spacing-md)',
-        paddingBottom: 'var(--spacing-2xl)'
-      }
-    }}>
+      margin: '0 auto'}}>
       
       <div style={{ marginBottom: 'var(--spacing-xl)' }}>
         <h1 style={{ 
@@ -57,11 +52,7 @@ export default function ExplorarEjercicios() {
           EXPLORAR <span style={{ color: '#FACC15' }}>EJERCICIOS</span>
         </h1>
         <p style={{ 
-          color: '#a3a3a3',
-          '@media (max-width: 767px)': {
-            fontSize: '0.9rem'
-          }
-        }}>Descubre movimientos para tu rutina.</p>
+          color: '#a3a3a3'}}>Descubre movimientos para tu rutina.</p>
       </div>
 
       <GymInput 
@@ -77,12 +68,7 @@ export default function ExplorarEjercicios() {
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', 
-          gap: 'var(--spacing-md)',
-          '@media (max-width: 767px)': {
-            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-            gap: 'var(--spacing-sm)'
-          }
-        }}>
+          gap: 'var(--spacing-md)'}}>
           {ejerciciosFiltrados.slice(0, 50).map((ej) => (
             <TarjetaEjercicio key={ej.id} ejercicio={ej} />
           ))}
@@ -107,11 +93,7 @@ function TarjetaEjercicio({ ejercicio }) {
             display: 'flex', 
             flexDirection: 'column',
             transition: 'transform 0.2s',
-            cursor: 'pointer',
-            '@media (max-width: 767px)': {
-                borderRadius: '8px'
-            }
-        }}
+            cursor: 'pointer'}}
         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
         >
@@ -166,33 +148,20 @@ function TarjetaEjercicio({ ejercicio }) {
                    borderRadius: '4px', 
                    fontSize: '0.7rem', 
                    fontWeight: '800', 
-                   textTransform: 'uppercase',
-                   '@media (max-width: 767px)': {
-                     fontSize: '0.65rem',
-                     padding: '2px 4px'
-                   }
-                 }}>
+                   textTransform: 'uppercase'}}>
                    {ejercicio.grupoMuscularTraducido}
                  </div>
             </div>
             
             {/* INFO */}
             <div style={{ 
-              padding: 'var(--spacing-sm)',
-              '@media (max-width: 767px)': {
-                padding: 'var(--spacing-xs)'
-              }
-            }}>
+              padding: 'var(--spacing-sm)'}}>
                 <h3 style={{ 
                   margin: 0, 
                   fontSize: '0.9rem', 
                   color: 'white', 
                   textTransform: 'capitalize', 
-                  fontWeight: '700',
-                  '@media (max-width: 767px)': {
-                    fontSize: '0.85rem'
-                  }
-                }}>
+                  fontWeight: '700'}}>
                   {nombre}
                 </h3>
             </div>

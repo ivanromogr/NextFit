@@ -30,15 +30,19 @@ export function AuthProvider({ children }) {
   /**
    * Login: Guarda credenciales de forma persistente
    */
-  const login = async (userId, userRole) => {
+  const login = async (userId, userRole, token = null) => {
     const sessionData = {
       id: userId,
       role: userRole,
+      token,
       loginTime: new Date().toISOString(),
     };
     
     try {
       await AsyncStorage.setItem("auth_session", JSON.stringify(sessionData));
+      if (token) {
+        await AsyncStorage.setItem("token", token);
+      }
       setUser(sessionData);
       setRole(userRole);
     } catch (error) {
@@ -52,6 +56,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       await AsyncStorage.removeItem("auth_session");
+      await AsyncStorage.removeItem("token");
       setUser(null);
       setRole(null);
     } catch (error) {

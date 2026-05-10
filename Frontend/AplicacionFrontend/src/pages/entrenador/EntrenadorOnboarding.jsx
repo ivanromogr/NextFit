@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { completarOnboardingEntrenador } from "../../api/endpoints";
+import { useAuth } from "../../context/AuthContext";
 
 // Iconos
 import {
@@ -36,6 +37,7 @@ const LISTA_TITULACIONES = [
 export default function EntrenadorOnboarding() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
 
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -53,7 +55,9 @@ export default function EntrenadorOnboarding() {
   });
 
   useEffect(() => {
-    let idRecuperado = location.state?.userId || localStorage.getItem("registration_userId");
+    let idRecuperado = location.state?.userId
+      || sessionStorage.getItem("registration_userId")
+      || localStorage.getItem("registration_userId");
     if (idRecuperado) setUserId(idRecuperado);
     else console.warn("⚠️ Modo desarrollo: Sin ID de usuario.");
   }, [location, navigate]);
@@ -135,7 +139,10 @@ export default function EntrenadorOnboarding() {
 
       await completarOnboardingEntrenador(payload);
 
+      sessionStorage.setItem("entrenadorId", userId);
       localStorage.setItem("entrenadorId", userId);
+      login(userId, "entrenador");
+      sessionStorage.removeItem("registration_userId");
       localStorage.removeItem("registration_userId");
       navigate("/entrenador/dashboard");
     } catch (error) {

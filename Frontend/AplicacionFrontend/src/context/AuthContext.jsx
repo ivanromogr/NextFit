@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-const AuthContext = createContext(null);
+const defaultAuthContext = {
+  user: null,
+  role: null,
+  loading: false,
+  login: () => {},
+  logout: () => {},
+  isAuthenticated: () => false,
+  userId: null,
+};
+
+const AuthContext = createContext(defaultAuthContext);
 
 /**
  * AuthProvider: Gestiona la sesión del usuario a nivel de pestaña
@@ -21,9 +31,25 @@ export function AuthProvider({ children }) {
         const parsedSession = JSON.parse(sessionData);
         setUser(parsedSession);
         setRole(parsedSession.role);
+        if (parsedSession.role === "cliente") localStorage.setItem("clienteId", parsedSession.id);
+        if (parsedSession.role === "entrenador") localStorage.setItem("entrenadorId", parsedSession.id);
       } catch (error) {
         console.error("Error al recuperar sesión:", error);
         sessionStorage.removeItem("auth_session");
+      }
+    } else {
+      const legacyClienteId = localStorage.getItem("clienteId");
+      const legacyEntrenadorId = localStorage.getItem("entrenadorId");
+      const legacySession = legacyClienteId
+        ? { id: legacyClienteId, role: "cliente", loginTime: new Date().toISOString() }
+        : legacyEntrenadorId
+          ? { id: legacyEntrenadorId, role: "entrenador", loginTime: new Date().toISOString() }
+          : null;
+
+      if (legacySession) {
+        sessionStorage.setItem("auth_session", JSON.stringify(legacySession));
+        setUser(legacySession);
+        setRole(legacySession.role);
       }
     }
     setLoading(false);
@@ -40,6 +66,14 @@ export function AuthProvider({ children }) {
     };
     
     sessionStorage.setItem("auth_session", JSON.stringify(sessionData));
+    if (userRole === "cliente") {
+      localStorage.setItem("clienteId", userId);
+      localStorage.removeItem("entrenadorId");
+    }
+    if (userRole === "entrenador") {
+      localStorage.setItem("entrenadorId", userId);
+      localStorage.removeItem("clienteId");
+    }
     setUser(sessionData);
     setRole(userRole);
   };
@@ -49,6 +83,10 @@ export function AuthProvider({ children }) {
    */
   const logout = () => {
     sessionStorage.removeItem("auth_session");
+    sessionStorage.removeItem("registration_userId");
+    localStorage.removeItem("clienteId");
+    localStorage.removeItem("entrenadorId");
+    localStorage.removeItem("registration_userId");
     setUser(null);
     setRole(null);
   };
@@ -80,9 +118,5 @@ export function AuthProvider({ children }) {
  * Uso en componentes: const { user, login, logout, isAuthenticated } = useAuth();
  */
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth debe usarse dentro de AuthProvider");
-  }
-  return context;
+  return useContext(AuthContext);
 }

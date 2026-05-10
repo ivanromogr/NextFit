@@ -4,6 +4,8 @@ import {
   Image, Modal, ActivityIndicator, Platform, Alert, KeyboardAvoidingView,
   Vibration, Linking
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
+import { WebView } from 'react-native-webview';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   ChevronLeft, Check, Clock, Save, Plus, Info, Trash2, X,
@@ -18,6 +20,88 @@ import {
   obtenerRutinasAsignadasPorEntrenador 
 } from '../../api/endpoints';
 import { useAuth } from '../../components/context/AuthContext';
+
+const obtenerYoutubeId = (url = "") => {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^?&/]+)/);
+  return match?.[1] || null;
+};
+
+const obtenerYoutubeThumbnail = (url = "") => {
+  const videoId = obtenerYoutubeId(url);
+  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+};
+
+const obtenerYoutubeEmbedUrl = (url = "") => {
+  const videoId = obtenerYoutubeId(url);
+  if (!videoId) return null;
+
+  const params = new URLSearchParams({
+    autoplay: "1",
+    mute: "1",
+    loop: "1",
+    playlist: videoId,
+    controls: "0",
+    rel: "0",
+    modestbranding: "1",
+    playsinline: "1"
+  });
+
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+};
+
+const esVideoDirecto = (url = "") => /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
+
+const ExerciseThumb = ({ imageUrl, videoUrl, style, placeholder }) => {
+  const thumbnail = imageUrl || obtenerYoutubeThumbnail(videoUrl);
+
+  if (thumbnail) return <Image source={{ uri: thumbnail }} style={style} />;
+
+  if (esVideoDirecto(videoUrl)) {
+    return (
+      <Video
+        source={{ uri: videoUrl }}
+        style={style}
+        resizeMode={ResizeMode.COVER}
+        shouldPlay={false}
+        isMuted
+        useNativeControls={false}
+      />
+    );
+  }
+
+  return placeholder;
+};
+
+const ExerciseVideo = ({ videoUrl, style }) => {
+  const youtubeEmbedUrl = obtenerYoutubeEmbedUrl(videoUrl);
+
+  if (youtubeEmbedUrl) {
+    return (
+      <WebView
+        source={{ uri: youtubeEmbedUrl }}
+        style={style}
+        allowsInlineMediaPlayback
+        mediaPlaybackRequiresUserAction={false}
+        javaScriptEnabled
+        scrollEnabled={false}
+      />
+    );
+  }
+
+  if (!esVideoDirecto(videoUrl)) return null;
+
+  return (
+    <Video
+      source={{ uri: videoUrl }}
+      style={style}
+      resizeMode={ResizeMode.COVER}
+      shouldPlay
+      isLooping
+      isMuted
+      useNativeControls={false}
+    />
+  );
+};
 
 export default function PantallaSesionEntrenamiento() {
   const navigation = useNavigation();
@@ -303,13 +387,16 @@ export default function PantallaSesionEntrenamiento() {
             return (
               <View key={ej.id} style={styles.card}>
                 <View style={styles.cardHeader}>
-                  {ej.ejercicio.imagenUrl ? (
-                    <Image source={{ uri: ej.ejercicio.imagenUrl }} style={styles.imgBox} />
-                  ) : (
-                    <View style={[styles.imgBox, { justifyContent: 'center', alignItems: 'center' }]}>
-                      <ImageIcon color="#555" size={28} />
-                    </View>
-                  )}
+                  <ExerciseThumb
+                    imageUrl={ej.ejercicio.imagenUrl}
+                    videoUrl={ej.ejercicio.videoUrl}
+                    style={styles.imgBox}
+                    placeholder={(
+                      <View style={[styles.imgBox, { justifyContent: 'center', alignItems: 'center' }]}>
+                        <ImageIcon color="#555" size={28} />
+                      </View>
+                    )}
+                  />
 
                   <View style={{ flex: 1, paddingLeft: 15 }}>
                     <Text style={styles.exTitle}>{ej.ejercicio.nombreTraducido}</Text>
@@ -447,13 +534,17 @@ export default function PantallaSesionEntrenamiento() {
             <View style={styles.modalTag}><Activity size={14} color="#FACC15" /><Text style={styles.modalTagText}>TÉCNICA</Text></View>
             <Text style={styles.infoTitle}>{infoExercise?.nombre}</Text>
 
+            {infoExercise?.videoUrl && (esVideoDirecto(infoExercise.videoUrl) || obtenerYoutubeEmbedUrl(infoExercise.videoUrl)) && (
+              <ExerciseVideo videoUrl={infoExercise.videoUrl} style={styles.exerciseVideo} />
+            )}
+
             <ScrollView style={{ maxHeight: 200, marginBottom: 20 }}>
               <Text style={styles.infoText}>
                 {infoExercise?.instrucciones || "No hay instrucciones detalladas para este ejercicio."}
               </Text>
             </ScrollView>
 
-            {infoExercise?.videoUrl && (
+            {infoExercise?.videoUrl && !esVideoDirecto(infoExercise.videoUrl) && !obtenerYoutubeEmbedUrl(infoExercise.videoUrl) && (
               <TouchableOpacity style={styles.ytBtn} onPress={() => Linking.openURL(infoExercise.videoUrl)}>
                 <Youtube size={22} color="black" />
                 <Text style={styles.ytBtnText}>VER TUTORIAL</Text>
@@ -562,6 +653,7 @@ const styles = StyleSheet.create({
   modalTagText: { color: '#FACC15', fontSize: 10, fontWeight: '900' },
   infoTitle: { color: 'white', fontSize: 22, fontWeight: '900', marginBottom: 15, textTransform: 'uppercase' },
   infoText: { color: '#aaa', fontSize: 14, lineHeight: 22 },
+  exerciseVideo: { width: '100%', height: 260, borderRadius: 16, backgroundColor: '#000', marginBottom: 18 },
   ytBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FACC15', padding: 14, borderRadius: 12, marginTop: 10 },
   ytBtnText: { color: '#0A0A0A', fontWeight: '900', fontSize: 14 },
 

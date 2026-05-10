@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import EditarPerfil from '../../../pages/cliente/EditarPerfil';
-import { getCliente } from '../../../api/endpoints';
+import { actualizarCliente, getCliente } from '../../../api/endpoints';
 
 // 1. MOCK DE ROUTER Y AUTH
 const mockNavigate = vi.fn();
@@ -17,8 +17,9 @@ vi.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({ userId: 'atleta-123' })
 }));
 
-// 2. MOCK DE API (GET)
+// 2. MOCK DE API
 vi.mock('../../../api/endpoints', () => ({
+  actualizarCliente: vi.fn(),
   getCliente: vi.fn()
 }));
 
@@ -41,8 +42,6 @@ describe('Página EditarPerfil', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock del fetch global para el PUT
-    vi.stubGlobal('fetch', vi.fn());
   });
 
   const renderComponent = () => {
@@ -72,11 +71,7 @@ describe('Página EditarPerfil', () => {
 
   it('actualiza el perfil con éxito al pulsar guardar', async () => {
     getCliente.mockResolvedValue(mockCliente);
-    // Simulamos respuesta exitosa del servidor (fetch PUT)
-    global.fetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true })
-    });
+    actualizarCliente.mockResolvedValue('Perfil actualizado');
 
     renderComponent();
 
@@ -89,13 +84,11 @@ describe('Página EditarPerfil', () => {
     const saveBtn = screen.getByText(/GUARDAR/i);
     fireEvent.click(saveBtn);
 
-    // Verificamos que se llamó al fetch con el payload correcto
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/clientes/atleta-123'),
+      expect(actualizarCliente).toHaveBeenCalledWith(
+        'atleta-123',
         expect.objectContaining({
-          method: 'PUT',
-          body: expect.stringContaining('"nombre":"Juan Actualizado"')
+          nombre: 'Juan Actualizado'
         })
       );
     });
@@ -106,7 +99,7 @@ describe('Página EditarPerfil', () => {
 
   it('envía la contraseña solo si el usuario la escribe', async () => {
     getCliente.mockResolvedValue(mockCliente);
-    global.fetch.mockResolvedValue({ ok: true });
+    actualizarCliente.mockResolvedValue('Perfil actualizado');
 
     renderComponent();
 
@@ -116,19 +109,16 @@ describe('Página EditarPerfil', () => {
     fireEvent.click(screen.getByText(/GUARDAR/i));
 
     await waitFor(() => {
-      const callBody = JSON.parse(global.fetch.mock.calls[0][1].body);
-      expect(callBody.contrasena).toBe('nuevaPass123');
+      expect(actualizarCliente).toHaveBeenCalledWith(
+        'atleta-123',
+        expect.objectContaining({ contrasena: 'nuevaPass123' })
+      );
     });
   });
 
   it('muestra error si la actualización falla', async () => {
     getCliente.mockResolvedValue(mockCliente);
-    // Simulamos error de servidor
-    global.fetch.mockResolvedValue({
-      ok: false,
-      status: 500,
-      json: () => Promise.resolve('Error interno del servidor')
-    });
+    actualizarCliente.mockRejectedValue(new Error('HTTP 500'));
 
     renderComponent();
     await screen.findByDisplayValue('Juan');

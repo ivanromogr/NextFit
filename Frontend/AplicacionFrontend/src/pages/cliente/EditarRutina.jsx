@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { obtenerRutinasCliente, obtenerEjercicios, actualizarRutina } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 import { 
     ChevronLeft, Save, Trash2, Plus, Search, Dumbbell, X, 
     GripVertical, Copy, CheckCircle, AlertCircle 
@@ -12,6 +13,7 @@ const MUSCLE_FILTERS = ["TODOS", "PECHO", "ESPALDA", "PIERNA", "HOMBRO", "BÍCEP
 const EditarRutina = () => {
     const { rutinaId, clienteId } = useParams();
     const navigate = useNavigate();
+    const { userId } = useAuth();
     const [loading, setLoading] = useState(true);
     
     // --- ESTADOS ---
@@ -28,7 +30,14 @@ const EditarRutina = () => {
 
     useEffect(() => {
         const loadData = async () => {
-            const idOwner = localStorage.getItem("clienteObjetivoId") || localStorage.getItem("clienteId");
+            const idOwner = clienteId
+                || localStorage.getItem("clienteObjetivoId")
+                || userId
+                || localStorage.getItem("clienteId");
+            if (!idOwner) {
+                navigate("/auth/login");
+                return;
+            }
             try {
                 const [rutinas, ejercicios] = await Promise.all([
                     obtenerRutinasCliente(idOwner),
@@ -73,7 +82,7 @@ const EditarRutina = () => {
             }
         };
         loadData();
-    }, [rutinaId]);
+    }, [rutinaId, clienteId, userId, navigate]);
 
     // --- FUNCIÓN PARA MOSTRAR NOTIFICACIÓN ---
     const showNotification = (message, type = 'success') => {

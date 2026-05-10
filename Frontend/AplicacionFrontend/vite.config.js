@@ -6,6 +6,11 @@ const backendUrl = process.env.VITE_API_URL || 'https://nextfit-pa8i.onrender.co
 export default defineConfig({
   plugins: [react()],
   server: {
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      clientPort: 5173,
+    },
     proxy: {
       '/api': backendUrl,
       '/login': backendUrl,

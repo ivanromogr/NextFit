@@ -3,6 +3,7 @@ package com.tuap.controladores;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,6 +22,7 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.tuap.backend.controladores.RutinaController;
 import com.tuap.backend.dominio.entidades.Cliente;
@@ -118,12 +120,30 @@ class RutinaControllerTest {
             .thenReturn(Arrays.asList(rutinaDeOtro, miRutina));
 
         // Le pasamos el ID en texto para que salte el candado
-        ResponseEntity<List<Rutina>> respuesta = rutinaController.obtenerRutinasEntrenador(clienteId, entrenadorId.toString());
+        ResponseEntity<List<Map<String, Object>>> respuesta = rutinaController.obtenerRutinasEntrenador(clienteId, entrenadorId.toString());
 
         assertEquals(HttpStatus.OK, respuesta.getStatusCode());
         // Verificamos que eliminó la rutina del intruso
         assertEquals(1, respuesta.getBody().size()); 
-        assertEquals(entrenadorId, respuesta.getBody().get(0).getEntrenadorId());
+        assertEquals(entrenadorId, respuesta.getBody().get(0).get("entrenadorId"));
+    }
+
+    @Test
+    void obtenerRutinas_ConEsPlantillaNull_NoRompeElListado() {
+        Rutina rutinaAntigua = new Rutina();
+        rutinaAntigua.setId(UUID.randomUUID());
+        rutinaAntigua.setNombre("Rutina antigua");
+        rutinaAntigua.setCreador("CLIENTE");
+        ReflectionTestUtils.setField(rutinaAntigua, "esPlantilla", null);
+
+        when(gestorRutina.obtenerRutinasDeCliente(clienteId))
+            .thenReturn(List.of(rutinaAntigua));
+
+        ResponseEntity<List<Map<String, Object>>> respuesta = rutinaController.obtenerRutinas(clienteId);
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        assertEquals(1, respuesta.getBody().size());
+        assertEquals(false, respuesta.getBody().get(0).get("esPlantilla"));
     }
 
     // 🟢 TEST 4: Clonar Plantilla a Cliente (Camino Feliz)

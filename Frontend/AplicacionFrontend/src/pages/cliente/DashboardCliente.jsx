@@ -125,25 +125,14 @@ export default function DashboardCliente() {
             background: '#050505', 
             minHeight: '100vh', 
             color: 'white', 
-            fontFamily: "'Inter', system-ui, sans-serif",
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-md) var(--spacing-md)'
-            }
-        },
+            fontFamily: "'Inter', system-ui, sans-serif"},
         
         // 1. Cabecera (Header)
         headerRow: { 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center', 
-            marginBottom: 'var(--spacing-xl)',
-            '@media (max-width: 767px)': {
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: 'var(--spacing-md)',
-                marginBottom: 'var(--spacing-lg)'
-            }
-        },
+            marginBottom: 'var(--spacing-xl)'},
         greetingBox: { display: 'flex', flexDirection: 'column', gap: '4px' },
         title: { 
             fontSize: 'clamp(1.5rem, 4vw, 2rem)', 
@@ -154,20 +143,12 @@ export default function DashboardCliente() {
         subtitle: { 
             color: 'rgba(255,255,255,0.5)', 
             fontSize: '0.95rem', 
-            fontWeight: 500,
-            '@media (max-width: 767px)': {
-                fontSize: '0.85rem'
-            }
-        },
+            fontWeight: 500},
         
         profileSection: { 
             display: 'flex', 
             alignItems: 'center', 
-            gap: 'var(--spacing-lg)',
-            '@media (max-width: 767px)': {
-                alignSelf: 'flex-end'
-            }
-        },
+            gap: 'var(--spacing-lg)'},
         
         // Contenedor de la campana (Relativo para el Dropdown)
         bellWrapper: { position: 'relative' },
@@ -186,16 +167,7 @@ export default function DashboardCliente() {
             borderRadius: '20px', 
             padding: '20px', 
             zIndex: 100, 
-            boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
-            '@media (max-width: 767px)': {
-                width: 'calc(100vw - 2rem)',
-                maxWidth: '380px',
-                right: '-1rem',
-                top: '60px',
-                borderRadius: '16px',
-                padding: '16px'
-            }
-        },
+            boxShadow: '0 20px 50px rgba(0,0,0,0.8)'},
         notiHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '15px' },
         notiTitle: { margin: 0, fontSize: '1.2rem', fontWeight: 900 },
         notiCloseBtn: { background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', display: 'flex' },
@@ -212,14 +184,7 @@ export default function DashboardCliente() {
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center', 
-            marginBottom: 'var(--spacing-lg)',
-            '@media (max-width: 767px)': {
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: 'var(--spacing-md)',
-                marginBottom: 'var(--spacing-md)'
-            }
-        },
+            marginBottom: 'var(--spacing-lg)'},
         btnSecondary: { 
             background: 'rgba(255,255,255,0.05)', 
             border: '1px solid rgba(255,255,255,0.1)', 
@@ -231,12 +196,7 @@ export default function DashboardCliente() {
             display: 'flex', 
             alignItems: 'center', 
             gap: '10px', 
-            transition: 'all 0.2s',
-            '@media (max-width: 767px)': {
-                padding: '10px 20px',
-                fontSize: '0.9rem'
-            }
-        },
+            transition: 'all 0.2s'},
         btnPrimary: { 
             background: 'linear-gradient(135deg, #FACC15 0%, #EAB308 100%)', 
             color: 'black', 
@@ -249,25 +209,14 @@ export default function DashboardCliente() {
             alignItems: 'center', 
             gap: '8px', 
             boxShadow: '0 10px 25px rgba(250, 204, 21, 0.25)', 
-            transition: 'all 0.2s transform',
-            '@media (max-width: 767px)': {
-                padding: '10px 24px',
-                fontSize: '0.9rem'
-            }
-        },
+            transition: 'all 0.2s transform'},
 
         // Grid Estadísticas
         statsGrid: { 
             display: 'grid', 
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
             gap: 'var(--spacing-lg)', 
-            marginBottom: 'var(--spacing-2xl)',
-            '@media (max-width: 767px)': {
-                gridTemplateColumns: '1fr',
-                gap: 'var(--spacing-md)',
-                marginBottom: 'var(--spacing-xl)'
-            }
-        },
+            marginBottom: 'var(--spacing-2xl)'},
         statCard: { 
             background: 'linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)', 
             border: '1px solid rgba(255,255,255,0.05)', 
@@ -276,12 +225,7 @@ export default function DashboardCliente() {
             display: 'flex', 
             flexDirection: 'column', 
             gap: '15px', 
-            backdropFilter: 'blur(10px)',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-md)',
-                borderRadius: '16px'
-            }
-        },
+            backdropFilter: 'blur(10px)'},
         iconWrap: { width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
         statValue: { fontSize: '2.2rem', fontWeight: 900, display: 'flex', alignItems: 'baseline', gap: '5px' },
         statUnit: { fontSize: '1rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600 },
@@ -294,12 +238,7 @@ export default function DashboardCliente() {
             borderRadius: '30px', 
             position: 'relative', 
             overflow: 'hidden', 
-            padding: 'var(--spacing-2xl)',
-            '@media (max-width: 767px)': {
-                borderRadius: '20px',
-                padding: 'var(--spacing-lg)'
-            }
-        },
+            padding: 'var(--spacing-2xl)'},
         heroOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 100%)', zIndex: 1 },
         heroContent: { 
             position: 'relative', 
@@ -308,13 +247,7 @@ export default function DashboardCliente() {
             justifyContent: 'space-between', 
             alignItems: 'center', 
             flexWrap: 'wrap', 
-            gap: 'var(--spacing-lg)',
-            '@media (max-width: 767px)': {
-                flexDirection: 'column',
-                textAlign: 'center',
-                gap: 'var(--spacing-md)'
-            }
-        },
+            gap: 'var(--spacing-lg)'},
         heroTag: { 
             background: 'rgba(250, 204, 21, 0.15)', 
             color: '#FACC15', 
@@ -341,12 +274,7 @@ export default function DashboardCliente() {
             color: 'rgba(255,255,255,0.7)', 
             fontSize: '1.05rem', 
             maxWidth: '400px', 
-            lineHeight: '1.5',
-            '@media (max-width: 767px)': {
-                fontSize: '0.95rem',
-                maxWidth: '100%'
-            }
-        },
+            lineHeight: '1.5'},
         playBtn: { 
             background: '#FACC15', 
             color: 'black', 
@@ -361,14 +289,7 @@ export default function DashboardCliente() {
             gap: '10px', 
             boxShadow: '0 0 25px rgba(250, 204, 21, 0.3)', 
             textTransform: 'uppercase', 
-            transition: 'transform 0.2s',
-            '@media (max-width: 767px)': {
-                padding: '14px 28px',
-                fontSize: '0.9rem',
-                width: '100%',
-                justifyContent: 'center'
-            }
-        },
+            transition: 'transform 0.2s'},
 
         // Enlace
         libraryLink: { 
@@ -381,16 +302,7 @@ export default function DashboardCliente() {
             border: '1px solid rgba(255,255,255,0.05)', 
             cursor: 'pointer', 
             transition: 'border-color 0.2s', 
-            marginTop: 'var(--spacing-xl)',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-lg)',
-                borderRadius: '16px',
-                marginTop: 'var(--spacing-lg)',
-                flexDirection: 'column',
-                textAlign: 'center',
-                gap: 'var(--spacing-md)'
-            }
-        }
+            marginTop: 'var(--spacing-xl)'}
     };
 
     if (loading) {

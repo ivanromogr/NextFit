@@ -26,7 +26,7 @@ public class SecurityConfig {
 
     private static final String LOGIN_URL = "/login";
 
-    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173,https://next-fit-azure.vercel.app,https://next-fit-iyrm.vercel.app,https://*.vercel.app}")
+    @Value("${app.cors.allowed-origins:http://localhost:*,https://localhost:*,http://127.0.0.1:*,https://127.0.0.1:*,https://nextfit-pa8i.onrender.com,https://next-fit-azure.vercel.app,https://next-fit-iyrm.vercel.app,https://*.vercel.app}")
     private String allowedOrigins;
 
     private final CustomUserDetailsService userDetailsService;

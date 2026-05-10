@@ -38,6 +38,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0",
+    "react-native-webview": "13.15.0",
     "rn-emoji-keyboard": "^1.7.0",
     "sockjs-client": "^1.6.1",
     "stompjs": "^2.3.3",

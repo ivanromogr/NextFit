@@ -470,7 +470,7 @@ const CrearEntrenamiento = ({
               <div
                 key={ej.id}
                 onClick={() => agregarEjercicio(ej)}
-                style={{ display: 'flex', alignItems: 'center', padding: '12px', background: '#1a1a1a', borderRadius: '12px', cursor: 'pointer', gap:'15px', border: '1px solid transparent', transition: 'all 0.2s', position:'relative' }}
+                style={{ display: 'flex', alignItems: 'center', padding: '12px', background: '#1a1a1a', borderRadius: '12px', cursor: 'pointer', gap:'15px', borderWidth: '1px', borderStyle: 'solid', borderColor: 'transparent', transition: 'all 0.2s', position:'relative' }}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = isTemplate ? '#60A5FA' : '#FACC15'; e.currentTarget.style.background = '#222'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = '#1a1a1a'; }}
               >

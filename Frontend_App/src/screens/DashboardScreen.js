@@ -17,7 +17,7 @@ import {
   Dumbbell, Activity, Plus, Play, CheckCircle, Flame, User, Bell, BarChart2, Target, X, Trophy, Info
 } from 'lucide-react-native';
 
-import { obtenerResumenDashboard, getCliente } from '../api/endpoints'; 
+import { obtenerResumenDashboard } from '../api/endpoints'; 
 import { useAuth } from '../components/context/AuthContext';
 
 const { width } = Dimensions.get('window');
@@ -38,21 +38,11 @@ export default function DashboardClienteScreen() {
     const cargarDatos = async () => {
       if (!userId) return;
       try {
-        const [resumenData, userData] = await Promise.all([
-          obtenerResumenDashboard(userId),
-          getCliente(userId)
-        ]);
+        const resumenData = await obtenerResumenDashboard(userId);
 
         if (resumenData) {
           setResumen(resumenData);
           generarNotificacionesReales(resumenData); // 👈 Generamos las notificaciones basadas en datos reales
-        }
-        
-        if (userData) {
-          setPerfil({
-            nombre: userData.nombre || 'Atleta',
-            fotoPerfil: userData.fotoPerfil || ''
-          });
         }
       } catch (error) {
         console.error("Error cargando datos del dashboard:", error);

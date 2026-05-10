@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generarRutinaAuto } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 
 // Iconos
 import { 
@@ -97,6 +98,7 @@ const SelectionCard = ({ selected, onClick, title, subtitle, icon, variant = "de
 // --- PANTALLA PRINCIPAL ---
 const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = null }) => {
     const navigate = useNavigate();
+    const { userId: authUserId } = useAuth();
     const [loading, setLoading] = useState(false);
     const [userId, setUserId] = useState(null);
 
@@ -107,13 +109,13 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
     });
 
     useEffect(() => {
-        const id = clienteIdProp || localStorage.getItem("clienteId");
+        const id = clienteIdProp || authUserId || localStorage.getItem("clienteId");
         if (!id) {
             if (!clienteIdProp) navigate("/auth/login");
             return;
         }
         setUserId(id);
-    }, [clienteIdProp, navigate]);
+    }, [clienteIdProp, authUserId, navigate]);
 
     const handleBack = () => {
         if (onCancel) onCancel();

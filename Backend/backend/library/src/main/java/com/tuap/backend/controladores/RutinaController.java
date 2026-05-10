@@ -1,10 +1,13 @@
 package com.tuap.backend.controladores;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -86,12 +89,15 @@ public class RutinaController {
     }
 
     @GetMapping("/cliente/{idCliente}")
-    public ResponseEntity<List<Rutina>> obtenerRutinas(@PathVariable UUID idCliente) {
-        return ResponseEntity.ok(gestorRutina.obtenerRutinasDeCliente(idCliente));
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<Map<String, Object>>> obtenerRutinas(@PathVariable UUID idCliente) {
+        List<Rutina> rutinas = gestorRutina.obtenerRutinasDeCliente(idCliente);
+        return ResponseEntity.ok(rutinas.stream().map(this::mapRutinaResumen).toList());
     }
 
     @GetMapping("/cliente/{idCliente}/entrenador")
-    public ResponseEntity<List<Rutina>> obtenerRutinasEntrenador(
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<Map<String, Object>>> obtenerRutinasEntrenador(
             @PathVariable UUID idCliente,
             @RequestParam(required = false) String entrenadorId) { 
         
@@ -104,7 +110,7 @@ public class RutinaController {
                         .toList();
             }
 
-            return ResponseEntity.ok(rutinas);
+            return ResponseEntity.ok(rutinas.stream().map(this::mapRutinaResumen).toList());
         } catch (Exception e) {
     
             return ResponseEntity.internalServerError().build();
@@ -113,14 +119,70 @@ public class RutinaController {
 
     // --- 1. OBTENER PLANTILLAS DEL ENTRENADOR ---
     @GetMapping("/plantillas/{entrenadorId}")
-    public ResponseEntity<List<Rutina>> obtenerPlantillas(@PathVariable UUID entrenadorId) {
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<Map<String, Object>>> obtenerPlantillas(@PathVariable UUID entrenadorId) {
         try {
             List<Rutina> plantillas = rutinaDAO.findByEntrenadorIdAndEsPlantillaTrue(entrenadorId);
-            return ResponseEntity.ok(plantillas);
+            return ResponseEntity.ok(plantillas.stream().map(this::mapRutinaResumen).toList());
         } catch (Exception e) {
            
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    private Map<String, Object> mapRutinaResumen(Rutina rutina) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", rutina.getId());
+        map.put("nombre", rutina.getNombre());
+        map.put("objetivo", rutina.getObjetivo());
+        map.put("descripcion", rutina.getDescripcion());
+        map.put("nivel", rutina.getNivel());
+        map.put("creador", rutina.getCreador());
+        map.put("esPlantilla", rutina.isEsPlantilla());
+        map.put("entrenadorId", rutina.getEntrenadorId());
+
+        if (rutina.getCliente() != null) {
+            Map<String, Object> cliente = new HashMap<>();
+            cliente.put("id", rutina.getCliente().getId());
+            cliente.put("nombre", rutina.getCliente().getNombre());
+            cliente.put("apellido", rutina.getCliente().getApellido());
+            map.put("cliente", cliente);
+        }
+
+        List<Map<String, Object>> detalles = rutina.getDetalles() == null
+                ? List.of()
+                : rutina.getDetalles().stream().map(this::mapDetalleRutina).toList();
+        map.put("detalles", detalles);
+
+        return map;
+    }
+
+    private Map<String, Object> mapDetalleRutina(DetalleRutina detalle) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", detalle.getId());
+        map.put("series", detalle.getSeries());
+        map.put("repeticiones", detalle.getRepeticiones());
+        map.put("notas", detalle.getNotas());
+        map.put("peso", detalle.getPeso());
+        map.put("rpe", detalle.getRpe());
+        map.put("dias", detalle.getDias());
+
+        if (detalle.getEjercicio() != null) {
+            Map<String, Object> ejercicio = new HashMap<>();
+            ejercicio.put("id", detalle.getEjercicio().getId());
+            ejercicio.put("nombre", detalle.getEjercicio().getNombre());
+            ejercicio.put("nombreTraducido", detalle.getEjercicio().getNombreTraducido());
+            ejercicio.put("grupoMuscular", detalle.getEjercicio().getGrupoMuscular());
+            ejercicio.put("equipamiento", detalle.getEjercicio().getEquipamiento());
+            ejercicio.put("parteCuerpo", detalle.getEjercicio().getParteCuerpo());
+            ejercicio.put("imagenUrl", detalle.getEjercicio().getImagenUrl());
+            ejercicio.put("videoUrl", detalle.getEjercicio().getVideoUrl());
+            ejercicio.put("dificultad", detalle.getEjercicio().getDificultad());
+            ejercicio.put("instrucciones", detalle.getEjercicio().getInstrucciones());
+            map.put("ejercicio", ejercicio);
+        }
+
+        return map;
     }
 
     // --- 2. CLONAR PLANTILLA A UN CLIENTE ---

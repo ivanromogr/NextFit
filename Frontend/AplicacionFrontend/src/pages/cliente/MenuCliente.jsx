@@ -8,6 +8,8 @@ import {
   Dumbbell,
   Sparkles,
   Play,
+  Plus,
+  RefreshCw,
   MoreHorizontal,
   ArrowRight,
   Edit,
@@ -22,6 +24,7 @@ export default function MenuCliente() {
   const { userId } = useAuth();
   const [rutinas, setRutinas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const [activeMenu, setActiveMenu] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -46,10 +49,12 @@ export default function MenuCliente() {
   const cargarRutinas = async (id) => {
     try {
       setLoading(true);
-      const data = await obtenerRutinasCliente(id);
+      setLoadError("");
+      const data = await obtenerRutinasCliente(id, { throwOnError: true });
       setRutinas(data || []);
     } catch (error) {
       console.error(error);
+      setLoadError("No se pudieron cargar tus rutinas.");
     } finally {
       setLoading(false);
     }
@@ -161,6 +166,10 @@ export default function MenuCliente() {
     subtitle: { color: "#71717a", marginTop: "10px", fontSize: "1.1rem" },
     sectionLabel: { fontSize: "0.85rem", fontWeight: "700", color: "#71717a", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" },
     divider: { flex: 1, height: "1px", background: "#27272a" },
+    stateBox: { border: "1px dashed #27272a", borderRadius: "18px", padding: "32px", color: "#a1a1aa", background: "#0b0b0c", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "18px", flexWrap: "wrap", marginTop: "10px" },
+    stateTitle: { color: "white", margin: "0 0 6px 0", fontSize: "1.1rem", fontWeight: "900", textTransform: "uppercase" },
+    stateText: { margin: 0, color: "#71717a" },
+    stateBtn: { background: "#FACC15", color: "black", border: "none", borderRadius: "12px", padding: "12px 16px", display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: "900", cursor: "pointer", textTransform: "uppercase" },
     gridCoach: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "30px", marginBottom: "50px" },
     gridPersonal: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 460px))", gap: "25px", paddingBottom: "50px", justifyContent: "start" },
     coachCard: { background: "linear-gradient(145deg, #121214 0%, #0c0c0e 100%)", border: "1px solid rgba(250, 204, 21, 0.3)", borderRadius: "24px", padding: "35px", position: "relative", overflow: "hidden", boxShadow: "0 10px 40px -10px rgba(250, 204, 21, 0.1)", transition: "transform 0.3s ease, box-shadow 0.3s ease", cursor: "pointer" },
@@ -260,6 +269,40 @@ export default function MenuCliente() {
         <Dumbbell size={16} /> Mis Rutinas Personales <div style={styles.divider}></div>
       </div>
 
+      {loading && (
+        <div style={styles.stateBox}>
+          <div>
+            <h3 style={styles.stateTitle}>Cargando rutinas</h3>
+            <p style={styles.stateText}>Estamos consultando tu biblioteca.</p>
+          </div>
+        </div>
+      )}
+
+      {!loading && loadError && (
+        <div style={styles.stateBox}>
+          <div>
+            <h3 style={styles.stateTitle}>No se pudieron cargar</h3>
+            <p style={styles.stateText}>{loadError}</p>
+          </div>
+          <button style={styles.stateBtn} onClick={() => cargarRutinas(userId)}>
+            <RefreshCw size={18} /> Reintentar
+          </button>
+        </div>
+      )}
+
+      {!loading && !loadError && rutinas.length === 0 && (
+        <div style={styles.stateBox}>
+          <div>
+            <h3 style={styles.stateTitle}>Aún no tienes rutinas</h3>
+            <p style={styles.stateText}>Crea tu primera rutina para que aparezca aquí.</p>
+          </div>
+          <button style={styles.stateBtn} onClick={() => navigate("/cliente/crear-rutina")}>
+            <Plus size={18} /> Crear rutina
+          </button>
+        </div>
+      )}
+
+      {!loading && !loadError && rutinas.length > 0 && (
       <div style={styles.gridPersonal}>
         
         {/* ✅ Card GLOBAL por planes IA */}
@@ -441,6 +484,7 @@ export default function MenuCliente() {
           </div>
         ))}
       </div>
+      )}
 
       {/* Modal Eliminar */}
       {showDeleteModal && (

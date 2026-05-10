@@ -202,22 +202,12 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             color: 'white', 
             minHeight: '100vh', 
             background: modoEntrenador ? '#000000' : '#050505', 
-            fontFamily: "'Inter', sans-serif",
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-md) var(--spacing-sm)'
-            }
-        },
+            fontFamily: "'Inter', sans-serif"},
         header: { 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center', 
-            marginBottom: 'var(--spacing-xl)',
-            '@media (max-width: 767px)': {
-                marginBottom: 'var(--spacing-lg)',
-                flexWrap: 'wrap',
-                gap: 'var(--spacing-md)'
-            }
-        },
+            marginBottom: 'var(--spacing-xl)'},
         title: { 
             fontSize: 'clamp(1.5rem, 4vw, 2rem)', 
             fontWeight: 900, 
@@ -225,13 +215,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             display: 'flex', 
             alignItems: 'center', 
             gap: '15px', 
-            letterSpacing: '-0.5px',
-            '@media (max-width: 767px)': {
-                order: 2,
-                width: '100%',
-                justifyContent: 'center'
-            }
-        },
+            letterSpacing: '-0.5px'},
         navBtn: { 
             background: 'rgba(255,255,255,0.05)', 
             border: '1px solid rgba(255,255,255,0.1)', 
@@ -241,31 +225,18 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             padding: '10px', 
             display: 'flex', 
             alignItems: 'center', 
-            transition: 'all 0.2s',
-            '@media (max-width: 767px)': {
-                padding: '8px'
-            }
-        },
+            transition: 'all 0.2s'},
         grid: { 
             display: 'grid', 
             gridTemplateColumns: 'repeat(7, 1fr)', 
-            gap: 'var(--spacing-sm)',
-            '@media (max-width: 767px)': {
-                gap: 'var(--spacing-xs)'
-            }
-        },
+            gap: 'var(--spacing-sm)'},
         dayHeader: { 
             textAlign: 'center', 
             color: 'rgba(255,255,255,0.4)', 
             fontSize: '0.8rem', 
             fontWeight: 800, 
             padding: '10px 0', 
-            letterSpacing: '1px',
-            '@media (max-width: 767px)': {
-                fontSize: '0.7rem',
-                padding: '8px 0'
-            }
-        },
+            letterSpacing: '1px'},
         
         // Celda del día interactiva
         dayCell: (isSameMonth, isToday, isHovered) => ({
@@ -278,25 +249,14 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             opacity: isSameMonth ? 1 : 0.2,
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', 
             position: 'relative', 
-            overflow: 'hidden',
-            '@media (max-width: 767px)': {
-                minHeight: '100px',
-                padding: 'var(--spacing-xs)',
-                borderRadius: '12px'
-            }
-        }),
+            overflow: 'hidden'}),
         dateNum: (isToday, isHovered) => ({
             fontSize: '1rem', 
             fontWeight: 900, 
             color: isToday ? '#FACC15' : (isHovered ? 'white' : 'rgba(255,255,255,0.5)'), 
             marginBottom: '10px', 
             pointerEvents: 'none', 
-            transition: 'color 0.2s',
-            '@media (max-width: 767px)': {
-                fontSize: '0.9rem',
-                marginBottom: '6px'
-            }
-        }),
+            transition: 'color 0.2s'}),
         
         // Botón flotante al hacer hover
         addHoverBtn: {
@@ -328,11 +288,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             alignItems: 'center', 
             justifyContent: 'center', 
             zIndex: 100,
-            padding: 'var(--spacing-md)',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-sm)'
-            }
-        },
+            padding: 'var(--spacing-md)'},
         modalCard: { 
             background: '#09090b', 
             padding: 'var(--spacing-2xl)', 
@@ -341,13 +297,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             maxWidth: '450px', 
             border: '1px solid rgba(255,255,255,0.1)', 
             boxShadow: '0 25px 50px rgba(0,0,0,0.5)', 
-            position: 'relative',
-            '@media (max-width: 767px)': {
-                padding: 'var(--spacing-lg)',
-                borderRadius: '16px',
-                maxWidth: '95%'
-            }
-        },
+            position: 'relative'},
         closeBtn: { position: 'absolute', top: '20px', right: '20px', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
         rutinaItemBtn: { width: '100%', display: 'flex', alignItems: 'center', gap: '15px', padding: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', color: 'white', cursor: 'pointer', marginBottom: '10px', transition: 'all 0.2s', textAlign: 'left' }
     };
@@ -375,13 +325,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
                         marginBottom:'var(--spacing-lg)', 
                         padding:'var(--spacing-sm) var(--spacing-md)', 
                         borderRadius:'12px', 
-                        fontWeight:700,
-                        '@media (max-width: 767px)': {
-                            marginBottom: 'var(--spacing-md)',
-                            padding: 'var(--spacing-xs) var(--spacing-sm)',
-                            fontSize: '0.9rem'
-                        }
-                    }}
+                        fontWeight:700}}
                 >
                     <ArrowLeft size={16}/> VOLVER AL PERFIL
                 </button>
@@ -389,7 +333,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
 
             <div style={styles.header}>
                 <button 
-                    style={{...styles.navBtn, '@media (max-width: 767px)': { order: 1 }}} 
+                    style={{...styles.navBtn}} 
                     onClick={() => setCurrentDate(subMonths(currentDate, 1))} 
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} 
                     onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
@@ -406,17 +350,10 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
                         borderRadius:'20px', 
                         color:'white', 
                         marginLeft:'15px', 
-                        letterSpacing:'1px',
-                        '@media (max-width: 767px)': {
-                            display: 'block',
-                            marginLeft: 0,
-                            marginTop: 'var(--spacing-xs)',
-                            textAlign: 'center'
-                        }
-                    }}>MODO ENTRENADOR</span>}
+                        letterSpacing:'1px'}}>MODO ENTRENADOR</span>}
                 </h2>
                 <button 
-                    style={{...styles.navBtn, '@media (max-width: 767px)': { order: 3 }}} 
+                    style={{...styles.navBtn}} 
                     onClick={() => setCurrentDate(addMonths(currentDate, 1))} 
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} 
                     onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
