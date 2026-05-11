@@ -99,6 +99,9 @@ public class GestorSesion {
         return lista;
     }
     for (GuardarSesionRequest.SerieDTO dto : dtos) {
+        if (dto == null || dto.getEjercicioId() == null) {
+            continue;
+        }
        
         ejercicioDAO.findById(dto.getEjercicioId()).ifPresent(ej -> {
             SerieRealizada s = new SerieRealizada();

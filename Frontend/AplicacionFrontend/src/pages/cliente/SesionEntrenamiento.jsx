@@ -43,6 +43,13 @@ const obtenerYoutubeThumbnail = (url = "") => {
 };
 
 const esVideoDirecto = (url = "") => /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
+const esUuid = (valor) => typeof valor === "string"
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(valor);
+
+const obtenerIdEjercicio = (detalle) => {
+    const id = detalle?.ejercicio?.id || detalle?.ejercicioId || detalle?.idEjercicio;
+    return esUuid(id) ? id : null;
+};
 
 const VideoEjercicio = ({ src, title, style }) => {
     const youtubeEmbedUrl = obtenerYoutubeEmbedUrl(src);
@@ -184,7 +191,8 @@ export default function SesionEntrenamiento() {
         const estructura = {};
 
         ejercicios.forEach(ej => {
-            const exerciseId = ej.ejercicio.id;
+            const exerciseId = obtenerIdEjercicio(ej);
+            if (!exerciseId) return;
             const datosPreviosEjercicio = historial[exerciseId] || [];
             
             // En modo lectura mostramos el número de series exactas que hizo
@@ -287,6 +295,7 @@ export default function SesionEntrenamiento() {
 
             const seriesLimpias = [];
             Object.entries(datosSesion).forEach(([ejercicioId, sets]) => {
+                if (!esUuid(ejercicioId)) return;
                 sets.forEach((set, index) => {
                     if (set.hecho || parseFloat(set.peso) > 0 || parseInt(set.reps) > 0) {
                         seriesLimpias.push({
@@ -322,7 +331,8 @@ export default function SesionEntrenamiento() {
 
         } catch (error) {
             console.error("Error al guardar sesión:", error);
-            toast.error("Hubo un error al guardar la sesión.");
+            const detalleError = error?.response?.data || error?.message;
+            toast.error(detalleError ? `Error al guardar: ${detalleError}` : "Hubo un error al guardar la sesión.");
             setTimerActivo(true);
         }
     };
@@ -621,7 +631,8 @@ export default function SesionEntrenamiento() {
 
             {/* LISTA DE EJERCICIOS */}
             {rutina?.detalles?.map((ej) => {
-                const exerciseId = ej.ejercicio.id;
+                const exerciseId = obtenerIdEjercicio(ej);
+                if (!exerciseId) return null;
                 const sets = datosSesion[exerciseId] || [];
                 const notaActual = notasSesion[exerciseId] || "";
                 const editando = editandoNotaId === exerciseId;
