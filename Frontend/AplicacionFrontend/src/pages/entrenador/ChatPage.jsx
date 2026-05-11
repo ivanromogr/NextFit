@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { obtenerClientesEntrenador, getCliente } from "../../api/endpoints";
+import { obtenerClientesEntrenador, getCliente, obtenerContactosChat } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 import { Search, MessageSquare, User, Edit } from "lucide-react";
 import ChatComponent from "../../components/functional/ChatComponent";
@@ -70,9 +70,19 @@ export default function ChatPage() {
     const cargarClientes = async () => {
         try {
             setLoading(true);
-            const data = await obtenerClientesEntrenador(entrenadorId);
+            const [data, contactosHistoricos] = await Promise.all([
+                obtenerClientesEntrenador(entrenadorId),
+                obtenerContactosChat(entrenadorId).catch(() => [])
+            ]);
             const listaLimpia = data.map(item => item.cliente ? item.cliente : item);
-            setClientes(listaLimpia || []);
+            const mapa = new Map();
+            (listaLimpia || []).forEach(cliente => mapa.set(String(cliente.id), cliente));
+            (contactosHistoricos || [])
+                .filter(contacto => String(contacto.id) !== String(entrenadorId))
+                .forEach(contacto => {
+                    if (!mapa.has(String(contacto.id))) mapa.set(String(contacto.id), contacto);
+                });
+            setClientes(Array.from(mapa.values()));
         } catch (error) { console.error(error); } 
         finally { setLoading(false); }
     };

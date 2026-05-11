@@ -25,14 +25,22 @@ const normalizarPerfil = (data) => {
   return {
     ...data,
     fotoPerfil: resolveMediaUrl(data.fotoPerfil),
+    entrenador: data.entrenador
+      ? {
+          ...data.entrenador,
+          fotoPerfil: resolveMediaUrl(data.entrenador.fotoPerfil),
+        }
+      : data.entrenador,
   };
 };
 
 const normalizarEjercicio = (ejercicio) => {
   if (!ejercicio || typeof ejercicio !== "object") return ejercicio;
+  const imagenOriginalUrl = ejercicio.imagenOriginalUrl || ejercicio.imagenUrl || ejercicio.gifUrl || "";
   return {
     ...ejercicio,
-    imagenUrl: resolveExerciseImageUrl(ejercicio),
+    imagenOriginalUrl,
+    imagenUrl: resolveExerciseImageUrl({ ...ejercicio, imagenOriginalUrl }),
   };
 };
 
@@ -350,4 +358,16 @@ export const obtenerDatosProgreso = async (clienteId, ejercicioId, entrenadorId 
 export const desvincularAtleta = async (idEntrenador, idCliente) => {
   const response = await api.post(`/api/entrenador/${idEntrenador}/desvincular/${idCliente}`);
   return response.data;
+};
+
+export const desvincularEntrenadorCliente = async (idCliente) => {
+  const response = await api.post(`/api/clientes/${idCliente}/desvincular-entrenador`);
+  return response.data;
+};
+
+export const obtenerContactosChat = async (usuarioId) => {
+  const response = await api.get(`/api/chat/contactos?usuarioId=${usuarioId}`);
+  return Array.isArray(response.data)
+    ? response.data.map(normalizarPerfil)
+    : [];
 };

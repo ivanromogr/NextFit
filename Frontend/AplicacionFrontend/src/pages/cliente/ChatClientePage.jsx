@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from 'react-router-dom';
 import ChatComponent from "../../components/functional/ChatComponent";
-import { api } from "../../api/endpoints"; 
+import { api, obtenerContactosChat } from "../../api/endpoints"; 
 import { Search, Edit, User, MessageSquare, Plus, X, Check } from "lucide-react";
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
@@ -95,11 +95,14 @@ export default function ChatClientePage() {
         setAmigos(prevAmigos => {
             if (prevAmigos.some(a => a.id === remitenteId)) return prevAmigos;
             
-            api.get(`/api/clientes/${remitenteId}`).then(res => {
-                if (res.data) {
+            api.get(`/api/clientes/${remitenteId}`)
+                .catch(() => api.get(`/api/entrenador/${remitenteId}`))
+                .then(res => {
+                const data = res.data?.entrenador || res.data;
+                if (data) {
                     setAmigos(actuales => {
-                        if (actuales.some(a => a.id === res.data.id)) return actuales;
-                        return [...actuales, res.data];
+                        if (actuales.some(a => a.id === data.id)) return actuales;
+                        return [...actuales, data];
                     });
                 }
             }).catch(err => console.error("Error buscando nuevo contacto", err));
@@ -140,9 +143,9 @@ export default function ChatClientePage() {
             }
 
             try {
-                const resContactos = await api.get(`/api/chat/contactos?usuarioId=${clienteId}`);
-                if (resContactos.data) {
-                    const nuevosDelBackend = resContactos.data.filter(c => c.id !== idEntrenador && c.id !== clienteId);
+                const contactos = await obtenerContactosChat(clienteId);
+                if (contactos) {
+                    const nuevosDelBackend = contactos.filter(c => c.id !== idEntrenador && c.id !== clienteId);
                     
                     // 👇 MAGIA 3: Fusionamos los amigos que teníamos guardados con los nuevos del backend
                     setAmigos(prev => {

@@ -56,7 +56,7 @@ export default function CrearHub() {
                         <Sparkles size={40} />
                     </div>
                     <div>
-                        <h2 style={styles.cardTitle}>Generar con IA</h2>
+                        <h2 style={styles.cardTitle}>Entrenamientos Predeterminados</h2>
                         <p style={styles.cardSub}>Plan personalizado automático e inteligente.</p>
                     </div>
                     <ArrowRight className="arrow-icon" style={styles.arrow} size={24} />

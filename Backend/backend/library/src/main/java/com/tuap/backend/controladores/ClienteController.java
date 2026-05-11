@@ -138,4 +138,20 @@ public class ClienteController {
         clienteDAO.save(cliente);
         return ResponseEntity.ok("Perfil actualizado");
     }
+
+    @PostMapping("/{id}/desvincular-entrenador")
+    public ResponseEntity<Object> desvincularEntrenador(@PathVariable UUID id) {
+        Cliente cliente = clienteDAO.findById(id).orElse(null);
+        if (cliente == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Cliente no encontrado con id: " + id));
+        }
+
+        if (cliente.getEntrenador() == null) {
+            return ResponseEntity.ok(Map.of("message", "No tienes ningún entrenador vinculado."));
+        }
+
+        cliente.setEntrenador(null);
+        clienteDAO.save(cliente);
+        return ResponseEntity.ok(Map.of("message", "Te has desvinculado del entrenador correctamente."));
+    }
 }

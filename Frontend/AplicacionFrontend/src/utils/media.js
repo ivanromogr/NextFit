@@ -11,12 +11,22 @@ export const resolveMediaUrl = (url) => {
 };
 
 export const resolveExerciseImageUrl = (exercise) => {
-  if (!exercise) return "";
-  const apiId = exercise.apiId || extractExerciseDbId(exercise.imagenUrl || exercise.gifUrl);
+  return getExerciseImageCandidates(exercise)[0] || "";
+};
+
+export const getExerciseImageCandidates = (exercise) => {
+  if (!exercise) return [];
+  const rawUrl = exercise.imagenOriginalUrl || exercise.imagenUrl || exercise.gifUrl || "";
+  const apiId = exercise.apiId || extractExerciseDbId(rawUrl);
+  const candidates = [];
   if (apiId) {
-    return `${API_BASE_URL}/api/ejercicios/imagen/${apiId}`;
+    candidates.push(`${API_BASE_URL}/api/ejercicios/imagen/${apiId}`);
   }
-  return resolveMediaUrl(exercise.imagenUrl || exercise.gifUrl || "");
+  const resolvedRaw = resolveMediaUrl(rawUrl);
+  if (resolvedRaw && !candidates.includes(resolvedRaw)) {
+    candidates.push(resolvedRaw);
+  }
+  return candidates;
 };
 
 const extractExerciseDbId = (url) => {

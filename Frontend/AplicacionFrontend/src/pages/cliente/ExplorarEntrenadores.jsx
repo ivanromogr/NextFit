@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, User, Euro, MapPin, Award } from "lucide-react";
-import { api } from "../../api/endpoints"; 
+import { Search, Filter, User, Euro, MapPin, Award, UserMinus, AlertTriangle, X } from "lucide-react";
+import { api, getCliente, desvincularEntrenadorCliente } from "../../api/endpoints"; 
+import { useAuth } from "../../context/AuthContext";
 
 export default function ExplorarEntrenadores() {
     const navigate = useNavigate();
+    const { userId } = useAuth();
     const [entrenadores, setEntrenadores] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [entrenadorActual, setEntrenadorActual] = useState(null);
+    const [showUnlinkModal, setShowUnlinkModal] = useState(false);
+    const [unlinking, setUnlinking] = useState(false);
+    const [feedback, setFeedback] = useState({ show: false, message: "", type: "success" });
     
     // --- ESTADOS DE LOS FILTROS ---
     const [busqueda, setBusqueda] = useState(""); // Filtro local (Nombre/Bio)
@@ -44,6 +50,42 @@ export default function ExplorarEntrenadores() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    useEffect(() => {
+        const cargarPerfil = async () => {
+            if (!userId) return;
+            try {
+                const perfil = await getCliente(userId);
+                setEntrenadorActual(perfil?.entrenador || null);
+            } catch (error) {
+                console.error("Error cargando entrenador actual", error);
+            }
+        };
+        cargarPerfil();
+    }, [userId]);
+
+    const confirmarDesvincular = async () => {
+        if (!userId) return;
+        try {
+            setUnlinking(true);
+            const response = await desvincularEntrenadorCliente(userId);
+            setEntrenadorActual(null);
+            setShowUnlinkModal(false);
+            showFeedback(response?.message || "Te has desvinculado del entrenador correctamente.");
+        } catch (error) {
+            const message = error?.response?.data?.message || error?.message || "No se pudo desvincular el entrenador";
+            showFeedback(message, "error");
+        } finally {
+            setUnlinking(false);
+        }
+    };
+
+    const showFeedback = (message, type = "success") => {
+        setFeedback({ show: true, message, type });
+        setTimeout(() => {
+            setFeedback(prev => ({ ...prev, show: false }));
+        }, 3200);
+    };
+
     // --- FILTRO LOCAL (CLIENTE) ---
     // Como la base de datos ya filtró modalidad, precio y especialidad, 
     // aquí solo filtramos instantáneamente por si el usuario teclea un nombre.
@@ -68,6 +110,13 @@ export default function ExplorarEntrenadores() {
         searchInput: { width: "100%", background: "transparent", border: "none", color: "white", padding: "14px 10px", outline: "none", fontSize: "1rem" },
         selectBox: { padding: "14px 20px", background: "#18181b", borderRadius: "12px", border: "1px solid #27272a", color: "white", outline: "none", fontSize: "1rem", cursor: "pointer", flex: "1 1 200px" },
         btnFiltrar: { padding: "14px 24px", background: "#FACC15", color: "black", border: "none", borderRadius: "12px", fontWeight: "bold", fontSize: "1rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", transition: "0.2s" },
+        currentCoachBanner: { maxWidth: "1200px", margin: "0 auto 28px auto", background: "linear-gradient(135deg, rgba(250,204,21,0.08), rgba(255,255,255,0.025))", border: "1px solid rgba(250,204,21,0.22)", borderRadius: "18px", padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "18px", flexWrap: "wrap" },
+        currentCoachLeft: { display: "flex", alignItems: "center", gap: "14px", minWidth: 0 },
+        currentCoachAvatar: { width: "52px", height: "52px", borderRadius: "14px", background: "#18181b", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 },
+        currentCoachLabel: { color: "#FACC15", fontSize: "0.72rem", fontWeight: "900", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" },
+        currentCoachName: { color: "white", fontWeight: "900", fontSize: "1rem", textTransform: "uppercase" },
+        currentCoachText: { color: "#a1a1aa", fontSize: "0.9rem", marginTop: "3px" },
+        unlinkBtn: { background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.28)", borderRadius: "12px", padding: "12px 16px", fontWeight: "900", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", textTransform: "uppercase" },
 
         grid: { maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "25px" },
         card: { background: "linear-gradient(145deg, #121214 0%, #0c0c0e 100%)", borderRadius: "20px", border: "1px solid #27272a", overflow: "hidden", display: "flex", flexDirection: "column", transition: "transform 0.2s, boxShadow 0.2s", cursor: 'pointer' },
@@ -83,17 +132,69 @@ export default function ExplorarEntrenadores() {
         cardFooter: { padding: "20px 24px", background: "rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid #1f1f22" },
         price: { fontSize: "1.4rem", fontWeight: "900", color: "white" },
         priceSub: { fontSize: "0.8rem", color: "#71717a", fontWeight: "500" },
-        btnContactar: { background: "#FACC15", color: "black", border: "none", padding: "10px 20px", borderRadius: "10px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "0.2s" }
+        btnContactar: { background: "#FACC15", color: "black", border: "none", padding: "10px 20px", borderRadius: "10px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", transition: "0.2s" },
+        modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.86)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "18px" },
+        modalCard: { width: "100%", maxWidth: "460px", background: "#09090b", border: "1px solid #27272a", borderRadius: "22px", padding: "28px", position: "relative", textAlign: "center", boxShadow: "0 24px 70px rgba(0,0,0,0.55)" },
+        modalClose: { position: "absolute", top: "12px", right: "12px", border: "none", background: "transparent", color: "#71717a", cursor: "pointer", padding: "8px" },
+        modalActions: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "24px" },
+        modalCancel: { background: "#18181b", color: "white", border: "1px solid #27272a", borderRadius: "12px", padding: "14px", fontWeight: "900", cursor: "pointer" },
+        modalConfirm: { background: "#ef4444", color: "white", border: "none", borderRadius: "12px", padding: "14px", fontWeight: "900", cursor: "pointer" },
+        feedbackToast: {
+            position: "fixed",
+            top: "24px",
+            right: "24px",
+            zIndex: 1200,
+            background: "#18181b",
+            color: "white",
+            border: `1px solid ${feedback.type === "success" ? "#10B981" : "#ef4444"}`,
+            borderRadius: "999px",
+            padding: "14px 18px",
+            fontWeight: "800",
+            boxShadow: "0 18px 50px rgba(0,0,0,0.45)",
+            transform: feedback.show ? "translateY(0)" : "translateY(-18px)",
+            opacity: feedback.show ? 1 : 0,
+            pointerEvents: "none",
+            transition: "all 0.25s ease"
+        }
     };
 
     if (loading) return <div style={{...styles.container, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>Cargando entrenadores...</div>;
 
     return (
         <div style={styles.container}>
+            <div style={styles.feedbackToast}>
+                {feedback.message}
+            </div>
+
             <div style={styles.header}>
                 <h1 style={styles.title}>Encuentra a tu entrenador ideal</h1>
                 <p style={styles.subtitle}>Explora perfiles, compara tarifas y conecta con profesionales verificados de NextFit para llevar tu entrenamiento al siguiente nivel.</p>
             </div>
+
+            {entrenadorActual && (
+                <div style={styles.currentCoachBanner}>
+                    <div style={styles.currentCoachLeft}>
+                        <div style={styles.currentCoachAvatar}>
+                            {entrenadorActual.fotoPerfil ? (
+                                <img src={entrenadorActual.fotoPerfil} alt="entrenador actual" style={styles.avatarImg} />
+                            ) : (
+                                <User size={24} color="#FACC15" />
+                            )}
+                        </div>
+                        <div>
+                            <div style={styles.currentCoachLabel}>Entrenador actual</div>
+                            <div style={styles.currentCoachName}>{entrenadorActual.nombre} {entrenadorActual.apellido}</div>
+                            <div style={styles.currentCoachText}>Para cambiar a otro entrenador, desvincúlate primero del actual.</div>
+                        </div>
+                    </div>
+                    <button
+                        style={styles.unlinkBtn}
+                        onClick={() => setShowUnlinkModal(true)}
+                    >
+                        <UserMinus size={18} /> Desvincularme
+                    </button>
+                </div>
+            )}
 
             {/* --- BARRA DE FILTROS --- */}
             <div style={styles.filtrosWrapper}>
@@ -219,6 +320,29 @@ export default function ExplorarEntrenadores() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {showUnlinkModal && entrenadorActual && (
+                <div style={styles.modalOverlay} onClick={() => !unlinking && setShowUnlinkModal(false)}>
+                    <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+                        <button style={styles.modalClose} onClick={() => setShowUnlinkModal(false)} disabled={unlinking}>
+                            <X size={20} />
+                        </button>
+                        <div style={{ width: 70, height: 70, borderRadius: "50%", background: "rgba(239,68,68,0.12)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px auto" }}>
+                            <AlertTriangle size={34} color="#ef4444" />
+                        </div>
+                        <h2 style={{ margin: 0, color: "white", fontSize: "1.35rem", fontWeight: 900, textTransform: "uppercase" }}>¿Desvincular entrenador?</h2>
+                        <p style={{ color: "#a1a1aa", lineHeight: 1.55, margin: "14px 0 0 0" }}>
+                            Dejarás de estar vinculado con <strong style={{ color: "white" }}>{entrenadorActual.nombre} {entrenadorActual.apellido}</strong>. Después podrás hablar con otro entrenador para que te vincule.
+                        </p>
+                        <div style={styles.modalActions}>
+                            <button style={styles.modalCancel} onClick={() => setShowUnlinkModal(false)} disabled={unlinking}>Cancelar</button>
+                            <button style={styles.modalConfirm} onClick={confirmarDesvincular} disabled={unlinking}>
+                                {unlinking ? "Desvinculando..." : "Sí, desvincular"}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

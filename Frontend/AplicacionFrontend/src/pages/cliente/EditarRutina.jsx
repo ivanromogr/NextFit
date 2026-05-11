@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { obtenerRutinasCliente, obtenerEjercicios, actualizarRutina } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
+import { getExerciseImageCandidates } from '../../utils/media';
 import { 
     ChevronLeft, Save, Trash2, Plus, Search, Dumbbell, X, 
     GripVertical, Copy, CheckCircle, AlertCircle 
@@ -9,6 +10,51 @@ import {
 
 // Categorías para el filtro
 const MUSCLE_FILTERS = ["TODOS", "PECHO", "ESPALDA", "PIERNA", "HOMBRO", "BÍCEPS", "TRÍCEPS", "ABDOMINALES", "CARDIO"];
+
+const normalizarTexto = (value) =>
+    (value || "")
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+
+const buscarEjercicioCompleto = (ejercicio, biblioteca) => {
+    if (!ejercicio) return ejercicio;
+    return biblioteca.find((item) => {
+        if (item.id && ejercicio.id && item.id === ejercicio.id) return true;
+        if (item.apiId && ejercicio.apiId && item.apiId === ejercicio.apiId) return true;
+        const nombreItem = normalizarTexto(item.nombreTraducido || item.nombre);
+        const nombreEjercicio = normalizarTexto(ejercicio.nombreTraducido || ejercicio.nombre);
+        return nombreItem && nombreItem === nombreEjercicio;
+    });
+};
+
+const ExerciseImage = ({ exercise, style, fallbackIconSize = 28 }) => {
+    const candidates = getExerciseImageCandidates(exercise);
+    const [index, setIndex] = useState(0);
+    const src = candidates[index];
+
+    useEffect(() => {
+        setIndex(0);
+    }, [exercise?.id, exercise?.apiId, exercise?.imagenUrl, exercise?.imagenOriginalUrl]);
+
+    if (!src) {
+        return <Dumbbell size={fallbackIconSize} color="#333" />;
+    }
+
+    return (
+        <img
+            src={src}
+            alt={exercise?.nombreTraducido || exercise?.nombre || "ejercicio"}
+            style={style}
+            onError={() => {
+                if (index < candidates.length - 1) setIndex(index + 1);
+                else setIndex(candidates.length);
+            }}
+        />
+    );
+};
 
 const EditarRutina = () => {
     const { rutinaId, clienteId } = useParams();
@@ -58,6 +104,10 @@ const EditarRutina = () => {
                     // --- TRANSFORMACIÓN INTELIGENTE ---
                     // Convertimos el resumen "3 series" del backend en 3 filas reales para la UI
                     const detallesExpandidos = (rutinaEncontrada.detalles || []).map(d => {
+                        const ejercicioCompleto = buscarEjercicioCompleto(d.ejercicio, ejercicios || []);
+                        const ejercicio = ejercicioCompleto
+                            ? { ...d.ejercicio, ...ejercicioCompleto }
+                            : d.ejercicio;
                         const numSeries = d.series || 3;
                         // Creamos un array real de series
                         const setsArray = Array.from({ length: numSeries }, () => ({
@@ -68,6 +118,7 @@ const EditarRutina = () => {
 
                         return {
                             ...d,
+                            ejercicio,
                             sets: setsArray, // Guardamos las series individuales aquí para pintarlas
                             notas: d.notas || ""
                         };
@@ -316,8 +367,10 @@ const EditarRutina = () => {
                     <div key={exIndex} style={styles.editCard} onMouseEnter={e => {e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.backgroundColor = '#0f0f0f'}} onMouseLeave={e => {e.currentTarget.style.borderColor = '#222'; e.currentTarget.style.backgroundColor = '#0a0a0a'}}>
                         
                         <div style={styles.imgBox}>
-                            <img src={detalle.ejercicio?.imagenUrl || ""} alt="ex" style={{width:'100%', height:'100%', objectFit:'cover'}} onError={(e)=>{e.target.style.display='none'}}/>
-                            {!detalle.ejercicio?.imagenUrl && <Dumbbell color="#333"/>}
+                            <ExerciseImage
+                                exercise={detalle.ejercicio}
+                                style={{width:'100%', height:'100%', objectFit:'cover'}}
+                            />
                         </div>
                         <div style={styles.mainInfo}>
                             <div style={styles.exName}>{detalle.ejercicio?.nombre}</div>
@@ -375,7 +428,13 @@ const EditarRutina = () => {
                             {filteredExercises.map(ex => (
                                 <div key={ex.id} style={styles.listItem} onClick={() => addExerciseToRoutine(ex)} onMouseEnter={e => e.currentTarget.style.background = '#121212'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                                     <div style={{display:'flex', alignItems:'center', gap:'20px'}}>
-                                        <img src={ex.imagenUrl || ""} alt="img" style={{width:'60px', height:'60px', borderRadius:'10px', objectFit:'cover', background:'#222', border:'1px solid #333'}} onError={(e)=>{e.target.style.display='none'}}/>
+                                        <div style={{width:'60px', height:'60px', borderRadius:'10px', background:'#222', border:'1px solid #333', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', flexShrink: 0}}>
+                                            <ExerciseImage
+                                                exercise={ex}
+                                                style={{width:'100%', height:'100%', objectFit:'cover'}}
+                                                fallbackIconSize={22}
+                                            />
+                                        </div>
                                         <div>
                                             <div style={{fontWeight:'900', color:'white', fontSize:'1.2rem', textTransform:'uppercase', fontFamily:"'Teko', sans-serif", letterSpacing:'0.5px'}}>{ex.nombre}</div>
                                             <div style={{fontSize:'0.75rem', color:'#FACC15', fontWeight:'bold', textTransform:'uppercase', letterSpacing:'1px'}}>{ex.grupoMuscular || "General"}</div>

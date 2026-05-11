@@ -179,18 +179,17 @@ export default function MenuCliente() {
     btnStartCoach: { marginTop: "25px", width: "100%", padding: "16px", borderRadius: "14px", background: "#FACC15", color: "black", fontWeight: "800", border: "none", cursor: "pointer", fontSize: "0.95rem", textTransform: "uppercase", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", boxShadow: "0 4px 15px rgba(250, 204, 21, 0.2)" },
     personalCard: { background: "linear-gradient(135deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.018) 100%)", border: "1px solid #27272a", borderRadius: "22px", padding: "28px", display: "grid", gridTemplateRows: "auto 1fr auto", gap: "22px", transition: "all 0.2s", cursor: "pointer", position: "relative", minHeight: "270px", overflow: "hidden" },
     personalHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px" },
-    personalBody: { display: "grid", gridTemplateColumns: "1.35fr minmax(180px, 0.65fr)", gap: "22px", alignItems: "stretch" },
+    personalBody: { display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: "24px", alignItems: "start" },
     personalTitle: { fontSize: "1.55rem", fontWeight: "900", color: "white", margin: "0 0 8px 0", textTransform: "uppercase", lineHeight: "1.05", fontFamily: "'Teko', sans-serif", letterSpacing: "0.4px" },
     personalMeta: { color: "#a1a1aa", fontSize: "0.95rem", fontWeight: "700", textTransform: "uppercase", display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", marginTop: "12px" },
-    personalStats: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", alignContent: "start" },
-    personalStat: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "14px", padding: "14px", minWidth: 0 },
+    personalStats: { display: "grid", gridTemplateColumns: "repeat(2, minmax(112px, 1fr))", gap: "10px", alignContent: "start", minWidth: "240px" },
+    personalStat: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "14px", padding: "14px", minWidth: 0, minHeight: "82px" },
     personalStatLabel: { color: "#71717a", fontSize: "0.68rem", fontWeight: "900", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" },
-    personalStatValue: { color: "white", fontSize: "1.05rem", fontWeight: "900", textTransform: "uppercase", overflowWrap: "anywhere" },
-    personalFooter: { display: "grid", gridTemplateColumns: "1fr auto", gap: "12px", alignItems: "center" },
+    personalStatValue: { color: "white", fontSize: "1rem", fontWeight: "900", textTransform: "uppercase", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+    personalFooter: { display: "grid", gridTemplateColumns: "1fr", gap: "12px", alignItems: "center" },
     pill: { background: "#27272a", color: "#e4e4e7", padding: "4px 10px", borderRadius: "6px", fontSize: "0.7rem", fontWeight: "700", textTransform: "uppercase" },
     previewText: { color: "#71717a", fontSize: "0.95rem", lineHeight: "1.55", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" },
     btnStartPersonal: { width: "100%", padding: "14px 18px", borderRadius: "12px", background: "#FACC15", color: "black", fontWeight: "900", border: "none", cursor: "pointer", fontSize: "0.86rem", textTransform: "uppercase", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: "0 12px 28px rgba(250,204,21,0.14)" },
-    btnEditPersonal: { padding: "14px 16px", borderRadius: "12px", background: "#18181b", color: "white", fontWeight: "900", border: "1px solid #27272a", cursor: "pointer", fontSize: "0.86rem", textTransform: "uppercase", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", whiteSpace: "nowrap" },
     menuBtn: { color: "#52525b", padding: "8px", borderRadius: "50%", cursor: "pointer", zIndex: 2 },
     dropdown: { position: "absolute", top: "40px", right: "10px", background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", padding: "6px", zIndex: 10, width: "150px", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" },
     dropdownItem: { display: "flex", alignItems: "center", gap: "10px", padding: "10px", fontSize: "0.85rem", color: "#e4e4e7", borderRadius: "8px", cursor: "pointer" },
@@ -219,8 +218,21 @@ export default function MenuCliente() {
     modalClose: { position: "absolute", top: "14px", right: "14px", background: "transparent", border: "none", color: "#a1a1aa", cursor: "pointer", padding: "10px", borderRadius: "12px" },
   };
 
+  const mediaQueryStyles = `
+    @media (max-width: 980px) {
+      .routine-personal-body {
+        grid-template-columns: 1fr !important;
+      }
+
+      .routine-personal-stats {
+        min-width: 0 !important;
+      }
+    }
+  `;
+
   return (
     <div style={styles.main}>
+      <style>{mediaQueryStyles}</style>
       <header style={styles.header}>
         <h1 style={styles.title}>Mis Entrenamientos</h1>
         <p style={styles.subtitle}>Tu biblioteca de rutinas.</p>
@@ -474,7 +486,7 @@ export default function MenuCliente() {
                 </div>
               </div>
 
-              <div style={styles.personalBody}>
+              <div className="routine-personal-body" style={styles.personalBody}>
                 <div>
                   <h3 style={styles.personalTitle}>{rutina.nombre}</h3>
                   <div style={styles.previewText}>
@@ -487,7 +499,7 @@ export default function MenuCliente() {
                   </div>
                 </div>
 
-                <div style={styles.personalStats}>
+                <div className="routine-personal-stats" style={styles.personalStats}>
                   <div style={styles.personalStat}>
                     <div style={styles.personalStatLabel}>Ejercicios</div>
                     <div style={styles.personalStatValue}>{ejercicios.length}</div>
@@ -515,23 +527,6 @@ export default function MenuCliente() {
                   }}
                 >
                   <Play size={18} fill="currentColor" /> Empezar sesión
-                </button>
-                <button
-                  style={styles.btnEditPersonal}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/cliente/editar-rutina/${rutina.id}`);
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#FACC15";
-                    e.currentTarget.style.color = "#FACC15";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "#27272a";
-                    e.currentTarget.style.color = "white";
-                  }}
-                >
-                  <Edit size={16} /> Editar
                 </button>
               </div>
             </div>
