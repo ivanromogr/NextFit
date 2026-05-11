@@ -35,6 +35,11 @@ const obtenerYoutubeId = (url = "") => {
     return match?.[1] || null;
 };
 
+const obtenerYoutubeThumbnail = (url = "") => {
+    const videoId = obtenerYoutubeId(url);
+    return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+};
+
 const obtenerYoutubeEmbedUrl = (url = "") => {
     const videoId = obtenerYoutubeId(url);
     if (!videoId) return null;
@@ -88,7 +93,11 @@ const VideoEjercicio = ({ src, title, style }) => {
 };
 
 const ExerciseImage = ({ exercise, style, fallbackIconSize = 28 }) => {
-    const candidates = getExerciseImageCandidates(exercise);
+    const videoThumbnail = obtenerYoutubeThumbnail(exercise?.videoUrl);
+    const candidates = [
+        videoThumbnail,
+        ...getExerciseImageCandidates(exercise)
+    ].filter(Boolean);
     const [index, setIndex] = useState(0);
     const src = candidates[index];
 
