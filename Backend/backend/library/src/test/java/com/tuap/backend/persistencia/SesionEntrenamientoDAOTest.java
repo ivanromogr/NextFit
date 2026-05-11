@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
 
 import com.tuap.backend.dominio.entidades.Cliente;
@@ -90,6 +91,7 @@ class SesionEntrenamientoDAOTest {
         rutinaMock.setNombre("Día de Espalda");
         rutinaMock.setCliente(clienteActivo);
         rutinaMock.setCreador("SISTEMA");
+        rutinaMock.setEntrenadorId(entrenadorMock.getId());
         rutinaMock = entityManager.persistAndFlush(rutinaMock);
 
         eventoMock = new EventoCalendario();
@@ -97,6 +99,7 @@ class SesionEntrenamientoDAOTest {
         eventoMock.setRutina(rutinaMock);
         eventoMock.setFecha(LocalDate.now());
         eventoMock.setCompletado(true);
+        eventoMock.setEntrenadorId(entrenadorMock.getId());
         eventoMock = entityManager.persistAndFlush(eventoMock);
 
         // 5. SESIONES DE ENTRENAMIENTO
@@ -181,6 +184,17 @@ class SesionEntrenamientoDAOTest {
         assertEquals(3, feed.size());
     }
 
+    @Test
+    void findActividadAsignadaByEntrenador_DevuelveSoloSesionesAsignadasPorElEntrenador() {
+        List<SesionEntrenamiento> feed = sesionDAO.findActividadAsignadaByEntrenador(
+            entrenadorMock.getId(),
+            PageRequest.of(0, 10)
+        );
+
+        assertEquals(2, feed.size());
+        assertEquals(clienteActivo.getId(), feed.get(0).getCliente().getId());
+    }
+
     // 🟢 TEST 6: Métrica - Entrenos completados HOY
     @Test
     void countEntrenosHoy_CuentaSoloLasSesionesDeHoy() {
@@ -188,6 +202,28 @@ class SesionEntrenamientoDAOTest {
         long hoy = sesionDAO.countEntrenosHoy(entrenadorMock.getId());
         
         assertEquals(1, hoy);
+    }
+
+    @Test
+    void countClientesEntrenadosEnRangoByEntrenador_CuentaClientesConEntrenosAsignados() {
+        long hoy = sesionDAO.countClientesEntrenadosEnRangoByEntrenador(
+            entrenadorMock.getId(),
+            LocalDate.now().atStartOfDay(),
+            LocalDate.now().plusDays(1).atStartOfDay()
+        );
+
+        assertEquals(1, hoy);
+    }
+
+    @Test
+    void countSesionesAsignadasEnRangoByEntrenador_CuentaSesionesDeLaSemana() {
+        long semana = sesionDAO.countSesionesAsignadasEnRangoByEntrenador(
+            entrenadorMock.getId(),
+            ahora.minusDays(7),
+            ahora.plusDays(1)
+        );
+
+        assertEquals(2, semana);
     }
 
     // 🟢 TEST 7: Métrica - Clientes Inactivos (+7 días)

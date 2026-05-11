@@ -1,6 +1,9 @@
 package com.tuap.backend.controladores;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -9,6 +12,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger; 
 import org.slf4j.LoggerFactory; 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -188,7 +192,9 @@ public class SesionEntrenamientoController {
     @GetMapping("/{entrenadorId}/dashboard-resumen")
     public ResponseEntity<Object> getDashboardResumen(@PathVariable UUID entrenadorId) {
         try {
-            List<SesionEntrenamiento> ultimas = sesionDAO.findTop10ByCliente_Entrenador_IdOrderByFechaHoraDesc(entrenadorId);
+            List<SesionEntrenamiento> ultimas = sesionDAO.findActividadAsignadaByEntrenador(
+                    entrenadorId,
+                    PageRequest.of(0, 10));
             
            
             Map<String, Long> stats = calcularMetricasInteligentes(entrenadorId);
@@ -224,9 +230,15 @@ public class SesionEntrenamientoController {
     private Map<String, Long> calcularMetricasInteligentes(UUID entrenadorId) {
         Map<String, Long> stats = new HashMap<>();
         try {
-            stats.put("hoy", sesionDAO.countEntrenosHoy(entrenadorId));
+            LocalDate hoy = LocalDate.now();
+            LocalDateTime inicioHoy = hoy.atStartOfDay();
+            LocalDateTime finHoy = hoy.plusDays(1).atStartOfDay();
+            LocalDateTime inicioSemana = hoy.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay();
+            LocalDateTime finSemana = hoy.plusDays(1).atStartOfDay();
+
+            stats.put("hoy", sesionDAO.countClientesEntrenadosEnRangoByEntrenador(entrenadorId, inicioHoy, finHoy));
             stats.put("riesgo", sesionDAO.countClientesInactivos(entrenadorId, LocalDateTime.now().minusDays(7)));
-            stats.put("records", 3L); // Simulación mantenida
+            stats.put("records", sesionDAO.countSesionesAsignadasEnRangoByEntrenador(entrenadorId, inicioSemana, finSemana));
         } catch (Exception e) {
             log.warn("Aviso: DAO no actualizado para métricas águila: {}", e.getMessage());
             stats.put("hoy", 0L);

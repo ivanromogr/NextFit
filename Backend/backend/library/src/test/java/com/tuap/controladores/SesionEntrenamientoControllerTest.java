@@ -18,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -164,12 +165,13 @@ class SesionEntrenamientoControllerTest {
     @Test
     void getDashboardResumen_CalculaMetricasYFeed() {
         UUID entrenadorId = UUID.randomUUID();
-        when(sesionDAO.findTop10ByCliente_Entrenador_IdOrderByFechaHoraDesc(entrenadorId))
+        when(sesionDAO.findActividadAsignadaByEntrenador(eq(entrenadorId), any(Pageable.class)))
             .thenReturn(Arrays.asList(sesionMock));
         
         // Simulamos las métricas del DAO
-        when(sesionDAO.countEntrenosHoy(entrenadorId)).thenReturn(5L);
+        when(sesionDAO.countClientesEntrenadosEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(5L);
         when(sesionDAO.countClientesInactivos(eq(entrenadorId), any(LocalDateTime.class))).thenReturn(2L);
+        when(sesionDAO.countSesionesAsignadasEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(4L);
         when(clienteDAO.countByEntrenador_Id(entrenadorId)).thenReturn(10L);
 
         ResponseEntity<?> respuesta = sesionController.getDashboardResumen(entrenadorId);
@@ -186,7 +188,7 @@ class SesionEntrenamientoControllerTest {
         Map<String, Object> stats = (Map<String, Object>) body.get("stats");
         assertEquals(5L, stats.get("hoy"));
         assertEquals(2L, stats.get("riesgo"));
-        assertEquals(3L, stats.get("records")); // Ese 3 está "hardcodeado" en tu código
+        assertEquals(4L, stats.get("records"));
         
         // Verifica compatibilidad extra
         assertEquals(10L, body.get("totalClientes"));

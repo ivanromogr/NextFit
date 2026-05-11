@@ -305,7 +305,7 @@ export default function MenuEntrenador() {
                 <Zap size={24} color="#FACC15"/>
             </div>
             <div>
-                <div style={styles.statLabel}>Récords Semanales</div>
+                <div style={styles.statLabel}>Entrenos Semanales</div>
                 <div style={styles.statValue}>{stats.records}</div>
             </div>
         </div>

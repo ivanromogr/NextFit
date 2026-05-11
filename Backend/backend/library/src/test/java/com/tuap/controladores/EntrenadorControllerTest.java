@@ -22,6 +22,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -103,6 +104,41 @@ class EntrenadorControllerTest {
         Map<String, Object> body = (Map<String, Object>) respuesta.getBody();
         assertEquals(4.9, body.get("valoracionMedia")); // Verifica el redondeo de tu código
         assertEquals(25L, body.get("numeroClientes"));
+    }
+
+    @Test
+    void getDashboardResumen_CalculaMetricasConActividadAsignada() {
+        clienteMock.setApellido("Romo");
+
+        SesionEntrenamiento sesion = new SesionEntrenamiento();
+        sesion.setId(UUID.randomUUID());
+        sesion.setCliente(clienteMock);
+        sesion.setNombre("Pierna");
+        sesion.setFechaHora(LocalDateTime.now());
+        sesion.setVolumenTotal(2500.0);
+
+        when(sesionDAO.findActividadAsignadaByEntrenador(eq(entrenadorId), any(Pageable.class)))
+            .thenReturn(List.of(sesion));
+        when(sesionDAO.countClientesEntrenadosEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class)))
+            .thenReturn(1L);
+        when(sesionDAO.countClientesInactivos(eq(entrenadorId), any(LocalDateTime.class))).thenReturn(0L);
+        when(sesionDAO.countSesionesAsignadasEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class)))
+            .thenReturn(3L);
+        when(clienteDAO.countByEntrenador_Id(entrenadorId)).thenReturn(1L);
+
+        ResponseEntity<?> respuesta = entrenadorController.getDashboardResumen(entrenadorId);
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        Map<String, Object> body = (Map<String, Object>) respuesta.getBody();
+        Map<String, Long> stats = (Map<String, Long>) body.get("stats");
+        List<Map<String, Object>> feed = (List<Map<String, Object>>) body.get("feedActividad");
+
+        assertEquals(1L, stats.get("hoy"));
+        assertEquals(0L, stats.get("riesgo"));
+        assertEquals(3L, stats.get("records"));
+        assertEquals(1, feed.size());
+        assertEquals("Paco Romo", feed.get(0).get("clienteNombre"));
+        assertEquals("Pierna", feed.get(0).get("rutina"));
     }
 
     // 🟢 TEST 3: Fichar cliente libre (Camino Feliz)

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
@@ -115,15 +116,20 @@ public class EntrenadorController {
     @GetMapping("/{entrenadorId}/dashboard-resumen")
     public ResponseEntity<Object> getDashboardResumen(@PathVariable UUID entrenadorId) {
         try {
-            List<SesionEntrenamiento> ultimas = sesionDAO.findTop10ByCliente_Entrenador_IdOrderByFechaHoraDesc(entrenadorId);
+            List<SesionEntrenamiento> ultimas = sesionDAO.findActividadAsignadaByEntrenador(
+                    entrenadorId,
+                    PageRequest.of(0, 10));
             Map<String, Long> metricas = obtenerMetricasDashboard(entrenadorId);
 
             List<Map<String, Object>> feed = ultimas.stream().map(s -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", s.getId());
-                map.put("clienteId", s.getCliente().getId());
-                map.put("clienteNombre", s.getCliente().getNombre() + " " + s.getCliente().getApellido());
-                map.put("foto", s.getCliente().getFotoPerfil());
+                Cliente cliente = s.getCliente();
+                map.put("clienteId", cliente != null ? cliente.getId() : null);
+                map.put("clienteNombre", cliente != null
+                        ? (cliente.getNombre() + " " + (cliente.getApellido() != null ? cliente.getApellido() : "")).trim()
+                        : "Atleta");
+                map.put("foto", cliente != null ? cliente.getFotoPerfil() : null);
                 map.put("rutina", s.getNombre() != null ? s.getNombre() : "Libre");
                 map.put("fecha", s.getFechaHora());
                 map.put("volumen", s.getVolumenTotal());
@@ -143,10 +149,16 @@ public class EntrenadorController {
     private Map<String, Long> obtenerMetricasDashboard(UUID entrenadorId) {
         Map<String, Long> stats = new HashMap<>();
         try {
-            stats.put("hoy", sesionDAO.countEntrenosHoy(entrenadorId));
+            LocalDate hoy = LocalDate.now();
+            LocalDateTime inicioHoy = hoy.atStartOfDay();
+            LocalDateTime finHoy = hoy.plusDays(1).atStartOfDay();
+            LocalDateTime inicioSemana = hoy.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay();
+            LocalDateTime finSemana = hoy.plusDays(1).atStartOfDay();
+
+            stats.put("hoy", sesionDAO.countClientesEntrenadosEnRangoByEntrenador(entrenadorId, inicioHoy, finHoy));
             stats.put("riesgo", sesionDAO.countClientesInactivos(entrenadorId, LocalDateTime.now().minusDays(7)));
             stats.put("totalClientes", clienteDAO.countByEntrenador_Id(entrenadorId));
-            stats.put("records", 0L);
+            stats.put("records", sesionDAO.countSesionesAsignadasEnRangoByEntrenador(entrenadorId, inicioSemana, finSemana));
         } catch (Exception e) {
             
             stats.put("hoy", 0L);
