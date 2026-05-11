@@ -103,21 +103,26 @@ export default function ChatPage() {
     const styles = {
         // Contenedor SEGURO: altura calculada menos un poco de margen para que respire
        pageWrapper: { 
-            margin: "-64px", 
-            height: "100vh", 
+            margin: "-50px -80px", 
+            height: "100dvh",
+            maxHeight: "100dvh",
+            width: "calc(100% + 160px)",
+            maxWidth: "calc(100% + 160px)",
             display: "flex", 
             background: "#09090b",
-            overflow: "hidden"
+            overflow: "hidden",
+            minWidth: 0
         }, 
         container: { 
             display: "flex", 
             width: "100%", 
             height: "100%", // Obligamos a que ocupe todo el alto
-            background: "#09090b"
+            background: "#09090b",
+            minWidth: 0
             
         },
         
-        contactPanel: { width: "340px", background: "#0c0c0e", borderRight: "1px solid #1f1f22", display: "flex", flexDirection: "column" },
+        contactPanel: { width: "clamp(280px, 28vw, 370px)", flex: "0 0 clamp(280px, 28vw, 370px)", minWidth: 0, background: "#0c0c0e", borderRight: "1px solid #1f1f22", display: "flex", flexDirection: "column" },
         panelHeader: { padding: "24px 20px 16px 20px" },
         headerTop: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" },
         title: { color: "white", margin: 0, fontSize: "1.3rem", fontWeight: "800" },
@@ -132,20 +137,39 @@ export default function ChatPage() {
             background: activo ? "#1f1f22" : "transparent",
             transition: "background 0.2s ease", position: "relative"
         }),
-        avatar: { width: "48px", height: "48px", borderRadius: "50%", background: "#27272a", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" },
+        avatar: { width: "48px", height: "48px", flexShrink: 0, borderRadius: "50%", background: "#27272a", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" },
         avatarImg: { width: "100%", height: "100%", objectFit: "cover" },
         redDot: { width: "12px", height: "12px", borderRadius: "50%", background: "#3b82f6", border: "2px solid #0c0c0e", position: "absolute", bottom: "0", right: "0" }, 
 
-        chatArea: { flex: 1, background: "#09090b", display: 'flex', flexDirection: 'column', position: 'relative' },
+        chatArea: { flex: 1, minWidth: 0, background: "#09090b", display: 'flex', flexDirection: 'column', position: 'relative' },
         emptyState: { height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#52525b" }
     };
 
     return (
-        <div style={styles.pageWrapper}>
-            <style>{`.hide-scroll::-webkit-scrollbar { display: none; } .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
+        <div className="trainer-chat-page" style={styles.pageWrapper}>
+            <style>{`
+                .hide-scroll::-webkit-scrollbar { display: none; }
+                .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+                @media (max-width: 900px) {
+                    .trainer-chat-page {
+                        margin: 0 !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                    }
+                    .trainer-chat-container { flex-direction: column; }
+                    .trainer-chat-sidebar {
+                        width: 100% !important;
+                        flex: 0 0 auto !important;
+                        height: 260px !important;
+                        border-right: none !important;
+                        border-bottom: 1px solid #1f1f22 !important;
+                    }
+                    .trainer-chat-main { min-height: 0 !important; flex: 1 1 auto !important; }
+                }
+            `}</style>
 
-            <div style={styles.container}>
-                <div style={styles.contactPanel}>
+            <div className="trainer-chat-container" style={styles.container}>
+                <div className="trainer-chat-sidebar" style={styles.contactPanel}>
                     <div style={styles.panelHeader}>
                         <div style={styles.headerTop}>
                             <h2 style={styles.title}>Mensajes</h2>
@@ -189,7 +213,7 @@ export default function ChatPage() {
                     </div>
                 </div>
 
-                <div style={styles.chatArea}>
+                <div className="trainer-chat-main" style={styles.chatArea}>
                     {clienteSeleccionado ? (
                         <ChatComponent 
                             usuarioId={entrenadorId}

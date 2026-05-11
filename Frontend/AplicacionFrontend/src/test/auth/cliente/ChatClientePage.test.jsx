@@ -6,6 +6,8 @@ import { BrowserRouter } from 'react-router-dom';
 import ChatClientePage from '../../../pages/cliente/ChatClientePage'; // Ajusta la ruta si es necesario
 import { api } from '../../../api/endpoints';
 
+const mockObtenerContactosChat = vi.hoisted(() => vi.fn());
+
 // 1. MOCK DE AUTH CONTEXT
 vi.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({ userId: 'cliente-123' })
@@ -23,7 +25,8 @@ vi.mock('react-router-dom', async () => {
 
 // 3. MOCK DE LA API
 vi.mock('../../../api/endpoints', () => ({
-  api: { get: vi.fn() }
+  api: { get: vi.fn() },
+  obtenerContactosChat: mockObtenerContactosChat
 }));
 
 // 4. MOCK DEL COMPONENTE HIJO (ChatComponent)
@@ -64,6 +67,7 @@ describe('Página ChatClientePage', () => {
       getItem: vi.fn().mockReturnValue(null),
       setItem: vi.fn()
     });
+    mockObtenerContactosChat.mockResolvedValue([]);
     mockLocation.state = null; // Reseteamos la navegación
   });
 
@@ -83,13 +87,11 @@ describe('Página ChatClientePage', () => {
           data: { entrenador: { id: 'coach-1', nombre: 'Coach', apellido: 'Carlos' } }
         });
       }
-      if (url.includes('/api/chat/contactos')) {
-        return Promise.resolve({
-          data: [{ id: 'amigo-1', nombre: 'Gym', apellido: 'Bro', alias: 'Mi Bro' }]
-        });
-      }
       return Promise.resolve({ data: [] });
     });
+    mockObtenerContactosChat.mockResolvedValueOnce([
+      { id: 'amigo-1', nombre: 'Gym', apellido: 'Bro', alias: 'Mi Bro' }
+    ]);
 
     renderComponent();
 

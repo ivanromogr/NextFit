@@ -255,11 +255,11 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     };
 
     const styles = {
-        container: { display: 'flex', flexDirection: 'column', height: '100%', width: '100%', background: '#09090b', position: 'relative' },
-        header: { padding: '16px 24px', background: '#09090b', borderBottom: '1px solid #1f1f22', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 },
-        headerLeft: { display: 'flex', alignItems: 'center', gap: '15px' },
-        avatar: { width: '40px', height: '40px', borderRadius: '50%', background: '#1f1f22', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-        chatArea: { flex: 1, padding: '24px 5%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', background: '#0c0c0e' },
+        container: { display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, width: '100%', minWidth: 0, background: '#09090b', position: 'relative', overflow: 'hidden' },
+        header: { padding: '14px clamp(14px, 2vw, 24px)', minHeight: '68px', background: '#09090b', borderBottom: '1px solid #1f1f22', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, flexShrink: 0 },
+        headerLeft: { display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0, maxWidth: '100%' },
+        avatar: { width: '40px', height: '40px', flexShrink: 0, borderRadius: '50%', background: '#1f1f22', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+        chatArea: { flex: 1, minHeight: 0, padding: '24px clamp(16px, 5vw, 64px)', overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: '8px', background: '#0c0c0e' },
         dateSeparator: { display: 'flex', justifyContent: 'center', margin: '24px 0 12px 0' },
         dateBadge: { background: 'rgba(39, 39, 42, 0.6)', color: '#e4e4e7', padding: '4px 12px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '500' },
 
@@ -295,23 +295,31 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         timeMe: { fontSize: '0.65rem', marginTop: '2px', color: '#71717a', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' },
         timeThem: { fontSize: '0.65rem', marginTop: '2px', color: '#71717a', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' },
 
-        inputAreaContainer: { position: 'relative', background: '#09090b', borderTop: '1px solid #1f1f22' },
+        inputAreaContainer: { position: 'relative', background: '#09090b', borderTop: '1px solid #1f1f22', flexShrink: 0 },
         previewBox: { padding: '10px 5%', background: '#121214', borderBottom: '1px solid #1f1f22', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
         previewInfo: { display: 'flex', alignItems: 'center', gap: '10px', color: '#e4e4e7', fontSize: '0.9rem', fontWeight: '500' },
         previewCancelBtn: { background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
 
-        inputArea: { padding: '16px 5%', display: 'flex', alignItems: 'flex-end', gap: '10px' },
-        actionBtn: { width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#71717a', cursor: 'pointer', background: 'transparent', border: 'none', borderRadius: '50%', transition: 'color 0.2s' },
+        inputArea: { padding: '14px clamp(12px, 5vw, 64px)', display: 'flex', alignItems: 'flex-end', gap: '10px' },
+        actionBtn: { width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#71717a', cursor: 'pointer', background: 'transparent', border: 'none', borderRadius: '50%', transition: 'color 0.2s' },
         inputWrapper: { flex: 1, background: '#18181b', borderRadius: '20px', padding: '10px 16px', display: 'flex', alignItems: 'center', border: '1px solid transparent', minHeight: '40px' },
         input: { flex: 1, background: 'transparent', border: 'none', color: 'white', outline: 'none', fontSize: '0.95rem', width: '100%' },
-        sendBtn: { width: '40px', height: '40px', borderRadius: '50%', background: (nuevoMensaje || archivoAdjunto) ? '#FACC15' : '#1f1f22', color: (nuevoMensaje || archivoAdjunto) ? '#000' : '#52525b', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', opacity: isUploading ? 0.5 : 1 }
+        sendBtn: { width: '40px', height: '40px', flexShrink: 0, borderRadius: '50%', background: (nuevoMensaje || archivoAdjunto) ? '#FACC15' : '#1f1f22', color: (nuevoMensaje || archivoAdjunto) ? '#000' : '#52525b', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', opacity: isUploading ? 0.5 : 1 }
     };
 
     return (
         <div style={styles.container}>
-            <style>{`.hide-scroll::-webkit-scrollbar { display: none; } .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
+            <style>{`
+                .hide-scroll::-webkit-scrollbar { display: none; }
+                .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+                @media (max-width: 520px) {
+                    .chat-component-header { min-height: 60px !important; }
+                    .chat-component-input { gap: 6px !important; }
+                    .chat-component-input button { width: 36px !important; height: 36px !important; }
+                }
+            `}</style>
 
-            <div style={styles.header}>
+            <div className="chat-component-header" style={styles.header}>
                 <div style={styles.headerLeft}>
                     <div style={styles.avatar}>
                         {fotoDestinatario ? (
@@ -320,8 +328,8 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                             <User size={20} color="#71717a" />
                         )}
                     </div>
-                    <div>
-                        <div style={{ color: 'white', fontWeight: '600', fontSize: '1.05rem', letterSpacing: '-0.2px' }}>
+                    <div style={{ minWidth: 0 }}>
+                        <div style={{ color: 'white', fontWeight: '600', fontSize: '1.05rem', letterSpacing: '0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 'min(62vw, 520px)' }}>
                             {nombreDestinatario}
                         </div>
                         <div style={{ color: conectado ? '#22c55e' : '#71717a', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -445,7 +453,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     </div>
                 )}
 
-                <form style={styles.inputArea} onSubmit={enviarMensaje}>
+                <form className="chat-component-input" style={styles.inputArea} onSubmit={enviarMensaje}>
                     <input
                         type="file"
                         ref={fileInputRef}

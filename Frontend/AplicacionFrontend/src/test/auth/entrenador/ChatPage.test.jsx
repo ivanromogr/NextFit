@@ -9,7 +9,8 @@ import * as endpoints from '../../../api/endpoints';
 // 1. MOCK DE API
 vi.mock('../../../api/endpoints', () => ({
     obtenerClientesEntrenador: vi.fn(),
-    getCliente: vi.fn()
+    getCliente: vi.fn(),
+    obtenerContactosChat: vi.fn()
 }));
 
 // 2. MOCK DE CONTEXTO
@@ -78,6 +79,7 @@ describe('Página ChatPage', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        endpoints.obtenerContactosChat.mockResolvedValue([]);
         mockStompSubscribeCallback = null;
     });
 

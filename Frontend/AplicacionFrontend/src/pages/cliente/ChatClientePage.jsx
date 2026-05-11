@@ -238,8 +238,8 @@ export default function ChatClientePage() {
     });
 
     const styles = {
-        pageWrapper: { margin: "-28px", height: "100vh", display: "flex", background: "#0c0c0e", overflow: "hidden", position: 'relative' },
-        contactPanel: { width: "340px", background: "#0c0c0e", borderRight: "1px solid #1f1f22", display: "flex", flexDirection: "column", height: "100%" },
+        pageWrapper: { height: "100dvh", width: "100%", maxWidth: "100%", display: "flex", background: "#0c0c0e", overflow: "hidden", position: 'relative', minWidth: 0 },
+        contactPanel: { width: "clamp(280px, 28vw, 370px)", flex: "0 0 clamp(280px, 28vw, 370px)", background: "#0c0c0e", borderRight: "1px solid #1f1f22", display: "flex", flexDirection: "column", height: "100%", minWidth: 0 },
         panelHeader: { padding: "24px 20px 16px 20px" },
         headerTop: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" },
         title: { color: "white", margin: 0, fontSize: "1.3rem", fontWeight: "800" },
@@ -250,7 +250,7 @@ export default function ChatClientePage() {
         avatar: { width: "48px", height: "48px", borderRadius: "50%", background: "#27272a", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative", flexShrink: 0 },
         avatarImg: { width: "100%", height: "100%", objectFit: "cover" },
         redDot: { width: "12px", height: "12px", borderRadius: "50%", background: "#3b82f6", border: "2px solid #0c0c0e", position: "absolute", bottom: "0", right: "0" }, 
-        chatArea: { flex: 1, background: "#09090b", display: 'flex', flexDirection: 'column', position: 'relative', height: "100%" },
+        chatArea: { flex: 1, minWidth: 0, background: "#09090b", display: 'flex', flexDirection: 'column', position: 'relative', height: "100%" },
         emptyState: { height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#52525b" },
         modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' },
         modalBox: { background: '#121214', width: '400px', borderRadius: '16px', border: '1px solid #27272a', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' },
@@ -261,8 +261,27 @@ export default function ChatClientePage() {
     };
 
     return (
-        <div style={styles.pageWrapper}>
-            <style>{`.hide-scroll::-webkit-scrollbar { display: none; } .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
+        <div className="chat-page-shell" style={styles.pageWrapper}>
+            <style>{`
+                .hide-scroll::-webkit-scrollbar { display: none; }
+                .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+                @media (max-width: 820px) {
+                    .chat-page-shell { flex-direction: column; }
+                    .chat-contact-panel {
+                        width: 100% !important;
+                        flex: 0 0 auto !important;
+                        height: 260px !important;
+                        border-right: none !important;
+                        border-bottom: 1px solid #1f1f22 !important;
+                    }
+                    .chat-contact-panel .chat-panel-header { padding: 54px 16px 12px 16px !important; }
+                    .chat-main-area { min-height: 0 !important; flex: 1 1 auto !important; }
+                }
+                @media (max-width: 520px) {
+                    .chat-contact-panel { height: 230px !important; }
+                    .chat-contact-panel .chat-panel-header { padding: 50px 12px 10px 12px !important; }
+                }
+            `}</style>
 
             {showModal && (
                 <div style={styles.modalOverlay}>
@@ -300,8 +319,8 @@ export default function ChatClientePage() {
                 </div>
             )}
 
-            <div style={styles.contactPanel}>
-                <div style={styles.panelHeader}>
+            <div className="chat-contact-panel" style={styles.contactPanel}>
+                <div className="chat-panel-header" style={styles.panelHeader}>
                     <div style={styles.headerTop}>
                         <h2 style={styles.title}>Mensajes</h2>
                         <div style={{display: 'flex', gap: '15px'}}>
@@ -369,7 +388,7 @@ export default function ChatClientePage() {
                 </div>
             </div>
 
-            <div style={styles.chatArea}>
+            <div className="chat-main-area" style={styles.chatArea}>
                 {contactoSeleccionado ? (
                         <ChatComponent 
                             usuarioId={clienteId}
