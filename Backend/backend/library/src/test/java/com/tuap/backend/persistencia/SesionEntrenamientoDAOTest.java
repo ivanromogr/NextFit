@@ -185,13 +185,13 @@ class SesionEntrenamientoDAOTest {
     }
 
     @Test
-    void findActividadAsignadaByEntrenador_DevuelveSoloSesionesAsignadasPorElEntrenador() {
-        List<SesionEntrenamiento> feed = sesionDAO.findActividadAsignadaByEntrenador(
+    void findActividadDashboardByEntrenador_DevuelveSesionesDelEquipo() {
+        List<SesionEntrenamiento> feed = sesionDAO.findActividadDashboardByEntrenador(
             entrenadorMock.getId(),
             PageRequest.of(0, 10)
         );
 
-        assertEquals(2, feed.size());
+        assertEquals(3, feed.size());
         assertEquals(clienteActivo.getId(), feed.get(0).getCliente().getId());
     }
 
@@ -205,8 +205,8 @@ class SesionEntrenamientoDAOTest {
     }
 
     @Test
-    void countClientesEntrenadosEnRangoByEntrenador_CuentaClientesConEntrenosAsignados() {
-        long hoy = sesionDAO.countClientesEntrenadosEnRangoByEntrenador(
+    void countClientesEntrenadosDashboardEnRangoByEntrenador_CuentaClientesConActividadDelEquipo() {
+        long hoy = sesionDAO.countClientesEntrenadosDashboardEnRangoByEntrenador(
             entrenadorMock.getId(),
             LocalDate.now().atStartOfDay(),
             LocalDate.now().plusDays(1).atStartOfDay()
@@ -216,8 +216,8 @@ class SesionEntrenamientoDAOTest {
     }
 
     @Test
-    void countSesionesAsignadasEnRangoByEntrenador_CuentaSesionesDeLaSemana() {
-        long semana = sesionDAO.countSesionesAsignadasEnRangoByEntrenador(
+    void countSesionesDashboardEnRangoByEntrenador_CuentaSesionesDeLaSemana() {
+        long semana = sesionDAO.countSesionesDashboardEnRangoByEntrenador(
             entrenadorMock.getId(),
             ahora.minusDays(7),
             ahora.plusDays(1)

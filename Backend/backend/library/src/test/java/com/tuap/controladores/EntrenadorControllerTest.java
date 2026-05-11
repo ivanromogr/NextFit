@@ -117,12 +117,12 @@ class EntrenadorControllerTest {
         sesion.setFechaHora(LocalDateTime.now());
         sesion.setVolumenTotal(2500.0);
 
-        when(sesionDAO.findActividadAsignadaByEntrenador(eq(entrenadorId), any(Pageable.class)))
+        when(sesionDAO.findActividadDashboardByEntrenador(eq(entrenadorId), any(Pageable.class)))
             .thenReturn(List.of(sesion));
-        when(sesionDAO.countClientesEntrenadosEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class)))
+        when(sesionDAO.countClientesEntrenadosDashboardEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class)))
             .thenReturn(1L);
         when(sesionDAO.countClientesInactivos(eq(entrenadorId), any(LocalDateTime.class))).thenReturn(0L);
-        when(sesionDAO.countSesionesAsignadasEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class)))
+        when(sesionDAO.countSesionesDashboardEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class)))
             .thenReturn(3L);
         when(clienteDAO.countByEntrenador_Id(entrenadorId)).thenReturn(1L);
 

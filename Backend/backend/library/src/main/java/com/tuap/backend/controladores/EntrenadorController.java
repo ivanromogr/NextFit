@@ -116,7 +116,7 @@ public class EntrenadorController {
     @GetMapping("/{entrenadorId}/dashboard-resumen")
     public ResponseEntity<Object> getDashboardResumen(@PathVariable UUID entrenadorId) {
         try {
-            List<SesionEntrenamiento> ultimas = sesionDAO.findActividadAsignadaByEntrenador(
+            List<SesionEntrenamiento> ultimas = sesionDAO.findActividadDashboardByEntrenador(
                     entrenadorId,
                     PageRequest.of(0, 10));
             Map<String, Long> metricas = obtenerMetricasDashboard(entrenadorId);
@@ -155,10 +155,10 @@ public class EntrenadorController {
             LocalDateTime inicioSemana = hoy.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay();
             LocalDateTime finSemana = hoy.plusDays(1).atStartOfDay();
 
-            stats.put("hoy", sesionDAO.countClientesEntrenadosEnRangoByEntrenador(entrenadorId, inicioHoy, finHoy));
+            stats.put("hoy", sesionDAO.countClientesEntrenadosDashboardEnRangoByEntrenador(entrenadorId, inicioHoy, finHoy));
             stats.put("riesgo", sesionDAO.countClientesInactivos(entrenadorId, LocalDateTime.now().minusDays(7)));
             stats.put("totalClientes", clienteDAO.countByEntrenador_Id(entrenadorId));
-            stats.put("records", sesionDAO.countSesionesAsignadasEnRangoByEntrenador(entrenadorId, inicioSemana, finSemana));
+            stats.put("records", sesionDAO.countSesionesDashboardEnRangoByEntrenador(entrenadorId, inicioSemana, finSemana));
         } catch (Exception e) {
             
             stats.put("hoy", 0L);

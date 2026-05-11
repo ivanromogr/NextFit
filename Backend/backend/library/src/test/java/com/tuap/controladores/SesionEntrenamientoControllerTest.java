@@ -165,13 +165,13 @@ class SesionEntrenamientoControllerTest {
     @Test
     void getDashboardResumen_CalculaMetricasYFeed() {
         UUID entrenadorId = UUID.randomUUID();
-        when(sesionDAO.findActividadAsignadaByEntrenador(eq(entrenadorId), any(Pageable.class)))
+        when(sesionDAO.findActividadDashboardByEntrenador(eq(entrenadorId), any(Pageable.class)))
             .thenReturn(Arrays.asList(sesionMock));
         
         // Simulamos las métricas del DAO
-        when(sesionDAO.countClientesEntrenadosEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(5L);
+        when(sesionDAO.countClientesEntrenadosDashboardEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(5L);
         when(sesionDAO.countClientesInactivos(eq(entrenadorId), any(LocalDateTime.class))).thenReturn(2L);
-        when(sesionDAO.countSesionesAsignadasEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(4L);
+        when(sesionDAO.countSesionesDashboardEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(4L);
         when(clienteDAO.countByEntrenador_Id(entrenadorId)).thenReturn(10L);
 
         ResponseEntity<?> respuesta = sesionController.getDashboardResumen(entrenadorId);
