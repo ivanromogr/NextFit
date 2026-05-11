@@ -4,7 +4,8 @@ export const resolveMediaUrl = (url) => {
   if (!url || typeof url !== "string") return "";
   const cleanUrl = url.trim();
   if (!cleanUrl) return "";
-  if (/^(https?:|data:|blob:)/i.test(cleanUrl)) return cleanUrl;
+  if (/^(data:|blob:)/i.test(cleanUrl)) return cleanUrl;
+  if (/^https?:/i.test(cleanUrl)) return normalizeApiHost(cleanUrl);
   if (cleanUrl.startsWith("/")) return `${API_BASE_URL}${cleanUrl}`;
   return cleanUrl;
 };
@@ -25,5 +26,20 @@ const extractExerciseDbId = (url) => {
   } catch {
     const match = url.match(/[?&]exerciseId=([^&]+)/);
     return match ? decodeURIComponent(match[1]) : "";
+  }
+};
+
+const normalizeApiHost = (url) => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.startsWith("/api/")) {
+      const api = new URL(API_BASE_URL);
+      if (parsed.origin !== api.origin) {
+        return `${API_BASE_URL}${parsed.pathname}${parsed.search}${parsed.hash}`;
+      }
+    }
+    return url;
+  } catch {
+    return url;
   }
 };

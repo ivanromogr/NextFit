@@ -171,20 +171,30 @@ export default function MenuCliente() {
     stateText: { margin: 0, color: "#71717a" },
     stateBtn: { background: "#FACC15", color: "black", border: "none", borderRadius: "12px", padding: "12px 16px", display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: "900", cursor: "pointer", textTransform: "uppercase" },
     gridCoach: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "30px", marginBottom: "50px" },
-    gridPersonal: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 460px))", gap: "25px", paddingBottom: "50px", justifyContent: "start" },
+    gridPersonal: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 520px), 1fr))", gap: "24px", paddingBottom: "50px", alignItems: "stretch" },
     coachCard: { background: "linear-gradient(145deg, #121214 0%, #0c0c0e 100%)", border: "1px solid rgba(250, 204, 21, 0.3)", borderRadius: "24px", padding: "35px", position: "relative", overflow: "hidden", boxShadow: "0 10px 40px -10px rgba(250, 204, 21, 0.1)", transition: "transform 0.3s ease, box-shadow 0.3s ease", cursor: "pointer" },
     coachBadge: { position: "absolute", top: "25px", right: "25px", background: "rgba(250, 204, 21, 0.15)", color: "#FACC15", padding: "6px 12px", borderRadius: "50px", fontSize: "0.75rem", fontWeight: "800", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" },
     coachTitle: { fontSize: "1.8rem", fontWeight: "800", color: "white", margin: "10px 0 5px 0", textTransform: "uppercase" },
     coachSub: { color: "#a1a1aa", fontSize: "0.95rem" },
     btnStartCoach: { marginTop: "25px", width: "100%", padding: "16px", borderRadius: "14px", background: "#FACC15", color: "black", fontWeight: "800", border: "none", cursor: "pointer", fontSize: "0.95rem", textTransform: "uppercase", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", boxShadow: "0 4px 15px rgba(250, 204, 21, 0.2)" },
-    personalCard: { background: "#121214", border: "1px solid #27272a", borderRadius: "20px", padding: "25px", display: "flex", flexDirection: "column", gap: "20px", transition: "all 0.2s", cursor: "pointer", position: "relative" },
+    personalCard: { background: "linear-gradient(135deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.018) 100%)", border: "1px solid #27272a", borderRadius: "22px", padding: "28px", display: "grid", gridTemplateRows: "auto 1fr auto", gap: "22px", transition: "all 0.2s", cursor: "pointer", position: "relative", minHeight: "270px", overflow: "hidden" },
+    personalHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px" },
+    personalBody: { display: "grid", gridTemplateColumns: "1.35fr minmax(180px, 0.65fr)", gap: "22px", alignItems: "stretch" },
+    personalTitle: { fontSize: "1.55rem", fontWeight: "900", color: "white", margin: "0 0 8px 0", textTransform: "uppercase", lineHeight: "1.05", fontFamily: "'Teko', sans-serif", letterSpacing: "0.4px" },
+    personalMeta: { color: "#a1a1aa", fontSize: "0.95rem", fontWeight: "700", textTransform: "uppercase", display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", marginTop: "12px" },
+    personalStats: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", alignContent: "start" },
+    personalStat: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "14px", padding: "14px", minWidth: 0 },
+    personalStatLabel: { color: "#71717a", fontSize: "0.68rem", fontWeight: "900", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" },
+    personalStatValue: { color: "white", fontSize: "1.05rem", fontWeight: "900", textTransform: "uppercase", overflowWrap: "anywhere" },
+    personalFooter: { display: "grid", gridTemplateColumns: "1fr auto", gap: "12px", alignItems: "center" },
     pill: { background: "#27272a", color: "#e4e4e7", padding: "4px 10px", borderRadius: "6px", fontSize: "0.7rem", fontWeight: "700", textTransform: "uppercase" },
-    previewText: { color: "#52525b", fontSize: "0.85rem", lineHeight: "1.5", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: "2.5em" },
-    btnStartPersonal: { marginTop: "auto", width: "100%", padding: "12px", borderRadius: "10px", background: "#18181b", color: "white", fontWeight: "700", border: "1px solid #27272a", cursor: "pointer", fontSize: "0.85rem", textTransform: "uppercase", transition: "background 0.2s" },
+    previewText: { color: "#71717a", fontSize: "0.95rem", lineHeight: "1.55", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" },
+    btnStartPersonal: { width: "100%", padding: "14px 18px", borderRadius: "12px", background: "#FACC15", color: "black", fontWeight: "900", border: "none", cursor: "pointer", fontSize: "0.86rem", textTransform: "uppercase", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: "0 12px 28px rgba(250,204,21,0.14)" },
+    btnEditPersonal: { padding: "14px 16px", borderRadius: "12px", background: "#18181b", color: "white", fontWeight: "900", border: "1px solid #27272a", cursor: "pointer", fontSize: "0.86rem", textTransform: "uppercase", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", whiteSpace: "nowrap" },
     menuBtn: { color: "#52525b", padding: "8px", borderRadius: "50%", cursor: "pointer", zIndex: 2 },
     dropdown: { position: "absolute", top: "40px", right: "10px", background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", padding: "6px", zIndex: 10, width: "150px", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" },
     dropdownItem: { display: "flex", alignItems: "center", gap: "10px", padding: "10px", fontSize: "0.85rem", color: "#e4e4e7", borderRadius: "8px", cursor: "pointer" },
-    iaCard: { background: "linear-gradient(145deg, rgba(250,204,21,0.10) 0%, #121214 60%)", border: "1px solid rgba(250, 204, 21, 0.25)", borderRadius: "20px", padding: "26px", display: "flex", flexDirection: "column", gap: "14px", cursor: "pointer", transition: "all 0.2s", position: "relative", maxWidth: "520px" },
+    iaCard: { background: "linear-gradient(145deg, rgba(250,204,21,0.10) 0%, #121214 60%)", border: "1px solid rgba(250, 204, 21, 0.25)", borderRadius: "20px", padding: "26px", display: "flex", flexDirection: "column", gap: "14px", cursor: "pointer", transition: "all 0.2s", position: "relative" },
     iaTopRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" },
     iaPill: { background: "rgba(250,204,21,0.15)", color: "#FACC15", padding: "6px 10px", borderRadius: "10px", fontSize: "0.72rem", fontWeight: "900", textTransform: "uppercase", letterSpacing: "1px", display: "inline-flex", alignItems: "center", gap: "8px" },
     iaTitle: { margin: 0, fontSize: "1.25rem", fontWeight: "900", textTransform: "uppercase", paddingRight: "30px" }, // Padding extra para que el texto no pise el botón
@@ -411,78 +421,122 @@ export default function MenuCliente() {
         })}
 
         {/* ✅ Rutinas NO IA */}
-        {rutinasPropiasNoIA.map((rutina) => (
-          <div
-            key={rutina.id}
-            style={styles.personalCard}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#52525b")}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#27272a")}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <span style={styles.pill}>{rutina.objetivo}</span>
+        {rutinasPropiasNoIA.map((rutina) => {
+          const ejercicios = rutina.detalles || [];
+          const previewEjercicios = ejercicios
+            .map((d) => d.ejercicio?.nombreTraducido || d.ejercicio?.nombre)
+            .filter(Boolean)
+            .join(", ");
+          const nivelLabel = (rutina.nivel || "Personalizado").toString().replaceAll("_", " ");
+          const objetivoLabel = (rutina.objetivo || "Personalizado").toString().replaceAll("_", " ");
 
-              <div style={{ position: "relative" }}>
-                <div style={styles.menuBtn} onClick={(e) => toggleMenu(e, rutina.id)}>
-                  <MoreHorizontal size={20} />
-                </div>
-
-                {activeMenu === rutina.id && (
-                  <div style={styles.dropdown}>
-                    <div
-                      style={styles.dropdownItem}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/cliente/editar-rutina/${rutina.id}`);
-                      }}
-                    >
-                      <Edit size={16} /> Editar
-                    </div>
-
-                    <div
-                      style={{ ...styles.dropdownItem, color: "#ef4444" }}
-                      onClick={(e) => handleDeleteClick(e, rutina)}
-                    >
-                      <Trash2 size={16} /> Eliminar
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3
-                style={{
-                  fontSize: "1.3rem",
-                  fontWeight: "800",
-                  color: "white",
-                  margin: "0 0 5px 0",
-                  textTransform: "uppercase",
-                }}
-              >
-                {rutina.nombre}
-              </h3>
-
-              <div style={styles.previewText}>
-                {rutina.detalles?.map((d) => d.ejercicio.nombreTraducido).join(", ")}
-              </div>
-            </div>
-
-            <button
-              style={styles.btnStartPersonal}
-              onClick={() => navigate(`/cliente/sesion/${rutina.id}`)}
+          return (
+            <div
+              key={rutina.id}
+              style={styles.personalCard}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "white";
-                e.currentTarget.style.color = "black";
+                e.currentTarget.style.borderColor = "#52525b";
+                e.currentTarget.style.transform = "translateY(-3px)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#18181b";
-                e.currentTarget.style.color = "white";
+                e.currentTarget.style.borderColor = "#27272a";
+                e.currentTarget.style.transform = "translateY(0)";
               }}
             >
-              EMPEZAR
-            </button>
-          </div>
-        ))}
+              <div style={styles.personalHeader}>
+                <span style={styles.pill}>{objetivoLabel}</span>
+
+                <div style={{ position: "relative" }}>
+                  <div style={styles.menuBtn} onClick={(e) => toggleMenu(e, rutina.id)}>
+                    <MoreHorizontal size={20} />
+                  </div>
+
+                  {activeMenu === rutina.id && (
+                    <div style={styles.dropdown}>
+                      <div
+                        style={styles.dropdownItem}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/cliente/editar-rutina/${rutina.id}`);
+                        }}
+                      >
+                        <Edit size={16} /> Editar
+                      </div>
+
+                      <div
+                        style={{ ...styles.dropdownItem, color: "#ef4444" }}
+                        onClick={(e) => handleDeleteClick(e, rutina)}
+                      >
+                        <Trash2 size={16} /> Eliminar
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={styles.personalBody}>
+                <div>
+                  <h3 style={styles.personalTitle}>{rutina.nombre}</h3>
+                  <div style={styles.previewText}>
+                    {previewEjercicios || "Añade ejercicios para completar esta rutina."}
+                  </div>
+                  <div style={styles.personalMeta}>
+                    <span>{nivelLabel}</span>
+                    <span style={{ color: "#3f3f46" }}>•</span>
+                    <span>{ejercicios.length} ejercicio{ejercicios.length !== 1 ? "s" : ""}</span>
+                  </div>
+                </div>
+
+                <div style={styles.personalStats}>
+                  <div style={styles.personalStat}>
+                    <div style={styles.personalStatLabel}>Ejercicios</div>
+                    <div style={styles.personalStatValue}>{ejercicios.length}</div>
+                  </div>
+                  <div style={styles.personalStat}>
+                    <div style={styles.personalStatLabel}>Nivel</div>
+                    <div style={styles.personalStatValue}>{nivelLabel}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={styles.personalFooter}>
+                <button
+                  style={styles.btnStartPersonal}
+                  onClick={() => navigate(`/cliente/sesion/${rutina.id}`)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "white";
+                    e.currentTarget.style.color = "black";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#FACC15";
+                    e.currentTarget.style.color = "black";
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
+                >
+                  <Play size={18} fill="currentColor" /> Empezar sesión
+                </button>
+                <button
+                  style={styles.btnEditPersonal}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/cliente/editar-rutina/${rutina.id}`);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#FACC15";
+                    e.currentTarget.style.color = "#FACC15";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#27272a";
+                    e.currentTarget.style.color = "white";
+                  }}
+                >
+                  <Edit size={16} /> Editar
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
       )}
 

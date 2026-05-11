@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/upload")
@@ -66,8 +67,13 @@ public class UploadController {
 
             Files.copy(file.getInputStream(), destinationFile);
 
+            String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/upload/files/")
+                    .path(finalName)
+                    .toUriString();
+
             Map<String, String> response = new HashMap<>();
-            response.put("url", "/api/upload/files/" + finalName); 
+            response.put("url", fileUrl);
             
             return ResponseEntity.ok(response);
         } catch (IOException e) {
