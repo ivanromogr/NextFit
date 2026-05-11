@@ -14,9 +14,11 @@ import org.springframework.web.bind.annotation.*;
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.EventoCalendario;
 import com.tuap.backend.dominio.entidades.Rutina;
+import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EventoCalendarioDAO;
 import com.tuap.backend.persistencia.RutinaDAO;
+import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
 
 @RestController
 @RequestMapping("/api/calendario")
@@ -27,12 +29,18 @@ public class CalendarioController {
     private final EventoCalendarioDAO eventoDAO;
     private final ClienteDAO clienteDAO;
     private final RutinaDAO rutinaDAO;
+    private final SesionEntrenamientoDAO sesionDAO;
 
     // 🧹 SOLUCIÓN SONARQUBE: Constructor Injection en lugar de Field Injection
-    public CalendarioController(EventoCalendarioDAO eventoDAO, ClienteDAO clienteDAO, RutinaDAO rutinaDAO) {
+    public CalendarioController(
+            EventoCalendarioDAO eventoDAO,
+            ClienteDAO clienteDAO,
+            RutinaDAO rutinaDAO,
+            SesionEntrenamientoDAO sesionDAO) {
         this.eventoDAO = eventoDAO;
         this.clienteDAO = clienteDAO;
         this.rutinaDAO = rutinaDAO;
+        this.sesionDAO = sesionDAO;
     }
 
     @GetMapping("/{clienteId}")
@@ -116,8 +124,20 @@ public class CalendarioController {
     }
 
     @DeleteMapping("/{eventoId}")
+    @Transactional
     public ResponseEntity<String> eliminarEvento(@PathVariable UUID eventoId) {
-        eventoDAO.deleteById(eventoId);
+        EventoCalendario evento = eventoDAO.findById(eventoId).orElse(null);
+        if (evento == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        SesionEntrenamiento sesion = sesionDAO.findByEventoCalendario_Id(eventoId);
+        if (sesion != null) {
+            sesion.setEventoCalendario(null);
+            sesionDAO.save(sesion);
+        }
+
+        eventoDAO.delete(evento);
         return ResponseEntity.ok("Evento eliminado");
     }
 

@@ -28,9 +28,11 @@ import com.tuap.backend.controladores.CalendarioController;
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.EventoCalendario;
 import com.tuap.backend.dominio.entidades.Rutina;
+import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EventoCalendarioDAO;
 import com.tuap.backend.persistencia.RutinaDAO;
+import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
 
 @ExtendWith(MockitoExtension.class)
 class CalendarioControllerTest {
@@ -41,6 +43,7 @@ class CalendarioControllerTest {
     @Mock private EventoCalendarioDAO eventoDAO;
     @Mock private ClienteDAO clienteDAO;
     @Mock private RutinaDAO rutinaDAO;
+    @Mock private SesionEntrenamientoDAO sesionDAO;
 
     private UUID clienteId;
     private UUID entrenadorId;
@@ -174,5 +177,21 @@ class CalendarioControllerTest {
         assertEquals(HttpStatus.OK, respuesta.getStatusCode());
         assertTrue(eventoPendiente.isCompletado()); // Verifica que se cambió a true
         verify(eventoDAO, times(1)).save(eventoPendiente);
+    }
+
+    @Test
+    void eliminarEvento_ConSesionAsociada_DesvinculaSesionYBorraEvento() {
+        SesionEntrenamiento sesion = new SesionEntrenamiento();
+        sesion.setEventoCalendario(eventoPendiente);
+
+        when(eventoDAO.findById(eventoId)).thenReturn(Optional.of(eventoPendiente));
+        when(sesionDAO.findByEventoCalendario_Id(eventoId)).thenReturn(sesion);
+
+        ResponseEntity<?> respuesta = calendarioController.eliminarEvento(eventoId);
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        assertEquals(null, sesion.getEventoCalendario());
+        verify(sesionDAO, times(1)).save(sesion);
+        verify(eventoDAO, times(1)).delete(eventoPendiente);
     }
 }
