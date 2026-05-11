@@ -96,7 +96,13 @@ class SesionEntrenamientoControllerTest {
         ResponseEntity<?> respuesta = sesionController.guardarSesion(req);
 
         assertEquals(HttpStatus.OK, respuesta.getStatusCode());
-        assertEquals(sesionMock, respuesta.getBody());
+        Map<String, Object> body = (Map<String, Object>) respuesta.getBody();
+        assertNotNull(body);
+        assertEquals(sesionMock.getId(), body.get("id"));
+        assertEquals(clienteId, body.get("clienteId"));
+        assertEquals(3600, body.get("duracionSegundos"));
+        assertEquals(5000.0, body.get("volumenTotal"));
+        assertEquals(2, body.get("seriesGuardadas"));
     }
 
     // 🟢 TEST 2: Listar historial del cliente
@@ -107,8 +113,9 @@ class SesionEntrenamientoControllerTest {
         ResponseEntity<?> respuesta = sesionController.listarSesiones(clienteId);
 
         assertEquals(HttpStatus.OK, respuesta.getStatusCode());
-        List<SesionEntrenamiento> lista = (List<SesionEntrenamiento>) respuesta.getBody();
+        List<Map<String, Object>> lista = (List<Map<String, Object>>) respuesta.getBody();
         assertEquals(1, lista.size());
+        assertEquals(sesionMock.getId(), lista.get(0).get("id"));
     }
 
     // 🟢 TEST 3: Obtener detalles de una sesión y verificar agrupamiento

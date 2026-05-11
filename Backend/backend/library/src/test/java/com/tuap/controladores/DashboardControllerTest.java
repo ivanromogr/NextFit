@@ -2,6 +2,7 @@ package com.tuap.controladores;
 
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -26,7 +27,9 @@ import com.tuap.backend.controladores.DashboardController;
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.EventoCalendario;
 import com.tuap.backend.dominio.entidades.Rutina;
+import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
 import com.tuap.backend.persistencia.EventoCalendarioDAO;
+import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
 
 @ExtendWith(MockitoExtension.class)
 class DashboardControllerTest {
@@ -36,6 +39,9 @@ class DashboardControllerTest {
 
     @Mock
     private EventoCalendarioDAO eventoDAO;
+
+    @Mock
+    private SesionEntrenamientoDAO sesionDAO;
 
     private UUID clienteId;
     private Cliente clienteMock;
@@ -76,13 +82,21 @@ class DashboardControllerTest {
         eventoHoy.setVolumenTotal(0.0);
         eventoHoy.setRutina(rutinaMock);
 
+        SesionEntrenamiento sesionAyer = new SesionEntrenamiento();
+        sesionAyer.setCliente(clienteMock);
+        sesionAyer.setFechaHora(hoy.minusDays(1).atTime(18, 0));
+        sesionAyer.setVolumenTotal(2000.0);
+        sesionAyer.setEventoCalendario(eventoAyer);
+
         // Simulamos la búsqueda de la semana
         when(eventoDAO.findByClienteIdAndFechaBetween(eq(clienteId), any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(Arrays.asList(eventoAyer, eventoHoy));
 
-        // Simulamos el historial para la racha (El código espera recibir los eventos ordenados por fecha descendente: hoy, ayer...)
-        when(eventoDAO.findByClienteIdAndFechaLessThanEqualOrderByFechaDesc(clienteId, hoy))
-            .thenReturn(Arrays.asList(eventoHoy, eventoAyer));
+        when(sesionDAO.findByClienteIdAndFechaHoraBetweenOrderByFechaHoraDesc(
+                eq(clienteId), any(LocalDateTime.class), any(LocalDateTime.class)))
+            .thenReturn(Arrays.asList(sesionAyer));
+        when(sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId))
+            .thenReturn(Arrays.asList(sesionAyer));
 
         // --- ACCIÓN ---
         ResponseEntity<Map<String, Object>> respuesta = dashboardController.getResumen(clienteId);
@@ -114,7 +128,9 @@ class DashboardControllerTest {
     void getResumen_SinHistorial_DevuelveTodoACero() {
         // --- PREPARACIÓN ---
         when(eventoDAO.findByClienteIdAndFechaBetween(any(), any(), any())).thenReturn(Collections.emptyList());
-        when(eventoDAO.findByClienteIdAndFechaLessThanEqualOrderByFechaDesc(any(), any())).thenReturn(Collections.emptyList());
+        when(sesionDAO.findByClienteIdAndFechaHoraBetweenOrderByFechaHoraDesc(
+                any(), any(), any())).thenReturn(Collections.emptyList());
+        when(sesionDAO.findByClienteIdOrderByFechaHoraDesc(any())).thenReturn(Collections.emptyList());
 
         // --- ACCIÓN ---
         ResponseEntity<Map<String, Object>> respuesta = dashboardController.getResumen(clienteId);
@@ -132,22 +148,16 @@ class DashboardControllerTest {
     @Test
     void getResumen_AyerNoEntreno_RompeLaRacha() {
         // --- PREPARACIÓN ---
-        // Hace 2 días (Completado)
-        EventoCalendario eventoHace2Dias = new EventoCalendario();
-        eventoHace2Dias.setFecha(hoy.minusDays(2));
-        eventoHace2Dias.setCompletado(true);
-
-        // Ayer (NO Completado) -> ¡Debería romper la racha!
-        EventoCalendario eventoAyer = new EventoCalendario();
-        eventoAyer.setFecha(hoy.minusDays(1));
-        eventoAyer.setCompletado(false);
+        SesionEntrenamiento sesionHace2Dias = new SesionEntrenamiento();
+        sesionHace2Dias.setFechaHora(hoy.minusDays(2).atTime(18, 0));
 
         // Simulamos la lista de la semana (vacía para simplificar, no nos importa para este test)
         when(eventoDAO.findByClienteIdAndFechaBetween(any(), any(), any())).thenReturn(Collections.emptyList());
 
-        // Simulamos el historial ordenado: Ayer (falso), Hace 2 días (true)
-        when(eventoDAO.findByClienteIdAndFechaLessThanEqualOrderByFechaDesc(clienteId, hoy))
-            .thenReturn(Arrays.asList(eventoAyer, eventoHace2Dias));
+        when(sesionDAO.findByClienteIdAndFechaHoraBetweenOrderByFechaHoraDesc(
+                any(), any(), any())).thenReturn(Collections.emptyList());
+        when(sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId))
+            .thenReturn(Arrays.asList(sesionHace2Dias));
 
         // --- ACCIÓN ---
         ResponseEntity<Map<String, Object>> respuesta = dashboardController.getResumen(clienteId);

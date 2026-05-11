@@ -3,6 +3,7 @@ package com.tuap.controladores;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,6 +29,7 @@ import com.tuap.backend.controladores.ChatController;
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.Mensaje;
 import com.tuap.backend.persistencia.ClienteDAO;
+import com.tuap.backend.persistencia.EntrenadorDAO;
 import com.tuap.backend.persistencia.MensajeDAO;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +41,7 @@ class ChatControllerTest {
     @Mock private SimpMessagingTemplate messagingTemplate; 
     @Mock private MensajeDAO mensajeDAO;
     @Mock private ClienteDAO clienteDAO;
+    @Mock private EntrenadorDAO entrenadorDAO;
 
     private UUID remitenteId;
     private UUID destinatarioId;
@@ -111,11 +114,12 @@ class ChatControllerTest {
         contactoFake.setNombre("Paco");
 
         when(mensajeDAO.findContactosIds(remitenteId)).thenReturn(idsDeContactos);
-        when(clienteDAO.findAllById(idsDeContactos)).thenReturn(Arrays.asList(contactoFake));
+        when(clienteDAO.findById(contactoId)).thenReturn(Optional.of(contactoFake));
 
-        ResponseEntity<List<Cliente>> respuesta = chatController.obtenerContactosDeUsuario(remitenteId);
+        ResponseEntity<List<Map<String, Object>>> respuesta = chatController.obtenerContactosDeUsuario(remitenteId);
 
         assertEquals(HttpStatus.OK, respuesta.getStatusCode());
-        assertEquals("Paco", respuesta.getBody().get(0).getNombre());
+        assertEquals("Paco", respuesta.getBody().get(0).get("nombre"));
+        assertEquals("CLIENTE", respuesta.getBody().get(0).get("tipoContacto"));
     }
 }

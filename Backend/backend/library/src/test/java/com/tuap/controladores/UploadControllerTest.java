@@ -16,7 +16,10 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.tuap.backend.controladores.UploadController;
 
@@ -35,21 +38,31 @@ class UploadControllerTest {
 
     @Test
     void uploadFile_ArchivoValido_GuardaYDevuelveUrl() {
-        MockMultipartFile fileFalso = new MockMultipartFile(
-            "file", 
-            "foto_perfil.jpg", 
-            "image/jpeg", 
-            "bytes_de_una_imagen_falsa".getBytes()
-        );
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        ResponseEntity<Map<String, String>> respuesta = uploadController.uploadFile(fileFalso);
+        try {
+            MockMultipartFile fileFalso = new MockMultipartFile(
+                "file", 
+                "foto_perfil.jpg", 
+                "image/jpeg", 
+                "bytes_de_una_imagen_falsa".getBytes()
+            );
 
-        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
-        assertNotNull(respuesta.getBody());
-        
-        String urlDevuelta = respuesta.getBody().get("url");
-        assertTrue(urlDevuelta.contains("/api/upload/files/"));
-        assertTrue(urlDevuelta.contains("foto_perfil.jpg"));
+            ResponseEntity<Map<String, String>> respuesta = uploadController.uploadFile(fileFalso);
+
+            assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+            assertNotNull(respuesta.getBody());
+            
+            String urlDevuelta = respuesta.getBody().get("url");
+            assertTrue(urlDevuelta.contains("/api/upload/files/"));
+            assertTrue(urlDevuelta.contains("foto_perfil.jpg"));
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
     }
 
     @Test
