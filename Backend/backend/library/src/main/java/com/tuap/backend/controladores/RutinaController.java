@@ -103,7 +103,7 @@ public class RutinaController {
 
             if (entrenadorId != null) {
                 rutinas = rutinas.stream()
-                        .filter(r -> r.getEntrenadorId() == null || r.getEntrenadorId().toString().equals(entrenadorId))
+                        .filter(r -> r.getEntrenadorId() != null && r.getEntrenadorId().toString().equals(entrenadorId))
                         .toList();
             }
 
@@ -242,6 +242,9 @@ public class RutinaController {
             ejercicio.put("equipamiento", detalle.getEjercicio().getEquipamiento());
             ejercicio.put("parteCuerpo", detalle.getEjercicio().getParteCuerpo());
             ejercicio.put("imagenUrl", detalle.getEjercicio().getImagenUrl());
+            ejercicio.put("imagenPaso1", detalle.getEjercicio().getImagenPaso1());
+            ejercicio.put("imagenPaso2", detalle.getEjercicio().getImagenPaso2());
+            ejercicio.put("imagenPaso3", detalle.getEjercicio().getImagenPaso3());
             ejercicio.put("videoUrl", detalle.getEjercicio().getVideoUrl());
             ejercicio.put("dificultad", detalle.getEjercicio().getDificultad());
             ejercicio.put("instrucciones", detalle.getEjercicio().getInstrucciones());

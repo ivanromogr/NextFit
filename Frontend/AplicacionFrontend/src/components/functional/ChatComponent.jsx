@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { Send, User, MoreVertical, Phone, CheckCheck, Paperclip, Smile, X, Image as ImageIcon, Film } from 'lucide-react';
+import { Send, User, CheckCheck, Paperclip, Smile, X, Image as ImageIcon, Film } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { api } from '../../api/endpoints';
 import { API_BASE_URL, SOCKJS_URL } from '../../api/config';
@@ -328,10 +328,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                             {conectado ? 'En línea' : 'Desconectado'}
                         </div>
                     </div>
-                </div>
-                <div style={{ display: 'flex', gap: '20px', color: '#a1a1aa' }}>
-                    <Phone size={20} style={{ cursor: 'pointer' }} />
-                    <MoreVertical size={20} style={{ cursor: 'pointer' }} />
                 </div>
             </div>
 

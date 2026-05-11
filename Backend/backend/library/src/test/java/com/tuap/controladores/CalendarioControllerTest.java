@@ -144,6 +144,26 @@ class CalendarioControllerTest {
         verify(eventoDAO, times(1)).save(any(EventoCalendario.class));
     }
 
+    @Test
+    void crearEvento_EntrenadorIntentaProgramarRutinaDeCliente_Devuelve403() {
+        Rutina rutinaCliente = new Rutina();
+        rutinaCliente.setId(UUID.randomUUID());
+        rutinaCliente.setNombre("Rutina propia del cliente");
+        rutinaCliente.setEntrenadorId(null);
+
+        Map<String, String> payload = new HashMap<>();
+        payload.put("rutinaId", rutinaCliente.getId().toString());
+        payload.put("fecha", "2026-12-31");
+        payload.put("entrenadorId", entrenadorId.toString());
+
+        when(clienteDAO.findById(clienteId)).thenReturn(Optional.of(new Cliente()));
+        when(rutinaDAO.findById(rutinaCliente.getId())).thenReturn(Optional.of(rutinaCliente));
+
+        ResponseEntity<?> respuesta = calendarioController.crearEvento(clienteId, payload);
+
+        assertEquals(HttpStatus.FORBIDDEN, respuesta.getStatusCode());
+    }
+
     // 🟢 TEST 4: Cambiar el estado de un evento (Toggle Completado)
     @Test
     void toggleCompletado_EventoExiste_CambiaEstadoYGuarda() {

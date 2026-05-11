@@ -52,7 +52,7 @@ export default function AgendaEntrenador() {
                 if (!clienteInfo.id) return;
                 
                 try {
-                    const eventosCliente = await obtenerEventosCalendario(clienteInfo.id, primerDia, ultimoDia);
+                    const eventosCliente = await obtenerEventosCalendario(clienteInfo.id, primerDia, ultimoDia, entrenadorId);
                     const eventosMapeados = eventosCliente.map(ev => ({
                         ...ev,
                         clienteNombre: `${clienteInfo.nombre} ${clienteInfo.apellido}`,

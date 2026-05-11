@@ -98,6 +98,13 @@ public class CalendarioController {
 
         if (cliente == null || rutina == null) return ResponseEntity.badRequest().body("Error datos");
 
+        if (payload.containsKey(ENTRENADOR_ID_PARAM) && payload.get(ENTRENADOR_ID_PARAM) != null) {
+            UUID entrenadorId = UUID.fromString(payload.get(ENTRENADOR_ID_PARAM));
+            if (rutina.getEntrenadorId() == null || !rutina.getEntrenadorId().equals(entrenadorId)) {
+                return ResponseEntity.status(403).body("El entrenador solo puede programar rutinas creadas por él");
+            }
+        }
+
         EventoCalendario evento = new EventoCalendario(fecha, rutina, cliente);
         
         if (payload.containsKey(ENTRENADOR_ID_PARAM) && payload.get(ENTRENADOR_ID_PARAM) != null) {

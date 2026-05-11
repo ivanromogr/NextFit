@@ -85,6 +85,12 @@ describe('Página AgendaEntrenador', () => {
         expect(await screen.findByText(/Marzo 2026/i)).toBeInTheDocument();
 
         // 2. Verificamos que carga el estado vacío
+        expect(endpoints.obtenerEventosCalendario).toHaveBeenCalledWith(
+            'cliente-1',
+            expect.any(String),
+            expect.any(String),
+            'entrenador-boss'
+        );
         expect(screen.getByText(/Día despejado/i)).toBeInTheDocument();
         expect(screen.getByText(/Ningún atleta tiene entrenamientos asignados/i)).toBeInTheDocument();
     });

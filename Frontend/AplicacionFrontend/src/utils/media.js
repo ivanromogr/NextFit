@@ -16,16 +16,27 @@ export const resolveExerciseImageUrl = (exercise) => {
 
 export const getExerciseImageCandidates = (exercise) => {
   if (!exercise) return [];
-  const rawUrl = exercise.imagenOriginalUrl || exercise.imagenUrl || exercise.gifUrl || "";
-  const apiId = exercise.apiId || extractExerciseDbId(rawUrl);
+  const rawUrls = [
+    exercise.imagenOriginalUrl,
+    exercise.imagenUrl,
+    exercise.gifUrl,
+    exercise.imagenPaso1,
+    exercise.imagenPaso2,
+    exercise.imagenPaso3,
+    getYoutubeThumbnail(exercise.videoUrl),
+  ].filter(Boolean);
+  const rawUrl = rawUrls[0] || "";
+  const apiId = exercise.apiId || rawUrls.map(extractExerciseDbId).find(Boolean);
   const candidates = [];
   if (apiId) {
     candidates.push(`${API_BASE_URL}/api/ejercicios/imagen/${apiId}`);
   }
-  const resolvedRaw = resolveMediaUrl(rawUrl);
-  if (resolvedRaw && !candidates.includes(resolvedRaw)) {
-    candidates.push(resolvedRaw);
-  }
+  rawUrls
+    .map(resolveMediaUrl)
+    .filter(Boolean)
+    .forEach((resolvedRaw) => {
+      if (!candidates.includes(resolvedRaw)) candidates.push(resolvedRaw);
+    });
   return candidates;
 };
 
@@ -37,6 +48,12 @@ const extractExerciseDbId = (url) => {
     const match = url.match(/[?&]exerciseId=([^&]+)/);
     return match ? decodeURIComponent(match[1]) : "";
   }
+};
+
+export const getYoutubeThumbnail = (url) => {
+  if (!url || typeof url !== "string") return "";
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^?&/]+)/);
+  return match?.[1] ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : "";
 };
 
 const normalizeApiHost = (url) => {

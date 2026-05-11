@@ -36,7 +36,13 @@ const normalizarPerfil = (data) => {
 
 const normalizarEjercicio = (ejercicio) => {
   if (!ejercicio || typeof ejercicio !== "object") return ejercicio;
-  const imagenOriginalUrl = ejercicio.imagenOriginalUrl || ejercicio.imagenUrl || ejercicio.gifUrl || "";
+  const imagenOriginalUrl = ejercicio.imagenOriginalUrl
+    || ejercicio.imagenUrl
+    || ejercicio.gifUrl
+    || ejercicio.imagenPaso1
+    || ejercicio.imagenPaso2
+    || ejercicio.imagenPaso3
+    || "";
   return {
     ...ejercicio,
     imagenOriginalUrl,
