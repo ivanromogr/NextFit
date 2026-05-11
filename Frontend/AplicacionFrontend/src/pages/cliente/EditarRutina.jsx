@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getExerciseImageCandidates } from '../../utils/media';
 import { 
     ChevronLeft, Save, Trash2, Plus, Search, Dumbbell, X, 
-    GripVertical, Copy, CheckCircle, AlertCircle 
+    GripVertical, Copy, CheckCircle, AlertCircle, Info
 } from 'lucide-react';
 
 // Categorías para el filtro
@@ -28,6 +28,63 @@ const buscarEjercicioCompleto = (ejercicio, biblioteca) => {
         const nombreEjercicio = normalizarTexto(ejercicio.nombreTraducido || ejercicio.nombre);
         return nombreItem && nombreItem === nombreEjercicio;
     });
+};
+
+const obtenerYoutubeId = (url = "") => {
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^?&/]+)/);
+    return match?.[1] || null;
+};
+
+const obtenerYoutubeEmbedUrl = (url = "") => {
+    const videoId = obtenerYoutubeId(url);
+    if (!videoId) return null;
+
+    const params = new URLSearchParams({
+        autoplay: "1",
+        mute: "1",
+        loop: "1",
+        playlist: videoId,
+        controls: "0",
+        rel: "0",
+        modestbranding: "1",
+        playsinline: "1"
+    });
+
+    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+};
+
+const esVideoDirecto = (url = "") => /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
+
+const VideoEjercicio = ({ src, title, style }) => {
+    const youtubeEmbedUrl = obtenerYoutubeEmbedUrl(src);
+
+    if (youtubeEmbedUrl) {
+        return (
+            <iframe
+                src={youtubeEmbedUrl}
+                title={title}
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                style={{ ...style, border: 0 }}
+            />
+        );
+    }
+
+    if (esVideoDirecto(src)) {
+        return (
+            <video
+                src={src}
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls={false}
+                style={style}
+            />
+        );
+    }
+
+    return null;
 };
 
 const ExerciseImage = ({ exercise, style, fallbackIconSize = 28 }) => {
@@ -70,6 +127,7 @@ const EditarRutina = () => {
     // Buscador
     const [allExercises, setAllExercises] = useState([]);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [infoExercise, setInfoExercise] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedMuscle, setSelectedMuscle] = useState("TODOS");
 
@@ -286,8 +344,10 @@ const EditarRutina = () => {
         titleInput: { background: 'transparent', border: 'none', color: 'white', fontSize: '3.5rem', fontWeight: '900', textTransform: 'uppercase', width: '100%', outline: 'none', fontFamily: "'Teko', sans-serif", letterSpacing: '-1px', lineHeight: '1', textShadow: '0 0 50px rgba(255,255,255,0.05)' },
         descInput: { background: 'transparent', border: 'none', color: '#888', fontSize: '1.2rem', width: '100%', outline: 'none', marginTop: '10px', fontFamily: 'sans-serif', fontWeight: '400' },
 
-        editCard: { background: '#0a0a0a', border: '1px solid #222', borderRadius: '20px', padding: '35px', marginBottom: '30px', display: 'grid', gridTemplateColumns: '80px 1fr 40px', gap: '30px', transition: 'all 0.3s ease', position: 'relative', alignItems: 'start' },
-        imgBox: { width: '80px', height: '80px', background: '#111', borderRadius: '12px', display:'flex', justifyContent:'center', alignItems:'center', border: '1px solid #333', overflow:'hidden' },
+        editCard: { background: '#0a0a0a', border: '1px solid #222', borderRadius: '20px', padding: '0', marginBottom: '30px', display: 'grid', gridTemplateColumns: '220px 1fr', gap: '0', transition: 'all 0.3s ease', position: 'relative', alignItems: 'stretch', overflow: 'hidden', minHeight: '250px' },
+        imgBox: { width: '220px', height: '100%', minHeight: '250px', background: '#050505', display:'flex', justifyContent:'center', alignItems:'center', borderRight: '1px solid #222', overflow:'hidden', position: 'relative' },
+        mediaInfoBtn: { position: 'absolute', top: '14px', left: '14px', width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(0,0,0,0.72)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 5 },
+        mediaBadge: { position: 'absolute', bottom: '14px', right: '14px', background: '#FACC15', color: '#000', borderRadius: '6px', padding: '4px 8px', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase' },
         mainInfo: { width: '100%' },
         exName: { fontSize: '1.8rem', fontWeight: '900', color: 'white', textTransform: 'uppercase', fontFamily:"'Teko', sans-serif", letterSpacing:'0.5px', lineHeight:'1' },
         exMuscle: { fontSize: '0.8rem', color: '#FACC15', fontWeight: 'bold', marginTop: '5px', textTransform:'uppercase', letterSpacing:'1px', opacity: 0.8 },
@@ -303,6 +363,7 @@ const EditarRutina = () => {
 
         noteInput: { width: '100%', background: 'transparent', border: 'none', borderTop: '1px solid #1a1a1a', color: '#777', fontSize: '0.9rem', padding: '15px 0', marginTop: '15px', outline:'none', fontStyle:'italic' },
         deleteExerciseBtn: { position: 'absolute', top: '25px', right: '25px', background:'transparent', border:'none', color:'#333', cursor:'pointer' },
+        cardBody: { padding: '35px 70px 35px 35px' },
 
         addBtnContainer: { marginTop: '50px', display:'flex', justifyContent:'center' },
         addBtn: { width: '100%', padding: '30px', background: 'linear-gradient(180deg, rgba(250, 204, 21, 0.05) 0%, rgba(0,0,0,0) 100%)', border: '2px dashed #333', borderRadius: '20px', color: '#777', cursor: 'pointer', display: 'flex', flexDirection:'column', justifyContent: 'center', alignItems: 'center', gap: '15px', fontSize: '1.1rem', fontWeight: '700', transition: 'all 0.2s', textTransform:'uppercase', letterSpacing:'2px' },
@@ -331,6 +392,9 @@ const EditarRutina = () => {
         filterChip: (active) => ({ padding: '10px 20px', borderRadius: '50px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer', background: active ? '#FACC15' : '#1a1a1a', color: active ? 'black' : '#777', border: 'none', whiteSpace: 'nowrap', textTransform: 'uppercase' }),
         list: { flex: 1, overflowY: 'auto', padding: '0' },
         listItem: { padding: '20px 40px', borderBottom: '1px solid #1a1a1a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: 'background 0.2s' },
+        infoModalCard: { background: '#111', width: '90%', maxWidth: '760px', borderRadius: '20px', border: '1px solid #333', overflow: 'hidden', boxShadow: '0 40px 90px rgba(0,0,0,0.75)' },
+        infoModalHeader: { padding: '20px 28px', borderBottom: '1px solid #222', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#151515' },
+        infoModalMedia: { width: '100%', height: 'clamp(380px, calc(88vh - 230px), 500px)', background: '#000', position: 'relative' },
     };
 
     return (
@@ -367,14 +431,23 @@ const EditarRutina = () => {
                     <div key={exIndex} style={styles.editCard} onMouseEnter={e => {e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.backgroundColor = '#0f0f0f'}} onMouseLeave={e => {e.currentTarget.style.borderColor = '#222'; e.currentTarget.style.backgroundColor = '#0a0a0a'}}>
                         
                         <div style={styles.imgBox}>
+                            <button
+                                style={styles.mediaInfoBtn}
+                                onClick={() => setInfoExercise(detalle.ejercicio)}
+                                title="Ver técnica y video"
+                            >
+                                <Info size={18} />
+                            </button>
                             <ExerciseImage
                                 exercise={detalle.ejercicio}
                                 style={{width:'100%', height:'100%', objectFit:'cover'}}
                             />
+                            {detalle.ejercicio?.videoUrl && <div style={styles.mediaBadge}>VIDEO</div>}
                         </div>
+                        <div style={styles.cardBody}>
                         <div style={styles.mainInfo}>
-                            <div style={styles.exName}>{detalle.ejercicio?.nombre}</div>
-                            <div style={styles.exMuscle}>{detalle.ejercicio?.grupoMuscular || "General"}</div>
+                            <div style={styles.exName}>{detalle.ejercicio?.nombreTraducido || detalle.ejercicio?.nombre}</div>
+                            <div style={styles.exMuscle}>{detalle.ejercicio?.grupoMuscularTraducido || detalle.ejercicio?.grupoMuscular || "General"}</div>
                             
                             {/* TABLA DE SERIES */}
                             <div style={styles.tableContainer}>
@@ -399,6 +472,7 @@ const EditarRutina = () => {
                             </div>
 
                             <input style={styles.noteInput} placeholder="Escribe notas técnicas..." value={detalle.notas} onChange={(e) => handleNoteChange(exIndex, e.target.value)} />
+                        </div>
                         </div>
 
                         <button style={styles.deleteExerciseBtn} onClick={() => removeExercise(exIndex)}><Trash2 size={20}/></button>
@@ -443,6 +517,48 @@ const EditarRutina = () => {
                                     <div style={{background:'rgba(250, 204, 21, 0.1)', borderRadius:'10px', padding:'10px', color:'#FACC15'}}><Plus size={24}/></div>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {infoExercise && (
+                <div style={styles.modalOverlay} onClick={() => setInfoExercise(null)}>
+                    <div style={styles.infoModalCard} onClick={e => e.stopPropagation()}>
+                        <div style={styles.infoModalHeader}>
+                            <div>
+                                <h3 style={{margin: 0, fontFamily: "'Teko', sans-serif", fontSize: '1.9rem', textTransform: 'uppercase', color: '#fff'}}>
+                                    {infoExercise.nombreTraducido || infoExercise.nombre}
+                                </h3>
+                                <div style={{color: '#FACC15', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px'}}>
+                                    {infoExercise.grupoMuscularTraducido || infoExercise.grupoMuscular || 'General'}
+                                </div>
+                            </div>
+                            <button onClick={() => setInfoExercise(null)} style={{background: 'none', border: 'none', color: '#71717a', cursor: 'pointer'}}>
+                                <X size={28} />
+                            </button>
+                        </div>
+
+                        <div style={styles.infoModalMedia}>
+                            {infoExercise.videoUrl ? (
+                                <VideoEjercicio
+                                    src={infoExercise.videoUrl}
+                                    title={`Video de ${infoExercise.nombreTraducido || infoExercise.nombre}`}
+                                    style={{width: '100%', height: '100%', objectFit: 'cover', background: '#000'}}
+                                />
+                            ) : (
+                                <ExerciseImage
+                                    exercise={infoExercise}
+                                    style={{width: '100%', height: '100%', objectFit: 'cover'}}
+                                    fallbackIconSize={54}
+                                />
+                            )}
+                        </div>
+
+                        <div style={{padding: '18px 28px 24px'}}>
+                            <p style={{margin: 0, color: '#c7c7c7', lineHeight: 1.45, whiteSpace: 'pre-line'}}>
+                                {infoExercise.instrucciones || infoExercise.descripcionCorta || "No hay instrucciones detalladas disponibles."}
+                            </p>
                         </div>
                     </div>
                 </div>
