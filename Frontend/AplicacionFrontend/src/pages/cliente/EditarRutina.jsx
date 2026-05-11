@@ -122,6 +122,28 @@ const ExerciseImage = ({ exercise, style, fallbackIconSize = 28 }) => {
     );
 };
 
+const ExerciseMedia = ({ exercise, style, fallbackIconSize = 28 }) => {
+    if (esVideoDirecto(exercise?.videoUrl)) {
+        return (
+            <video
+                src={exercise.videoUrl}
+                muted
+                playsInline
+                preload="metadata"
+                style={style}
+            />
+        );
+    }
+
+    return (
+        <ExerciseImage
+            exercise={exercise}
+            style={style}
+            fallbackIconSize={fallbackIconSize}
+        />
+    );
+};
+
 const EditarRutina = () => {
     const { rutinaId, clienteId } = useParams();
     const navigate = useNavigate();
@@ -447,7 +469,7 @@ const EditarRutina = () => {
                             >
                                 <Info size={18} />
                             </button>
-                            <ExerciseImage
+                            <ExerciseMedia
                                 exercise={detalle.ejercicio}
                                 style={{width:'100%', height:'100%', objectFit:'cover'}}
                             />
@@ -512,7 +534,7 @@ const EditarRutina = () => {
                                 <div key={ex.id} style={styles.listItem} onClick={() => addExerciseToRoutine(ex)} onMouseEnter={e => e.currentTarget.style.background = '#121212'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                                     <div style={{display:'flex', alignItems:'center', gap:'20px'}}>
                                         <div style={{width:'60px', height:'60px', borderRadius:'10px', background:'#222', border:'1px solid #333', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', flexShrink: 0}}>
-                                            <ExerciseImage
+                                            <ExerciseMedia
                                                 exercise={ex}
                                                 style={{width:'100%', height:'100%', objectFit:'cover'}}
                                                 fallbackIconSize={22}
@@ -556,7 +578,7 @@ const EditarRutina = () => {
                                     style={{width: '100%', height: '100%', objectFit: 'cover', background: '#000'}}
                                 />
                             ) : (
-                                <ExerciseImage
+                                <ExerciseMedia
                                     exercise={infoExercise}
                                     style={{width: '100%', height: '100%', objectFit: 'cover'}}
                                     fallbackIconSize={54}

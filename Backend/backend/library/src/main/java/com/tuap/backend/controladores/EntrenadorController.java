@@ -146,11 +146,13 @@ public class EntrenadorController {
             stats.put("hoy", sesionDAO.countEntrenosHoy(entrenadorId));
             stats.put("riesgo", sesionDAO.countClientesInactivos(entrenadorId, LocalDateTime.now().minusDays(7)));
             stats.put("totalClientes", clienteDAO.countByEntrenador_Id(entrenadorId));
+            stats.put("records", 0L);
         } catch (Exception e) {
             
             stats.put("hoy", 0L);
             stats.put("riesgo", 0L);
             stats.put("totalClientes", 0L);
+            stats.put("records", 0L);
         }
         return stats;
     }

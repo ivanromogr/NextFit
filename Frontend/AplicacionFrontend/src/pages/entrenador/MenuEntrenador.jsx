@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
     obtenerClientesEntrenador, 
@@ -27,6 +27,9 @@ export default function MenuEntrenador() {
   const [feed, setFeed] = useState([]); 
   const [stats, setStats] = useState({ hoy: 0, riesgo: 0, records: 0 });
   const [loading, setLoading] = useState(true);
+  const [activityToast, setActivityToast] = useState(null);
+  const latestFeedIdRef = useRef(null);
+  const initialDashboardLoadedRef = useRef(false);
 
   // UI
   const [showAddModal, setShowAddModal] = useState(false);
@@ -41,15 +44,77 @@ export default function MenuEntrenador() {
     cargarDatos();
   }, [entrenadorId, navigate]);
 
+  useEffect(() => {
+    if (!entrenadorId) return undefined;
+
+    const interval = setInterval(() => {
+      cargarActividadDashboard(true);
+    }, 8000);
+
+    const handleFocus = () => cargarActividadDashboard(true);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entrenadorId]);
+
+  const aplicarDashboard = (dataDash, notify = false) => {
+      if (!dataDash) return;
+
+      const nuevoFeed = dataDash.feedActividad || [];
+      const nuevoStats = dataDash.stats || { hoy: 0, riesgo: 0, records: 0 };
+      const ultimaActividad = nuevoFeed[0];
+      const ultimoIdAnterior = latestFeedIdRef.current;
+
+      setFeed(nuevoFeed);
+      setStats({
+          hoy: nuevoStats.hoy || 0,
+          riesgo: nuevoStats.riesgo || 0,
+          records: nuevoStats.records || 0,
+      });
+
+      if (ultimaActividad?.id) {
+          latestFeedIdRef.current = ultimaActividad.id;
+      }
+
+      if (
+          notify &&
+          initialDashboardLoadedRef.current &&
+          ultimaActividad?.id &&
+          ultimoIdAnterior &&
+          ultimaActividad.id !== ultimoIdAnterior
+      ) {
+          setActivityToast({
+              clienteNombre: ultimaActividad.clienteNombre,
+              rutina: ultimaActividad.rutina,
+          });
+          setTimeout(() => setActivityToast(null), 4500);
+      }
+
+      initialDashboardLoadedRef.current = true;
+  };
+
+  const cargarActividadDashboard = async (notify = false) => {
+    try {
+      const dataDash = await obtenerDashboardResumen(entrenadorId);
+      aplicarDashboard(dataDash, notify);
+    } catch (error) {
+      console.error("Error refrescando actividad del entrenador:", error);
+    }
+  };
+
   const cargarDatos = async () => {
     try {
       setLoading(true);
       
       // Cargamos todo en paralelo para que sea súper rápido
       const [dataClientes, dataDash, dataPerfil] = await Promise.all([
-          obtenerClientesEntrenador(entrenadorId).catch(() => []),
-          typeof obtenerDashboardResumen === 'function' ? obtenerDashboardResumen(entrenadorId).catch(() => null) : null,
-          getEntrenador(entrenadorId).catch(() => null)
+          Promise.resolve(obtenerClientesEntrenador(entrenadorId)).catch(() => []),
+          typeof obtenerDashboardResumen === 'function' ? Promise.resolve(obtenerDashboardResumen(entrenadorId)).catch(() => null) : null,
+          Promise.resolve(getEntrenador(entrenadorId)).catch(() => null)
       ]);
 
       // Perfil Entrenador
@@ -62,10 +127,7 @@ export default function MenuEntrenador() {
       setListaClientes(dataClientes || []);
 
       // Stats Dashboard
-      if (dataDash) {
-          setFeed(dataDash.feedActividad || []);
-          setStats(dataDash.stats || { hoy: 0, riesgo: 0, records: 0 });
-      }
+      aplicarDashboard(dataDash, false);
 
     } catch (error) {
       console.error("Error cargando dashboard del entrenador:", error);
@@ -163,10 +225,24 @@ export default function MenuEntrenador() {
     // Modales
     modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: 'blur(5px)', display: "flex", justifyContent: "center", alignItems: "center", zIndex: 100 },
     modalCard: { background: "#09090b", padding: "40px", borderRadius: "24px", border: "1px solid rgba(255,255,255,0.1)", width: "450px", position:"relative", boxShadow: '0 25px 50px rgba(0,0,0,0.5)' },
+    activityToast: { position: 'fixed', top: '28px', right: '32px', zIndex: 10000, background: '#111113', border: '1px solid rgba(250, 204, 21, 0.65)', color: 'white', padding: '16px 20px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '14px', boxShadow: '0 18px 45px rgba(0,0,0,0.55)', maxWidth: '360px' },
   };
 
   return (
     <div style={styles.page}>
+      {activityToast && (
+        <div style={styles.activityToast}>
+          <div style={{...styles.feedIcon, width: '38px', height: '38px'}}>
+            <CheckCircle2 size={20} />
+          </div>
+          <div>
+            <div style={{fontWeight: 900, fontSize: '0.95rem'}}>Nueva actividad</div>
+            <div style={{color: 'rgba(255,255,255,0.65)', fontSize: '0.85rem', marginTop: '4px'}}>
+              {activityToast.clienteNombre} completó {activityToast.rutina}
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* 1. HEADER CON PERFIL (Identidad visual) */}
       <div style={styles.headerRow}>
