@@ -2,13 +2,13 @@
 const axios = require("axios");
 
 const CONFIG = {
-  baseUrl: "http://localhost:8080",
+  baseUrl: (process.env.NEXTFIT_API_BASE_URL || "http://localhost:8080").replace(/\/$/, ""),
   frecuenciaEnvioMs: 5000,
   tipoSensor: "GARMIN_FORERUNNER_965",
 
   usuarioSimulado: {
-    username: "cliente1@gmail.com",
-    password: "123456",
+    username: process.env.NEXTFIT_SIMULATOR_USERNAME || "",
+    password: process.env.NEXTFIT_SIMULATOR_PASSWORD || "",
   },
 
  

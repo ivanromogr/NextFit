@@ -1,30 +1,22 @@
 /**
- * 🌍 CONFIGURACIÓN POR AMBIENTE
  * 
  * - DESARROLLO: Apunta a la máquina local
  * - PRODUCCIÓN: Apunta al servidor desplegado
  */
 
-const DEFAULT_BASE_URL = 'https://nextfit-pa8i.onrender.com';
-const envBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || DEFAULT_BASE_URL;
+const envBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+
+if (!envBaseUrl) {
+  throw new Error('EXPO_PUBLIC_API_BASE_URL debe definirse para iniciar NextFit móvil.');
+}
+
 const normalizedBaseUrl = envBaseUrl.replace(/\/$/, '');
 
-const ENVIRONMENTS = {
-  development: {
-    BASE_URL: normalizedBaseUrl,
-    API_URL: `${normalizedBaseUrl}/api`,
-    NAME: 'DEVELOPMENT',
-  },
-  production: {
-    BASE_URL: normalizedBaseUrl,
-    API_URL: `${normalizedBaseUrl}/api`,
-    NAME: 'PRODUCTION',
-  },
+const currentEnvironment = {
+  BASE_URL: normalizedBaseUrl,
+  API_URL: `${normalizedBaseUrl}/api`,
+  NAME: __DEV__ ? 'DEVELOPMENT' : 'PRODUCTION',
 };
-
-const currentEnvironment = __DEV__
-  ? ENVIRONMENTS.development
-  : ENVIRONMENTS.production;
 
 const WS_URL = currentEnvironment.BASE_URL
   .replace(/^https/, 'wss')

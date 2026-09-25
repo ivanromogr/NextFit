@@ -1,19 +1,20 @@
-const RENDER_BASE_URL = "https://nextfit-pa8i.onrender.com";
 const envApiUrl = import.meta.env.VITE_API_URL?.trim();
 const envWsUrl = import.meta.env.VITE_WS_URL?.trim();
-const isLocalUrl = (url) => url && /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.)/.test(url);
 const trimTrailingSlash = (url) => url.replace(/\/+$/, "");
+const localDevUrl = typeof window === "undefined" ? "http://localhost:5173" : window.location.origin;
 
-export const API_BASE_URL =
-  trimTrailingSlash(
-    import.meta.env.PROD && isLocalUrl(envApiUrl)
-      ? RENDER_BASE_URL
-      : envApiUrl || RENDER_BASE_URL
-  );
+const requireProductionUrl = (value, variableName) => {
+  if (!value && import.meta.env.PROD) {
+    throw new Error(`${variableName} debe definirse para una build de producción.`);
+  }
+  return value;
+};
 
-const wsEnvUrl = import.meta.env.PROD && isLocalUrl(envWsUrl)
-    ? RENDER_BASE_URL
-    : envWsUrl || API_BASE_URL;
+export const API_BASE_URL = trimTrailingSlash(
+  requireProductionUrl(envApiUrl, "VITE_API_URL") || localDevUrl
+);
+
+const wsEnvUrl = requireProductionUrl(envWsUrl, "VITE_WS_URL") || API_BASE_URL;
 
 const WS_BASE_URL = (() => {
     const url = new URL(wsEnvUrl);
