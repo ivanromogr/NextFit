@@ -5,14 +5,20 @@ node_modules/
 
 # Expo
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
+coverage/
+build/
+tmp/
+temp/
 
 # Native
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
@@ -31,11 +37,26 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.*
+!.env.example
 .env*.local
 
 # typescript
 *.tsbuildinfo
 
 # generated native folders
-/ios
-/android
+android/.gradle/
+android/app/build/
+ios/build/
+DerivedData/
+
+# Firebase and service-account credentials
+GoogleService-Info.plist
+google-services.json
+service-account*.json
+
+# Temporary editor files
+*.swp
+*.swo
+*.tmp

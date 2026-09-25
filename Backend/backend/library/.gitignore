@@ -31,3 +31,22 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local environment variables
+.env
+
+# Local Spring profiles and secrets (keep example templates versioned)
+application-local.properties
+application-prod.properties
+application-production.properties
+application-secret.properties
+application-secrets.properties
+!application-local.example.properties
+!application-prod.example.properties
+
+# JVM and Spring build artifacts
+*.class
+*.jar
+*.war
+*.pid
+*.hprof

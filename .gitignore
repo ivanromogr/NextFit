@@ -23,3 +23,45 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Local environment files and private backups
+.env
+.env.*
+!.env.example
+nextfit-backup-pre-production/
+*backup-pre-production*/
+
+# Generated artifacts, logs and temporary files
+logs/
+coverage/
+dist/
+build/
+tmp/
+temp/
+.vite/
+*.pid
+*.hprof
+*.swp
+*.swo
+*.tmp
+
+# Operating system and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Mobile signing credentials and service accounts
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+*.pem
+GoogleService-Info.plist
+google-services.json
+service-account*.json
+
+# Exercise videos are stored externally (Cloudinary), not in Git
+/imagenes_ejercicios nombrados/
