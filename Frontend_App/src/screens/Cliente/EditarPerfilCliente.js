@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-// 👇 AQUÍ ESTÁ LA CORRECCIÓN: Hemos añadido getImageUrl a la importación
 import { getCliente, actualizarCliente, subirArchivoAdjunto, getImageUrl } from '../../api/endpoints'; 
 import { useAuth } from '../../components/context/AuthContext';
 import { User, Save, ChevronLeft, Camera, Mail, Lock, LogOut } from 'lucide-react-native';
@@ -141,7 +140,6 @@ export default function PerfilScreen() {
         // 1. Subimos al servidor y recibimos la respuesta
         const respuestaBackend = await subirArchivoAdjunto(formData);
         
-        // 2. Extraemos la ruta (dependiendo de si tu backend devuelve un String o un JSON)
         const rutaRelativa = typeof respuestaBackend === 'string' ? respuestaBackend : respuestaBackend.url || respuestaBackend.fileUrl;
 
         // 3. Usamos el Helper global para construir la URL completa

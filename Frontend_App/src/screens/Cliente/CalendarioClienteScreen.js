@@ -21,7 +21,7 @@ import {
   programarRutina, 
   eliminarEventoCalendario, 
   obtenerRutinasCliente, 
-  obtenerRutinasAsignadasPorEntrenador, // ✅ AHORA SÍ IMPORTADA
+  obtenerRutinasAsignadasPorEntrenador,
   toggleCompletadoEvento 
 } from '../../api/endpoints';
 
@@ -90,7 +90,6 @@ export default function CalendarioClienteScreen({ route }) {
     }
   };
 
-  // ✅ EL BACKEND YA NOS DA LAS RUTINAS CORRECTAS, ASÍ QUE NO FILTRAMOS A MANO
   const rutinasDisponibles = rutinas;
 
   const getMarkedDates = () => {
@@ -161,7 +160,6 @@ export default function CalendarioClienteScreen({ route }) {
     try {
       const fechaFormateada = format(new Date(selectedDate), 'yyyy-MM-dd');
       
-      // ✅ Pasamos el userId (que es tu ID de entrenador) si estamos en modo Coach
       const idEntrenador = isCoachMode ? userId : undefined;
       
       await programarRutina(clienteId, rutinaId, fechaFormateada, idEntrenador);

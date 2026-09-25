@@ -125,7 +125,6 @@ export default function AgendaEntrenadorScreen() {
             
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 
-                {/* HEADER PREMIUM */}
                 <View style={styles.header}>
                     <View>
                         <Text style={styles.headerTitle}>AGENDA GLOBAL</Text>

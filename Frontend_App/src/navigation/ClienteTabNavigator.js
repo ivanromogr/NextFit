@@ -9,7 +9,6 @@ import {
     Settings
 } from 'lucide-react-native';
 
-// ✅ Importamos las pantallas reales
 import DashboardClienteScreen from '../screens/DashboardScreen';
 import CalendarioClienteScreen from '../screens/Cliente/CalendarioClienteScreen';
 import PerfilScreen from '../screens/Cliente/EditarPerfilCliente';
@@ -62,7 +61,6 @@ export default function ClienteTabNavigator() {
                 }}
             />
 
-            {/* ✅ Ahora apuntará al archivo correcto en la carpeta Entrenador */}
             <Tab.Screen
                 name="Entrenadores"
                 component={ExplorarEntrenadores}

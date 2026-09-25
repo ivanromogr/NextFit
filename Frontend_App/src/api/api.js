@@ -2,7 +2,6 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, BASE_URL } from '../config/environment';
 
-// 🌍 Usar URL según el ambiente (dev o prod)
 console.log('[API CONFIG] 🔧 Conectando a:', API_URL);
 
 export const api = axios.create({
@@ -27,7 +26,6 @@ const getStoredToken = async () => {
     }
 };
 
-// ✅ LA BARRERA DE SEGURIDAD (Interceptor)
 // Antes de que cualquier petición salga de la app, hacemos esto:
 api.interceptors.request.use(
     async (config) => {

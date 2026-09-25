@@ -12,7 +12,7 @@ import {
     ActivityIndicator,
     Image,
     Keyboard,
-    Modal // ✅ AÑADIMOS MODAL PARA LA PANTALLA COMPLETA
+    Modal
 } from 'react-native';
 import { Send, Paperclip, CheckCheck, X, Image as ImageIcon, Smile, Film } from 'lucide-react-native';
 import { Client } from '@stomp/stompjs';
@@ -37,7 +37,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const [archivoAdjunto, setArchivoAdjunto] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     
-    // ✅ ESTADO PARA CONTROLAR LA IMAGEN A PANTALLA COMPLETA
     const [imagenSeleccionada, setImagenSeleccionada] = useState(null);
     
     const clientRef = useRef(null);
@@ -227,7 +226,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     item.archivoUrl && { paddingHorizontal: 6, paddingVertical: 6 } 
                 ]}>
                     
-                    {/* ✅ IMAGEN RENDERIZADA Y CON BOTÓN PARA AMPLIAR */}
                     {item.archivoUrl && (
                         item.tipoArchivo === 'VIDEO' ? (
                             <Video
@@ -358,7 +356,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 }}
             />
 
-            {/* ✅ MODAL PARA VER LA IMAGEN EN PANTALLA COMPLETA */}
             <Modal visible={!!imagenSeleccionada} transparent={true} animationType="fade">
                 <View style={styles.fullScreenModal}>
                     <TouchableOpacity 
@@ -420,7 +417,6 @@ const styles = StyleSheet.create({
     sendBtn: { backgroundColor: '#FACC15', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
     sendBtnDisabled: { backgroundColor: '#27272a', opacity: 0.6 },
 
-    // ✅ ESTILOS PARA LA PANTALLA COMPLETA
     fullScreenModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
     closeModalBtn: { position: 'absolute', top: Platform.OS === 'ios' ? 60 : 40, right: 20, zIndex: 10, padding: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20 },
     fullScreenImage: { width: '100%', height: '100%' }

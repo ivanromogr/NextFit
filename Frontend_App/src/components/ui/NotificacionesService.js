@@ -40,7 +40,7 @@ export const programarAvisoEntrenoHoy = async (nombreRutina) => {
       sound: true,
     },
     trigger: { 
-      seconds: 5 // 👈 Cambia esto más adelante a un horario real
+      seconds: 5
     },
   });
 };

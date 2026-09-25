@@ -12,7 +12,6 @@ import {
   MessageSquare, Dumbbell, Activity, Trophy, Youtube, Image as ImageIcon, Eye
 } from 'lucide-react-native';
 
-// 🔥 IMPORTAMOS obtenerRutinasAsignadasPorEntrenador PARA QUE NO DE ERROR
 import { 
   obtenerRutinasCliente, 
   guardarSesionRealizada, 

@@ -4,14 +4,11 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BASE_URL } from '../config/environment';
 
-// ✅ Exportamos 'api' para uso global (Chat, WebSocket, etc.)
 export { api };
 
-// 🌍 BASE_URL se ajusta automáticamente según el ambiente (dev o prod)
 console.log('[ENDPOINTS CONFIG] 🔧 BASE_URL =', BASE_URL);
 
 // ==========================================
-// 💡 HELPER PROFESIONAL DE IMÁGENES
 // ==========================================
 export const getImageUrl = (path) => {
   if (!path) return null;
@@ -122,7 +119,6 @@ export const obtenerEjercicios = async () => {
       errorData: error.response?.data,
     });
     
-    // ⚠️ DEBUG: Mostrar detalles del error
     throw error;
   }
 };
@@ -152,7 +148,6 @@ export const guardarRutinaManual = (payload) => api.post("/rutinas/manual", payl
 export const eliminarRutina = (id) => api.delete(`/rutinas/${id}`);
 export const actualizarRutina = (id, payload) => api.put(`/rutinas/${id}`, payload);
 
-// ✅ AÑADIDO: Rutinas filtradas por el entrenador (Para el calendario)
 export const obtenerRutinasAsignadasPorEntrenador = async (idCliente, entrenadorId) => {
   try {
       const response = await api.get(`/rutinas/cliente/${idCliente}/entrenador`, {

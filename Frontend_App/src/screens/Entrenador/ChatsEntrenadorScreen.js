@@ -22,7 +22,7 @@ export default function ChatsEntrenadorScreen() {
     
     // Estados de las listas
     const [clientes, setClientes] = useState([]);
-    const [contactosExtras, setContactosExtras] = useState([]); // Contactos añadidos a mano
+    const [contactosExtras, setContactosExtras] = useState([]);
     const [busqueda, setBusqueda] = useState('');
     const [loading, setLoading] = useState(true);
     const [unreadUsers, setUnreadUsers] = useState(new Set());

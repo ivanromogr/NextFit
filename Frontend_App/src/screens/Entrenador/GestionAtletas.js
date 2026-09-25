@@ -3,7 +3,6 @@ import {
     View, Text, StyleSheet, FlatList, TouchableOpacity, Image, 
     TextInput, SafeAreaView, Modal, Alert, ActivityIndicator 
 } from 'react-native';
-// ✅ Añadimos Users y Mail para el estado vacío y el modal
 import { Search, User, ChevronRight, MessageCircle, UserMinus, X, AlertTriangle, Users, Mail, Plus } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { obtenerClientesEntrenador, desvincularAtleta, ficharCliente } from '../../api/endpoints';
@@ -132,7 +131,6 @@ export default function GestionAtletas() {
                 <ActivityIndicator size="large" color="#FACC15" style={{ marginTop: 50 }} />
             ) : clientesFiltrados.length === 0 ? (
                 
-                // ✅ ESTADO VACÍO (EMPTY STATE)
                 <View style={styles.emptyContainer}>
                     <View style={styles.emptyIconBox}>
                         <Users size={50} color="#1a1a1a" />
@@ -209,7 +207,6 @@ const styles = StyleSheet.create({
     searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0c0c0e', paddingHorizontal: 15, borderRadius: 15, height: 50, borderWidth: 1, borderColor: '#1a1a1c' },
     searchInput: { flex: 1, color: 'white', fontSize: 16 },
     
-    // ✅ ESTILOS ESTADO VACÍO
     emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
     emptyIconBox: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#0c0c0e', justifyContent: 'center', alignItems: 'center', marginBottom: 20, borderWidth: 1, borderColor: '#1a1a1c' },
     emptyTitle: { color: 'white', fontSize: 20, fontWeight: '900', marginBottom: 10, textTransform: 'uppercase' },

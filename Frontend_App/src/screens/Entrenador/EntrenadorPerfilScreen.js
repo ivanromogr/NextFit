@@ -18,12 +18,10 @@ const { width } = Dimensions.get('window');
 export default function EntrenadorPerfilScreen() {
     const navigation = useNavigation();
     const route = useRoute();
-    const { user, logout } = useAuth(); // ✅ Añadimos logout
+    const { user, logout } = useAuth();
 
-    // 💡 LA MAGIA: ¿Qué ID cargamos? Si viene por params lo usamos, si no, usamos el del usuario logueado.
     const targetId = route.params?.id || user?.id;
 
-    // 💡 LA CONDICIÓN: ¿Es el propio entrenador viendo su perfil?
     const isOwner = user?.role === 'ENTRENADOR' && targetId === user?.id;
 
     const [entrenador, setEntrenador] = useState(null);
@@ -35,7 +33,6 @@ export default function EntrenadorPerfilScreen() {
     const [comentario, setComentario] = useState("");
     const [enviando, setEnviando] = useState(false);
 
-    // ✅ Usamos useFocusEffect para que los datos se recarguen si vuelves de "Editar Perfil"
     useFocusEffect(
         useCallback(() => {
             if (targetId) cargarTodo();
@@ -386,7 +383,6 @@ const styles = StyleSheet.create({
     statLabel: { color: '#a1a1aa', fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginTop: 2 },
     statDivider: { width: 1, backgroundColor: '#1f1f22', height: '60%', alignSelf: 'center' },
 
-    // ✅ Botones Dueño
     actionButtonsContainer: { flexDirection: 'row', gap: 12, marginBottom: 35 },
     editButton: { flex: 1, backgroundColor: '#FACC15', paddingVertical: 14, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
     editButtonText: { color: '#000', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },

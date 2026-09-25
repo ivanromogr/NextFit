@@ -16,7 +16,6 @@ export default function GymButton({
   variant = 'primary',
   style,
 }) {
-  // ✅ Convertimos a Booleano puro usando la clase Boolean
   const isLoading = Boolean(loading);
   const isDisabled = Boolean(disabled) || isLoading;
   const isSecondary = variant === 'secondary';
@@ -40,7 +39,7 @@ export default function GymButton({
       activeOpacity={0.8}
       style={[
         styles.baseButton,
-        fullWidth ? { width: '100%' } : null, // ✅ NUNCA uses && aquí en iOS
+        fullWidth ? { width: '100%' } : null,
         getButtonStyle(),
         style ? style : null,
       ]}

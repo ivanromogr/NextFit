@@ -3,20 +3,10 @@ import { renderHook, act } from '@testing-library/react-native';
 import { AuthProvider, useAuth } from '../../components/context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 1. MOCK DE ASYNC STORAGE
-// Es vital porque en los tests no hay un móvil real donde guardar datos
-vi.mock('@react-native-async-storage/async-storage', () => ({
-  default: {
-    getItem: vi.fn(),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-  },
-}));
-
 describe('AuthContext (Mobile)', () => {
   
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   // Wrapper para poder usar useAuth en los tests

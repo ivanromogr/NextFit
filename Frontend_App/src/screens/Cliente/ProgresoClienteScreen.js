@@ -16,7 +16,6 @@ import { useAuth } from '../../components/context/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-// ✅ IMPORTAMOS LAS GRÁFICAS
 import { LineChart, BarChart } from 'react-native-gifted-charts';
 
 // Funciones de tu API
@@ -52,7 +51,6 @@ export default function ProgresoClienteScreen() {
   const [pr, setPr] = useState(0);
   const [prs, setPrs] = useState([]); 
   
-  // ✅ ESTADO PARA EL TOGGLE DE CONSISTENCIA
   const [vistaConsistencia, setVistaConsistencia] = useState('dias');
 
   const [loading, setLoading] = useState(true);
@@ -245,7 +243,6 @@ export default function ProgresoClienteScreen() {
         </View>
 
         <View style={styles.chartCard}>
-          {/* ✅ CONTENEDOR CON MARGEN PARA QUE NO SE CORTE EL "LUN" */}
           <View style={{ marginLeft: 5 }}>
             <BarChart
               data={
@@ -253,7 +250,6 @@ export default function ProgresoClienteScreen() {
                   let dataFinal = [];
 
                   if (vistaConsistencia === 'dias') {
-                    // ✅ VISTA DÍAS: 7 píldoras estáticas
                     dataFinal = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'].map(dia => ({
                       label: dia,
                       value: 1, 
@@ -302,7 +298,6 @@ export default function ProgresoClienteScreen() {
                     });
 
                   } else {
-                    // ✅ VISTA SEMANAS: Plantilla de 4 semanas con contexto brutal
                     const etiquetasSemanas = ['Sem -3', 'Sem -2', 'Pasada', 'Actual'];
                     
                     dataFinal = etiquetasSemanas.map(label => ({
@@ -546,7 +541,6 @@ const styles = StyleSheet.create({
 
   chartCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 25, paddingBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 20, overflow: 'hidden' },
   
-  // ✅ NUEVO: Estilo para la leyenda de contexto
   legendText: { color: 'rgba(255,255,255,0.4)', fontSize: 11, textAlign: 'center', marginTop: 15, fontStyle: 'italic' },
 
   chartRecord: { color: 'white', fontSize: 16, fontWeight: '800', marginBottom: 25 },

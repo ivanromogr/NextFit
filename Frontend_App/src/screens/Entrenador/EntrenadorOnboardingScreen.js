@@ -241,7 +241,6 @@ export default function EntrenadorOnboardingScreen() {
         style={styles.flexContainer} 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* ✅ CABECERA FIJA (Edge-to-Edge) */}
         <View style={styles.headerContainer}>
           <View style={styles.topRow}>
             <TouchableOpacity 
@@ -263,7 +262,6 @@ export default function EntrenadorOnboardingScreen() {
           </View>
         </View>
 
-        {/* ✅ CONTENIDO SCROLLABLE */}
         <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           
           <View style={styles.titleContainer}>
@@ -358,7 +356,6 @@ export default function EntrenadorOnboardingScreen() {
             )}
           </View>
           
-          {/* ✅ Footer dinámico que respeta el teclado */}
           <View style={styles.footerContainer}>
             <GymButton fullWidth disabled={!isStepValid() || loading} onPress={handleNext}>
               {loading ? "GUARDANDO..." : (stepIndex === totalSteps - 1 ? "FINALIZAR ALTA" : "SIGUIENTE")}
@@ -400,7 +397,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#09090b' },
   flexContainer: { flex: 1 },
   
-  // ✅ CABECERA EDGE-TO-EDGE
   headerContainer: {
     width: '100%',
     paddingTop: Platform.OS === 'android' ? 20 : 10,
@@ -426,7 +422,6 @@ const styles = StyleSheet.create({
   stepPill: { backgroundColor: 'rgba(250,204,21,0.1)', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
   stepPillText: { color: '#FACC15', fontWeight: '900', fontSize: 12 },
   
-  // ✅ CONTENIDO SCROLL
   scrollContainer: { 
     flexGrow: 1, 
     justifyContent: 'flex-start', 

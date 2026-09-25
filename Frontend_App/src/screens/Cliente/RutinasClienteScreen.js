@@ -73,7 +73,6 @@ export default function RutinasClienteScreen() {
   const rutinasPropiasNoIA = rutinas.filter(r => r.creador !== 'ENTRENADOR' && r.creador !== 'IA');
   const rutinasIA = rutinas.filter(r => r.creador === 'IA');
 
-  // 2. Agrupamos las de IA
   const iaPlanGroups = useMemo(() => {
     const map = new Map();
     for (const r of rutinasIA) {
@@ -98,13 +97,11 @@ export default function RutinasClienteScreen() {
   // 3. Montamos la lista final a mostrar según el filtro
   const dataAMostrar = useMemo(() => {
     if (filtroActivo === 'asignadas') return rutinasAsignadas;
-    // Si son propias, juntamos los Grupos IA y las rutinas sueltas
     return [...iaPlanGroups, ...rutinasPropiasNoIA];
   }, [filtroActivo, rutinasAsignadas, rutinasPropiasNoIA, iaPlanGroups]);
 
 
   // ==========================================
-  // 🎨 RENDERIZADO (TARJETA RUTINA NORMAL)
   // ==========================================
   const renderRutinaIndividual = (item, isInsideFolder = false) => (
     <View key={item.id} style={[styles.card, isInsideFolder && styles.cardInsideFolder]}>
@@ -160,11 +157,9 @@ export default function RutinasClienteScreen() {
   );
 
   // ==========================================
-  // 📁 RENDERIZADO (TARJETA PLAN IA / GRUPO)
   // ==========================================
   const renderItem = ({ item }) => {
     
-    // Si es un grupo IA (Carpeta)
     if (item.isFolder) {
       const isExpanded = carpetasExpandidas[item.key];
       const daysCount = item.items.length;
@@ -181,7 +176,6 @@ export default function RutinasClienteScreen() {
             activeOpacity={0.8}
             onPress={() => toggleCarpeta(item.key)}
           >
-            {/* Cabecera Tarjeta IA */}
             <View style={styles.iaTopRow}>
               <View style={styles.iaPill}>
                 <Sparkles size={14} color="#FACC15" />
@@ -328,7 +322,6 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 20, paddingBottom: 100 },
 
   // ==========================
-  // TARJETA PLAN IA (IDÉNTICA A LA WEB)
   // ==========================
   iaContainer: { marginBottom: 20 },
   iaCard: { backgroundColor: '#0a0a0a', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: 'rgba(250, 204, 21, 0.3)', overflow: 'hidden' },

@@ -14,7 +14,6 @@ import EntrenadorOnboardingScreen from './src/screens/Entrenador/EntrenadorOnboa
 
 // Navegación Principal y Perfiles
 import ClienteTabNavigator from './src/navigation/ClienteTabNavigator';
-// ✅ IMPORTAMOS EL NUEVO MENÚ DE ENTRENADOR
 import EntrenadorTabNavigator from './src/navigation/EntrenadorTabNavigator'; 
 import GestionarAtletaScreen from './src/screens/Entrenador/GestionarAtletaScreen';
 import EditarPerfilCliente from './src/screens/Cliente/EditarPerfilCliente'; 
@@ -32,7 +31,6 @@ import GestionAtletas from './src/screens/Entrenador/GestionAtletas';
 const Stack = createStackNavigator();
 
 function RootNavigation() {
-  // ✅ EXTRAEMOS EL 'user' PARA PODER LEER SU ROL
   const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {

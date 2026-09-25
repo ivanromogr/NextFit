@@ -38,7 +38,6 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      // ✅ 1. LA MAGIA: Limpiamos los malditos espacios y mayúsculas del teclado móvil
       const cleanEmail = email.trim().toLowerCase();
 
       const loginData = {
@@ -77,7 +76,6 @@ export default function LoginScreen() {
         }
       }
     } catch (err) {
-      // ✅ 2. Atrapamos la redirección 404 y la traducimos para el usuario
       if (err.response?.status === 404 || err.response?.status === 401) {
         Alert.alert(
           'Acceso denegado', 

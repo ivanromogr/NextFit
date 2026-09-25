@@ -14,7 +14,6 @@ export default function GymInput({
 }) {
   const [isFocused, setIsFocused] = useState(false);
 
-  // ✅ Blindaje total: nos aseguramos de que sea true o false
   const isSecure = Boolean(secureTextEntry);
 
   return (
@@ -23,7 +22,7 @@ export default function GymInput({
 
       <View style={[
         styles.inputWrapper,
-        isFocused ? styles.inputWrapperFocused : null // ✅ Cambiado && por ternario
+        isFocused ? styles.inputWrapperFocused : null
       ]}>
         {Icon ? (
           <View style={styles.iconContainer}>
@@ -36,7 +35,7 @@ export default function GymInput({
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor="rgba(255,255,255,0.3)"
-          secureTextEntry={isSecure} // ✅ Valor Booleano estricto
+          secureTextEntry={isSecure}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           onFocus={() => setIsFocused(true)}

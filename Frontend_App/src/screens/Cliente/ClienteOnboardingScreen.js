@@ -32,7 +32,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 const STEPS = ["genero", "fechaNacimiento", "altura", "peso", "objetivo"];
 
-// ✅ COMPONENTE DUAL: Soporta Grid (Cuadrados) y Row (Filas enteras)
 const GymSelectionCard = ({ title, icon: Icon, selected, onPress, variant = "row" }) => {
   const isGrid = variant === "grid";
 
@@ -216,7 +215,6 @@ export default function ClienteOnboardingScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         
-        {/* ✅ CABECERA FIJA (Edge-to-Edge) */}
         <View style={styles.headerContainer}>
           <View style={styles.topRow}>
             <TouchableOpacity 
@@ -238,7 +236,6 @@ export default function ClienteOnboardingScreen() {
           </View>
         </View>
 
-        {/* ✅ CONTENIDO SCROLLABLE */}
         <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           
           <View style={styles.titleContainer}>
@@ -312,7 +309,6 @@ export default function ClienteOnboardingScreen() {
 
           </View>
 
-          {/* ✅ FOOTER DINÁMICO */}
           <View style={styles.footerContainer}>
             <GymButton fullWidth disabled={!isStepValid || loading} onPress={handleNext}>
               {loading ? "GUARDANDO..." : (stepIndex === totalSteps - 1 ? "FINALIZAR REGISTRO" : "CONTINUAR")}

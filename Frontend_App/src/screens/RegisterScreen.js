@@ -14,7 +14,6 @@ import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock, ArrowRight, Trophy, Dumbbell } from 'lucide-react-native'; 
 import { api } from '../api/api';
 
-// ✅ IMPORTAMOS ASYNCSTORAGE PARA BLINDAR EL ID
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Componentes UI reutilizables
@@ -69,7 +68,6 @@ export default function RegisterScreen() {
 
       if (resp.status >= 200 && resp.status < 300) {
         
-        // ✅ AHORA SÍ: Usamos exactamente la misma lógica que en tu React Web
         const dataBackend = resp.data || {};
         const nuevoUserId = (form.rol === "CLIENTE")
           ? (dataBackend.clienteId || dataBackend.idCliente || dataBackend.id)

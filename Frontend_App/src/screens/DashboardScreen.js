@@ -17,7 +17,7 @@ import {
   Dumbbell, Activity, Plus, Play, CheckCircle, Flame, User, Bell, BarChart2, Target, X, Trophy, Info
 } from 'lucide-react-native';
 
-import { obtenerResumenDashboard } from '../api/endpoints'; 
+import { getCliente, getImageUrl, obtenerResumenDashboard } from '../api/endpoints'; 
 import { useAuth } from '../components/context/AuthContext';
 
 const { width } = Dimensions.get('window');
@@ -38,11 +38,23 @@ export default function DashboardClienteScreen() {
     const cargarDatos = async () => {
       if (!userId) return;
       try {
-        const resumenData = await obtenerResumenDashboard(userId);
+        const [resumenResult, clienteResult] = await Promise.allSettled([
+          obtenerResumenDashboard(userId),
+          getCliente(userId),
+        ]);
+        const resumenData = resumenResult.status === 'fulfilled' ? resumenResult.value : null;
+        const clienteData = clienteResult.status === 'fulfilled' ? clienteResult.value : null;
 
         if (resumenData) {
           setResumen(resumenData);
-          generarNotificacionesReales(resumenData); // 👈 Generamos las notificaciones basadas en datos reales
+          generarNotificacionesReales(resumenData);
+        }
+
+        if (clienteData) {
+          setPerfil({
+            nombre: clienteData.nombre || 'Atleta',
+            fotoPerfil: getImageUrl(clienteData.fotoPerfil || clienteData.avatarUrl || clienteData.imagenUrl),
+          });
         }
       } catch (error) {
         console.error("Error cargando datos del dashboard:", error);
@@ -54,7 +66,6 @@ export default function DashboardClienteScreen() {
   }, [userId]);
 
   // ==========================================
-  // 🎯 GENERADOR DINÁMICO DE NOTIFICACIONES
   // ==========================================
   const generarNotificacionesReales = (data) => {
     const nuevasNotis = [];
@@ -124,6 +135,8 @@ export default function DashboardClienteScreen() {
     ? Math.min((resumen.entrenosHechos / resumen.entrenosObjetivo) * 100, 100) 
     : 0;
 
+  const nombreUsuario = perfil.nombre?.trim()?.split(' ')[0] || 'Atleta';
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -139,12 +152,11 @@ export default function DashboardClienteScreen() {
         {/* 1. HEADER */}
         <View style={styles.headerRow}>
           <View style={styles.greetingBox}>
-            <Text style={styles.title}>Hola, <Text style={{color: '#FACC15'}}>{perfil.nombre.split(' ')[0]}</Text> 👋</Text>
+            <Text style={styles.title}>Hola, <Text style={{color: '#FACC15'}}>{nombreUsuario}</Text> 👋</Text>
             <Text style={styles.subtitle}>Aquí tienes tu resumen de hoy.</Text>
           </View>
           
           <View style={styles.profileSection}>
-            {/* BOTÓN CAMPANA RECONSTRUIDO */}
             <TouchableOpacity style={styles.bellBox} onPress={abrirNotificaciones}>
               <Bell size={20} color="white" />
               {/* EL PUNTO ROJO SOLO SALE SI HAY NOTIS SIN LEER */}

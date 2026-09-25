@@ -12,7 +12,7 @@ import {
 // Tus endpoints
 import { 
     getCliente, 
-    obtenerRutinasAsignadasPorEntrenador, // ✅ Cambiado para ver solo lo del coach
+    obtenerRutinasAsignadasPorEntrenador,
     eliminarRutina, 
     obtenerPlantillasEntrenador, 
     clonarPlantilla 
@@ -51,7 +51,6 @@ export default function GestionarAtletaScreen() {
             const dataCliente = await getCliente(clienteId);
             setCliente(dataCliente);
 
-            // ✅ LÓGICA FILTRADA: Solo pedimos las rutinas que este coach ha creado para el atleta
             const dataRutinas = await obtenerRutinasAsignadasPorEntrenador(clienteId, entrenadorId).catch(() => []);
             
             setRutinas(dataRutinas);

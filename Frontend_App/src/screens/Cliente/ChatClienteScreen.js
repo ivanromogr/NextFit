@@ -6,7 +6,6 @@ import {
 } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// ✅ Importamos las funciones limpias en lugar del objeto "api"
 import { getCliente, obtenerContactosChat, buscarUsuarioPorEmail } from "../../api/endpoints"; 
 import { useAuth } from "../../components/context/AuthContext";
 import ChatComponent from "../../components/functional/ChatComponent";
@@ -75,13 +74,11 @@ export default function ChatClienteScreen() {
     const cargarContactosBase = async () => {
         try {
             setLoading(true);
-            // ✅ Usamos getCliente
             const dataCliente = await getCliente(clienteId); 
             if (dataCliente && dataCliente.entrenador) {
                 setEntrenador(dataCliente.entrenador);
             }
 
-            // ✅ Usamos la nueva función
             const datosContactos = await obtenerContactosChat(clienteId);
             if (datosContactos) {
                 const nuevosDelBackend = datosContactos.filter(c => c.id !== clienteId);
@@ -103,7 +100,6 @@ export default function ChatClienteScreen() {
         if(!emailBuscado.trim()) return;
         setBuscandoEmail(true);
         try {
-            // ✅ Usamos la nueva función
             const dataUsuario = await buscarUsuarioPorEmail(emailBuscado);
             if(dataUsuario) {
                 setUsuarioEncontrado(dataUsuario);

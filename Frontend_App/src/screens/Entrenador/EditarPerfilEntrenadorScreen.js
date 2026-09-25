@@ -273,7 +273,6 @@ export default function EditarPerfilEntrenadorScreen() {
 
                     <View style={styles.divider} />
 
-                    {/* PERFIL PROFESIONAL */}
                     <View style={styles.sectionHeader}>
                         <Briefcase size={18} color="#FACC15" />
                         <Text style={styles.sectionTitle}>Perfil Profesional</Text>

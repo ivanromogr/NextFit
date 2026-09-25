@@ -7,10 +7,9 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { 
     User, Plus, X, Mail, Activity, ChevronRight, CheckCircle2, 
     AlertTriangle, Zap, Check, MessageCircle, TrendingUp, Bell, Copy, LogOut,
-    Users // ✅ Añadido para el icono de la tarjeta
+    Users
 } from 'lucide-react-native';
 
-// ✅ IMPORTACIÓN PARA LIMPIEZA FÍSICA DE DATOS
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { obtenerClientesEntrenador, ficharCliente, obtenerDashboardResumen, getEntrenador } from '../../api/endpoints';
@@ -19,7 +18,6 @@ import { useAuth } from '../../components/context/AuthContext';
 export default function DashboardEntrenadorScreen() {
     const navigation = useNavigation();
     
-    // ✅ EXTRAEMOS 'logout' DEL CONTEXTO
     const { userId: entrenadorId, logout } = useAuth(); 
     
     const [perfil, setPerfil] = useState({ nombre: 'Coach', fotoPerfil: '' });
@@ -72,7 +70,6 @@ export default function DashboardEntrenadorScreen() {
         }, [entrenadorId])
     );
 
-    // ✅ FUNCIÓN PROFESIONAL DE CIERRE DE SESIÓN
     const handleCerrarSesion = async () => {
         Alert.alert(
             "Cerrar Sesión",
@@ -239,7 +236,6 @@ export default function DashboardEntrenadorScreen() {
                     </View>
                 </View>
 
-                {/* --- 2. BOTÓN NUEVO ATLETA --- */}
                 <TouchableOpacity style={styles.btnPrimary} onPress={() => setShowAddModal(true)}>
                     <Plus size={20} color="#000" />
                     <Text style={styles.btnPrimaryText}>VINCULAR ATLETA</Text>
@@ -283,7 +279,6 @@ export default function DashboardEntrenadorScreen() {
                     <Text style={styles.sectionTitle}>GESTIÓN DE EQUIPO</Text>
                 </View>
 
-                {/* ✅ TARJETA "MIS ATLETAS" (Sustituye a la lista detallada) */}
                 <TouchableOpacity 
                     style={styles.menuNavCard} 
                     onPress={() => navigation.navigate('GestionAtletas')}
@@ -422,7 +417,6 @@ const styles = StyleSheet.create({
     sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
     sectionTitle: { color: 'white', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
 
-    // ✅ ESTILOS PARA LAS TARJETAS DE NAVEGACIÓN (TIPO SIDEBAR)
     menuNavCard: { 
         flexDirection: 'row', 
         alignItems: 'center', 
