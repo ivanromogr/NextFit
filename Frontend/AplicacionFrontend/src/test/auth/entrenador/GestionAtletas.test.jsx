@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import GestionAtletas from '../../../pages/entrenador/GestionAtletas';
@@ -96,12 +96,10 @@ describe('Página GestionAtletas', () => {
         // 1. Esperamos a Juan
         await screen.findByText('Juan Pérez');
 
-        // 2. 🎯 FIX SEGURO: Buscamos el botón por su 'title' directamente.
         // Como hay varios, pillamos el [0] (que corresponde a Juan en el array)
         const unlinkBtns = screen.getAllByTitle('Desvincular Atleta');
         fireEvent.click(unlinkBtns[0]);
 
-        // 3. 🎯 FIX DUPLICADOS: Al abrir el modal, "Juan Pérez" está en la lista Y en el modal.
         // Verificamos que el modal de confirmación está presente primero.
         expect(screen.getByText(/¿DESVINCULAR ATLETA?/i)).toBeInTheDocument();
         

@@ -38,12 +38,11 @@ const EditarPerfilEntrenador = () => {
     genero: '',
     fotoPerfil: '',
     contrasena: '',
-    // 👇 Nuevos campos para el Escaparate
     perfilPublico: false,
     tarifaMensual: ''
   });
 
-  const [originalForm, setOriginalForm] = useState(null);
+  const [, setOriginalForm] = useState(null);
   const [saving, setSaving] = useState(false);
 
   
@@ -377,7 +376,6 @@ const EditarPerfilEntrenador = () => {
       color: 'rgba(255,255,255,0.45)',
       fontSize: '0.9rem'
     },
-    // 👇 Estilos para el nuevo bloque de Escaparate
     escaparateBox: {
       background: 'rgba(250, 204, 21, 0.03)', 
       border: '1px solid rgba(250, 204, 21, 0.2)', 
@@ -562,4 +560,4 @@ const EditarPerfilEntrenador = () => {
   );
 };
 
-export default EditarPerfilEntrenador;  
+export default EditarPerfilEntrenador;

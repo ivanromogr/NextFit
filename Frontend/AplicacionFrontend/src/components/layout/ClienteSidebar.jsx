@@ -11,7 +11,7 @@ import {
   Settings,
   MessageCircle,
   Search,
-  X // 👈 IMPORTAMOS EL ICONO DE CERRAR
+  X
 } from "lucide-react";
 
 export default function ClienteSidebar({ isOpen, onClose }) {
@@ -185,7 +185,6 @@ export default function ClienteSidebar({ isOpen, onClose }) {
           <MessageCircle size={20} /> Mensajes
         </button>
 
-        {/* 👇 NUEVO BOTÓN PARA EL MARKETPLACE */}
         <button
           style={styles.navItem(isBuscador)}
           onClick={() => navigate("/cliente/entrenadores")}

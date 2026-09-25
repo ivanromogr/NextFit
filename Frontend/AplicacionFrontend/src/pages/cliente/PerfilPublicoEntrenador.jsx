@@ -41,7 +41,7 @@ export default function PerfilPublicoEntrenador() {
             setNuevoComentario("");
             const res = await api.get(`/api/entrenador/${id}`);
             setData(res.data);
-        } catch (err) {
+        } catch {
             alert("Error al enviar valoración");
         }
     };
@@ -308,7 +308,6 @@ export default function PerfilPublicoEntrenador() {
                 </div>
             </div>
 
-            {/* MODAL DE RESEÑA PREMIUM */}
             {showModal && (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 

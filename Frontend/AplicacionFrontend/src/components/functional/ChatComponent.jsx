@@ -251,7 +251,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         const textoLimpio = texto.replace(/\s/g, '');
         if (textoLimpio.length === 0 || textoLimpio.length > 15) return false;
         if (/[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ.,!?¿¡]/.test(textoLimpio)) return false;
-        return /[^\x00-\x7F]/.test(textoLimpio);
+        return [...textoLimpio].some((char) => char.codePointAt(0) > 127);
     };
 
     const styles = {

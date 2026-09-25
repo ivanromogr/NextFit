@@ -5,14 +5,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import SesionEntrenamiento from '../../../pages/cliente/SesionEntrenamiento';
 
-// 🎯 FIX 1: Importamos las funciones específicas en lugar de '*'
 import { 
     obtenerRutinasCliente, 
     guardarSesionRealizada, 
     obtenerUltimaSesionRutina 
 } from '../../../api/endpoints';
 
-// 🎯 FIX 2: Definimos el mock devolviendo vi.fn() para cada una
 vi.mock('../../../api/endpoints', () => ({
     obtenerRutinasCliente: vi.fn(),
     guardarSesionRealizada: vi.fn(),
@@ -78,7 +76,6 @@ describe('Página SesionEntrenamiento', () => {
     };
 
     it('carga la rutina y muestra los datos iniciales', async () => {
-        //  FIX 3: Llamamos a los mocks directamente (sin 'endpoints.')
         obtenerRutinasCliente.mockResolvedValue([mockRutina]);
         obtenerUltimaSesionRutina.mockResolvedValue(null);
         
@@ -89,7 +86,6 @@ describe('Página SesionEntrenamiento', () => {
     });
 
    it('incrementa el cronómetro correctamente', async () => {
-        // 🎯 1. Activamos los Fake Timers ANTES de renderizar
         vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
         
         obtenerRutinasCliente.mockResolvedValue([mockRutina]);
@@ -121,7 +117,6 @@ describe('Página SesionEntrenamiento', () => {
 
         await screen.findByText('Torso Explosivo');
 
-        // 🎯 1. Buscamos el volumen específicamente dentro de su contenedor para evitar el "0" de Series
         // Buscamos el texto "VOLUMEN" y subimos al padre
         const volumenContainer = screen.getByText(/VOLUMEN/i).closest('div');
         

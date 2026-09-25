@@ -94,7 +94,7 @@ export default function RutinasDeCliente() {
           // Llama al backend para traer tus plantillas reales
           const misPlantillas = await obtenerPlantillasEntrenador(entrenadorId);
           setPlantillas(misPlantillas || []);
-      } catch (error) {
+        } catch {
           toast.error("Error al cargar tus plantillas");
       }
   };
@@ -108,7 +108,7 @@ export default function RutinasDeCliente() {
           toast.success("¡Plantilla clonada con éxito!");
           setShowPlantillasModal(false);
           cargarDatos(); // Recargar la lista para ver la nueva rutina
-      } catch (error) {
+      } catch {
           toast.error("Hubo un error al clonar la plantilla.");
       } finally {
           setIsImporting(false);

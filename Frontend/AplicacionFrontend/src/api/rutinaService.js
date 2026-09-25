@@ -5,7 +5,6 @@ const API_URL = `${API_BASE_URL}/api`;
 export const RutinaService = {
   
   /**
-   * 1. GENERAR RUTINA CON IA
    */
   async generarRutinaAuto(requestData) {
     try {
@@ -23,7 +22,6 @@ export const RutinaService = {
   },
 
   /**
-   * 2. CREAR RUTINA MANUAL (¡NUEVO!)
    * Envía la rutina diseñada a mano por el usuario.
    */
   async crearRutinaManual(rutinaData) {
@@ -49,7 +47,7 @@ export const RutinaService = {
       const response = await fetch(`${API_URL}/rutinas/cliente/${idCliente}`);
       if (!response.ok) return [];
       return await response.json(); 
-    } catch (error) {
+    } catch {
       return []; 
     }
   },

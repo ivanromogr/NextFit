@@ -34,7 +34,6 @@ vi.mock('../../../api/endpoints', () => ({
     clonarPlantilla: vi.fn()
 }));
 
-// 🎯 FIX MOCK: Añadido ChevronRight para que ActionCard no explote
 vi.mock('lucide-react', () => ({
     Dumbbell: () => <span>IconDumbbell</span>,
     Plus: () => <span>IconPlus</span>,
@@ -99,7 +98,6 @@ describe('Página RutinasDeCliente', () => {
         expect(window.confirm).toHaveBeenCalled();
         await waitFor(() => {
             expect(endpoints.eliminarRutina).toHaveBeenCalledWith('r1');
-            // 🎯 FIX: Comprobamos el mensaje exacto para evitar errores de tipo regex en el mock
             expect(mockToast.success).toHaveBeenCalledWith("Rutina eliminada correctamente");
         });
     });
@@ -119,7 +117,6 @@ describe('Página RutinasDeCliente', () => {
         // 2. Esperar a que la plantilla aparezca
         expect(await screen.findByText('Plantilla Push/Pull')).toBeInTheDocument();
 
-        // 3. 🎯 FIX DEFINITIVO: Buscamos el botón cuyo nombre termina exactamente en "Importar"
         // Esto ignora el prefijo "IconImport" del icono mockeado.
         const btnConfirmarImport = screen.getByRole('button', { name: /Importar$/ });
         fireEvent.click(btnConfirmarImport);

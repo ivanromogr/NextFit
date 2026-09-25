@@ -30,7 +30,6 @@ export default function MenuCliente() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [rutinaToDelete, setRutinaToDelete] = useState(null);
 
-  // ✅ Modal para ver días del plan IA
   const [showIAPlanModal, setShowIAPlanModal] = useState(false);
   const [iaPlanSelected, setIaPlanSelected] = useState(null);
 
@@ -72,7 +71,6 @@ export default function MenuCliente() {
     setActiveMenu(null);
   };
 
-  // ✅ NUEVO: Función para borrar un PLAN IA COMPLETO (todos sus días)
   const handleDeletePlanIA = async (e, group) => {
     e.stopPropagation();
     setActiveMenu(null);
@@ -93,7 +91,7 @@ export default function MenuCliente() {
         setRutinas(prev => prev.filter((r) => !idsBorrados.includes(r.id)));
         
         // Opcional: mostrar un toast de éxito aquí
-      } catch (error) {
+      } catch {
         alert("Hubo un error al eliminar el plan IA completo.");
       }
     }
@@ -106,12 +104,11 @@ export default function MenuCliente() {
       setRutinas(rutinas.filter((r) => r.id !== rutinaToDelete.id));
       setShowDeleteModal(false);
       setRutinaToDelete(null);
-    } catch (error) {
+    } catch {
       alert("No se pudo eliminar.");
     }
   };
 
-  // ✅ helpers IA
   const getIAPlanKey = (rutina) => {
     const nombre = (rutina?.nombre || "").trim();
     if (nombre.toLowerCase().startsWith("día")) {
@@ -127,14 +124,12 @@ export default function MenuCliente() {
     return match ? parseInt(match[1], 10) : 9999;
   };
 
-  // ✅ FILTRADO
   const rutinasEntrenador = rutinas.filter((r) => r.creador === "ENTRENADOR");
   const rutinasIA = rutinas.filter((r) => r.creador === "IA");
   const rutinasPropiasNoIA = rutinas.filter(
     (r) => r.creador !== "ENTRENADOR" && r.creador !== "IA"
   );
 
-  // ✅ AGRUPACIÓN IA
   const iaPlanGroups = useMemo(() => {
     const map = new Map();
     for (const r of rutinasIA) {
@@ -327,7 +322,6 @@ export default function MenuCliente() {
       {!loading && !loadError && rutinas.length > 0 && (
       <div style={styles.gridPersonal}>
         
-        {/* ✅ Card GLOBAL por planes IA */}
         {iaPlanGroups.map((group) => {
           const daysCount = group.items.length;
           const preview = group.items?.[0]?.detalles?.map((d) => d.ejercicio.nombreTraducido).join(", ") || "Pulsa para ver los días del plan.";
@@ -354,11 +348,15 @@ export default function MenuCliente() {
                   <Sparkles size={16} /> PLAN IA
                 </div>
                 
-                {/* ✅ NUEVO: Botón de los 3 puntitos para Planes IA */}
                 <div style={{ position: "absolute", top: "15px", right: "15px" }}>
-                  <div style={styles.menuBtn} onClick={(e) => toggleMenu(e, `ia-${group.key}`)}>
+                  <button
+                    type="button"
+                    aria-label={`Más opciones del plan ${group.key?.includes("|") ? `Plan ${objetivoLabel}` : group.key}`}
+                    style={{ ...styles.menuBtn, background: "transparent", border: "none" }}
+                    onClick={(e) => toggleMenu(e, `ia-${group.key}`)}
+                  >
                     <MoreHorizontal size={20} color="#FACC15" />
-                  </div>
+                  </button>
 
                   {activeMenu === `ia-${group.key}` && (
                     <div style={{ ...styles.dropdown, right: 0 }}>
@@ -432,7 +430,6 @@ export default function MenuCliente() {
           );
         })}
 
-        {/* ✅ Rutinas NO IA */}
         {rutinasPropiasNoIA.map((rutina) => {
           const ejercicios = rutina.detalles || [];
           const previewEjercicios = ejercicios
@@ -459,9 +456,14 @@ export default function MenuCliente() {
                 <span style={styles.pill}>{objetivoLabel}</span>
 
                 <div style={{ position: "relative" }}>
-                  <div style={styles.menuBtn} onClick={(e) => toggleMenu(e, rutina.id)}>
+                  <button
+                    type="button"
+                    aria-label={`Más opciones de la rutina ${rutina.nombre}`}
+                    style={{ ...styles.menuBtn, background: "transparent", border: "none" }}
+                    onClick={(e) => toggleMenu(e, rutina.id)}
+                  >
                     <MoreHorizontal size={20} />
-                  </div>
+                  </button>
 
                   {activeMenu === rutina.id && (
                     <div style={styles.dropdown}>
@@ -552,7 +554,6 @@ export default function MenuCliente() {
         </div>
       )}
 
-      {/* ✅ Modal Plan IA (lista de días) */}
       {showIAPlanModal && iaPlanSelected && (
         <div style={styles.modalOverlay} onClick={() => setShowIAPlanModal(false)}>
           <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>

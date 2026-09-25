@@ -3,6 +3,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ImageUploadLocal from '../../components/ui/ImageUploadLocal';
+import { API_BASE_URL } from '../../api/config';
 
 describe('Componente ImageUploadLocal', () => {
   const mockOnUploadSuccess = vi.fn();
@@ -63,7 +64,7 @@ describe('Componente ImageUploadLocal', () => {
     // Verificamos que se llamó a la API con el JSON correcto (Base64)
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:8098/api/upload/base64',
+        `${API_BASE_URL}/api/upload/base64`,
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ base64: 'data:image/png;base64,falsa-imagen-base64' })

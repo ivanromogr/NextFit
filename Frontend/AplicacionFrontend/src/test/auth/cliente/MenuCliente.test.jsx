@@ -98,10 +98,10 @@ describe('Página MenuCliente', () => {
         // 1. Buscamos la card personal
         const cardTitle = await screen.findByText('Mi Rutina Personal');
         // Subimos hasta encontrar el contenedor de la card
-        const card = cardTitle.closest('div').parentElement;
+        const card = cardTitle.closest('div[style*="grid-template-rows"]');
         
         // 2. Buscamos el botón de los 3 puntos dentro de ESA card usando el testid del icono
-        const menuBtn = within(card).getByTestId('icon-more');
+        const menuBtn = within(card).getByRole('button', { name: /más opciones de la rutina mi rutina personal/i });
         fireEvent.click(menuBtn);
 
         // 3. Pulsamos eliminar en el dropdown
@@ -123,12 +123,8 @@ describe('Página MenuCliente', () => {
         eliminarRutina.mockResolvedValue({ success: true });
         renderComponent();
 
-        // 1. Buscamos la card de IA
-        const iaCardTitle = await screen.findByText('Plan Volumen');
-        const iaCard = iaCardTitle.closest('div');
-        
-        // 2. Buscamos el menú de la IA
-        const menuBtn = within(iaCard).getByTestId('icon-more');
+        await screen.findByText('Plan Volumen');
+        const menuBtn = screen.getByRole('button', { name: /más opciones del plan plan volumen/i });
         fireEvent.click(menuBtn);
 
         const deletePlanBtn = screen.getByText(/Eliminar Plan Completo/i);

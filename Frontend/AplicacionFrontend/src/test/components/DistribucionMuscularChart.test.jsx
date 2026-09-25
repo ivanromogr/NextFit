@@ -4,7 +4,6 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import DistribucionMuscularChart from '../../components/ui/DistribucionMuscularChart';
 
-// 1. Engañamos a Recharts de nuevo para que funcione sin problemas en la terminal
 vi.mock('recharts', async () => {
   const OriginalRecharts = await vi.importActual('recharts');
   return {

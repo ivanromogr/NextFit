@@ -43,12 +43,10 @@ const obtenerYoutubeThumbnail = (url = "") => {
 };
 
 const esVideoDirecto = (url = "") => /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
-const esUuid = (valor) => typeof valor === "string"
-    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(valor);
-
 const obtenerIdEjercicio = (detalle) => {
     const id = detalle?.ejercicio?.id || detalle?.ejercicioId || detalle?.idEjercicio;
-    return esUuid(id) ? id : null;
+    if (id === null || id === undefined || id === "") return null;
+    return String(id);
 };
 
 const VideoEjercicio = ({ src, title, style }) => {
@@ -90,7 +88,6 @@ export default function SesionEntrenamiento() {
     const toast = useToast();
     const { userId } = useAuth();
 
-    // ✅ RECOGIENDO LOS DATOS DEL MODO LECTURA
     const eventoIdCalendario = location.state?.eventoId;
     const isReadOnly = location.state?.isReadOnly || false;
     const coachClienteId = location.state?.clienteId;
@@ -128,7 +125,7 @@ export default function SesionEntrenamiento() {
                     try {
                         const asignadas = await obtenerRutinasAsignadasPorEntrenador(targetUserId, userId);
                         actual = asignadas.find(r => r.id === rutinaId);
-                    } catch(err) {}
+                    } catch { /* Fall back to the routines already loaded. */ }
                 }
 
                 if (actual) {
@@ -186,7 +183,6 @@ export default function SesionEntrenamiento() {
         return mapa;
     };
 
-    // ✅ INICIALIZAMOS SESIÓN SEGÚN EL MODO
     const inicializarSesion = (ejercicios, historial = {}, readOnly = false) => {
         const estructura = {};
 
@@ -289,13 +285,12 @@ export default function SesionEntrenamiento() {
 
         try {
             const notasUnificadas = Object.entries(notasSesion)
-                .map(([id, texto]) => texto ? `Nota: ${texto}` : '')
+                .map(([, texto]) => texto ? `Nota: ${texto}` : '')
                 .filter(t => t !== '')
                 .join(" | ");
 
             const seriesLimpias = [];
             Object.entries(datosSesion).forEach(([ejercicioId, sets]) => {
-                if (!esUuid(ejercicioId)) return;
                 sets.forEach((set, index) => {
                     if (set.hecho || parseFloat(set.peso) > 0 || parseInt(set.reps) > 0) {
                         seriesLimpias.push({
@@ -433,7 +428,6 @@ export default function SesionEntrenamiento() {
             justifyContent: 'center', 
             border: '1px solid #333'},
 
-        // ✅ TABLA Y GRID INTACTOS COMO EN LA VERSIÓN "LIMPIA"
         tableHeader: { 
             display: 'grid', 
             gridTemplateColumns: '0.6fr 1.2fr 1fr 1fr 0.8fr 0.8fr', 
@@ -454,7 +448,6 @@ export default function SesionEntrenamiento() {
             background: hecho ? 'rgba(34, 197, 94, 0.05)' : 'transparent', 
             transition: 'background 0.2s'}),
 
-        // ✅ INPUT INTACTO (Fondo oscuro, sin bordes amarillos)
         input: { 
             width: '100%', 
             background: '#09090b', 
@@ -574,7 +567,6 @@ export default function SesionEntrenamiento() {
                             overflow: 'hidden', 
                             textOverflow: 'ellipsis', 
                             whiteSpace: 'nowrap'}}>{rutina?.nombre}</span>
-                        {/* ✅ MODO OBSERVADOR INDICADOR */}
                         {isReadOnly && (
                             <div style={{ 
                                 display: 'flex', 
@@ -606,7 +598,6 @@ export default function SesionEntrenamiento() {
                         color: '#FACC15'}}>
                         <Clock size={16} /> {formatoTiempo(tiempo)}
                     </div>
-                    {/* ✅ OCULTAMOS TERMINAR EN MODO LECTURA */}
                     {!isReadOnly && <button style={styles.finishBtn} onClick={handleTerminarClick}>TERMINAR</button>}
                 </div>
             </div>
@@ -649,7 +640,7 @@ export default function SesionEntrenamiento() {
                                 }
                             </div>
                             <div style={{ flex: 1 }}>
-                                <div style={styles.exTitle}>{ej.ejercicio.nombreTraducido}</div>
+                                <div style={styles.exTitle}>{ej.ejercicio.nombreTraducido || ej.ejercicio.nombre}</div>
                                 <div style={styles.noteWrapper}>
                                     {editando && !isReadOnly ? (
                                         <div>
@@ -703,7 +694,6 @@ export default function SesionEntrenamiento() {
                                         <div style={{ padding: '0 4px' }}>
                                             <input
                                                 type="number"
-                                                // ✅ HEMOS QUITADO EL BORDE Y TEXTO AMARILLO. Vuelve a ser blanco con borde gris.
                                                 style={styles.input}
                                                 value={set.peso}
                                                 onChange={(e) => updateSet(exerciseId, i, 'peso', e.target.value)}
@@ -734,7 +724,6 @@ export default function SesionEntrenamiento() {
                                                 {(set.hecho || isReadOnly) && <Check size={18} strokeWidth={4} />}
                                             </button>
                                             
-                                            {/* ✅ Ocultamos la papelera en modo lectura para mantener el alineamiento */}
                                             {!set.hecho && !isReadOnly && (
                                                 <button onClick={() => removeSet(exerciseId, i)} style={{ background: 'none', border: 'none', color: '#333', cursor: 'pointer', padding: 0 }}>
                                                     <Trash2 size={16} />
@@ -746,7 +735,6 @@ export default function SesionEntrenamiento() {
                             })}
                         </div>
 
-                        {/* ✅ Ocultar Añadir Serie en modo lectura */}
                         {!isReadOnly && (
                             <button style={styles.addSetBtn} onClick={() => addSet(exerciseId)}>
                                 <Plus size={14} /> AÑADIR SERIE

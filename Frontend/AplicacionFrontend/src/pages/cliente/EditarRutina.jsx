@@ -102,6 +102,7 @@ const ExerciseImage = ({ exercise, style, fallbackIconSize = 28 }) => {
     const src = candidates[index];
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- reset the media carousel for a new exercise.
         setIndex(0);
     }, [exercise?.id, exercise?.apiId, exercise?.imagenUrl, exercise?.imagenOriginalUrl]);
 
@@ -338,7 +339,6 @@ const EditarRutina = () => {
             
             await actualizarRutina(rutinaId, payload);
             
-            // ✅ MOSTRAMOS NOTIFICACIÓN ELEGANTE
             showNotification("Rutina guardada correctamente", "success");
             
             // Esperamos un segundo antes de volver para que se vea el mensaje
@@ -399,7 +399,6 @@ const EditarRutina = () => {
         addBtnContainer: { marginTop: '50px', display:'flex', justifyContent:'center' },
         addBtn: { width: '100%', padding: '30px', background: 'linear-gradient(180deg, rgba(250, 204, 21, 0.05) 0%, rgba(0,0,0,0) 100%)', border: '2px dashed #333', borderRadius: '20px', color: '#777', cursor: 'pointer', display: 'flex', flexDirection:'column', justifyContent: 'center', alignItems: 'center', gap: '15px', fontSize: '1.1rem', fontWeight: '700', transition: 'all 0.2s', textTransform:'uppercase', letterSpacing:'2px' },
 
-        // ✅ ESTILO DE NOTIFICACIÓN FLOTANTE (TOAST)
         toast: {
             position: 'fixed', top: '100px', right: '40px', zIndex: 9999,
             background: toast.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
@@ -437,7 +436,6 @@ const EditarRutina = () => {
                 input::placeholder { color: #333; opacity: 1; }
             `}</style>
 
-            {/* ✅ COMPONENTE TOAST */}
             <div style={styles.toast}>
                 {toast.type === 'success' ? <CheckCircle size={20} color="#10B981"/> : <AlertCircle size={20} color="#EF4444"/>}
                 {toast.message}
@@ -466,6 +464,7 @@ const EditarRutina = () => {
                                 style={styles.mediaInfoBtn}
                                 onClick={() => setInfoExercise(detalle.ejercicio)}
                                 title="Ver técnica y video"
+                                aria-label={`Ver información de ${detalle.ejercicio?.nombreTraducido || detalle.ejercicio?.nombre || "ejercicio"}`}
                             >
                                 <Info size={18} />
                             </button>
@@ -506,7 +505,14 @@ const EditarRutina = () => {
                         </div>
                         </div>
 
-                        <button style={styles.deleteExerciseBtn} onClick={() => removeExercise(exIndex)}><Trash2 size={20}/></button>
+                        <button
+                            type="button"
+                            aria-label={`Eliminar ejercicio ${detalle.ejercicio?.nombreTraducido || detalle.ejercicio?.nombre || exIndex + 1}`}
+                            style={styles.deleteExerciseBtn}
+                            onClick={() => removeExercise(exIndex)}
+                        >
+                            <Trash2 size={20}/>
+                        </button>
                     </div>
                 ))}
 

@@ -173,7 +173,6 @@ export default function GestionAtletas() {
         <p style={{color: "#666", textAlign: 'center', marginTop: '50px'}}>Cargando equipo...</p>
       ) : clientesFiltrados.length === 0 ? (
         
-        // ✅ ESTADO VACÍO CUANDO NO HAY CLIENTES
         <div style={styles.emptyState}>
             <div style={styles.emptyIconBox}>
                 <User size={40} color="rgba(255,255,255,0.2)" />

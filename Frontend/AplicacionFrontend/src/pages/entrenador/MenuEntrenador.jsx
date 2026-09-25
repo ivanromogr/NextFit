@@ -146,7 +146,6 @@ export default function MenuEntrenador() {
     setNewClientEmail("");
     cargarDatos(); 
   } catch (error) {
-    // Si sale mal, extraemos el error real del backend
     console.error("Error completo:", error);
     const mensajeBackend = error.response?.data?.message 
                         || error.response?.data 
@@ -173,7 +172,6 @@ export default function MenuEntrenador() {
     );
   }
 
-  // --- ESTILOS PREMIUM ---
   const styles = {
     page: { padding: '40px 50px', background: '#050505', minHeight: '100vh', color: 'white', fontFamily: "'Inter', system-ui, sans-serif" },
     
@@ -280,7 +278,6 @@ export default function MenuEntrenador() {
         </button>
       </div>
 
-      {/* 3. KPIs (Tarjetas Premium) */}
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
             <div style={{...styles.iconWrap, background: 'rgba(239, 68, 68, 0.1)'}}>

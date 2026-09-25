@@ -60,7 +60,7 @@ export default function AgendaEntrenador() {
                         clienteId: clienteInfo.id // Guardamos el ID para poder navegar a su perfil
                     }));
                     todosLosEventos = [...todosLosEventos, ...eventosMapeados];
-                } catch (e) {
+                } catch {
                     console.warn(`No se pudieron cargar eventos de ${clienteInfo.nombre}`);
                 }
             });
@@ -104,7 +104,6 @@ export default function AgendaEntrenador() {
                evDate.getFullYear() === fechaSeleccionada.getFullYear();
     });
 
-    // --- ESTILOS PREMIUM ---
     const styles = {
         page: { padding: '40px 50px', background: '#050505', minHeight: '100vh', color: 'white', fontFamily: "'Inter', sans-serif" },
         headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' },
@@ -120,7 +119,7 @@ export default function AgendaEntrenador() {
         btnMonth: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', padding: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', transition: 'all 0.2s' },
         weekDays: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: 800, marginBottom: '20px', letterSpacing: '1px' },
         daysGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '12px' },
-        dayBtn: (isToday, isSelected, hasEvents) => ({
+        dayBtn: (isToday, isSelected) => ({
             aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             background: isSelected ? '#FACC15' : 'rgba(255,255,255,0.02)',
             color: isSelected ? 'black' : 'white',
@@ -162,7 +161,6 @@ export default function AgendaEntrenador() {
             </div>
 
             <div style={styles.mainGrid}>
-                {/* COLUMNA IZQUIERDA: CALENDARIO PREMIUM */}
                 <div style={styles.calCard}>
                     <div style={styles.calHeader}>
                         <h2 style={{margin: 0, fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase'}}>{mesesNombres[fechaActual.getMonth()]} {fechaActual.getFullYear()}</h2>

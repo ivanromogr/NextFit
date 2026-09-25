@@ -42,7 +42,6 @@ describe('Página GenerarRutinaIA', () => {
 
     it('renderiza correctamente el Arquitecto IA', () => {
         renderComponent();
-        // 🎯 FIX: Buscamos el texto exacto "IA" para que no coincida con "Hipertrofia"
         expect(screen.getByText(/Arquitecto/i)).toBeInTheDocument();
         expect(screen.getByText(/^IA$/)).toBeInTheDocument(); 
         expect(screen.getByText(/Selecciona tu Objetivo Principal/i)).toBeInTheDocument();

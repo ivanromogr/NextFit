@@ -14,7 +14,6 @@ vi.mock('react-router-dom', async () => {
     };
 });
 
-// 2. 🎯 FIX: MOCK DEL COMPONENTE HIJO (Ruta corregida)
 // Ajustamos la ruta para que Vitest intercepte la importación correctamente
 vi.mock('../../../pages/cliente/CalendarioCliente', () => ({
     // Importante: Si el componente se exporta como 'default'

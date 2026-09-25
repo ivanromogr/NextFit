@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import EditarRutina from '../../../pages/cliente/EditarRutina';
@@ -132,12 +132,7 @@ describe('Página EditarRutina', () => {
 
         await screen.findByText('Sentadilla');
 
-        //  Buscamos TODOS los botones y filtramos por el que tiene el estilo 'absolute'
-        // que es el que definiste para borrar el ejercicio completo.
-        const buttons = screen.getAllByRole('button');
-        const deleteBtn = buttons.find(b => b.style.position === 'absolute');
-        
-        if (!deleteBtn) throw new Error("No se encontró el botón de borrar ejercicio");
+        const deleteBtn = screen.getByRole('button', { name: /eliminar ejercicio sentadilla/i });
         
         fireEvent.click(deleteBtn);
 

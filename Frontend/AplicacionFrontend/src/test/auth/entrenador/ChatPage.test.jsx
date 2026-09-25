@@ -42,7 +42,6 @@ vi.mock('../../../components/functional/ChatComponent', () => {
     };
 });
 
-// 5. 🎯 MOCK DE WEBSOCKETS (STOMP y SOCKJS)
 // Simulamos el cliente STOMP para poder "disparar" mensajes falsos en los tests
 let mockStompSubscribeCallback = null;
 

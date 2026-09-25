@@ -25,7 +25,6 @@ export const getExerciseImageCandidates = (exercise) => {
     exercise.imagenPaso3,
     getYoutubeThumbnail(exercise.videoUrl),
   ].filter(Boolean);
-  const rawUrl = rawUrls[0] || "";
   const apiId = exercise.apiId || rawUrls.map(extractExerciseDbId).find(Boolean);
   const candidates = [];
   if (apiId) {

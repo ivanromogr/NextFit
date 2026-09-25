@@ -35,8 +35,8 @@ export default function CrearHub() {
             </header>
 
             <div style={styles.gridActions}>
-                {/* OPCIÓN 1: IA */}
                 <div
+                    data-testid="crear-hub-ia-card"
                     style={styles.actionBtnCard}
                     onClick={() => navigate("/cliente/generar-ia")}
                     onMouseEnter={(e) => {
@@ -64,6 +64,7 @@ export default function CrearHub() {
 
                 {/* OPCIÓN 2: MANUAL */}
                 <div
+                    data-testid="crear-hub-manual-card"
                     style={styles.actionBtnCard}
                     onClick={() => navigate("/cliente/crear-rutina")} // Esto lleva al creador manual antiguo
                     onMouseEnter={(e) => {

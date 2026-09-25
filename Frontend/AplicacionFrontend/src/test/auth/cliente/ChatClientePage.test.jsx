@@ -30,7 +30,6 @@ vi.mock('../../../api/endpoints', () => ({
 }));
 
 // 4. MOCK DEL COMPONENTE HIJO (ChatComponent)
-// Así evitamos cargar toda la lógica de subir archivos y websockets del hijo de nuevo
 vi.mock('../../../components/functional/ChatComponent', () => ({
   default: ({ nombreDestinatario }) => (
     <div data-testid="mock-chat-component">

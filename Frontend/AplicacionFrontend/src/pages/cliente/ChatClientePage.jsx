@@ -5,11 +5,11 @@ import { api, obtenerContactosChat } from "../../api/endpoints";
 import { Search, Edit, User, MessageSquare, Plus, X, Check } from "lucide-react";
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
-import { useAuth } from "../../context/AuthContext"; // Usando tu nuevo Contexto de Copilot
+import { useAuth } from "../../context/AuthContext";
 import { SOCKJS_URL } from "../../api/config";
 
 export default function ChatClientePage() {
-    const { userId: clienteId } = useAuth(); // Pillamos el ID del contexto blindado
+    const { userId: clienteId } = useAuth();
     const [entrenador, setEntrenador] = useState(null);
     
     // Al cargar, leemos si ya teníamos amigos guardados en la memoria de la pestaña
@@ -71,7 +71,7 @@ export default function ChatClientePage() {
                 }
 
                 // Limpiar state de la navegación para que no se reabra al recargar
-                try { window.history.replaceState({}, document.title, window.location.pathname + window.location.search); } catch(e){}
+                try { window.history.replaceState({}, document.title, window.location.pathname + window.location.search); } catch { /* Navigation state cleanup is best-effort. */ }
             } catch (err) {
                 console.error('Error abriendo chat con id externo', err);
             }
@@ -147,12 +147,10 @@ export default function ChatClientePage() {
                 if (contactos) {
                     const nuevosDelBackend = contactos.filter(c => c.id !== idEntrenador && c.id !== clienteId);
                     
-                    // 👇 MAGIA 3: Fusionamos los amigos que teníamos guardados con los nuevos del backend
                     setAmigos(prev => {
                         const mapa = new Map();
                         // Metemos primero los que ya teníamos (para no perder sus apodos o los que no tienen mensajes)
                         prev.forEach(a => mapa.set(a.id, a));
-                        // Metemos los nuevos de la base de datos
                         nuevosDelBackend.forEach(a => {
                             if (!mapa.has(a.id)) mapa.set(a.id, a);
                         });
@@ -225,7 +223,7 @@ export default function ChatClientePage() {
             setAliasContacto(`${nuevoAmigo.nombre} ${nuevoAmigo.apellido}`); 
             setMensajeModal({ texto: "¡Usuario encontrado!", tipo: "success" });
 
-        } catch (error) {
+        } catch {
             setMensajeModal({ texto: "No se ha encontrado a nadie con este email.", tipo: "error" });
         } finally {
             setBuscandoEmail(false);

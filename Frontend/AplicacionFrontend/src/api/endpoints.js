@@ -235,7 +235,7 @@ export const obtenerUltimaSesionRutina = async (clienteId, rutinaId) => {
   try {
     const response = await api.get(`/api/sesiones/ultima?clienteId=${clienteId}&rutinaId=${rutinaId}`);
     return response.data;
-  } catch (error) {
+  } catch {
     return null;
   }
 };

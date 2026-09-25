@@ -160,7 +160,6 @@ describe('Página EditarPerfilEntrenador', () => {
         fireEvent.click(btnGuardar);
 
         await waitFor(() => {
-            // Comprobamos que el payload es correcto (Fíjate en las conversiones de tipos y nombres nuevos)
             expect(endpoints.actualizarEntrenador).toHaveBeenCalledWith(
                 'entrenador-boss-123',
                 expect.objectContaining({

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- the hook is intentionally exported with its provider. */
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 const defaultAuthContext = {
@@ -29,6 +30,7 @@ export function AuthProvider({ children }) {
     if (sessionData) {
       try {
         const parsedSession = JSON.parse(sessionData);
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate persisted session after mount.
         setUser(parsedSession);
         setRole(parsedSession.role);
         if (parsedSession.role === "cliente") localStorage.setItem("clienteId", parsedSession.id);

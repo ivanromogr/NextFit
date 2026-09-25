@@ -4,7 +4,6 @@ import { Trophy, Flame, Medal } from 'lucide-react';
 export default function PersonalRecordsList({ prs }) {
     if (!prs || prs.length === 0) return null;
 
-    // Contamos cuántos son nuevos esta semana
     const nuevosRecords = prs.filter(p => p.esReciente).length;
 
     return (

@@ -30,7 +30,7 @@ export default function DashboardCliente() {
 
                 if (resumenData) {
                     setResumen(resumenData);
-                    generarNotificacionesReales(resumenData); // Generamos notificaciones con los datos
+                    generarNotificacionesReales(resumenData);
                 }
                 if (userData) {
                     setPerfil({
@@ -48,7 +48,6 @@ export default function DashboardCliente() {
     }, [userId]);
 
     // ==========================================
-    // 🎯 GENERADOR DINÁMICO DE NOTIFICACIONES
     // ==========================================
     const generarNotificacionesReales = (data) => {
         const nuevasNotis = [];
@@ -121,7 +120,6 @@ export default function DashboardCliente() {
         eventoId ? { state: { eventoId } } : undefined
     );
 
-    // --- ESTILOS PREMIUM ---
     const styles = {
         page: { 
             padding: 'var(--spacing-xl) var(--spacing-2xl)', 
@@ -426,7 +424,6 @@ export default function DashboardCliente() {
                         </div>
                     </div>
                     <div style={styles.statValue}>
-                        {/* 🎯 AQUÍ APLICAMOS LA RACHA DEL BACKEND */}
                         {resumen?.rachaActual || 0} <span style={styles.statUnit}>días seguidos</span>
                     </div>
                 </div>

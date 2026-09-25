@@ -186,14 +186,12 @@ body {
   background-position: center;
   background-repeat: no-repeat;
 
-  /* En móviles fixed suele dar tirones; lo dejamos solo para desktop */
   background-attachment: scroll;
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Solo desktop: fixed background (más pro y sin tirones en móvil) */
 @media (min-width: 900px) {
   body { background-attachment: fixed; }
 }

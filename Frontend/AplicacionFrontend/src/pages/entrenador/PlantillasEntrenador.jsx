@@ -29,7 +29,7 @@ export default function PlantillasEntrenador() {
       setLoading(true);
       const data = await obtenerPlantillasEntrenador(entrenadorId);
       setPlantillas(data || []);
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar la biblioteca de plantillas.");
     } finally {
       setLoading(false);
@@ -51,7 +51,7 @@ export default function PlantillasEntrenador() {
         await eliminarRutina(plantillaId);
         toast.success("Plantilla eliminada");
         cargarPlantillas();
-      } catch (error) {
+      } catch {
         toast.error("Error al eliminar la plantilla");
       }
     }

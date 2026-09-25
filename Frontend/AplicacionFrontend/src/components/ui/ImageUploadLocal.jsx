@@ -55,7 +55,6 @@ export default function ImageUploadLocal({ onUploadSuccess }) {
                 style={{ display: 'none' }}
             />
             
-            {/* Botón visual profesional */}
             <label 
                 htmlFor="fileInput"
                 style={{

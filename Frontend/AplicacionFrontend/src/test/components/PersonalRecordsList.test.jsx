@@ -26,7 +26,6 @@ describe('Componente PersonalRecordsList', () => {
   it('muestra el badge de "Nuevos" y el texto de motivación cuando hay récords recientes', () => {
     render(<PersonalRecordsList prs={mockPRs} />);
     
-    // Debería detectar 1 récord nuevo (según mockPRs)
     expect(screen.getByText(/¡1 Nuevos!/i)).toBeInTheDocument();
     expect(screen.getByText(/Has roto/i)).toBeInTheDocument();
     expect(screen.getByText(/1 récords/i)).toBeInTheDocument();

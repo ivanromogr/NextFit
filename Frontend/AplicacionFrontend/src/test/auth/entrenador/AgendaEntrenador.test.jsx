@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import AgendaEntrenador from '../../../pages/entrenador/AgendaEntrenador';
@@ -17,7 +17,6 @@ vi.mock('../../../context/AuthContext', () => ({
     useAuth: () => ({ userId: 'entrenador-boss' })
 }));
 
-// 2. MOCK DE ICONOS LUCIDE (Previene fallos de renderizado de SVGs)
 vi.mock('lucide-react', async () => {
     const actual = await vi.importActual('lucide-react');
     return {
@@ -59,7 +58,6 @@ describe('Página AgendaEntrenador', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         
-        // 🎯 FIX: Congelamos SÓLO el objeto Date. 
         // Así el calendario siempre creerá que es 15 de Marzo de 2026, 
         // pero los setTimeout de Testing Library seguirán funcionando.
         vi.useFakeTimers({ toFake: ['Date'] });
@@ -140,19 +138,16 @@ describe('Página AgendaEntrenador', () => {
         expect(await screen.findByText(/Marzo 2026/i)).toBeInTheDocument();
 
         // 2. Vamos a Abril
-        // 🎯 FIX: Capturamos el botón JUSTO ANTES de hacer click
         let btnNext = screen.getByTestId('icon-next').parentElement;
         fireEvent.click(btnNext);
         expect(await screen.findByText(/Abril 2026/i)).toBeInTheDocument();
 
         // 3. Volvemos a Marzo
-        // 🎯 FIX: Re-capturamos el botón "Prev" desde el nuevo DOM (Abril)
         let btnPrev = screen.getByTestId('icon-prev').parentElement;
         fireEvent.click(btnPrev); 
         expect(await screen.findByText(/Marzo 2026/i)).toBeInTheDocument(); 
 
         // 4. Bajamos a Febrero
-        // 🎯 FIX: Re-capturamos el botón "Prev" desde el nuevo DOM (Marzo)
         btnPrev = screen.getByTestId('icon-prev').parentElement;
         fireEvent.click(btnPrev); 
         expect(await screen.findByText(/Febrero 2026/i)).toBeInTheDocument();

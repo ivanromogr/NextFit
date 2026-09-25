@@ -191,7 +191,6 @@ export default function ClienteOnboarding() {
     }
   };
 
-  // --- ESTILOS PREMIUM (solo este componente) ---
   const styles = {
     root: {
       minHeight: "100vh",

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- the hook is intentionally exported with its provider. */
 import React, { createContext, useContext, useState } from 'react';
 import GymToast from '../components/ui/GymToast';
 

@@ -4,7 +4,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ConsistenciaChart from '../../components/ui/ConsistenciaChart';
 
-// 🚀 EL FIX: Mockeamos ResponsiveContainer para que renderice instantáneamente
 vi.mock('recharts', async () => {
   const OriginalRecharts = await vi.importActual('recharts');
   return {

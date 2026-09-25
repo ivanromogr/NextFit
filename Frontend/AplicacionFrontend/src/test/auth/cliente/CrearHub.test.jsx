@@ -33,7 +33,7 @@ describe('Página CrearHub', () => {
 
     // Verificamos los títulos principales
     expect(screen.getByText('Crear Nueva Rutina')).toBeInTheDocument();
-    expect(screen.getByText('Generar con IA')).toBeInTheDocument();
+    expect(screen.getByText('Entrenamientos Predeterminados')).toBeInTheDocument();
     expect(screen.getByText('Diseñar Manual')).toBeInTheDocument();
   });
 
@@ -41,7 +41,7 @@ describe('Página CrearHub', () => {
     renderComponent();
 
     // Buscamos la tarjeta por su título y hacemos clic en el contenedor (su "padre" o botón)
-    const cardIA = screen.getByText('Generar con IA').closest('div').parentElement;
+    const cardIA = screen.getByTestId('crear-hub-ia-card');
     fireEvent.click(cardIA);
 
     expect(mockNavigate).toHaveBeenCalledWith('/cliente/generar-ia');
@@ -50,7 +50,7 @@ describe('Página CrearHub', () => {
   it('navega a la página de Diseñar Manual al hacer clic en su tarjeta', () => {
     renderComponent();
 
-    const cardManual = screen.getByText('Diseñar Manual').closest('div').parentElement;
+    const cardManual = screen.getByTestId('crear-hub-manual-card');
     fireEvent.click(cardManual);
 
     expect(mockNavigate).toHaveBeenCalledWith('/cliente/crear-rutina');
@@ -59,8 +59,7 @@ describe('Página CrearHub', () => {
   it('ejecuta las animaciones hover correctamente sin romperse (Card IA)', () => {
     renderComponent();
     
-    // Obtenemos el contenedor de la tarjeta de IA
-    const cardIA = screen.getByText('Generar con IA').closest('div').parentElement;
+    const cardIA = screen.getByTestId('crear-hub-ia-card');
 
     // Simulamos que el ratón entra
     fireEvent.mouseEnter(cardIA);
@@ -77,7 +76,7 @@ describe('Página CrearHub', () => {
     renderComponent();
     
     // Obtenemos el contenedor de la tarjeta Manual
-    const cardManual = screen.getByText('Diseñar Manual').closest('div').parentElement;
+    const cardManual = screen.getByTestId('crear-hub-manual-card');
 
     // Simulamos que el ratón entra
     fireEvent.mouseEnter(cardManual);
@@ -94,7 +93,7 @@ describe('Página CrearHub', () => {
     renderComponent();
     
     // Obtenemos el contenedor de la tarjeta Manual
-    const cardManual = screen.getByText('Diseñar Manual').closest('div').parentElement;
+    const cardManual = screen.getByTestId('crear-hub-manual-card');
 
     // Simulamos que el ratón entra
     fireEvent.mouseEnter(cardManual);

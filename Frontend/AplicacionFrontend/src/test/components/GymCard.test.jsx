@@ -62,7 +62,7 @@ describe('Componente GymCard', () => {
     fireEvent.blur(card);
 
     // Versión seleccionada para cubrir los "if" dentro de los eventos
-    const { unmount } = render(<GymCard title="Interactivo Sel" selected={true} />);
+    render(<GymCard title="Interactivo Sel" selected={true} />);
     const cardSel = screen.getByText('Interactivo Sel').closest('div');
     
     fireEvent.mouseEnter(cardSel);

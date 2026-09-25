@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // 👈 Necesario para el botón volver
+import { useNavigate } from 'react-router-dom';
 import { 
     obtenerStatsGlobales, 
     obtenerProgresoEjercicio, 
@@ -54,6 +54,7 @@ export default function ProgresoCliente({ clienteIdProp, isCoachMode = false }) 
     useEffect(() => {
         if (!clienteId || !selectedEjercicio) return;
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- start loading when the selected exercise changes.
         setLoadingChart(true);
         const entrenadorId = isCoachMode ? userId : null;
         obtenerProgresoEjercicio(clienteId, selectedEjercicio, entrenadorId).then(data => {

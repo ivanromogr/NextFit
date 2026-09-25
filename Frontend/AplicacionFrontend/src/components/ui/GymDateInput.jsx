@@ -123,7 +123,6 @@ export default function GymDateInput({ label, value, onChange, maxDate }) {
           color: rgba(255,255,255,0.25);
         }
 
-        /* === Header custom premium === */
         .nf-date-header{
           display:flex;
           align-items:center;
@@ -208,7 +207,6 @@ export default function GymDateInput({ label, value, onChange, maxDate }) {
         </label>
       )}
 
-      {/* Input premium */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -290,7 +288,6 @@ export default function GymDateInput({ label, value, onChange, maxDate }) {
                 maxDate={maxAllowedDate}
                 fixedHeight
 
-                // ✅ Header premium con selectores (mes/año)
                 renderCustomHeader={({
                   date,
                   changeYear,

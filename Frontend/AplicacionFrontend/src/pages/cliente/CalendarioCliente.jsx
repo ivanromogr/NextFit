@@ -43,7 +43,6 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
     const toast = useToast();
     const { userId } = useAuth();
     
-    // ✅ LÓGICA INTELIGENTE DE MODO ENTRENADOR
     const idDeLaUrl = params.id || params.clienteId; 
     const clienteId = clienteIdProp || idDeLaUrl || userId;
     const modoEntrenador = isCoachMode || !!idDeLaUrl;
@@ -118,7 +117,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             await moverEventoCalendario(draggedEventId, fechaStr);
             toast.success("Evento reagendado");
             cargarEventos(); 
-        } catch (error) {
+        } catch {
             toast.error("Error al mover");
             cargarEventos(); 
         }
@@ -131,6 +130,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         setShowModal(true);
     };
 
+    // eslint-disable-next-line no-unused-vars -- reserved for the calendar modal flow while it is being wired to the UI.
     const handleGuardarEvento = async () => {
         if (!selectedRutina) return toast.error("Selecciona una rutina");
         try {
@@ -142,7 +142,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             toast.success(modoEntrenador ? "Rutina asignada" : "Rutina programada");
             setShowModal(false);
             cargarEventos(); 
-        } catch (error) {
+        } catch {
             toast.error("Error al programar");
         }
     };
@@ -158,7 +158,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             toast.success("¡Añadido al calendario!");
             setShowModal(false);
             cargarEventos(); 
-        } catch (error) {
+        } catch {
             toast.error("Error al programar");
         }
     };
@@ -175,7 +175,7 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
             await eliminarEventoCalendario(eventToDelete);
             toast.success("Evento eliminado");
             cargarEventos();
-        } catch (error) {
+        } catch {
             toast.error("Error al eliminar");
         } finally {
             setShowDeleteModal(false);
@@ -193,7 +193,6 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         }
     };
 
-    // 🔥 LA MAGIA RESTAURADA: ABRE EL PANEL LATERAL 🔥
     const irAEntrenar = (rutinaId, eventoId) => {
         if (modoEntrenador) {
             const ev = eventos.find(e => e.id === eventoId);
@@ -215,7 +214,6 @@ export default function CalendarioCliente({ clienteIdProp, isCoachMode = false }
         return `${min} min`;
     };
 
-    // --- ESTILOS PREMIUM ---
     const styles = {
         page: { 
             padding: 'var(--spacing-xl) var(--spacing-2xl)', 

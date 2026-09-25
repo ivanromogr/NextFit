@@ -17,7 +17,6 @@ vi.mock('../../../context/AuthContext', () => ({
     useAuth: () => ({ userId: 'atleta-123' })
 }));
 
-// 2. MOCK DE COMPONENTES DE GRÁFICAS (Evitamos errores de renderizado de librerías externas)
 vi.mock('../../../components/ui/ProgresoChart', () => ({ default: () => <div data-testid="chart-progreso" /> }));
 vi.mock('../../../components/ui/ConsistenciaChart', () => ({ default: () => <div data-testid="chart-consistencia" /> }));
 vi.mock('../../../components/ui/DistribucionMuscularChart', () => ({ default: () => <div data-testid="chart-radar" /> }));
@@ -91,7 +90,6 @@ describe('Página ProgresoCliente', () => {
         fireEvent.change(select, { target: { value: 'ex-2' } });
 
         await waitFor(() => {
-            // Verificamos que se llamó a la API con el nuevo ID de ejercicio
             expect(endpoints.obtenerProgresoEjercicio).toHaveBeenCalledWith(
                 expect.any(String), 
                 'ex-2',

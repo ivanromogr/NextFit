@@ -65,7 +65,6 @@ describe('Página MenuEntrenador (Cuartel General)', () => {
     };
 
     it('muestra el estado de carga inicial', () => {
-        // 🎯 FIX: Bloqueamos TODAS las promesas del Promise.all para que no terminen
         endpoints.obtenerClientesEntrenador.mockReturnValue(new Promise(() => {}));
         endpoints.obtenerDashboardResumen.mockReturnValue(new Promise(() => {}));
         endpoints.getEntrenador.mockReturnValue(new Promise(() => {}));
@@ -91,7 +90,6 @@ describe('Página MenuEntrenador (Cuartel General)', () => {
         expect(screen.getByText('5')).toBeInTheDocument();
         expect(screen.getByText('2')).toBeInTheDocument();
 
-        // 🎯 FIX JUAN: Buscamos específicamente en la columna de atletas
         const seccionAtletas = screen.getByText(/MIS ATLETAS/i).closest('div');
         expect(within(seccionAtletas).getByText(/Juan/i)).toBeInTheDocument();
         expect(within(seccionAtletas).getByText(/Pérez/i)).toBeInTheDocument();

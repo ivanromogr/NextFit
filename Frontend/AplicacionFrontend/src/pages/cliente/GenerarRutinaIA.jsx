@@ -123,7 +123,7 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
     };
 
     const handleGenerar = async (e) => {
-        if (e) e.preventDefault(); // 👈 Evita que la página se recargue sola por error
+        if (e) e.preventDefault();
         
         if (!userId) {
             alert("Falta el ID del usuario");
@@ -134,7 +134,7 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
         try {
             const payload = {
                 idCliente: userId,
-                clienteId: userId, // 👈 Mandamos los dos nombres por si Java es tiquismiquis
+                clienteId: userId,
                 objetivo: formData.objetivo,
                 nivel: formData.nivel,
                 diasPorSemana: parseInt(formData.diasPorSemana),
