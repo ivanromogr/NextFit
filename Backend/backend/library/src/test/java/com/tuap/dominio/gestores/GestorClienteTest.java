@@ -47,7 +47,6 @@ class GestorClienteTest {
         clienteMock.setApellido("Perez");
     }
 
-    // 🟢 TEST 1: Ver perfil (Camino Feliz)
     @Test
     void verPerfilCliente_ClienteExiste_DevuelveVistaPerfil() {
         // --- PREPARACIÓN ---
@@ -61,7 +60,6 @@ class GestorClienteTest {
         verify(model).addAttribute("cliente", clienteMock); // Verifica que pasó los datos a la vista
     }
 
-    // 🔴 TEST 2: Ver perfil de alguien que no existe (Camino Triste)
     @Test
     void verPerfilCliente_ClienteNoExiste_DevuelveVistaError() {
         // --- PREPARACIÓN ---
@@ -75,7 +73,6 @@ class GestorClienteTest {
         verify(model).addAttribute("error", "Cliente no encontrado");
     }
 
-    // 🟢 TEST 3: Actualizar datos del perfil
     @Test
     void actualizarPerfil_DatosNuevos_ActualizaYGuardaEnBBDD() throws IOException {
         // --- PREPARACIÓN ---
@@ -84,7 +81,6 @@ class GestorClienteTest {
         when(fotoMock.isEmpty()).thenReturn(true); 
 
         // --- ACCIÓN ---
-        // 🧹 CORRECCIÓN COMPILACIÓN: Ahora usamos el objeto PerfilParams en lugar de parámetros sueltos
         GestorCliente.PerfilParams params = new GestorCliente.PerfilParams(
             "Carlos", "Sainz", "carlos@test.com", 
             80.5, 180, 25, "Ganar masa", fotoMock

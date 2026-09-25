@@ -28,7 +28,6 @@ class EventoCalendarioDAOTest {
     @Autowired
     private EventoCalendarioDAO eventoDAO;
 
-    // 🪄 Herramienta mágica para guardar Clientes y Rutinas sin necesitar sus DAOs
     @Autowired
     private TestEntityManager entityManager; 
 
@@ -85,7 +84,6 @@ class EventoCalendarioDAOTest {
         entityManager.flush(); 
     }
 
-    // 🟢 TEST 1: Buscar entre dos fechas (Rango)
     @Test
     void findByClienteIdAndFechaBetween_RangoValido_DevuelveEventos() {
         // Buscamos desde AYER hasta HOY (Debería devolver 2 eventos, excluyendo el de mañana)
@@ -98,7 +96,6 @@ class EventoCalendarioDAOTest {
         assertEquals(2, resultado.size());
     }
 
-    // 🟢 TEST 2: Buscar pasados y ordenados (Historial)
     @Test
     void findByClienteIdAndFechaLessThanEqualOrderByFechaDesc_DevuelveOrdenado() {
         // Buscamos eventos menores o iguales a HOY (Debería traer HOY y luego AYER)
@@ -115,7 +112,6 @@ class EventoCalendarioDAOTest {
         assertEquals(hoy.minusDays(1), resultado.get(1).getFecha());
     }
 
-    // 🟢 TEST 3: Buscar evento exacto (La consulta JPQL personalizada)
     @Test
     void buscarEventoExacto_EventoExiste_DevuelveEvento() {
         Optional<EventoCalendario> resultado = eventoDAO.buscarEventoExacto(
@@ -128,7 +124,6 @@ class EventoCalendarioDAOTest {
         assertEquals(hoy, resultado.get().getFecha());
     }
 
-    // 🔴 TEST 4: Buscar evento exacto (No existe)
     @Test
     void buscarEventoExacto_EventoNoExiste_DevuelveVacio() {
         // Buscamos un evento dentro de 10 días (no existe)

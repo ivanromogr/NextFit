@@ -13,6 +13,17 @@ import org.springframework.data.repository.query.Param;
 import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
 
 public interface SesionEntrenamientoDAO extends JpaRepository<SesionEntrenamiento, UUID> {
+    interface ActividadDashboardResumen {
+        UUID getId();
+        UUID getClienteId();
+        String getClienteNombre();
+        String getClienteApellido();
+        String getRutina();
+        LocalDateTime getFecha();
+        Double getVolumen();
+        Integer getDuracion();
+    }
+
     List<SesionEntrenamiento> findByClienteIdOrderByFechaHoraDesc(UUID clienteId);
     List<SesionEntrenamiento> findByClienteIdAndFechaHoraBetweenOrderByFechaHoraDesc(UUID clienteId, LocalDateTime from, LocalDateTime to);
     SesionEntrenamiento findByEventoCalendario_Id(UUID eventoCalendarioId);
@@ -30,6 +41,24 @@ public interface SesionEntrenamientoDAO extends JpaRepository<SesionEntrenamient
            "OR (e IS NOT NULL AND e.entrenadorId = :entrenadorId)) " +
            "ORDER BY s.fechaHora DESC")
     List<SesionEntrenamiento> findActividadDashboardByEntrenador(@Param("entrenadorId") UUID entrenadorId, Pageable pageable);
+
+    @Query("SELECT s.id AS id, " +
+           "c.id AS clienteId, " +
+           "c.nombre AS clienteNombre, " +
+           "c.apellido AS clienteApellido, " +
+           "COALESCE(s.nombre, 'Libre') AS rutina, " +
+           "s.fechaHora AS fecha, " +
+           "s.volumenTotal AS volumen, " +
+           "s.duracionSegundos AS duracion " +
+           "FROM SesionEntrenamiento s " +
+           "LEFT JOIN s.cliente c " +
+           "LEFT JOIN s.rutina r " +
+           "LEFT JOIN s.eventoCalendario e " +
+           "WHERE ((c IS NOT NULL AND c.entrenador.id = :entrenadorId) " +
+           "OR (r IS NOT NULL AND r.entrenadorId = :entrenadorId) " +
+           "OR (e IS NOT NULL AND e.entrenadorId = :entrenadorId)) " +
+           "ORDER BY s.fechaHora DESC")
+    List<ActividadDashboardResumen> findResumenActividadDashboardByEntrenador(@Param("entrenadorId") UUID entrenadorId, Pageable pageable);
 
     // Contar sesiones completadas HOY
     @Query("SELECT COUNT(s) FROM SesionEntrenamiento s WHERE s.cliente.entrenador.id = :entrenadorId AND CAST(s.fechaHora AS date) = CURRENT_DATE")

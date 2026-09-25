@@ -133,7 +133,6 @@ class SesionEntrenamientoDAOTest {
         entityManager.flush();
     }
 
-    // 🟢 TEST 1: Buscar por Cliente ordenado
     @Test
     void findByClienteIdOrderByFechaHoraDesc_DevuelveOrdenado() {
         List<SesionEntrenamiento> sesiones = sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteActivo.getId());
@@ -142,7 +141,6 @@ class SesionEntrenamientoDAOTest {
         assertEquals(ahora, sesiones.get(0).getFechaHora()); // La más reciente (hoy) primero
     }
 
-    // 🟢 TEST 2: Buscar entre fechas
     @Test
     void findByClienteIdAndFechaHoraBetweenOrderByFechaHoraDesc_FiltraPorFechas() {
         // Buscamos desde hace 5 días hasta mañana (Debería coger las de Hoy y Hace 3 días)
@@ -154,7 +152,6 @@ class SesionEntrenamientoDAOTest {
         assertEquals(2, sesiones.size());
     }
 
-    // 🟢 TEST 3: Buscar por Evento de Calendario
     @Test
     void findByEventoCalendario_Id_DevuelveSesionCorrecta() {
         SesionEntrenamiento sesion = sesionDAO.findByEventoCalendario_Id(eventoMock.getId());
@@ -163,7 +160,6 @@ class SesionEntrenamientoDAOTest {
         assertEquals(5000.0, sesion.getVolumenTotal());
     }
 
-    // 🟢 TEST 4: Buscar la última sesión de una rutina concreta
     @Test
     void findFirstByClienteIdAndRutinaIdOrderByFechaHoraDesc_DevuelveLaMasReciente() {
         Optional<SesionEntrenamiento> sesion = sesionDAO.findFirstByClienteIdAndRutinaIdOrderByFechaHoraDesc(
@@ -175,7 +171,6 @@ class SesionEntrenamientoDAOTest {
         assertEquals(ahora, sesion.get().getFechaHora());
     }
 
-    // 🟢 TEST 5: Feed del entrenador
     @Test
     void findTop10ByCliente_Entrenador_IdOrderByFechaHoraDesc_DevuelveTodasLasSesiones() {
         // Debería traer las 3 sesiones (2 de Cbum y 1 de Ronnie) porque los dos son clientes de Arnold
@@ -195,7 +190,6 @@ class SesionEntrenamientoDAOTest {
         assertEquals(clienteActivo.getId(), feed.get(0).getCliente().getId());
     }
 
-    // 🟢 TEST 6: Métrica - Entrenos completados HOY
     @Test
     void countEntrenosHoy_CuentaSoloLasSesionesDeHoy() {
         // Solo Cbum entrenó hoy. Debería devolver 1.
@@ -226,7 +220,6 @@ class SesionEntrenamientoDAOTest {
         assertEquals(2, semana);
     }
 
-    // 🟢 TEST 7: Métrica - Clientes Inactivos (+7 días)
     @Test
     void countClientesInactivos_CuentaCorrectamente() {
         // Límite: Hace 7 días. 

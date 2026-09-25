@@ -16,14 +16,12 @@ import com.tuap.backend.persistencia.*;
 @Service
 public class GestorSesion {
 
-    // 🧹 SOLUCIÓN SONARQUBE: Campos final para inyección por constructor
     private final SesionEntrenamientoDAO sesionDAO;
     private final ClienteDAO clienteDAO;
     private final RutinaDAO rutinaDAO;
     private final EjercicioDAO ejercicioDAO;
     private final EventoCalendarioDAO eventoDAO;
 
-    // 🧹 SOLUCIÓN SONARQUBE: Constructor Injection (Adiós a los @Autowired sueltos)
     public GestorSesion(SesionEntrenamientoDAO sesionDAO, 
                         ClienteDAO clienteDAO, 
                         RutinaDAO rutinaDAO, 

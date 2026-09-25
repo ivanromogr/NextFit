@@ -26,7 +26,6 @@ public class CustomSuccessHandler implements AuthenticationSuccessHandler {
     private final EntrenadorDAO entrenadorDAO;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 🧹 SOLUCIÓN SONARQUBE: Inyección por constructor (Final Fields)
     public CustomSuccessHandler(ClienteDAO clienteDAO, EntrenadorDAO entrenadorDAO) {
         this.clienteDAO = clienteDAO;
         this.entrenadorDAO = entrenadorDAO;

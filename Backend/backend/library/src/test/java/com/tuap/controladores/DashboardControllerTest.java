@@ -62,7 +62,6 @@ class DashboardControllerTest {
         hoy = LocalDate.now();
     }
 
-    // 🟢 TEST 1: Resumen con datos, calcula racha y volumen correctamente
     @Test
     void getResumen_ConEventosYRutinaHoy_CalculaEstadisticasYRacha() {
      
@@ -123,7 +122,6 @@ class DashboardControllerTest {
         assertEquals("Rutina Híbrida", infoHoy.get("rutinaNombre"));
     }
 
-    // 🟢 TEST 2: Usuario nuevo sin historial (Todo a cero)
     @Test
     void getResumen_SinHistorial_DevuelveTodoACero() {
         // --- PREPARACIÓN ---
@@ -144,7 +142,6 @@ class DashboardControllerTest {
         assertNull(body.get("eventoHoy")); // No hay rutina para hoy
     }
 
-    // 🔴 TEST 3: Racha rota (Ayer no se entrenó)
     @Test
     void getResumen_AyerNoEntreno_RompeLaRacha() {
         // --- PREPARACIÓN ---

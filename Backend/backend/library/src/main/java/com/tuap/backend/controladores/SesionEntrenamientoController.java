@@ -29,6 +29,7 @@ import com.tuap.backend.dto.GuardarSesionRequest;
 import com.tuap.backend.dto.UltimaSesionResponse;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
+import com.tuap.backend.persistencia.SesionEntrenamientoDAO.ActividadDashboardResumen;
 
 @RestController
 @RequestMapping("/api/sesiones")
@@ -190,9 +191,10 @@ public class SesionEntrenamientoController {
     }
 
     @GetMapping("/{entrenadorId}/dashboard-resumen")
+    @Transactional(readOnly = true)
     public ResponseEntity<Object> getDashboardResumen(@PathVariable UUID entrenadorId) {
         try {
-            List<SesionEntrenamiento> ultimas = sesionDAO.findActividadDashboardByEntrenador(
+            List<ActividadDashboardResumen> ultimas = sesionDAO.findResumenActividadDashboardByEntrenador(
                     entrenadorId,
                     PageRequest.of(0, 10));
             
@@ -202,12 +204,12 @@ public class SesionEntrenamientoController {
             List<Map<String, Object>> feed = ultimas.stream().map(s -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", s.getId());
-                map.put("clienteNombre", s.getCliente().getNombre() + " " + s.getCliente().getApellido());
-                map.put(CLIENTE_ID_PARAM, s.getCliente().getId());
-                map.put("rutina", s.getNombre() != null ? s.getNombre() : "Entreno Libre");
-                map.put("fecha", s.getFechaHora());
-                map.put("volumen", s.getVolumenTotal());
-                map.put("duracion", s.getDuracionSegundos());
+                map.put("clienteNombre", nombreCompleto(s.getClienteNombre(), s.getClienteApellido()));
+                map.put(CLIENTE_ID_PARAM, s.getClienteId());
+                map.put("rutina", s.getRutina() != null ? s.getRutina() : "Entreno Libre");
+                map.put("fecha", s.getFecha());
+                map.put("volumen", s.getVolumen() != null ? s.getVolumen() : 0);
+                map.put("duracion", s.getDuracion() != null ? s.getDuracion() : 0);
                 return map;
             }).toList(); 
 
@@ -226,7 +228,11 @@ public class SesionEntrenamientoController {
         }
     }
 
-    // 🧹 Método extraído para limpiar la complejidad cognitiva
+    private String nombreCompleto(String nombre, String apellido) {
+        String completo = ((nombre != null ? nombre : "") + " " + (apellido != null ? apellido : "")).trim();
+        return completo.isEmpty() ? "Atleta" : completo;
+    }
+
     private Map<String, Long> calcularMetricasInteligentes(UUID entrenadorId) {
         Map<String, Long> stats = new HashMap<>();
         try {

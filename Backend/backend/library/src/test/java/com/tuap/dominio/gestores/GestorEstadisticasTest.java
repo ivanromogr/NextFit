@@ -88,7 +88,6 @@ class GestorEstadisticasTest {
         sesionReciente.setSeries(Arrays.asList(serieFuerza));
     }
 
-    // 🟢 TEST 1: Estadísticas Globales (Sin filtro de entrenador)
     @Test
     void obtenerStatsGlobales_SinEntrenador_CalculaTotalesCorrectamente() {
         // --- PREPARACIÓN ---
@@ -109,7 +108,6 @@ class GestorEstadisticasTest {
        assertEquals(2L, stats.get("horasEntrenadas"));
     }
 
-    // 🟢 TEST 2: Estadísticas Globales (CON filtro de privacidad de entrenador)
     @Test
     void obtenerStatsGlobales_ConEntrenador_FiltraSesionesPrivadas() {
         // --- PREPARACIÓN ---
@@ -125,7 +123,6 @@ class GestorEstadisticasTest {
         assertEquals("5t", stats.get("volumenTotal")); // Solo cuenta los 5000kg de esa sesión
     }
 
-    // 🟢 TEST 3: Cálculo del 1RM en las gráficas de progreso
     @Test
     void obtenerProgresoEjercicio_Calcula1RMYPersonalRecord() {
         // --- PREPARACIÓN ---

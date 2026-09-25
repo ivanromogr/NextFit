@@ -44,7 +44,6 @@ class EstadisticasControllerTest {
         ejercicioId = UUID.randomUUID();
     }
 
-    // 🟢 TEST 1: Estadísticas Globales
     @Test
     void getGlobalStats_DevuelveDatosYStatus200() {
         // --- PREPARACIÓN ---
@@ -63,7 +62,6 @@ class EstadisticasControllerTest {
         verify(gestorEstadisticas, times(1)).obtenerStatsGlobales(clienteId, entrenadorId);
     }
 
-    // 🟢 TEST 2: Progreso Ejercicio (Con datos, Camino Feliz)
     @Test
     void getExerciseStats_ConDatos_Devuelve200() {
         // --- PREPARACIÓN ---
@@ -80,7 +78,6 @@ class EstadisticasControllerTest {
         assertEquals(mockProgreso, respuesta.getBody());
     }
 
-    // 🔴 TEST 3: Progreso Ejercicio (Sin datos, Camino Triste)
     @Test
     void getExerciseStats_SinDatos_Devuelve204NoContent() {
         // --- PREPARACIÓN ---
@@ -96,7 +93,6 @@ class EstadisticasControllerTest {
         assertNull(respuesta.getBody());
     }
 
-    // 🟢 TEST 4: Récords Personales (PRs)
     @Test
     void getPersonalRecords_DevuelveListaYStatus200() {
         // --- PREPARACIÓN ---

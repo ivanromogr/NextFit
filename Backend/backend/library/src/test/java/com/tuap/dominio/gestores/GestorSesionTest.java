@@ -83,7 +83,7 @@ class GestorSesionTest {
         serie.setPeso(100f);
         serie.setReps(10);
         serie.setHecho(true);
-        serie.setSetIndex(1); // Añadido para completar el objeto
+        serie.setSetIndex(1);
         
         List<GuardarSesionRequest.SerieDTO> series = new ArrayList<>();
         series.add(serie);

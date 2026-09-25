@@ -249,7 +249,6 @@ public class GestorLogin {
         return entrenadorDAO.findById(id).orElse(null);
     }
     
-    // 🧹 PRECAUCIÓN AQUÍ: He cambiado "nuevaContraseña" por "nuevaContrasena" en la firma del método
     @PostMapping("/api/recover-password")
     public ResponseEntity<String> recoverPassword(@RequestParam String email, @RequestParam String nuevaContrasena) {
         Optional<Cliente> clienteOpt = clienteDAO.findByEmail(email);
@@ -257,12 +256,12 @@ public class GestorLogin {
 
         if (clienteOpt.isPresent()) {
             Cliente cliente = clienteOpt.get();
-            cliente.setContrasena(passwordEncoder.encode(nuevaContrasena)); // 🧹 Actualizado
+            cliente.setContrasena(passwordEncoder.encode(nuevaContrasena));
             clienteDAO.save(cliente);
             return ResponseEntity.ok("Contraseña actualizada correctamente");
         } else if (entrenadorOpt.isPresent()) {
             Entrenador entrenador = entrenadorOpt.get();
-            entrenador.setContrasena(passwordEncoder.encode(nuevaContrasena)); // 🧹 Actualizado
+            entrenador.setContrasena(passwordEncoder.encode(nuevaContrasena));
             entrenadorDAO.save(entrenador);
             return ResponseEntity.ok("Contraseña actualizada correctamente");
         }

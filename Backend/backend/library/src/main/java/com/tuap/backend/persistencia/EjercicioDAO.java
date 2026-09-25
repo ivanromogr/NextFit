@@ -56,7 +56,6 @@ public interface EjercicioDAO extends JpaRepository<Ejercicio, UUID> {
     """)
     List<Ejercicio> buscarPorNombre(@Param("nombre") String nombre);
 
-    // --- IA / RANDOM ---
     @Query(value = """
         SELECT * FROM ejercicio e
         WHERE e.grupo_muscular = :musculo

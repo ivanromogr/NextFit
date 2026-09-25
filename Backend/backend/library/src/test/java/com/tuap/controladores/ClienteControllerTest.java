@@ -46,7 +46,6 @@ class ClienteControllerTest {
         clienteMock.setEmail("laura@test.com");
     }
 
-    // 🟢 TEST 1: Listar todos los clientes
     @Test
     void listar_DevuelveListaDeClientes() {
         when(clienteDAO.findAll()).thenReturn(Arrays.asList(clienteMock));
@@ -57,7 +56,6 @@ class ClienteControllerTest {
         assertEquals("Laura", resultado.get(0).getNombre());
     }
 
-    // 🟢 TEST 2: Buscar por Email (Existe)
     @Test
     void buscarPorEmail_ClienteExiste_Devuelve200() {
         when(clienteDAO.findByEmail("laura@test.com")).thenReturn(Optional.of(clienteMock));
@@ -68,7 +66,6 @@ class ClienteControllerTest {
         assertEquals(clienteMock, respuesta.getBody());
     }
 
-    // 🔴 TEST 3: Buscar por Email (No Existe)
     @Test
     void buscarPorEmail_ClienteNoExiste_Devuelve404() {
         when(clienteDAO.findByEmail("fantasma@test.com")).thenReturn(Optional.empty());
@@ -78,7 +75,6 @@ class ClienteControllerTest {
         assertEquals(HttpStatus.NOT_FOUND, respuesta.getStatusCode());
     }
 
-    // 🟢 TEST 4: Completar Onboarding
     @Test
     void completarOnboarding_DatosValidos_ActualizaYGuarda() {
         OnboardingRequest req = new OnboardingRequest();
@@ -98,7 +94,6 @@ class ClienteControllerTest {
         verify(clienteDAO, times(1)).save(clienteMock);
     }
 
-    // 🔴 TEST 5: Completar Onboarding sin ID
     @Test
     void completarOnboarding_SinId_Devuelve400() {
         OnboardingRequest req = new OnboardingRequest(); // Sin ID
@@ -109,7 +104,6 @@ class ClienteControllerTest {
         assertEquals("Error: No se identificó al cliente (Falta ID).", respuesta.getBody());
     }
 
-    // 🟢 TEST 6: Actualizar Perfil
     @Test
     void actualizarPerfil_DatosNuevos_ActualizaCampos() {
         UpdateClienteRequest req = new UpdateClienteRequest();

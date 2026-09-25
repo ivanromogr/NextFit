@@ -113,7 +113,6 @@ class SerieRealizadaDAOTest {
         entityManager.flush();
     }
 
-    // 🟢 TEST 1: Busca TODAS las series (completadas y falladas)
     @Test
     void findBySesionClienteIdAndEjercicioId_DevuelveTodasLasSeriesDelClienteYEjercicio() {
         // Debería traer las 3 series (las 2 hechas y la 1 fallada)
@@ -125,7 +124,6 @@ class SerieRealizadaDAOTest {
         assertEquals(3, todas.size());
     }
 
-    // 🟢 TEST 2: Historial (Solo completadas y en orden cronológico)
     @Test
     void findHistorialEjercicio_DevuelveSoloSeriesCompletadasEnOrdenCronologico() {
         // Debería traer SOLO las 2 series que tienen "hecho = true"

@@ -35,7 +35,6 @@ public class DetalleRutina {
     private int repeticiones;
     private String notas; 
 
-    // --- NUEVOS CAMPOS ---
     // Usamos Float e Integer (objetos) para permitir nulos si fuera necesario
     private Float peso; 
     private Integer rpe; // Rating of Perceived Exertion (1-10)
@@ -63,7 +62,6 @@ public class DetalleRutina {
     public String getNotas() { return notas; }
     public void setNotas(String notas) { this.notas = notas; }
 
-    // --- GETTERS Y SETTERS NUEVOS ---
     public Float getPeso() { return peso; }
     public void setPeso(Float peso) { this.peso = peso; }
 

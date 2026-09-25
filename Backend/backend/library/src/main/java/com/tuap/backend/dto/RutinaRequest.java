@@ -11,10 +11,8 @@ public class RutinaRequest {
     private String objetivo;
     private String nivel;
     
-    // ✅ 1. CAMPO NUEVO PARA SOLUCIONAR EL PRIMER ERROR
     private String creador; 
     
-    // ✅ 2. CAMPOS PARA PLANTILLAS MAESTRAS
     private Boolean esPlantilla;
     private UUID entrenadorId;
 
@@ -36,11 +34,9 @@ public class RutinaRequest {
     public String getNivel() { return nivel; }
     public void setNivel(String nivel) { this.nivel = nivel; }
 
-    // ✅ Getter y Setter para Creador (¡ESTO ES LO QUE FALTABA!)
     public String getCreador() { return creador; }
     public void setCreador(String creador) { this.creador = creador; }
     
-    // ✅ Getters y Setters para plantillas
     public Boolean getEsPlantilla() { return esPlantilla; }
     public void setEsPlantilla(Boolean esPlantilla) { this.esPlantilla = esPlantilla; }
     
@@ -56,7 +52,6 @@ public class RutinaRequest {
         private int series;
         private int repeticiones;
         
-        // ✅ 2. CAMBIO DE TIPO: De double a Float para solucionar el segundo error
         private Float peso; 
         
         private int rpe;

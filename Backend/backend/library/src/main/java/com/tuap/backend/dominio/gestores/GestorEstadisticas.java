@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
-import java.util.Collections; // 🧹 Agregado
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -76,7 +76,6 @@ public class GestorEstadisticas {
                         entrenadorId.equals(serie.getSesion().getRutina().getEntrenadorId())))
                  .toList(); 
 
-         // 🧹 SOLUCIÓN SONARQUBE: Devolver mapa vacío en lugar de null
          if (historia.isEmpty()) return Collections.emptyMap();
 
          List<Map<String, Object>> puntosGrafica = new ArrayList<>();
@@ -195,7 +194,6 @@ public class GestorEstadisticas {
             for (SerieRealizada serie : sesion.getSeries()) {
                 if (serie.isHecho() && serie.getPeso() > 0) {
                     String nombre = serie.getEjercicio().getNombre();
-                    // 🧹 SOLUCIÓN SONARQUBE: Uso de merge para simplificar lógica de "máximo"
                     mejores.merge(nombre, serie, (existente, nueva) -> 
                         nueva.getPeso() > existente.getPeso() ? nueva : existente
                     );
@@ -222,7 +220,6 @@ public class GestorEstadisticas {
             for (SerieRealizada serie : s.getSeries()) {
                 if (serie.isHecho() && serie.getEjercicio() != null && serie.getEjercicio().getGrupoMuscular() != null) {
                     String m = serie.getEjercicio().getGrupoMuscular();
-                    // 🧹 Mejora extra: Uso de merge
                     conteo.merge(m, 1, Integer::sum);
                 }
             }
@@ -244,7 +241,6 @@ public class GestorEstadisticas {
         for (SesionEntrenamiento s : crono) {
             LocalDateTime inicioSemana = s.getFechaHora().with(WeekFields.of(Locale.getDefault()).dayOfWeek(), 1);
             String label = inicioSemana.format(fmt);
-            // 🧹 Mejora extra: Uso de merge
             mapa.merge(label, 1, Integer::sum);
         }
         
@@ -270,7 +266,6 @@ public class GestorEstadisticas {
         for (SesionEntrenamiento s : sesiones) {
             String label = s.getFechaHora().format(fmt);
             if (s.getFechaHora().isAfter(hoy.minusDays(14))) {
-                // 🧹 SOLUCIÓN SONARQUBE: Uso de computeIfPresent para actualizar solo si existe
                 mapa.computeIfPresent(label, (k, v) -> v + 1);
             }
         }

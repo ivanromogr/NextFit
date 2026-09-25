@@ -16,10 +16,8 @@ public interface RutinaDAO extends JpaRepository<Rutina, UUID> {
     // Buscar rutinas por cliente
     List<Rutina> findByClienteId(UUID clienteId);
     
-    // Método derivado para buscar por cliente y creador (ENTRENADOR/CLIENTE/IA)
     List<Rutina> findByClienteIdAndCreador(UUID clienteId, String creador);
     
-    // --- NUEVO: Buscar las plantillas de un entrenador ---
     List<Rutina> findByEntrenadorIdAndEsPlantillaTrue(UUID entrenadorId);
 
     @Query("""

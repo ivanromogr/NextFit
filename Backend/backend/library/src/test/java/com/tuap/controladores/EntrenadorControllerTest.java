@@ -35,6 +35,7 @@ import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
 import com.tuap.backend.persistencia.ResenaDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
+import com.tuap.backend.persistencia.SesionEntrenamientoDAO.ActividadDashboardResumen;
 
 @ExtendWith(MockitoExtension.class)
 class EntrenadorControllerTest {
@@ -67,7 +68,6 @@ class EntrenadorControllerTest {
         clienteMock.setEmail("paco@gym.com");
     }
 
-    // 🟢 TEST 1: Obtener clientes del entrenador
     @Test
     void obtenerClientes_DevuelveListaConMetricas() {
         // --- PREPARACIÓN ---
@@ -87,7 +87,6 @@ class EntrenadorControllerTest {
         assertTrue((Boolean) body.get(0).get("semanaCompletada")); // True porque >= 3
     }
 
-    // 🟢 TEST 2: Perfil público con valoraciones
     @Test
     void getPerfilPublico_DevuelvePerfilCompleto() {
         // --- PREPARACIÓN ---
@@ -110,14 +109,18 @@ class EntrenadorControllerTest {
     void getDashboardResumen_CalculaMetricasConActividadAsignada() {
         clienteMock.setApellido("Romo");
 
-        SesionEntrenamiento sesion = new SesionEntrenamiento();
-        sesion.setId(UUID.randomUUID());
-        sesion.setCliente(clienteMock);
-        sesion.setNombre("Pierna");
-        sesion.setFechaHora(LocalDateTime.now());
-        sesion.setVolumenTotal(2500.0);
+        ActividadDashboardResumen sesion = actividadResumen(
+            UUID.randomUUID(),
+            clienteMock.getId(),
+            clienteMock.getNombre(),
+            clienteMock.getApellido(),
+            "Pierna",
+            LocalDateTime.now(),
+            2500.0,
+            1800
+        );
 
-        when(sesionDAO.findActividadDashboardByEntrenador(eq(entrenadorId), any(Pageable.class)))
+        when(sesionDAO.findResumenActividadDashboardByEntrenador(eq(entrenadorId), any(Pageable.class)))
             .thenReturn(List.of(sesion));
         when(sesionDAO.countClientesEntrenadosDashboardEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class)))
             .thenReturn(1L);
@@ -141,7 +144,21 @@ class EntrenadorControllerTest {
         assertEquals("Pierna", feed.get(0).get("rutina"));
     }
 
-    // 🟢 TEST 3: Fichar cliente libre (Camino Feliz)
+    private ActividadDashboardResumen actividadResumen(UUID id, UUID clienteId, String nombre, String apellido,
+                                                       String rutina, LocalDateTime fecha,
+                                                       Double volumen, Integer duracion) {
+        return new ActividadDashboardResumen() {
+            public UUID getId() { return id; }
+            public UUID getClienteId() { return clienteId; }
+            public String getClienteNombre() { return nombre; }
+            public String getClienteApellido() { return apellido; }
+            public String getRutina() { return rutina; }
+            public LocalDateTime getFecha() { return fecha; }
+            public Double getVolumen() { return volumen; }
+            public Integer getDuracion() { return duracion; }
+        };
+    }
+
     @Test
     void ficharCliente_AtletaLibre_LoVinculaAlEntrenador() {
         // --- PREPARACIÓN ---
@@ -160,7 +177,6 @@ class EntrenadorControllerTest {
         verify(clienteDAO, times(1)).save(clienteMock); // Verifica que se guardó
     }
 
-    // 🔴 TEST 4: Fichar cliente ocupado (Regla de Exclusividad)
     @Test
     void ficharCliente_AtletaOcupado_DevuelveError409() {
         // --- PREPARACIÓN ---
@@ -188,7 +204,6 @@ class EntrenadorControllerTest {
         verify(clienteDAO, never()).save(any()); // Verifica que no se intentó guardar nada
     }
 
-    // 🔴 TEST 5: Desvincular cliente que no es tuyo (Seguridad)
     @Test
     void desvincularCliente_ClienteDeOtro_DevuelveError403() {
         // --- PREPARACIÓN ---

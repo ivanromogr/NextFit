@@ -53,7 +53,6 @@ class EjercicioControllerTest {
         ejercicioMock.setEquipamiento("Peso corporal");
     }
 
-    // 🟢 TEST 1: Obtener todos los ejercicios
     @Test
     void obtenerTodos_DevuelveListaDeEjercicios() {
         // --- PREPARACIÓN ---
@@ -69,7 +68,6 @@ class EjercicioControllerTest {
         verify(ejercicioDAO, times(1)).findAll();
     }
 
-    // 🟢 TEST 2: Buscar con filtros válidos
     @Test
     void buscar_ConParametrosValidos_LlamaADaoConFiltros() {
         // --- PREPARACIÓN ---
@@ -87,7 +85,6 @@ class EjercicioControllerTest {
                 .buscarAvanzadoConListaMusculos("Dominadas", Arrays.asList("back", "lats", "traps", "spine", "rhomboids"));
     }
 
-    // 🟢 TEST 3: Buscar con textos vacíos ("") los convierte a null
     @Test
     void buscar_ConTextosVacios_LlamaADaoConNulos() {
         // --- PREPARACIÓN ---
@@ -102,7 +99,6 @@ class EjercicioControllerTest {
         // --- COMPROBACIÓN ---
         assertEquals(1, resultado.size());
         
-        // ¡Magia! Verificamos que tu lógica del controlador (el operador ternario '? :') 
         // transformó los "" en nulls antes de hablar con la BBDD
         verify(ejercicioDAO, times(1)).findAll();
     }

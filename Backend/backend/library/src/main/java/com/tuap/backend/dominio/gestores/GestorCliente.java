@@ -27,10 +27,8 @@ public class GestorCliente {
     private static final String ATTR_CLIENTE = "cliente";
     private static final String VIEW_ERROR = "error";
 
-    // 🧹 SOLUCIÓN SONARQUBE: Campo final para inyección por constructor
     private final ClienteDAO clienteDAO;
 
-    // 🧹 SOLUCIÓN SONARQUBE: Constructor Injection
     public GestorCliente(ClienteDAO clienteDAO) {
         this.clienteDAO = clienteDAO;
     }
@@ -48,7 +46,6 @@ public class GestorCliente {
 
     @GetMapping("/menucliente/{id}")
     public String menuCliente(@PathVariable UUID id, Model model) {
-        // 🧹 SOLUCIÓN SONARQUBE: Eliminada variable "auth" que no se usaba
         
         Optional<Cliente> clienteOpt = clienteDAO.findById(id);
         if (clienteOpt.isEmpty()) {
@@ -103,7 +100,6 @@ public class GestorCliente {
         return "redirect:/cliente/perfil/" + id;
     }
 
-    // 🧹 SOLUCIÓN SONARQUBE: Reducido de 9 parámetros a 2 usando el objeto PerfilParams
     public void actualizarPerfil(UUID idCliente, PerfilParams params) throws IOException {
         Optional<Cliente> clienteOpt = clienteDAO.findById(idCliente);
         if (clienteOpt.isPresent()) {
@@ -126,7 +122,6 @@ public class GestorCliente {
 
     private void procesarFotoPerfil(Cliente cliente, MultipartFile foto) throws IOException {
         if (foto != null && !foto.isEmpty() && foto.getOriginalFilename() != null) {
-            // 🧹 SOLUCIÓN SONARQUBE: Verificación de nulo antes de cleanPath
             String originalName = foto.getOriginalFilename();
             String nombreOriginalLimpio = org.springframework.util.StringUtils.cleanPath(originalName);
             

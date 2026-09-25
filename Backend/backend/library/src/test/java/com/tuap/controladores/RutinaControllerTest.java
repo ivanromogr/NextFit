@@ -78,7 +78,6 @@ class RutinaControllerTest {
         rutinaPlantilla.setDetalles(listaDetalles);
     }
 
-    // 🟢 TEST 1: Crear rutina manual llamando al Gestor
     @Test
     void crearRutinaManual_LlamaAlGestorYDevuelve200() {
         RutinaRequest req = new RutinaRequest();
@@ -93,7 +92,6 @@ class RutinaControllerTest {
         assertEquals(rutinaNueva, respuesta.getBody());
     }
 
-    // 🟢 TEST 2: Generar rutina automática (IA)
     @Test
     void generarRutinaAutomatica_LlamaAlGestorYDevuelve200() {
         GenerarRutinaRequest req = new GenerarRutinaRequest();
@@ -107,7 +105,6 @@ class RutinaControllerTest {
         assertEquals(rutinasGeneradas, respuesta.getBody());
     }
 
-    // 🟢 TEST 3: Obtener rutinas con filtro de privacidad
     @Test
     void obtenerRutinasEntrenador_ConEntrenadorId_FiltraYDevuelvePrivadas() {
         Rutina rutinaDeOtro = new Rutina();
@@ -146,7 +143,6 @@ class RutinaControllerTest {
         assertEquals(false, respuesta.getBody().get(0).get("esPlantilla"));
     }
 
-    // 🟢 TEST 4: Clonar Plantilla a Cliente (Camino Feliz)
     @Test
     void clonarPlantilla_PlantillaYClienteExisten_CreaClonYGuarda() {
         // --- PREPARACIÓN ---
@@ -186,7 +182,6 @@ class RutinaControllerTest {
         verify(rutinaDAO, times(1)).save(any(Rutina.class));
     }
 
-    // 🔴 TEST 5: Clonar Plantilla (Plantilla no existe)
     @Test
     void clonarPlantilla_PlantillaNoExiste_DevuelveError500() {
         when(rutinaDAO.findById(plantillaId)).thenReturn(Optional.empty());

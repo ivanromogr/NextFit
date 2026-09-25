@@ -7,7 +7,6 @@ public class EntrenadorOnboardingRequest {
     // Identificador para saber a qué entrenador actualizar
     private UUID idEntrenador;
 
-    // Datos específicos del perfil profesional
     private String especialidad;
     private Integer edad;
     private String genero;

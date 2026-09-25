@@ -80,7 +80,6 @@ class CalendarioControllerTest {
         eventoSaltado.setEntrenadorId(entrenadorId);
     }
 
-    // 🟢 TEST 1: Obtener eventos y verificar el cálculo de estados (PENDIENTE y SALTADO)
     @Test
     void getEventos_CalculaEstadosCorrectamente() {
         String inicio = LocalDate.now().minusDays(10).toString();
@@ -104,7 +103,6 @@ class CalendarioControllerTest {
         assertEquals("SALTADO", eventosDevueltos.get(1).get("estado"));
     }
 
-    // 🟢 TEST 2: Filtrado de privacidad (Bloquea eventos de otros entrenadores)
     @Test
     void getEventos_BloqueaEventosDeOtroEntrenador() {
         String inicio = LocalDate.now().minusDays(1).toString();
@@ -117,7 +115,7 @@ class CalendarioControllerTest {
         
         EventoCalendario eventoIntruso = new EventoCalendario();
         eventoIntruso.setRutina(rutinaIntrusa);
-        eventoIntruso.setEntrenadorId(intrusoId); // OJO: Creado por el intruso
+        eventoIntruso.setEntrenadorId(intrusoId);
 
         when(eventoDAO.findByClienteIdAndFechaBetween(eq(clienteId), any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(Arrays.asList(eventoPendiente, eventoIntruso));
@@ -130,7 +128,6 @@ class CalendarioControllerTest {
         assertEquals(1, respuesta.getBody().size());
     }
 
-    // 🟢 TEST 3: Crear un evento en el calendario
     @Test
     void crearEvento_DatosValidos_GuardaEventoCorrectamente() {
         Map<String, String> payload = new HashMap<>();
@@ -167,7 +164,6 @@ class CalendarioControllerTest {
         assertEquals(HttpStatus.FORBIDDEN, respuesta.getStatusCode());
     }
 
-    // 🟢 TEST 4: Cambiar el estado de un evento (Toggle Completado)
     @Test
     void toggleCompletado_EventoExiste_CambiaEstadoYGuarda() {
         when(eventoDAO.findById(eventoId)).thenReturn(Optional.of(eventoPendiente)); // Está en false

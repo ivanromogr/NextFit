@@ -32,6 +32,7 @@ import com.tuap.backend.dto.GuardarSesionRequest;
 import com.tuap.backend.dto.UltimaSesionResponse;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
+import com.tuap.backend.persistencia.SesionEntrenamientoDAO.ActividadDashboardResumen;
 
 @ExtendWith(MockitoExtension.class)
 class SesionEntrenamientoControllerTest {
@@ -88,7 +89,6 @@ class SesionEntrenamientoControllerTest {
         sesionMock.setSeries(Arrays.asList(s1, s2));
     }
 
-    // 🟢 TEST 1: Guardar una sesión
     @Test
     void guardarSesion_LlamaAlGestorYDevuelve200() throws Exception {
         GuardarSesionRequest req = new GuardarSesionRequest();
@@ -106,7 +106,6 @@ class SesionEntrenamientoControllerTest {
         assertEquals(2, body.get("seriesGuardadas"));
     }
 
-    // 🟢 TEST 2: Listar historial del cliente
     @Test
     void listarSesiones_DevuelveListaYStatus200() {
         when(sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId)).thenReturn(Arrays.asList(sesionMock));
@@ -119,7 +118,6 @@ class SesionEntrenamientoControllerTest {
         assertEquals(sesionMock.getId(), lista.get(0).get("id"));
     }
 
-    // 🟢 TEST 3: Obtener detalles de una sesión y verificar agrupamiento
     @Test
     void getDetalleSesionPorEvento_AgrupaSeriesPorEjercicio() {
         when(sesionDAO.findByEventoCalendario_Id(eventoId)).thenReturn(sesionMock);
@@ -144,7 +142,6 @@ class SesionEntrenamientoControllerTest {
         assertEquals(8, series.get(1).get("repes"));  // Verifica datos de la segunda serie
     }
 
-    // 🟢 TEST 4: Obtener última sesión para clonarla
     @Test
     void obtenerUltimaSesion_SesionExiste_DevuelveResponseFormateada() {
         UUID rutinaId = UUID.randomUUID();
@@ -161,12 +158,20 @@ class SesionEntrenamientoControllerTest {
         assertEquals(2, body.getSeries().size()); // 2 series que creamos en el setup
     }
 
-    // 🟢 TEST 5: Dashboard del Entrenador ("Vista de Águila")
     @Test
     void getDashboardResumen_CalculaMetricasYFeed() {
         UUID entrenadorId = UUID.randomUUID();
-        when(sesionDAO.findActividadDashboardByEntrenador(eq(entrenadorId), any(Pageable.class)))
-            .thenReturn(Arrays.asList(sesionMock));
+        when(sesionDAO.findResumenActividadDashboardByEntrenador(eq(entrenadorId), any(Pageable.class)))
+            .thenReturn(List.of(actividadResumen(
+                sesionMock.getId(),
+                clienteMock.getId(),
+                clienteMock.getNombre(),
+                clienteMock.getApellido(),
+                "Entreno Libre",
+                sesionMock.getFechaHora(),
+                sesionMock.getVolumenTotal(),
+                sesionMock.getDuracionSegundos()
+            )));
         
         // Simulamos las métricas del DAO
         when(sesionDAO.countClientesEntrenadosDashboardEnRangoByEntrenador(eq(entrenadorId), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(5L);
@@ -192,5 +197,20 @@ class SesionEntrenamientoControllerTest {
         
         // Verifica compatibilidad extra
         assertEquals(10L, body.get("totalClientes"));
+    }
+
+    private ActividadDashboardResumen actividadResumen(UUID id, UUID clienteId, String nombre, String apellido,
+                                                       String rutina, LocalDateTime fecha,
+                                                       Double volumen, Integer duracion) {
+        return new ActividadDashboardResumen() {
+            public UUID getId() { return id; }
+            public UUID getClienteId() { return clienteId; }
+            public String getClienteNombre() { return nombre; }
+            public String getClienteApellido() { return apellido; }
+            public String getRutina() { return rutina; }
+            public LocalDateTime getFecha() { return fecha; }
+            public Double getVolumen() { return volumen; }
+            public Integer getDuracion() { return duracion; }
+        };
     }
 }

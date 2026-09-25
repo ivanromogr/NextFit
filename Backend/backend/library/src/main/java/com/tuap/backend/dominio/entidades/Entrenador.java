@@ -137,7 +137,6 @@ public class Entrenador {
         this.email = email;
     }
 
-    // 🧹 Actualizados Getter y Setter
     public String getContrasena() {
         return contrasena;
     }

@@ -7,7 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 @Entity
@@ -52,15 +51,12 @@ public class Ejercicio {
     private String origen;
     private Boolean activo;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String instrucciones;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String consejosTecnicos;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String erroresComunes;
 

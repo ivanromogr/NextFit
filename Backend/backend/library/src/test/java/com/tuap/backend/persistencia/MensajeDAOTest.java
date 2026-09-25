@@ -62,7 +62,6 @@ class MensajeDAOTest {
         mensajeDAO.save(m3);
     }
 
-    // 🟢 TEST 1: Historial de chat entre dos personas (A y B)
     @Test
     void findChatHistory_DevuelveMensajesOrdenadosEntreDosUsuarios() {
         // Buscamos la conversación entre Alice y Bob
@@ -76,7 +75,6 @@ class MensajeDAOTest {
         assertEquals("¡Hola Alice! Todo bien. ¿Tú?", chat.get(1).getContenido());
     }
 
-    // 🟢 TEST 2: Lista de contactos únicos
     @Test
     void findContactosIds_DevuelveListaDeIdsUnicos() {
         // Buscamos con quién ha hablado Alice (Ha hablado con Bob y Charlie)
@@ -92,7 +90,6 @@ class MensajeDAOTest {
         assertEquals(aliceId, contactosBob.get(0));
     }
 
-    // 🟢 TEST 3: Contar mensajes no leídos globalmente
     @Test
     void countByDestinatarioIdAndLeidoFalse_CuentaCorrectamente() {
         // Alice tiene 1 mensaje sin leer (el de Bob)
@@ -108,7 +105,6 @@ class MensajeDAOTest {
         assertEquals(1, noLeidosCharlie);
     }
 
-    // 🟢 TEST 4: Buscar mensajes no leídos de un remitente concreto
     @Test
     void findByRemitenteIdAndDestinatarioIdAndLeidoFalse_DevuelveMensajesEspecificos() {
         // Mensajes que Bob le mandó a Alice y ella NO ha leído

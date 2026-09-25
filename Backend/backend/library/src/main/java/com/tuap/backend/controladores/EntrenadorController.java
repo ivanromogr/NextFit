@@ -31,6 +31,7 @@ import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
 import com.tuap.backend.persistencia.ResenaDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
+import com.tuap.backend.persistencia.SesionEntrenamientoDAO.ActividadDashboardResumen;
 
 @RestController
 @RequestMapping("/api/entrenador")
@@ -114,9 +115,10 @@ public class EntrenadorController {
 
     // --- 2. DASHBOARD RESUMEN ---
     @GetMapping("/{entrenadorId}/dashboard-resumen")
+    @Transactional(readOnly = true)
     public ResponseEntity<Object> getDashboardResumen(@PathVariable UUID entrenadorId) {
         try {
-            List<SesionEntrenamiento> ultimas = sesionDAO.findActividadDashboardByEntrenador(
+            List<ActividadDashboardResumen> ultimas = sesionDAO.findResumenActividadDashboardByEntrenador(
                     entrenadorId,
                     PageRequest.of(0, 10));
             Map<String, Long> metricas = obtenerMetricasDashboard(entrenadorId);
@@ -124,15 +126,13 @@ public class EntrenadorController {
             List<Map<String, Object>> feed = ultimas.stream().map(s -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", s.getId());
-                Cliente cliente = s.getCliente();
-                map.put("clienteId", cliente != null ? cliente.getId() : null);
-                map.put("clienteNombre", cliente != null
-                        ? (cliente.getNombre() + " " + (cliente.getApellido() != null ? cliente.getApellido() : "")).trim()
-                        : "Atleta");
-                map.put("foto", cliente != null ? cliente.getFotoPerfil() : null);
-                map.put("rutina", s.getNombre() != null ? s.getNombre() : "Libre");
-                map.put("fecha", s.getFechaHora());
-                map.put("volumen", s.getVolumenTotal());
+                map.put("clienteId", s.getClienteId());
+                map.put("clienteNombre", nombreCompleto(s.getClienteNombre(), s.getClienteApellido()));
+                map.put("foto", null);
+                map.put("rutina", s.getRutina() != null ? s.getRutina() : "Libre");
+                map.put("fecha", s.getFecha());
+                map.put("volumen", s.getVolumen() != null ? s.getVolumen() : 0);
+                map.put("duracion", s.getDuracion() != null ? s.getDuracion() : 0);
                 return map;
             }).toList();
 
@@ -144,6 +144,11 @@ public class EntrenadorController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
         }
+    }
+
+    private String nombreCompleto(String nombre, String apellido) {
+        String completo = ((nombre != null ? nombre : "") + " " + (apellido != null ? apellido : "")).trim();
+        return completo.isEmpty() ? "Atleta" : completo;
     }
 
     private Map<String, Long> obtenerMetricasDashboard(UUID entrenadorId) {

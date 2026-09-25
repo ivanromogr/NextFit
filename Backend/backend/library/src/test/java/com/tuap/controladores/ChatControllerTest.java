@@ -58,7 +58,6 @@ class ChatControllerTest {
         mensajeFake.setContenido("¡Hola, entrenador!");
     }
 
-    // 🟢 TEST 1: Enviar mensaje por WebSocket
     @Test
     void processMessage_AsignaFechaYGuardaYRetransmite() {
         when(mensajeDAO.save(any(Mensaje.class))).thenReturn(mensajeFake);
@@ -72,7 +71,6 @@ class ChatControllerTest {
         verify(messagingTemplate, times(1)).convertAndSend(eq("/topic/mensajes/" + destinatarioId), any(Mensaje.class));
     }
 
-    // 🟢 TEST 2: Marcar mensajes como leídos
     @Test
     void marcarComoLeido_MensajesNoLeidos_ActualizaYRetransmite() {
         List<Mensaje> noLeidos = Arrays.asList(mensajeFake);
@@ -90,7 +88,6 @@ class ChatControllerTest {
         verify(messagingTemplate, times(1)).convertAndSend(eq("/topic/mensajes/" + remitenteId), eq(mensajeFake));
     }
 
-    // 🟢 TEST 3: Obtener historial de chat
     @Test
     void getHistorial_DevuelveListaDeMensajesYStatus200() {
         List<Mensaje> historial = Arrays.asList(mensajeFake);
@@ -103,7 +100,6 @@ class ChatControllerTest {
         assertEquals("¡Hola, entrenador!", respuesta.getBody().get(0).getContenido());
     }
 
-    // 🟢 TEST 4: Obtener lista de contactos
     @Test
     void obtenerContactosDeUsuario_ContactosExisten_DevuelveListaClientes() {
         UUID contactoId = UUID.randomUUID();

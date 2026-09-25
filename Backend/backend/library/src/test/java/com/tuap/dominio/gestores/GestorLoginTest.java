@@ -52,7 +52,6 @@ class GestorLoginTest {
         clienteMock.setEmail("test@test.com");
     }
 
-    // 🟢 TEST 1: Registro Exitoso (Camino Feliz)
     @Test
     void registroApi_DatosValidos_RegistraClienteYDevuelve200() {
         // --- PREPARACIÓN ---
@@ -91,7 +90,6 @@ req.setRol("cliente");
         assertEquals("cliente", body.get("rol"));
     }
 
-    // 🔴 TEST 2: Intentar registrarse con un email que ya existe (Camino Triste)
     @Test
     void registroApi_EmailYaExiste_DevuelveError409() {
         // --- PREPARACIÓN ---
@@ -117,7 +115,6 @@ req.setRol("cliente");
         verify(clienteDAO, never()).save(any());
     }
 
-    // 🔴 TEST 3: Faltan datos en el formulario (Camino Triste)
     @Test
     void registroApi_FaltaContraseña_DevuelveError400() {
         // --- PREPARACIÓN ---
@@ -136,7 +133,6 @@ req.setRol("cliente");
         assertEquals("Rellena todos los campos", respuesta.getBody());
     }
 
-    // 🟢 TEST 4: Onboarding del Cliente funciona y calcula edad
     @Test
     void completarOnboardingCliente_DatosValidos_ActualizaYGuarda() {
         // --- PREPARACIÓN ---

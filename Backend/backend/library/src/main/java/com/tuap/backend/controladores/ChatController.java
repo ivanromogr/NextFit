@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.web.bind.annotation.RestController; // 🧹 Cambiado
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -23,18 +23,16 @@ import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
 import com.tuap.backend.persistencia.MensajeDAO;
 
-@RestController // 🧹 SOLUCIÓN SONARQUBE: RestController en lugar de Controller + ResponseBody
+@RestController
 public class ChatController {
 
     private static final String TOPIC_MENSAJES = "/topic/mensajes/";
 
-    // 🧹 SOLUCIÓN SONARQUBE: Campos final para inyección por constructor
     private final SimpMessagingTemplate messagingTemplate;
     private final MensajeDAO mensajeDAO;
     private final ClienteDAO clienteDAO;
     private final EntrenadorDAO entrenadorDAO;
 
-    // 🧹 SOLUCIÓN SONARQUBE: Inyección por constructor
     public ChatController(SimpMessagingTemplate messagingTemplate,
                           MensajeDAO mensajeDAO,
                           ClienteDAO clienteDAO,

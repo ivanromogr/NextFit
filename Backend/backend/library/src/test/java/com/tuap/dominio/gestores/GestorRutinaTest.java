@@ -69,7 +69,6 @@ class GestorRutinaTest {
         SecurityContextHolder.clearContext();
     }
 
-    // 🟢 TEST 1: Crear rutina manual para un cliente (Camino Feliz)
     @Test
     void crearRutinaManual_ClienteYEjerciciosExisten_CreaRutinaCorrectamente() {
         // --- PREPARACIÓN ---
@@ -106,7 +105,6 @@ class GestorRutinaTest {
         verify(detalleRutinaDAO, times(1)).saveAll(anyList());
     }
 
-    // 🟢 TEST 2: Generador IA crea múltiples rutinas (Camino Feliz)
     @Test
     void generarRutinaAutomatica_DatosValidos_GeneraRutinasPorDia() {
         // --- PREPARACIÓN ---
@@ -119,7 +117,6 @@ class GestorRutinaTest {
         when(clienteDAO.findById(clienteId)).thenReturn(Optional.of(clienteMock));
         when(rutinaDAO.save(any(Rutina.class))).thenAnswer(i -> i.getArguments()[0]);
         
-        // Simulamos que el buscador de ejercicios SIEMPRE encuentra algo para que la IA funcione
         when(ejercicioDAO.findFirstByNombreContainingIgnoreCase(anyString()))
             .thenReturn(Optional.of(ejercicioMock));
 
@@ -135,7 +132,6 @@ class GestorRutinaTest {
         verify(detalleRutinaDAO, times(3)).saveAll(anyList());
     }
 
-    // 🔴 TEST 3: Generador IA no encuentra ejercicios (Camino Triste)
     @Test
     void generarRutinaAutomatica_SinEjerciciosCompatibles_LanzaExcepcion() {
         // --- PREPARACIÓN ---

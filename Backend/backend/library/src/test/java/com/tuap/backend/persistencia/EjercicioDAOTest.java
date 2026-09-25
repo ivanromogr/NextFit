@@ -14,7 +14,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import com.tuap.backend.dominio.entidades.Ejercicio;
 
-@DataJpaTest // 🪄 MAGIA: Levanta la base de datos en memoria (H2) solo para este test
+@DataJpaTest
 @TestPropertySource(properties = {
     "spring.jpa.hibernate.ddl-auto=create-drop",
     "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
@@ -42,12 +42,12 @@ class EjercicioDAOTest {
         press = new Ejercicio();
         press.setNombre("Press Banca");
         press.setGrupoMuscular("Pecho");
-        press.setEquipamiento("Barra"); // ⚠️ No apto para casa
+        press.setEquipamiento("Barra");
 
         flexiones = new Ejercicio();
         flexiones.setNombre("Flexiones Diamante");
         flexiones.setGrupoMuscular("Pecho");
-        flexiones.setEquipamiento("Peso Corporal"); // ✅ Apto para casa
+        flexiones.setEquipamiento("Peso Corporal");
 
         // Los guardamos en nuestra base de datos temporal
         ejercicioDAO.save(domi);
@@ -55,7 +55,6 @@ class EjercicioDAOTest {
         ejercicioDAO.save(flexiones);
     }
 
-    // 🟢 TEST 1: Buscar Avanzado (Filtro por nombre ignorando mayúsculas)
     @Test
     void buscarAvanzado_PorNombre_DevuelveCoincidencias() {
         // Buscamos "DOMI" en mayúsculas, debería encontrar "Dominadas"
@@ -65,7 +64,6 @@ class EjercicioDAOTest {
         assertEquals("Dominadas", resultado.get(0).getNombre());
     }
 
-    // 🟢 TEST 2: Buscar Avanzado (Filtro por músculo exacto)
     @Test
     void buscarAvanzado_PorMusculo_DevuelveCoincidencias() {
         // Buscamos Pecho, deberían salir el Press Banca y las Flexiones
@@ -74,7 +72,6 @@ class EjercicioDAOTest {
         assertEquals(2, resultado.size());
     }
 
-    // 🟢 TEST 3: Buscar Avanzado (Filtros vacíos devuelven todo)
     @Test
     void buscarAvanzado_SinFiltros_DevuelveTodos() {
         List<Ejercicio> resultado = ejercicioDAO.buscarAvanzado(null, null);
@@ -82,7 +79,6 @@ class EjercicioDAOTest {
         assertEquals(3, resultado.size());
     }
 
-    // 🟢 TEST 4: Buscar por Nombre simple (El buscador manual)
     @Test
     void buscarPorNombre_TextoParcial_DevuelveCoincidencias() {
         // Buscamos "flex", debería sacar "Flexiones Diamante"
@@ -92,7 +88,6 @@ class EjercicioDAOTest {
         assertTrue(resultado.get(0).getNombre().contains("Flexiones"));
     }
 
-    // 🟢 TEST 5: Consulta Nativa (Ejercicio Aleatorio para CASA)
     @Test
     void encontrarEjercicioAleatorio_ParaCasa_FiltraEquipamientoCorrectamente() {
         // --- LA TRAMPA DEL TEST ---
@@ -107,7 +102,6 @@ class EjercicioDAOTest {
         assertEquals("Peso Corporal", aleatorio.getEquipamiento());
     }
 
-    // 🟢 TEST 6: El método derivado de Spring (findFirstBy...)
     @Test
     void findFirstByNombreContainingIgnoreCase_DevuelveElPrimeroQueCoincida() {
         Optional<Ejercicio> encontrado = ejercicioDAO.findFirstByNombreContainingIgnoreCase("banca");

@@ -31,7 +31,6 @@ public class CalendarioController {
     private final RutinaDAO rutinaDAO;
     private final SesionEntrenamientoDAO sesionDAO;
 
-    // 🧹 SOLUCIÓN SONARQUBE: Constructor Injection en lugar de Field Injection
     public CalendarioController(
             EventoCalendarioDAO eventoDAO,
             ClienteDAO clienteDAO,

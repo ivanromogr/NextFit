@@ -90,7 +90,6 @@ class ResenaDAOTest {
         entityManager.flush();
     }
 
-    // 🟢 TEST 1: Comprobar que devuelve las reseñas en orden descendente (las nuevas primero)
     @Test
     void findByEntrenadorIdOrderByFechaDesc_DevuelveListaOrdenada() {
         List<Resena> reseñas = resenaDAO.findByEntrenadorIdOrderByFechaDesc(entrenadorMock.getId());
@@ -103,7 +102,6 @@ class ResenaDAOTest {
         assertEquals(3, reseñas.get(1).getEstrellas());
     }
 
-    // 🟢 TEST 2: Calcular la nota media matemática
     @Test
     void calcularMediaPorEntrenador_ConResenas_CalculaLaMedia() {
         // Arnold tiene un 3 y un 5. La media aritmética es 4.0
@@ -113,7 +111,6 @@ class ResenaDAOTest {
         assertEquals(4.0, media);
     }
 
-    // 🟢 TEST 3: Calcular la media cuando no hay reseñas (El famoso NullPointer)
     @Test
     void calcularMediaPorEntrenador_SinResenas_DevuelveNull() {
         // Ronnie no tiene ninguna reseña. Debería devolver null sin explotar.
