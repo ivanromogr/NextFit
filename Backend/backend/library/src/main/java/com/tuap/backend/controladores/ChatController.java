@@ -11,6 +11,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import java.security.Principal;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,46 +26,65 @@ import com.tuap.backend.dominio.entidades.Mensaje;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
 import com.tuap.backend.persistencia.MensajeDAO;
+import com.tuap.backend.auth.AuthenticatedUser;
+import com.tuap.backend.auth.OwnershipService;
+import com.tuap.backend.servicios.ChatAttachmentAccessService;
 
 @RestController
 public class ChatController {
 
-    private static final String TOPIC_MENSAJES = "/topic/mensajes/";
+    private static final String USER_QUEUE = "/queue/mensajes";
 
     private final SimpMessagingTemplate messagingTemplate;
     private final MensajeDAO mensajeDAO;
     private final ClienteDAO clienteDAO;
     private final EntrenadorDAO entrenadorDAO;
+    private final OwnershipService ownershipService;
+    private final ChatAttachmentAccessService chatAttachmentAccessService;
 
     public ChatController(SimpMessagingTemplate messagingTemplate,
                           MensajeDAO mensajeDAO,
                           ClienteDAO clienteDAO,
-                          EntrenadorDAO entrenadorDAO) {
+                          EntrenadorDAO entrenadorDAO,
+                          OwnershipService ownershipService,
+                          ChatAttachmentAccessService chatAttachmentAccessService) {
         this.messagingTemplate = messagingTemplate;
         this.mensajeDAO = mensajeDAO;
         this.clienteDAO = clienteDAO;
         this.entrenadorDAO = entrenadorDAO;
+        this.ownershipService = ownershipService;
+        this.chatAttachmentAccessService = chatAttachmentAccessService;
     }
 
     // Enviar mensaje (WebSocket)
     @MessageMapping("/chat")
-    public void processMessage(@Payload Mensaje mensaje) {
+    public void processMessage(@Payload Mensaje mensaje, Principal principal) {
+        AuthenticatedUser user = authenticatedUser(principal);
+        if (mensaje.getRemitenteId() != null && !mensaje.getRemitenteId().equals(user.userId())) deny();
+        ownershipService.requireCanChatWith(user, mensaje.getDestinatarioId());
+        if (mensaje.getAttachmentId() != null) {
+            chatAttachmentAccessService.validateForMessage(mensaje.getAttachmentId(), user);
+        }
+        // A legacy URL is never treated as an attachment authority.
+        mensaje.setArchivoUrl(null);
+        mensaje.setRemitenteId(user.userId());
         mensaje.setFechaHora(LocalDateTime.now());
         mensaje.setLeido(false);
         Mensaje guardado = mensajeDAO.save(mensaje);
-
-        messagingTemplate.convertAndSend(TOPIC_MENSAJES + mensaje.getRemitenteId(), guardado);
-        messagingTemplate.convertAndSend(TOPIC_MENSAJES + mensaje.getDestinatarioId(), guardado);
+        messagingTemplate.convertAndSendToUser(user.userId().toString(), USER_QUEUE, guardado);
+        messagingTemplate.convertAndSendToUser(mensaje.getDestinatarioId().toString(), USER_QUEUE, guardado);
     }
 
     // Marcar mensajes como leídos (WebSocket)
     @MessageMapping("/chat/leer")
     @Transactional
-    public void marcarComoLeido(@Payload Map<String, String> payload) {
+    public void marcarComoLeido(@Payload Map<String, String> payload, Principal principal) {
+        AuthenticatedUser user = authenticatedUser(principal);
         UUID remitenteId = UUID.fromString(payload.get("remitenteId"));
-        UUID destinatarioId = UUID.fromString(payload.get("destinatarioId"));
+        if (payload.containsKey("destinatarioId") && !user.userId().toString().equals(payload.get("destinatarioId"))) deny();
+        ownershipService.requireCanChatWith(user, remitenteId);
 
-        List<Mensaje> noLeidos = mensajeDAO.findByRemitenteIdAndDestinatarioIdAndLeidoFalse(remitenteId, destinatarioId);
+        List<Mensaje> noLeidos = mensajeDAO.findByRemitenteIdAndDestinatarioIdAndLeidoFalse(remitenteId, user.userId());
 
         if (!noLeidos.isEmpty()) {
             for (Mensaje m : noLeidos) {
@@ -70,7 +93,8 @@ public class ChatController {
             mensajeDAO.saveAll(noLeidos);
 
             for (Mensaje m : noLeidos) {
-                messagingTemplate.convertAndSend(TOPIC_MENSAJES + remitenteId, m);
+                messagingTemplate.convertAndSendToUser(remitenteId.toString(), USER_QUEUE, m);
+                messagingTemplate.convertAndSendToUser(user.userId().toString(), USER_QUEUE, m);
             }
         }
     }
@@ -78,42 +102,55 @@ public class ChatController {
     // Obtener historial de chat (REST)
     @GetMapping("/api/chat/historial")
     public ResponseEntity<List<Mensaje>> getHistorial(
-            @RequestParam UUID usuario1, 
-            @RequestParam UUID usuario2) {
-        return ResponseEntity.ok(mensajeDAO.findChatHistory(usuario1, usuario2));
+            @RequestParam(required = false) UUID usuario1,
+            @RequestParam(required = false) UUID usuario2,
+            @RequestParam(required = false) UUID otroUsuarioId,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        UUID other = otroUsuarioId != null ? otroUsuarioId : otherParticipant(usuario1, usuario2, user);
+        ownershipService.requireCanChatWith(user, other);
+        return ResponseEntity.ok(mensajeDAO.findChatHistory(user.userId(), other));
     }
 
     /**
      * Obtener la lista de personas con las que el usuario ha hablado.
      */
     @GetMapping("/api/chat/contactos") 
-    public ResponseEntity<List<Map<String, Object>>> obtenerContactosDeUsuario(@RequestParam UUID usuarioId) {
+    public ResponseEntity<List<Map<String, Object>>> obtenerContactosDeUsuario(
+            @RequestParam(required = false) UUID usuarioId, @AuthenticationPrincipal AuthenticatedUser user) {
         try {
-            List<UUID> contactosIds = mensajeDAO.findContactosIds(usuarioId);
-            
-            if (contactosIds == null || contactosIds.isEmpty()) {
-                return ResponseEntity.ok(new ArrayList<>());
-            }
-
             List<Map<String, Object>> contactos = new ArrayList<>();
-            for (UUID contactoId : contactosIds) {
-                clienteDAO.findById(contactoId)
-                        .map(this::serializarClienteContacto)
-                        .ifPresent(contactos::add);
-
-                if (contactos.stream().noneMatch(c -> contactoId.equals(c.get("id")))) {
-                    entrenadorDAO.findById(contactoId)
-                            .map(this::serializarEntrenadorContacto)
-                            .ifPresent(contactos::add);
-                }
+            if (usuarioId != null && !usuarioId.equals(user.userId())) deny();
+            if (user.role() == com.tuap.backend.auth.Role.CLIENTE) {
+                clienteDAO.findById(user.userId()).map(Cliente::getEntrenador)
+                        .map(this::serializarEntrenadorContacto).ifPresent(contactos::add);
+            } else if (user.role() == com.tuap.backend.auth.Role.ENTRENADOR) {
+                clienteDAO.findByEntrenadorId(user.userId()).stream()
+                        .map(this::serializarClienteContacto).forEach(contactos::add);
             }
 
             return ResponseEntity.ok(contactos);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             // Se mantiene el log del error pero se elimina la traza completa en la respuesta por seguridad
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    private AuthenticatedUser authenticatedUser(Principal principal) {
+        if (principal instanceof Authentication authentication && authentication.getPrincipal() instanceof AuthenticatedUser user) return user;
+        throw new AccessDeniedException("No tienes permisos para realizar esta acción");
+    }
+
+    private UUID otherParticipant(UUID usuario1, UUID usuario2, AuthenticatedUser user) {
+        if (usuario1 == null || usuario2 == null) deny();
+        if (user.userId().equals(usuario1)) return usuario2;
+        if (user.userId().equals(usuario2)) return usuario1;
+        deny();
+        return null;
+    }
+
+    private void deny() { throw new AccessDeniedException("No tienes permisos para realizar esta acción"); }
 
     private Map<String, Object> serializarClienteContacto(Cliente cliente) {
         Map<String, Object> data = new HashMap<>();

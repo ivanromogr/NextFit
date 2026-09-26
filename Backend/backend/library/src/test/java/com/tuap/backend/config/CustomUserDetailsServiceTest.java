@@ -2,8 +2,8 @@ package com.tuap.backend.config;
 
 
 
-import com.tuap.backend.dominio.entidades.Cliente;
-import com.tuap.backend.dominio.entidades.Entrenador;
+import com.tuap.backend.auth.AmbiguousIdentityException;
+import com.tuap.backend.auth.IdentityResolver;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,36 +24,16 @@ import static org.mockito.Mockito.*;
 class CustomUserDetailsServiceTest {
 
     @Mock
-    private ClienteDAO clienteDAO;
-
-    @Mock
-    private EntrenadorDAO entrenadorDAO;
+    private IdentityResolver identityResolver;
 
     @InjectMocks
     private CustomUserDetailsService customUserDetailsService;
 
-    private Cliente clienteMock;
-    private Entrenador entrenadorMock;
-
-    @BeforeEach
-    void setUp() {
-        // Preparamos un cliente falso
-        clienteMock = new Cliente();
-        clienteMock.setEmail("cliente@test.com");
-        clienteMock.setContrasena("pass123");
-        clienteMock.setRol("ROLE_CLIENTE");
-
-        // Preparamos un entrenador falso
-        entrenadorMock = new Entrenador();
-        entrenadorMock.setEmail("entrenador@test.com");
-        entrenadorMock.setContrasena("pass456");
-        entrenadorMock.setRol("ROLE_ENTRENADOR");
-    }
-
     @Test
     void loadUserByUsername_ClienteEncontrado() {
-        // Simulamos que la BBDD encuentra al cliente
-        when(clienteDAO.findByEmail("cliente@test.com")).thenReturn(Optional.of(clienteMock));
+        when(identityResolver.findByEmail("cliente@test.com")).thenReturn(Optional.of(
+                new com.tuap.backend.auth.AuthenticatableIdentity(java.util.UUID.randomUUID(), "cliente@test.com",
+                        com.tuap.backend.auth.Role.CLIENTE, "pass123")));
 
         UserDetails userDetails = customUserDetailsService.loadUserByUsername("cliente@test.com");
 
@@ -61,15 +41,14 @@ class CustomUserDetailsServiceTest {
         assertEquals("cliente@test.com", userDetails.getUsername());
         assertEquals("pass123", userDetails.getPassword());
         
-        verify(clienteDAO, times(1)).findByEmail("cliente@test.com");
-        verify(entrenadorDAO, never()).findByEmail(anyString()); // No debería buscar entrenadores
+        verify(identityResolver, times(1)).findByEmail("cliente@test.com");
     }
 
     @Test
     void loadUserByUsername_EntrenadorEncontrado() {
-        // Simulamos que no hay cliente, pero sí hay entrenador
-        when(clienteDAO.findByEmail("entrenador@test.com")).thenReturn(Optional.empty());
-        when(entrenadorDAO.findByEmail("entrenador@test.com")).thenReturn(Optional.of(entrenadorMock));
+        when(identityResolver.findByEmail("entrenador@test.com")).thenReturn(Optional.of(
+                new com.tuap.backend.auth.AuthenticatableIdentity(java.util.UUID.randomUUID(), "entrenador@test.com",
+                        com.tuap.backend.auth.Role.ENTRENADOR, "pass456")));
 
         UserDetails userDetails = customUserDetailsService.loadUserByUsername("entrenador@test.com");
 
@@ -77,22 +56,26 @@ class CustomUserDetailsServiceTest {
         assertEquals("entrenador@test.com", userDetails.getUsername());
         assertEquals("pass456", userDetails.getPassword());
 
-        verify(clienteDAO, times(1)).findByEmail("entrenador@test.com");
-        verify(entrenadorDAO, times(1)).findByEmail("entrenador@test.com");
+        verify(identityResolver, times(1)).findByEmail("entrenador@test.com");
     }
 
     @Test
     void loadUserByUsername_UsuarioNoEncontrado_LanzaExcepcion() {
-        // Simulamos que el email no existe en ningún lado
-        when(clienteDAO.findByEmail("nadie@test.com")).thenReturn(Optional.empty());
-        when(entrenadorDAO.findByEmail("nadie@test.com")).thenReturn(Optional.empty());
+        when(identityResolver.findByEmail("nadie@test.com")).thenReturn(Optional.empty());
 
         // Verificamos que salta la excepción correcta
         assertThrows(UsernameNotFoundException.class, () -> {
             customUserDetailsService.loadUserByUsername("nadie@test.com");
         });
 
-        verify(clienteDAO, times(1)).findByEmail("nadie@test.com");
-        verify(entrenadorDAO, times(1)).findByEmail("nadie@test.com");
+        verify(identityResolver, times(1)).findByEmail("nadie@test.com");
+    }
+
+    @Test
+    void loadUserByUsername_IdentidadAmbigua_LanzaError() {
+        when(identityResolver.findByEmail("duplicado@test.com")).thenThrow(new AmbiguousIdentityException());
+
+        assertThrows(AmbiguousIdentityException.class,
+                () -> customUserDetailsService.loadUserByUsername("duplicado@test.com"));
     }
 }

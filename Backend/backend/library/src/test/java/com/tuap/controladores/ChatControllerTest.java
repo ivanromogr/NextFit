@@ -31,6 +31,8 @@ import com.tuap.backend.dominio.entidades.Mensaje;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
 import com.tuap.backend.persistencia.MensajeDAO;
+import com.tuap.backend.auth.AuthenticatedUser;
+import com.tuap.backend.auth.Role;
 
 @ExtendWith(MockitoExtension.class)
 class ChatControllerTest {
@@ -42,6 +44,8 @@ class ChatControllerTest {
     @Mock private MensajeDAO mensajeDAO;
     @Mock private ClienteDAO clienteDAO;
     @Mock private EntrenadorDAO entrenadorDAO;
+    @Mock private com.tuap.backend.auth.OwnershipService ownershipService;
+    @Mock private com.tuap.backend.servicios.ChatAttachmentAccessService chatAttachmentAccessService;
 
     private UUID remitenteId;
     private UUID destinatarioId;
@@ -62,13 +66,13 @@ class ChatControllerTest {
     void processMessage_AsignaFechaYGuardaYRetransmite() {
         when(mensajeDAO.save(any(Mensaje.class))).thenReturn(mensajeFake);
 
-        chatController.processMessage(mensajeFake);
+        chatController.processMessage(mensajeFake, principal(remitenteId, Role.CLIENTE));
 
         assertNotNull(mensajeFake.getFechaHora());
         assertFalse(mensajeFake.isLeido());
         verify(mensajeDAO, times(1)).save(mensajeFake);
-        verify(messagingTemplate, times(1)).convertAndSend(eq("/topic/mensajes/" + remitenteId), any(Mensaje.class));
-        verify(messagingTemplate, times(1)).convertAndSend(eq("/topic/mensajes/" + destinatarioId), any(Mensaje.class));
+        verify(messagingTemplate, times(1)).convertAndSendToUser(eq(remitenteId.toString()), eq("/queue/mensajes"), any(Mensaje.class));
+        verify(messagingTemplate, times(1)).convertAndSendToUser(eq(destinatarioId.toString()), eq("/queue/mensajes"), any(Mensaje.class));
     }
 
     @Test
@@ -81,11 +85,11 @@ class ChatControllerTest {
             "destinatarioId", destinatarioId.toString()
         );
 
-        chatController.marcarComoLeido(payload);
+        chatController.marcarComoLeido(payload, principal(destinatarioId, Role.ENTRENADOR));
 
         assertTrue(mensajeFake.isLeido()); // Verifica que se marcó como leído
         verify(mensajeDAO, times(1)).saveAll(noLeidos);
-        verify(messagingTemplate, times(1)).convertAndSend(eq("/topic/mensajes/" + remitenteId), eq(mensajeFake));
+        verify(messagingTemplate, times(1)).convertAndSendToUser(eq(remitenteId.toString()), eq("/queue/mensajes"), eq(mensajeFake));
     }
 
     @Test
@@ -93,7 +97,8 @@ class ChatControllerTest {
         List<Mensaje> historial = Arrays.asList(mensajeFake);
         when(mensajeDAO.findChatHistory(remitenteId, destinatarioId)).thenReturn(historial);
 
-        ResponseEntity<List<Mensaje>> respuesta = chatController.getHistorial(remitenteId, destinatarioId);
+        ResponseEntity<List<Mensaje>> respuesta = chatController.getHistorial(remitenteId, destinatarioId, null,
+                new AuthenticatedUser(remitenteId, "test@local", Role.CLIENTE));
 
         assertEquals(HttpStatus.OK, respuesta.getStatusCode());
         assertEquals(1, respuesta.getBody().size());
@@ -102,20 +107,36 @@ class ChatControllerTest {
 
     @Test
     void obtenerContactosDeUsuario_ContactosExisten_DevuelveListaClientes() {
-        UUID contactoId = UUID.randomUUID();
-        List<UUID> idsDeContactos = Arrays.asList(contactoId);
-        
         Cliente contactoFake = new Cliente();
-        contactoFake.setId(contactoId);
+        contactoFake.setId(UUID.randomUUID());
         contactoFake.setNombre("Paco");
 
-        when(mensajeDAO.findContactosIds(remitenteId)).thenReturn(idsDeContactos);
-        when(clienteDAO.findById(contactoId)).thenReturn(Optional.of(contactoFake));
+        when(clienteDAO.findByEntrenadorId(remitenteId)).thenReturn(List.of(contactoFake));
 
-        ResponseEntity<List<Map<String, Object>>> respuesta = chatController.obtenerContactosDeUsuario(remitenteId);
+        ResponseEntity<List<Map<String, Object>>> respuesta = chatController.obtenerContactosDeUsuario(remitenteId,
+                new AuthenticatedUser(remitenteId, "test@local", Role.ENTRENADOR));
 
         assertEquals(HttpStatus.OK, respuesta.getStatusCode());
         assertEquals("Paco", respuesta.getBody().get(0).get("nombre"));
         assertEquals("CLIENTE", respuesta.getBody().get(0).get("tipoContacto"));
+    }
+
+    @Test
+    void processMessage_ValidatesAttachmentIdAndDiscardsLegacyUrl() {
+        UUID attachmentId = UUID.randomUUID();
+        mensajeFake.setAttachmentId(attachmentId);
+        mensajeFake.setArchivoUrl("https://untrusted.example/file.jpg");
+        when(mensajeDAO.save(any(Mensaje.class))).thenReturn(mensajeFake);
+
+        chatController.processMessage(mensajeFake, principal(remitenteId, Role.CLIENTE));
+
+        verify(chatAttachmentAccessService).validateForMessage(attachmentId,
+                new AuthenticatedUser(remitenteId, "test@local", Role.CLIENTE));
+        assertEquals(null, mensajeFake.getArchivoUrl());
+    }
+
+    private java.security.Principal principal(UUID id, Role role) {
+        return new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                new AuthenticatedUser(id, "test@local", role), null, List.of());
     }
 }

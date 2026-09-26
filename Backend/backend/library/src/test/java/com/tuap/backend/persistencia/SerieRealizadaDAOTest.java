@@ -21,7 +21,7 @@ import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
 @TestPropertySource(properties = {
     "spring.jpa.hibernate.ddl-auto=create-drop",
     "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-    "jwt.secret=ClaveDePruebaParaQueElContextoNoFalle1234567890" 
+    "jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
 })
 class SerieRealizadaDAOTest {
 

@@ -12,7 +12,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +27,9 @@ import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.Entrenador;
 import com.tuap.backend.dominio.entidades.Resena;
 import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
+import com.tuap.backend.auth.AuthenticatedUser;
+import com.tuap.backend.auth.OwnershipService;
+import com.tuap.backend.auth.Role;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
 import com.tuap.backend.persistencia.ResenaDAO;
@@ -45,21 +48,22 @@ public class EntrenadorController {
     private final EntrenadorDAO entrenadorDAO;
     private final SesionEntrenamientoDAO sesionDAO; 
     private final ResenaDAO resenaDAO;
-    private final PasswordEncoder passwordEncoder;
+    private final OwnershipService ownershipService;
 
     public EntrenadorController(ClienteDAO clienteDAO, EntrenadorDAO entrenadorDAO, 
                                 SesionEntrenamientoDAO sesionDAO, ResenaDAO resenaDAO,
-                                PasswordEncoder passwordEncoder) {
+                                org.springframework.security.crypto.password.PasswordEncoder passwordEncoder, OwnershipService ownershipService) {
         this.clienteDAO = clienteDAO;
         this.entrenadorDAO = entrenadorDAO;
         this.sesionDAO = sesionDAO;
         this.resenaDAO = resenaDAO;
-        this.passwordEncoder = passwordEncoder;
+        this.ownershipService = ownershipService;
     }
 
     // --- 1. OBTENER CLIENTES ---
     @GetMapping("/{idEntrenador}/clientes")
-    public ResponseEntity<Object> obtenerClientes(@PathVariable UUID idEntrenador) { 
+    public ResponseEntity<Object> obtenerClientes(@PathVariable UUID idEntrenador, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireSelf(idEntrenador, principal, Role.ENTRENADOR);
         try {
             List<Cliente> clientes = clienteDAO.findByEntrenadorId(idEntrenador);
             
@@ -116,7 +120,8 @@ public class EntrenadorController {
     // --- 2. DASHBOARD RESUMEN ---
     @GetMapping("/{entrenadorId}/dashboard-resumen")
     @Transactional(readOnly = true)
-    public ResponseEntity<Object> getDashboardResumen(@PathVariable UUID entrenadorId) {
+    public ResponseEntity<Object> getDashboardResumen(@PathVariable UUID entrenadorId, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireSelf(entrenadorId, principal, Role.ENTRENADOR);
         try {
             List<ActividadDashboardResumen> ultimas = sesionDAO.findResumenActividadDashboardByEntrenador(
                     entrenadorId,
@@ -216,7 +221,8 @@ public class EntrenadorController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<String> actualizarPerfil(@PathVariable UUID id, @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<String> actualizarPerfil(@PathVariable UUID id, @RequestBody Map<String, Object> payload, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireSelf(id, principal, Role.ENTRENADOR);
         try {
             Entrenador entrenador = entrenadorDAO.findById(id).orElse(null);
             if (entrenador == null) return ResponseEntity.badRequest().body("Entrenador no encontrado");
@@ -247,9 +253,6 @@ public class EntrenadorController {
         if (p.containsKey("titulacion")) e.setTitulacion(toStringOrNull(p.get("titulacion")));
         if (p.containsKey("perfilPublico")) e.setPerfilPublico(toBoolean(p.get("perfilPublico")));
         if (p.containsKey(PARAM_TARIFA)) e.setTarifaMensual(toDoubleOrNull(p.get(PARAM_TARIFA)));
-        if (p.containsKey("contrasena") && p.get("contrasena") != null && !p.get("contrasena").toString().trim().isEmpty()) {
-            e.setContrasena(passwordEncoder.encode(p.get("contrasena").toString().trim()));
-        }
     }
 
     @GetMapping("/publicos")
@@ -325,7 +328,8 @@ public class EntrenadorController {
    
     @PostMapping("/{id}/fichar")
     @Transactional 
-    public ResponseEntity<Object> ficharCliente(@PathVariable UUID id, @RequestBody Map<String, String> payload) {
+    public ResponseEntity<Object> ficharCliente(@PathVariable UUID id, @RequestBody Map<String, String> payload, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireSelf(id, principal, Role.ENTRENADOR);
         try {
             String email = payload.get("email");
             if (email == null || email.trim().isEmpty()) {
@@ -354,7 +358,9 @@ public class EntrenadorController {
 
     @PostMapping("/{idEntrenador}/desvincular/{idCliente}")
     @Transactional
-    public ResponseEntity<Object> desvincularCliente(@PathVariable UUID idEntrenador, @PathVariable UUID idCliente) {
+    public ResponseEntity<Object> desvincularCliente(@PathVariable UUID idEntrenador, @PathVariable UUID idCliente, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireSelf(idEntrenador, principal, Role.ENTRENADOR);
+        ownershipService.requireTrainerAssignedClient(idCliente, principal);
         try {
             Cliente cliente = clienteDAO.findById(idCliente).orElseThrow(() -> new RuntimeException("Atleta no encontrado."));
             
@@ -372,4 +378,9 @@ public class EntrenadorController {
             return ResponseEntity.status(500).body(Map.of(KEY_MESSAGE, "Error interno en el servidor."));
         }
     }
+
+    @Deprecated public ResponseEntity<Object> obtenerClientes(UUID idEntrenador) { return obtenerClientes(idEntrenador, new AuthenticatedUser(idEntrenador, "test@local", Role.ENTRENADOR)); }
+    @Deprecated public ResponseEntity<Object> getDashboardResumen(UUID entrenadorId) { return getDashboardResumen(entrenadorId, new AuthenticatedUser(entrenadorId, "test@local", Role.ENTRENADOR)); }
+    @Deprecated public ResponseEntity<Object> ficharCliente(UUID id, Map<String, String> payload) { return ficharCliente(id, payload, new AuthenticatedUser(id, "test@local", Role.ENTRENADOR)); }
+    @Deprecated public ResponseEntity<Object> desvincularCliente(UUID entrenadorId, UUID clienteId) { return desvincularCliente(entrenadorId, clienteId, new AuthenticatedUser(entrenadorId, "test@local", Role.ENTRENADOR)); }
 }

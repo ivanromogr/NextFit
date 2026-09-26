@@ -13,51 +13,75 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+
+import com.tuap.backend.auth.JwtAccessDeniedHandler;
+import com.tuap.backend.auth.JwtAuthenticationEntryPoint;
+import com.tuap.backend.auth.JwtAuthenticationFilter;
+import com.tuap.backend.auth.JwtService;
+import com.tuap.backend.auth.JwtProperties;
+import com.tuap.backend.auth.RefreshTokenProperties;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private static final String LOGIN_URL = "/login";
-
-    @Value("${app.cors.allowed-origins:http://localhost:*,https://localhost:*,http://127.0.0.1:*,https://127.0.0.1:*,https://nextfit-pa8i.onrender.com,https://next-fit-azure.vercel.app,https://next-fit-iyrm.vercel.app,https://*.vercel.app}")
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private String allowedOrigins;
 
     private final CustomUserDetailsService userDetailsService;
-    private final CustomSuccessHandler customSuccessHandler;
-
-    public SecurityConfig(CustomUserDetailsService userDetailsService,
-                          CustomSuccessHandler customSuccessHandler) {
+    public SecurityConfig(CustomUserDetailsService userDetailsService) {
         this.userDetailsService = userDetailsService;
-        this.customSuccessHandler = customSuccessHandler;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   JwtAuthenticationFilter jwtAuthenticationFilter,
+                                                   JwtAuthenticationEntryPoint authenticationEntryPoint,
+                                                   JwtAccessDeniedHandler accessDeniedHandler) throws Exception {
         http
+            // Bearer APIs are stateless; refresh/logout web are protected by an explicit Origin allowlist.
             .csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", LOGIN_URL, "/register", "/ws/**").permitAll()
-                .anyRequest().permitAll()
+                .requestMatchers("/api/ejercicios/importar", "/api/ejercicios/importar-json", "/api/ejercicios/retraducir",
+                                 "/api/recover-password").denyAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/auth/login", "/api/auth/refresh", "/api/auth/logout", "/api/auth/password/forgot", "/api/auth/password/reset", "/api/register").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/", "/api", "/actuator/health").permitAll()
+                // SockJS needs an HTTP handshake; STOMP CONNECT is authenticated by StompJwtChannelInterceptor.
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/ejercicios/**", "/api/entrenador/publicos",
+                                 "/api/entrenador/*", "/api/entrenador/*/reviews").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/upload/files/**").permitAll()
+                .requestMatchers("/api/entrenador/*/clientes", "/api/entrenador/*/dashboard-resumen",
+                                 "/api/entrenador/*/fichar", "/api/entrenador/*/desvincular/**").hasRole("ENTRENADOR")
+                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/entrenador/**").hasRole("ENTRENADOR")
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/entrenador/onboarding").hasRole("ENTRENADOR")
+                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/clientes/**").hasRole("CLIENTE")
+                .requestMatchers("/api/clientes/onboarding", "/api/clientes/*/desvincular-entrenador", "/api/cliente/onboarding")
+                    .hasRole("CLIENTE")
+                .requestMatchers("/api/rutinas/**", "/api/calendario/**", "/api/sesiones/**", "/api/stats/**", "/api/chat/**")
+                    .hasAnyRole("CLIENTE", "ENTRENADOR")
+                .requestMatchers("/api/upload/**").authenticated()
+                .anyRequest().authenticated()
             )
-            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-            .formLogin(form -> form
-                .loginPage(LOGIN_URL)
-                .successHandler(customSuccessHandler)
-                .permitAll()
-            )
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl(LOGIN_URL)
-                .permitAll()
-            );
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.deny())
+                .contentTypeOptions(Customizer.withDefaults())
+                .referrerPolicy(policy -> policy.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -66,7 +90,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOriginPatterns(
+        configuration.setAllowedOrigins(
             Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(origin -> !origin.isBlank())
@@ -74,7 +98,7 @@ public class SecurityConfig {
         );
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Client-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
@@ -99,5 +123,39 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    @org.springframework.boot.context.properties.ConfigurationProperties(prefix = "jwt")
+    public JwtProperties jwtProperties() {
+        return new JwtProperties();
+    }
+
+    @Bean
+    @org.springframework.boot.context.properties.ConfigurationProperties(prefix = "refresh-token")
+    public RefreshTokenProperties refreshTokenProperties() { return new RefreshTokenProperties(); }
+
+    @Bean
+    public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() {
+        return new JwtAuthenticationEntryPoint();
+    }
+
+    @Bean
+    public JwtAccessDeniedHandler jwtAccessDeniedHandler() {
+        return new JwtAccessDeniedHandler();
+    }
+
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService,
+                                                            JwtAuthenticationEntryPoint authenticationEntryPoint) {
+        return new JwtAuthenticationFilter(jwtService, authenticationEntryPoint);
+    }
+
+    @Bean
+    public org.springframework.boot.web.servlet.FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(
+            JwtAuthenticationFilter jwtAuthenticationFilter) {
+        var registration = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(jwtAuthenticationFilter);
+        registration.setEnabled(false);
+        return registration;
     }
 }

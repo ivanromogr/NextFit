@@ -16,7 +16,6 @@ class UpdateClienteRequestTest {
         req.setNombre("Lucía");
         req.setApellido("Fernández");
         req.setEmail("lucia@ejemplo.com");
-        req.setContrasena("pass123");
         req.setFotoPerfil("lucia.png");
         req.setPeso(62.5);
         req.setAltura(168);
@@ -27,7 +26,6 @@ class UpdateClienteRequestTest {
         assertEquals("Lucía", req.getNombre());
         assertEquals("Fernández", req.getApellido());
         assertEquals("lucia@ejemplo.com", req.getEmail());
-        assertEquals("pass123", req.getContrasena());
         assertEquals("lucia.png", req.getFotoPerfil());
         assertEquals(62.5, req.getPeso());
         assertEquals(168, req.getAltura());

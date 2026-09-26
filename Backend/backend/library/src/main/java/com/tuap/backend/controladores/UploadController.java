@@ -1,23 +1,15 @@
 package com.tuap.backend.controladores;
 
-import java.io.IOException;
-import java.io.UncheckedIOException; 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,88 +17,81 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import com.tuap.backend.auth.AuthenticatedUser;
+import com.tuap.backend.dominio.entidades.UploadPurpose;
+import com.tuap.backend.dominio.entidades.UploadVisibility;
+import com.tuap.backend.dominio.entidades.UploadedFile;
+import com.tuap.backend.dto.UploadedFileResponse;
+import com.tuap.backend.persistencia.UploadedFileDAO;
+import com.tuap.backend.servicios.FileStorageService;
+import com.tuap.backend.servicios.ChatAttachmentAccessService;
+import com.tuap.backend.servicios.storage.StoredFile;
+import com.tuap.backend.servicios.storage.StoredFileNotFoundException;
 
 @RestController
 @RequestMapping("/api/upload")
-@CrossOrigin(origins = "*")
 public class UploadController {
+    private final FileStorageService fileStorageService;
+    private final UploadedFileDAO uploadedFileDAO;
+    private final ChatAttachmentAccessService chatAttachmentAccessService;
 
-    private final Path rootLocation; 
-
-    public UploadController(@Value("${app.upload.dir:uploads/}") String uploadDir) {
-        this.rootLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
-        try {
-            Files.createDirectories(this.rootLocation);
-        } catch (IOException e) {
-           
-            throw new UncheckedIOException("No se pudo crear la carpeta de archivos", e);
-        }
+    public UploadController(FileStorageService fileStorageService, UploadedFileDAO uploadedFileDAO,
+                            ChatAttachmentAccessService chatAttachmentAccessService) {
+        this.fileStorageService = fileStorageService;
+        this.uploadedFileDAO = uploadedFileDAO;
+        this.chatAttachmentAccessService = chatAttachmentAccessService;
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file) {
+    @Transactional
+    public ResponseEntity<UploadedFileResponse> uploadFile(@RequestParam("file") MultipartFile file,
+                                                            @RequestParam("purpose") UploadPurpose purpose,
+                                                            @AuthenticationPrincipal AuthenticatedUser principal) {
+        StoredFile stored = fileStorageService.store(file, purpose);
         try {
-            String originalName = file.getOriginalFilename();
-            if (originalName == null || originalName.isEmpty()) {
-                return ResponseEntity.badRequest().build();
-            }
-
-            String cleanName = StringUtils.cleanPath(originalName);
-            Path fileNamePath = Paths.get(cleanName).getFileName();
-            if (fileNamePath == null) {
-                return ResponseEntity.badRequest().build();
-            }
-
-            String finalName = UUID.randomUUID().toString() + "_" + fileNamePath.toString().replace(" ", "_");
-            Path destinationFile = this.rootLocation.resolve(finalName).normalize();
-
-            if (!destinationFile.getParent().equals(this.rootLocation)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-
-            Files.copy(file.getInputStream(), destinationFile);
-
-            String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/upload/files/")
-                    .path(finalName)
-                    .toUriString();
-
-            Map<String, String> response = new HashMap<>();
-            response.put("url", fileUrl);
-            
-            return ResponseEntity.ok(response);
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().build();
+            UploadedFile metadata = new UploadedFile(
+                    principal.userId(), principal.role(), purpose, visibilityFor(purpose),
+                    stored.storageKey(), stored.sanitizedOriginalFilename(), stored.detectedMimeType(), stored.size());
+            UploadedFile saved = uploadedFileDAO.saveAndFlush(metadata);
+            return ResponseEntity.ok(UploadedFileResponse.from(saved));
+        } catch (RuntimeException exception) {
+            fileStorageService.delete(stored.storageKey());
+            throw new UploadPersistenceException(exception);
         }
     }
 
-    @GetMapping("/files/{filename:.+}")
-  
-    public ResponseEntity<Resource> serveFile(@PathVariable String filename) {
-        try {
-            Path file = this.rootLocation.resolve(filename).normalize();
-            if (!file.getParent().equals(this.rootLocation)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-
-            Resource resource = new UrlResource(file.toUri());
-
-            if (resource.exists() || resource.isReadable()) {
-                String contentType = Files.probeContentType(file);
-                if (contentType == null) {
-                    contentType = "application/octet-stream";
-                }
-
-                return ResponseEntity.ok()
-                        .contentType(MediaType.parseMediaType(contentType))
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
-                        .body(resource);
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().build();
-        }
+    private UploadVisibility visibilityFor(UploadPurpose purpose) {
+        return purpose == UploadPurpose.PROFILE_IMAGE ? UploadVisibility.PUBLIC : UploadVisibility.PRIVATE;
     }
+
+    @GetMapping("/files/{id}")
+    public ResponseEntity<Resource> getFile(@PathVariable java.util.UUID id,
+                                            @AuthenticationPrincipal AuthenticatedUser principal) {
+        UploadedFile metadata = uploadedFileDAO.findById(id)
+                .orElseThrow(() -> new StoredFileNotFoundException("Archivo no encontrado"));
+        if (metadata.getVisibility() == UploadVisibility.PRIVATE
+                && (principal == null || !metadata.getOwnerId().equals(principal.userId())
+                || metadata.getOwnerRole() != principal.role())
+                && !chatAttachmentAccessService.canAccessAsMessageParticipant(metadata, principal)) {
+            throw new UploadAccessDeniedException();
+        }
+        if (!Set.of("image/jpeg", "image/png", "image/webp").contains(metadata.getMimeType())) {
+            throw new StoredFileNotFoundException("Archivo no disponible");
+        }
+        Resource resource = fileStorageService.load(metadata.getStorageKey());
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(metadata.getMimeType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.inline().filename(metadata.getOriginalFilename()).build().toString())
+                .header("X-Content-Type-Options", "nosniff");
+        if (metadata.getVisibility() == UploadVisibility.PRIVATE) response.cacheControl(CacheControl.noStore());
+        return response.body(resource);
+    }
+
+    public static class UploadPersistenceException extends RuntimeException {
+        UploadPersistenceException(Throwable cause) { super(cause); }
+    }
+
+    public static class UploadAccessDeniedException extends RuntimeException { }
 }

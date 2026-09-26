@@ -38,6 +38,8 @@ import com.tuap.backend.persistencia.RutinaDAO;
 @ExtendWith(MockitoExtension.class)
 class RutinaControllerTest {
 
+    @Mock private com.tuap.backend.auth.OwnershipService ownershipService;
+
     @InjectMocks
     private RutinaController rutinaController;
 

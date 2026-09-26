@@ -6,36 +6,25 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.tuap.backend.persistencia.ClienteDAO;
-import com.tuap.backend.persistencia.EntrenadorDAO;
+import com.tuap.backend.auth.IdentityResolver;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final ClienteDAO clienteDAO;
-    private final EntrenadorDAO entrenadorDAO;
+    private final IdentityResolver identityResolver;
 
-    public CustomUserDetailsService(ClienteDAO clienteDAO, EntrenadorDAO entrenadorDAO) {
-        this.clienteDAO = clienteDAO;
-        this.entrenadorDAO = entrenadorDAO;
+    public CustomUserDetailsService(IdentityResolver identityResolver) {
+        this.identityResolver = identityResolver;
     }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        return clienteDAO.findByEmail(email)
-            .map(cliente -> User.builder()
-                .username(cliente.getEmail())
-                
-                .password(cliente.getContrasena()) 
-                .roles(cliente.getRol().replace("ROLE_", ""))
+        return identityResolver.findByEmail(email)
+            .map(identity -> User.builder()
+                .username(identity.email())
+                .password(identity.passwordHash())
+                .authorities(identity.role().toAuthority())
                 .build())
-            .or(() -> entrenadorDAO.findByEmail(email)
-                .map(entrenador -> User.builder()
-                    .username(entrenador.getEmail())
-                    //  Llamamos a getContrasena() sin la "ñ"
-                    .password(entrenador.getContrasena()) 
-                    .roles(entrenador.getRol().replace("ROLE_", ""))
-                    .build()))
             .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
     }
 }

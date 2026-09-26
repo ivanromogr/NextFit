@@ -29,4 +29,10 @@ List<UUID> findContactosIds(@Param("usuarioId") UUID usuarioId);
     long countByDestinatarioIdAndLeidoFalse(UUID destinatarioId);
     // Busca los mensajes que el 'remitente' envió al 'destinatario' y que aún NO han sido leídos
     List<Mensaje> findByRemitenteIdAndDestinatarioIdAndLeidoFalse(UUID remitenteId, UUID destinatarioId);
+
+    boolean existsByAttachmentId(UUID attachmentId);
+
+    @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM Mensaje m " +
+           "WHERE m.attachmentId = :attachmentId AND (m.remitenteId = :userId OR m.destinatarioId = :userId)")
+    boolean existsAttachmentForParticipant(@Param("attachmentId") UUID attachmentId, @Param("userId") UUID userId);
 }

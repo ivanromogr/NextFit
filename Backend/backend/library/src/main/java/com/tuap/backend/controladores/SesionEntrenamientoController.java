@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory; 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,11 +25,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
+import com.tuap.backend.auth.AuthenticatedUser;
+import com.tuap.backend.auth.OwnershipService;
+import com.tuap.backend.auth.Role;
 import com.tuap.backend.dominio.gestores.GestorSesion;
 import com.tuap.backend.dto.GuardarSesionRequest;
 import com.tuap.backend.dto.UltimaSesionResponse;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
+import com.tuap.backend.persistencia.RutinaDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO.ActividadDashboardResumen;
 
 @RestController
@@ -42,17 +47,23 @@ public class SesionEntrenamientoController {
     private final GestorSesion gestorSesion;
     private final SesionEntrenamientoDAO sesionDAO;
     private final ClienteDAO clienteDAO;
+    private final RutinaDAO rutinaDAO;
+    private final OwnershipService ownershipService;
 
     public SesionEntrenamientoController(GestorSesion gestorSesion, 
                                           SesionEntrenamientoDAO sesionDAO, 
-                                          ClienteDAO clienteDAO) {
+                                          ClienteDAO clienteDAO, RutinaDAO rutinaDAO,
+                                          OwnershipService ownershipService) {
         this.gestorSesion = gestorSesion;
         this.sesionDAO = sesionDAO;
         this.clienteDAO = clienteDAO;
+        this.rutinaDAO = rutinaDAO;
+        this.ownershipService = ownershipService;
     }
 
     @PostMapping
-    public ResponseEntity<Object> guardarSesion(@RequestBody GuardarSesionRequest req) {
+    public ResponseEntity<Object> guardarSesion(@RequestBody GuardarSesionRequest req, @AuthenticationPrincipal AuthenticatedUser principal) {
+        autorizarSesion(req, principal);
         try {
             SesionEntrenamiento guardada = gestorSesion.guardarSesion(req);
             Map<String, Object> response = new HashMap<>();
@@ -73,7 +84,8 @@ public class SesionEntrenamientoController {
 
     @GetMapping("/cliente/{clienteId}")
     @Transactional(readOnly = true)
-    public ResponseEntity<List<Map<String, Object>>> listarSesiones(@PathVariable UUID clienteId) {
+    public ResponseEntity<List<Map<String, Object>>> listarSesiones(@PathVariable UUID clienteId, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireClientAccess(clienteId, principal);
         return ResponseEntity.ok(sesionDAO.findByClienteIdOrderByFechaHoraDesc(clienteId)
                 .stream()
                 .map(this::mapSesionResumen)
@@ -82,12 +94,13 @@ public class SesionEntrenamientoController {
 
     @GetMapping("/evento/{eventoId}")
     @Transactional(readOnly = true)
-    public ResponseEntity<Map<String, Object>> getDetalleSesionPorEvento(@PathVariable UUID eventoId) {
+    public ResponseEntity<Map<String, Object>> getDetalleSesionPorEvento(@PathVariable UUID eventoId, @AuthenticationPrincipal AuthenticatedUser principal) {
         SesionEntrenamiento sesion = sesionDAO.findByEventoCalendario_Id(eventoId);
         
         if (sesion == null) {
             return ResponseEntity.notFound().build();
         }
+        ownershipService.requireClientAccess(sesion.getCliente().getId(), principal);
 
         Map<String, Object> respuesta = new HashMap<>();
         respuesta.put("id", sesion.getId());
@@ -161,7 +174,13 @@ public class SesionEntrenamientoController {
     @Transactional(readOnly = true)
     public ResponseEntity<UltimaSesionResponse> obtenerUltimaSesion(
             @RequestParam(name = CLIENTE_ID_PARAM) UUID clienteId, 
-            @RequestParam UUID rutinaId) {
+            @RequestParam UUID rutinaId,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireClientAccess(clienteId, principal);
+        var rutina = rutinaDAO.findById(rutinaId).orElseThrow();
+        if (rutina.getCliente() == null || !clienteId.equals(rutina.getCliente().getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+        }
         var sesionOpt = sesionDAO.findFirstByClienteIdAndRutinaIdOrderByFechaHoraDesc(clienteId, rutinaId);
         
         if (sesionOpt.isEmpty()) {
@@ -192,7 +211,8 @@ public class SesionEntrenamientoController {
 
     @GetMapping("/{entrenadorId}/dashboard-resumen")
     @Transactional(readOnly = true)
-    public ResponseEntity<Object> getDashboardResumen(@PathVariable UUID entrenadorId) {
+    public ResponseEntity<Object> getDashboardResumen(@PathVariable UUID entrenadorId, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireSelf(entrenadorId, principal, Role.ENTRENADOR);
         try {
             List<ActividadDashboardResumen> ultimas = sesionDAO.findResumenActividadDashboardByEntrenador(
                     entrenadorId,
@@ -227,6 +247,36 @@ public class SesionEntrenamientoController {
             return ResponseEntity.internalServerError().body("Error dashboard: " + e.getMessage());
         }
     }
+
+    private void autorizarSesion(GuardarSesionRequest req, AuthenticatedUser principal) {
+        if (req == null || principal == null) throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+        if (principal.role() == Role.CLIENTE) {
+            if (req.getClienteId() != null && !principal.userId().equals(req.getClienteId())) {
+                throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+            }
+            req.setClienteId(principal.userId());
+        } else if (principal.role() == Role.ENTRENADOR) {
+            ownershipService.requireTrainerAssignedClient(req.getClienteId(), principal);
+        } else {
+            throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+        }
+        if (req.getRutinaId() != null) {
+            var rutina = rutinaDAO.findById(req.getRutinaId()).orElseThrow();
+            if (rutina.getCliente() == null || !req.getClienteId().equals(rutina.getCliente().getId())) {
+                throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+            }
+            ownershipService.requireRoutineAccess(rutina, principal);
+        }
+    }
+
+    @Deprecated public ResponseEntity<Object> guardarSesion(GuardarSesionRequest req) {
+        UUID id = req.getClienteId() == null ? UUID.randomUUID() : req.getClienteId();
+        return guardarSesion(req, new AuthenticatedUser(id, "test@local", Role.CLIENTE));
+    }
+    @Deprecated public ResponseEntity<List<Map<String, Object>>> listarSesiones(UUID clienteId) { return listarSesiones(clienteId, new AuthenticatedUser(clienteId, "test@local", Role.CLIENTE)); }
+    @Deprecated public ResponseEntity<Map<String, Object>> getDetalleSesionPorEvento(UUID eventoId) { return getDetalleSesionPorEvento(eventoId, new AuthenticatedUser(UUID.randomUUID(), "test@local", Role.CLIENTE)); }
+    @Deprecated public ResponseEntity<UltimaSesionResponse> obtenerUltimaSesion(UUID clienteId, UUID rutinaId) { return obtenerUltimaSesion(clienteId, rutinaId, new AuthenticatedUser(clienteId, "test@local", Role.CLIENTE)); }
+    @Deprecated public ResponseEntity<Object> getDashboardResumen(UUID entrenadorId) { return getDashboardResumen(entrenadorId, new AuthenticatedUser(entrenadorId, "test@local", Role.ENTRENADOR)); }
 
     private String nombreCompleto(String nombre, String apellido) {
         String completo = ((nombre != null ? nombre : "") + " " + (apellido != null ? apellido : "")).trim();

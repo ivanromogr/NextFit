@@ -77,13 +77,10 @@ class GestorClienteTest {
     void actualizarPerfil_DatosNuevos_ActualizaYGuardaEnBBDD() throws IOException {
         // --- PREPARACIÓN ---
         when(clienteDAO.findById(clienteId)).thenReturn(Optional.of(clienteMock));
-        // Simulamos que el usuario NO ha subido foto para no escribir en disco durante el test
-        when(fotoMock.isEmpty()).thenReturn(true); 
-
         // --- ACCIÓN ---
         GestorCliente.PerfilParams params = new GestorCliente.PerfilParams(
             "Carlos", "Sainz", "carlos@test.com", 
-            80.5, 180, 25, "Ganar masa", fotoMock
+            80.5, 180, 25, "Ganar masa"
         );
 
         gestorCliente.actualizarPerfil(clienteId, params);

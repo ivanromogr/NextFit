@@ -28,6 +28,8 @@ import com.tuap.backend.persistencia.ClienteDAO;
 @ExtendWith(MockitoExtension.class)
 class ClienteControllerTest {
 
+    @Mock private com.tuap.backend.auth.OwnershipService ownershipService;
+
     @InjectMocks
     private ClienteController clienteController;
 
@@ -85,7 +87,8 @@ class ClienteControllerTest {
 
         when(clienteDAO.findById(clienteId)).thenReturn(Optional.of(clienteMock));
 
-        ResponseEntity<?> respuesta = clienteController.completarOnboarding(req);
+        ResponseEntity<?> respuesta = clienteController.completarOnboarding(req,
+                new com.tuap.backend.auth.AuthenticatedUser(clienteId, "laura@test.com", com.tuap.backend.auth.Role.CLIENTE));
 
         assertEquals(HttpStatus.OK, respuesta.getStatusCode());
         assertEquals(65.0, clienteMock.getPeso());
@@ -95,13 +98,14 @@ class ClienteControllerTest {
     }
 
     @Test
-    void completarOnboarding_SinId_Devuelve400() {
+    void completarOnboarding_SinId_UsaLaIdentidadJWT() {
         OnboardingRequest req = new OnboardingRequest(); // Sin ID
 
-        ResponseEntity<?> respuesta = clienteController.completarOnboarding(req);
+        when(clienteDAO.findById(clienteId)).thenReturn(Optional.of(clienteMock));
+        ResponseEntity<?> respuesta = clienteController.completarOnboarding(req,
+                new com.tuap.backend.auth.AuthenticatedUser(clienteId, "laura@test.com", com.tuap.backend.auth.Role.CLIENTE));
 
-        assertEquals(HttpStatus.BAD_REQUEST, respuesta.getStatusCode());
-        assertEquals("Error: No se identificó al cliente (Falta ID).", respuesta.getBody());
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
     }
 
     @Test

@@ -1,9 +1,5 @@
 package com.tuap.backend.dominio.gestores;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,7 +10,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.persistencia.ClienteDAO;
@@ -37,7 +32,7 @@ public class GestorCliente {
     public record PerfilParams(
         String nombre, String apellido, String email, 
         double peso, int altura, int edad, 
-        String objetivo, MultipartFile foto
+        String objetivo
     ) {}
 
     public Cliente verPerfil(UUID idCliente) {
@@ -90,17 +85,16 @@ public class GestorCliente {
             @RequestParam("peso") double peso,
             @RequestParam("altura") int altura,
             @RequestParam("edad") int edad,
-            @RequestParam("objetivo") String objetivo,
-            @RequestParam("foto") MultipartFile foto) throws IOException {
+            @RequestParam("objetivo") String objetivo) {
 
         // Agrupamos parámetros en un objeto para cumplir con el límite de SonarQube
-        PerfilParams params = new PerfilParams(nombre, apellido, email, peso, altura, edad, objetivo, foto);
+        PerfilParams params = new PerfilParams(nombre, apellido, email, peso, altura, edad, objetivo);
         actualizarPerfil(id, params);
         
         return "redirect:/cliente/perfil/" + id;
     }
 
-    public void actualizarPerfil(UUID idCliente, PerfilParams params) throws IOException {
+    public void actualizarPerfil(UUID idCliente, PerfilParams params) {
         Optional<Cliente> clienteOpt = clienteDAO.findById(idCliente);
         if (clienteOpt.isPresent()) {
             Cliente cliente = clienteOpt.get();
@@ -113,31 +107,7 @@ public class GestorCliente {
             cliente.setEdad(params.edad());
             cliente.setObjetivo(params.objetivo());
 
-            // Manejo de la foto
-            procesarFotoPerfil(cliente, params.foto());
-
             clienteDAO.save(cliente);
-        }
-    }
-
-    private void procesarFotoPerfil(Cliente cliente, MultipartFile foto) throws IOException {
-        if (foto != null && !foto.isEmpty() && foto.getOriginalFilename() != null) {
-            String originalName = foto.getOriginalFilename();
-            String nombreOriginalLimpio = org.springframework.util.StringUtils.cleanPath(originalName);
-            
-            String nombreArchivoSeguro = java.nio.file.Paths.get(nombreOriginalLimpio).getFileName().toString();
-            String nombreFinal = UUID.randomUUID() + "_" + nombreArchivoSeguro;
-            
-            Path rutaBase = Paths.get("uploads").toAbsolutePath().normalize();
-            Path rutaDestino = rutaBase.resolve(nombreFinal).normalize();
-            
-            if (!rutaDestino.startsWith(rutaBase)) {
-                throw new SecurityException("Intento de Path Traversal detectado.");
-            }
-            
-            Files.createDirectories(rutaDestino.getParent());
-            Files.write(rutaDestino, foto.getBytes());
-            cliente.setFotoPerfil(nombreFinal);
         }
     }
 }

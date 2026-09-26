@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tuap.backend.dominio.entidades.EventoCalendario;
 import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
+import com.tuap.backend.auth.AuthenticatedUser;
+import com.tuap.backend.auth.OwnershipService;
 import com.tuap.backend.persistencia.EventoCalendarioDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
 
@@ -30,10 +33,12 @@ public class DashboardController {
 
     @Autowired private EventoCalendarioDAO eventoDAO;
     @Autowired private SesionEntrenamientoDAO sesionDAO;
+    @Autowired private OwnershipService ownershipService;
 
     @GetMapping("/resumen/{clienteId}")
     @Transactional(readOnly = true)
-    public ResponseEntity<Map<String, Object>> getResumen(@PathVariable UUID clienteId) {
+    public ResponseEntity<Map<String, Object>> getResumen(@PathVariable UUID clienteId, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireClientAccess(clienteId, principal);
         LocalDate hoy = LocalDate.now();
         
         // 1. Calcular rango de esta semana 
@@ -115,5 +120,9 @@ public class DashboardController {
         }
 
         return ResponseEntity.ok(response);
+    }
+
+    @Deprecated public ResponseEntity<Map<String, Object>> getResumen(UUID clienteId) {
+        return getResumen(clienteId, new AuthenticatedUser(clienteId, "test@local", com.tuap.backend.auth.Role.CLIENTE));
     }
 }

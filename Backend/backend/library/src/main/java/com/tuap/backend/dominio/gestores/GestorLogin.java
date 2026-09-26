@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Locale;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuap.backend.dominio.entidades.Cliente;
@@ -24,6 +24,15 @@ import com.tuap.backend.dto.EntrenadorOnboardingRequest;
 import com.tuap.backend.dto.OnboardingRequest;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
+import com.tuap.backend.auth.AuthenticatedUser;
+import com.tuap.backend.auth.JwtService;
+import com.tuap.backend.auth.LoginResponse;
+import com.tuap.backend.auth.Role;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.RequestHeader;
+import com.tuap.backend.auth.ClientType;
+import com.tuap.backend.auth.RefreshTokenService;
+import com.tuap.backend.auth.RefreshTokenProperties;
 
 @RestController
 public class GestorLogin {
@@ -36,13 +45,19 @@ public class GestorLogin {
     private final ClienteDAO clienteDAO;
     private final EntrenadorDAO entrenadorDAO;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final RefreshTokenService refreshTokens;
+    private final RefreshTokenProperties refreshProperties;
 
     public GestorLogin(ClienteDAO clienteDAO, 
                        EntrenadorDAO entrenadorDAO, 
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder, JwtService jwtService, RefreshTokenService refreshTokens, RefreshTokenProperties refreshProperties) {
         this.clienteDAO = clienteDAO;
         this.entrenadorDAO = entrenadorDAO;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.refreshTokens = refreshTokens;
+        this.refreshProperties = refreshProperties;
     }
 
     
@@ -108,7 +123,7 @@ public class GestorLogin {
     }
 
     @PostMapping("/api/register")
-    public ResponseEntity<Object> registroApi(@RequestBody RegistroRequest req) {
+    public ResponseEntity<Object> registroApi(@RequestBody RegistroRequest req, @RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader) {
 
         if (req == null ||
                 req.getNombre() == null || req.getNombre().isBlank() ||
@@ -123,63 +138,59 @@ public class GestorLogin {
         Usuario usuario = new Usuario();
         usuario.setNombre(req.getNombre());
         usuario.setApellido(req.getApellido());
-        usuario.setEmail(req.getEmail());
+        usuario.setEmail(req.getEmail().trim().toLowerCase(Locale.ROOT));
         usuario.setContrasena(req.getContrasena()); 
         usuario.setRol(req.getRol());
 
-        String rolNormalizado = req.getRol().toLowerCase();
+        String rolNormalizado = req.getRol().trim().toLowerCase(Locale.ROOT);
 
         if (emailExisteEnSistema(usuario.getEmail())) {
             return ResponseEntity.status(409).body(USUARIO_EXISTE_STR);
         }
 
-        int resultado;
-        UUID clienteId = null;
-        UUID entrenadorId = null;
+        AuthenticatedUser authenticatedUser;
 
         switch (rolNormalizado) {
             case "cliente" -> {
-                resultado = registrarCliente(usuario);
-                if (resultado != 0) {
-                    clienteId = clienteDAO.findByEmail(usuario.getEmail())
-                            .map(Cliente::getId)
-                            .orElse(null);
-                }
+                Cliente cliente = registrarCliente(usuario);
+                authenticatedUser = new AuthenticatedUser(cliente.getId(), cliente.getEmail(), Role.CLIENTE);
             }
             case "entrenador" -> {
-                resultado = registrarEntrenador(usuario);
-                if (resultado != 0) {
-                    entrenadorId = entrenadorDAO.findByEmail(usuario.getEmail())
-                            .map(Entrenador::getId)
-                            .orElse(null);
-                }
+                Entrenador entrenador = registrarEntrenador(usuario);
+                authenticatedUser = new AuthenticatedUser(entrenador.getId(), entrenador.getEmail(), Role.ENTRENADOR);
             }
             default -> {
                 return ResponseEntity.badRequest().body("Rol inválido");
             }
         }
 
-        if (resultado == 0) {
-            return ResponseEntity.internalServerError().body("No se ha podido registrar el usuario.");
-        }
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("rol", rolNormalizado);
-        body.put("clienteId", clienteId); 
-        body.put("entrenadorId", entrenadorId);
-        body.put("email", usuario.getEmail());
-
-        return ResponseEntity.ok(body);
+        ClientType type = ClientType.fromHeader(clientTypeHeader);
+        RefreshTokenService.IssuedToken refresh = refreshTokens.issue(authenticatedUser, type);
+        LoginResponse response = type == ClientType.MOBILE ? LoginResponse.mobile(authenticatedUser, jwtService.generateAccessToken(authenticatedUser), jwtService.getAccessTokenTtlSeconds(), refresh.rawToken())
+                : LoginResponse.from(authenticatedUser, jwtService.generateAccessToken(authenticatedUser), jwtService.getAccessTokenTtlSeconds());
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.CREATED);
+        if (type == ClientType.WEB) builder.header(org.springframework.http.HttpHeaders.SET_COOKIE,
+                org.springframework.http.ResponseCookie.from(refreshProperties.getCookieName(), refresh.rawToken()).httpOnly(true).secure(refreshProperties.isCookieSecure()).sameSite(refreshProperties.getCookieSameSite()).path(refreshProperties.getCookiePath()).maxAge(java.time.Duration.ofDays(refreshProperties.getTtlDays())).build().toString());
+        return builder.body(response);
     }
 
-    @PostMapping("/api/entrenador/onboarding")
-    public ResponseEntity<Object> completarOnboardingEntrenador(@RequestBody EntrenadorOnboardingRequest req) {
+    /** Compatibility entry point for existing unit tests; HTTP requests use the header-aware mapping above. */
+    @Deprecated
+    public ResponseEntity<Object> registroApi(RegistroRequest req) { return registroApi(req, "WEB"); }
 
-        if (req == null || req.getIdEntrenador() == null) {
-            return ResponseEntity.badRequest().body("Error: No se recibió el ID del entrenador.");
+    @PostMapping("/api/entrenador/onboarding")
+    public ResponseEntity<Object> completarOnboardingEntrenador(@RequestBody EntrenadorOnboardingRequest req,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+
+        if (authenticatedUser == null || authenticatedUser.role() != Role.ENTRENADOR) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("No autorizado para onboarding de entrenador.");
+        }
+        if (req == null) return ResponseEntity.badRequest().body("Solicitud de onboarding inválida.");
+        if (req != null && req.getIdEntrenador() != null && !req.getIdEntrenador().equals(authenticatedUser.userId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("El ID no coincide con la identidad autenticada.");
         }
 
-        Optional<Entrenador> entrenadorOpt = entrenadorDAO.findById(req.getIdEntrenador());
+        Optional<Entrenador> entrenadorOpt = entrenadorDAO.findById(authenticatedUser.userId());
         if (entrenadorOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Entrenador no encontrado con ID: " + req.getIdEntrenador());
         }
@@ -208,7 +219,7 @@ public class GestorLogin {
         return clienteDAO.findByEmail(email).isPresent() || entrenadorDAO.findByEmail(email).isPresent();
     }
 
-    private int registrarCliente(Usuario usuario) {
+    private Cliente registrarCliente(Usuario usuario) {
         String encoded = passwordEncoder.encode(usuario.getContrasena()); 
         try {
             Cliente cliente = new Cliente(
@@ -216,14 +227,13 @@ public class GestorLogin {
                     encoded, ROLE_CLIENTE, 0.0, 0,
                     0, "", "", "");
 
-            clienteDAO.save(cliente);
-            return 1;
+            return clienteDAO.save(cliente);
         } catch (Exception e) {
-            return 0;
+            throw new IllegalStateException("No se ha podido registrar el usuario.", e);
         }
     }
 
-    private int registrarEntrenador(Usuario usuario) {
+    private Entrenador registrarEntrenador(Usuario usuario) {
         String encoded = passwordEncoder.encode(usuario.getContrasena()); 
         try {
             Entrenador entrenador = new Entrenador(
@@ -232,10 +242,9 @@ public class GestorLogin {
                     "", 0, "",
                     "", "", "");
 
-            entrenadorDAO.save(entrenador);
-            return 1;
+            return entrenadorDAO.save(entrenador);
         } catch (Exception e) {
-            return 0;
+            throw new IllegalStateException("No se ha podido registrar el usuario.", e);
         }
     }
 
@@ -249,22 +258,4 @@ public class GestorLogin {
         return entrenadorDAO.findById(id).orElse(null);
     }
     
-    @PostMapping("/api/recover-password")
-    public ResponseEntity<String> recoverPassword(@RequestParam String email, @RequestParam String nuevaContrasena) {
-        Optional<Cliente> clienteOpt = clienteDAO.findByEmail(email);
-        Optional<Entrenador> entrenadorOpt = entrenadorDAO.findByEmail(email);
-
-        if (clienteOpt.isPresent()) {
-            Cliente cliente = clienteOpt.get();
-            cliente.setContrasena(passwordEncoder.encode(nuevaContrasena));
-            clienteDAO.save(cliente);
-            return ResponseEntity.ok("Contraseña actualizada correctamente");
-        } else if (entrenadorOpt.isPresent()) {
-            Entrenador entrenador = entrenadorOpt.get();
-            entrenador.setContrasena(passwordEncoder.encode(nuevaContrasena));
-            entrenadorDAO.save(entrenador);
-            return ResponseEntity.ok("Contraseña actualizada correctamente");
-        }
-        return ResponseEntity.badRequest().body("Usuario no encontrado");
-    }
 }

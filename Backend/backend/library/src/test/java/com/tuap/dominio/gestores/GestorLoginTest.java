@@ -27,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.gestores.GestorLogin;
+import com.tuap.backend.auth.JwtService;
 import com.tuap.backend.dto.OnboardingRequest;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
@@ -40,6 +41,9 @@ class GestorLoginTest {
     @Mock private ClienteDAO clienteDAO;
     @Mock private EntrenadorDAO entrenadorDAO;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private JwtService jwtService;
+    @Mock private com.tuap.backend.auth.RefreshTokenService refreshTokens;
+    @Mock private com.tuap.backend.auth.RefreshTokenProperties refreshProperties;
 
     private UUID clienteId;
     private Cliente clienteMock;
@@ -50,6 +54,10 @@ class GestorLoginTest {
         clienteMock = new Cliente();
         clienteMock.setId(clienteId);
         clienteMock.setEmail("test@test.com");
+        org.mockito.Mockito.lenient().when(refreshTokens.issue(any(), any())).thenReturn(new com.tuap.backend.auth.RefreshTokenService.IssuedToken("refresh", "hash", UUID.randomUUID(), java.time.Instant.now().plusSeconds(60)));
+        org.mockito.Mockito.lenient().when(refreshProperties.getCookieName()).thenReturn("nextfit_refresh");
+        org.mockito.Mockito.lenient().when(refreshProperties.getCookiePath()).thenReturn("/api/auth");
+        org.mockito.Mockito.lenient().when(refreshProperties.getCookieSameSite()).thenReturn("Strict");
     }
 
     @Test
@@ -73,21 +81,18 @@ req.setRol("cliente");
         when(clienteDAO.findByEmail(anyString()))
             .thenReturn(Optional.empty()) 
             .thenReturn(Optional.of(clienteMock)); 
+        when(clienteDAO.save(any(Cliente.class))).thenReturn(clienteMock);
 
         // --- ACCIÓN ---
         ResponseEntity<?> respuesta = gestorLogin.registroApi(req);
 
         // --- COMPROBACIÓN ---
-        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        assertEquals(HttpStatus.CREATED, respuesta.getStatusCode());
         
         // Verificamos que se ordenó guardar el cliente 1 vez
         verify(clienteDAO, times(1)).save(any(Cliente.class));
         
-        // Verificamos que la respuesta contiene el ID correcto
-        Map<String, Object> body = (Map<String, Object>) respuesta.getBody();
-        assertNotNull(body);
-        assertEquals(clienteId, body.get("clienteId"));
-        assertEquals("cliente", body.get("rol"));
+        assertNotNull(respuesta.getBody());
     }
 
     @Test
@@ -113,6 +118,39 @@ req.setRol("cliente");
         
         // Verifica que NO se intentó guardar nada
         verify(clienteDAO, never()).save(any());
+    }
+
+    @Test
+    void registroApi_EmailExistenteComoEntrenador_DevuelveError409() {
+        GestorLogin.RegistroRequest req = new GestorLogin.RegistroRequest();
+        req.setNombre("Pedro");
+        req.setApellido("Pérez");
+        req.setEmail("Entrenador@Test.Com ");
+        req.setContrasena("123456");
+        req.setRol("cliente");
+        when(clienteDAO.findByEmail("entrenador@test.com")).thenReturn(Optional.empty());
+        when(entrenadorDAO.findByEmail("entrenador@test.com")).thenReturn(Optional.of(new com.tuap.backend.dominio.entidades.Entrenador()));
+
+        ResponseEntity<?> respuesta = gestorLogin.registroApi(req);
+
+        assertEquals(HttpStatus.CONFLICT, respuesta.getStatusCode());
+    }
+
+    @Test
+    void registroApi_RolAdmin_DevuelveError400() {
+        GestorLogin.RegistroRequest req = new GestorLogin.RegistroRequest();
+        req.setNombre("Admin");
+        req.setApellido("No permitido");
+        req.setEmail("admin@test.com");
+        req.setContrasena("123456");
+        req.setRol("ADMIN");
+        when(clienteDAO.findByEmail("admin@test.com")).thenReturn(Optional.empty());
+        when(entrenadorDAO.findByEmail("admin@test.com")).thenReturn(Optional.empty());
+
+        ResponseEntity<?> respuesta = gestorLogin.registroApi(req);
+
+        assertEquals(HttpStatus.BAD_REQUEST, respuesta.getStatusCode());
+        assertEquals("Rol inválido", respuesta.getBody());
     }
 
     @Test

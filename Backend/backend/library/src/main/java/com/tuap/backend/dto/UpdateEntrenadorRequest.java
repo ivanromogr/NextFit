@@ -4,7 +4,6 @@ public class UpdateEntrenadorRequest {
     private String nombre;
     private String apellido;
     private String email;
-    private String contrasena;
     private String especialidad;
     private Integer edad;
     private String genero;
@@ -27,9 +26,6 @@ public class UpdateEntrenadorRequest {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-
-    public String getContrasena() { return contrasena; }
-    public void setContrasena(String contrasena) { this.contrasena = contrasena; }
 
     public String getEspecialidad() { return especialidad; }
     public void setEspecialidad(String especialidad) { this.especialidad = especialidad; }

@@ -47,6 +47,7 @@ class EntrenadorControllerTest {
     @Mock private EntrenadorDAO entrenadorDAO;
     @Mock private SesionEntrenamientoDAO sesionDAO;
     @Mock private ResenaDAO resenaDAO;
+    @Mock private com.tuap.backend.auth.OwnershipService ownershipService;
 
     private UUID entrenadorId;
     private UUID clienteId;

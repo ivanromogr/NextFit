@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +46,7 @@ class CalendarioControllerTest {
     @Mock private ClienteDAO clienteDAO;
     @Mock private RutinaDAO rutinaDAO;
     @Mock private SesionEntrenamientoDAO sesionDAO;
+    @Mock private com.tuap.backend.auth.OwnershipService ownershipService;
 
     private UUID clienteId;
     private UUID entrenadorId;
@@ -70,6 +73,9 @@ class CalendarioControllerTest {
         eventoPendiente.setCompletado(false);
         eventoPendiente.setRutina(rutinaFake);
         eventoPendiente.setEntrenadorId(entrenadorId);
+        Cliente cliente = new Cliente();
+        cliente.setId(clienteId);
+        eventoPendiente.setCliente(cliente);
 
         // Evento 2: Del pasado (SALTADO)
         eventoSaltado = new EventoCalendario();
@@ -78,6 +84,7 @@ class CalendarioControllerTest {
         eventoSaltado.setCompletado(false);
         eventoSaltado.setRutina(rutinaFake);
         eventoSaltado.setEntrenadorId(entrenadorId);
+        eventoSaltado.setCliente(cliente);
     }
 
     @Test
@@ -158,10 +165,11 @@ class CalendarioControllerTest {
 
         when(clienteDAO.findById(clienteId)).thenReturn(Optional.of(new Cliente()));
         when(rutinaDAO.findById(rutinaCliente.getId())).thenReturn(Optional.of(rutinaCliente));
+        doThrow(new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción"))
+            .when(ownershipService).requireRoutineAccess(eq(rutinaCliente), any());
 
-        ResponseEntity<?> respuesta = calendarioController.crearEvento(clienteId, payload);
-
-        assertEquals(HttpStatus.FORBIDDEN, respuesta.getStatusCode());
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+            () -> calendarioController.crearEvento(clienteId, payload));
     }
 
     @Test

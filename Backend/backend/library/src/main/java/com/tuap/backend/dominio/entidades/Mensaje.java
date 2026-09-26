@@ -23,6 +23,9 @@ public class Mensaje {
     @Column(name = "archivo_url")
     private String archivoUrl;
 
+    @Column(name = "attachment_id", unique = true)
+    private UUID attachmentId;
+
     @Column(name = "tipo_archivo")
     private String tipoArchivo; // Guardará "IMAGEN" o "VIDEO"
     @Column(columnDefinition = "TEXT")
@@ -64,6 +67,9 @@ public class Mensaje {
     public void setArchivoUrl(String archivoUrl) {
         this.archivoUrl = archivoUrl;
     }
+
+    public UUID getAttachmentId() { return attachmentId; }
+    public void setAttachmentId(UUID attachmentId) { this.attachmentId = attachmentId; }
 
     public String getTipoArchivo() {
         return tipoArchivo;

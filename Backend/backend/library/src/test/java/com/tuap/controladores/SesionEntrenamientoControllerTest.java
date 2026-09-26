@@ -27,15 +27,19 @@ import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.Ejercicio;
 import com.tuap.backend.dominio.entidades.SerieRealizada;
 import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
+import com.tuap.backend.dominio.entidades.Rutina;
 import com.tuap.backend.dominio.gestores.GestorSesion;
 import com.tuap.backend.dto.GuardarSesionRequest;
 import com.tuap.backend.dto.UltimaSesionResponse;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
+import com.tuap.backend.persistencia.RutinaDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO.ActividadDashboardResumen;
 
 @ExtendWith(MockitoExtension.class)
 class SesionEntrenamientoControllerTest {
+
+    @Mock private com.tuap.backend.auth.OwnershipService ownershipService;
 
     @InjectMocks
     private SesionEntrenamientoController sesionController;
@@ -43,6 +47,7 @@ class SesionEntrenamientoControllerTest {
     @Mock private GestorSesion gestorSesion;
     @Mock private SesionEntrenamientoDAO sesionDAO;
     @Mock private ClienteDAO clienteDAO;
+    @Mock private RutinaDAO rutinaDAO;
 
     private UUID clienteId;
     private UUID eventoId;
@@ -147,6 +152,9 @@ class SesionEntrenamientoControllerTest {
         UUID rutinaId = UUID.randomUUID();
         when(sesionDAO.findFirstByClienteIdAndRutinaIdOrderByFechaHoraDesc(clienteId, rutinaId))
             .thenReturn(Optional.of(sesionMock));
+        Rutina rutina = new Rutina();
+        rutina.setCliente(clienteMock);
+        when(rutinaDAO.findById(rutinaId)).thenReturn(Optional.of(rutina));
 
         ResponseEntity<?> respuesta = sesionController.obtenerUltimaSesion(clienteId, rutinaId);
 

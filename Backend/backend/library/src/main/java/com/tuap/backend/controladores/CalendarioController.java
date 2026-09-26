@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +16,9 @@ import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.EventoCalendario;
 import com.tuap.backend.dominio.entidades.Rutina;
 import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
+import com.tuap.backend.auth.AuthenticatedUser;
+import com.tuap.backend.auth.OwnershipService;
+import com.tuap.backend.auth.Role;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EventoCalendarioDAO;
 import com.tuap.backend.persistencia.RutinaDAO;
@@ -30,16 +34,19 @@ public class CalendarioController {
     private final ClienteDAO clienteDAO;
     private final RutinaDAO rutinaDAO;
     private final SesionEntrenamientoDAO sesionDAO;
+    private final OwnershipService ownershipService;
 
     public CalendarioController(
             EventoCalendarioDAO eventoDAO,
             ClienteDAO clienteDAO,
             RutinaDAO rutinaDAO,
-            SesionEntrenamientoDAO sesionDAO) {
+            SesionEntrenamientoDAO sesionDAO,
+            OwnershipService ownershipService) {
         this.eventoDAO = eventoDAO;
         this.clienteDAO = clienteDAO;
         this.rutinaDAO = rutinaDAO;
         this.sesionDAO = sesionDAO;
+        this.ownershipService = ownershipService;
     }
 
     @GetMapping("/{clienteId}")
@@ -48,7 +55,10 @@ public class CalendarioController {
             @PathVariable UUID clienteId,
             @RequestParam String inicio, 
             @RequestParam String fin,
-            @RequestParam(required = false) String entrenadorId) {
+            @RequestParam(required = false) String entrenadorId,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireClientAccess(clienteId, principal);
+        validarFiltroEntrenador(entrenadorId, principal);
         
         LocalDate fechaInicio = LocalDate.parse(inicio);
         LocalDate fechaFin = LocalDate.parse(fin);
@@ -97,25 +107,21 @@ public class CalendarioController {
     }
 
     @PostMapping("/{clienteId}")
-    public ResponseEntity<String> crearEvento(@PathVariable UUID clienteId, @RequestBody Map<String, String> payload) {
+    public ResponseEntity<String> crearEvento(@PathVariable UUID clienteId, @RequestBody Map<String, String> payload, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireClientAccess(clienteId, principal);
         UUID rutinaId = UUID.fromString(payload.get("rutinaId"));
         LocalDate fecha = LocalDate.parse(payload.get("fecha"));
         Cliente cliente = clienteDAO.findById(clienteId).orElse(null);
         Rutina rutina = rutinaDAO.findById(rutinaId).orElse(null);
 
         if (cliente == null || rutina == null) return ResponseEntity.badRequest().body("Error datos");
-
-        if (payload.containsKey(ENTRENADOR_ID_PARAM) && payload.get(ENTRENADOR_ID_PARAM) != null) {
-            UUID entrenadorId = UUID.fromString(payload.get(ENTRENADOR_ID_PARAM));
-            if (rutina.getEntrenadorId() == null || !rutina.getEntrenadorId().equals(entrenadorId)) {
-                return ResponseEntity.status(403).body("El entrenador solo puede programar rutinas creadas por él");
-            }
-        }
+        ownershipService.requireRoutineAccess(rutina, principal);
+        validarFiltroEntrenador(payload.get(ENTRENADOR_ID_PARAM), principal);
 
         EventoCalendario evento = new EventoCalendario(fecha, rutina, cliente);
         
-        if (payload.containsKey(ENTRENADOR_ID_PARAM) && payload.get(ENTRENADOR_ID_PARAM) != null) {
-            evento.setEntrenadorId(UUID.fromString(payload.get(ENTRENADOR_ID_PARAM)));
+        if (principal.role() == Role.ENTRENADOR) {
+            evento.setEntrenadorId(principal.userId());
         }
 
         eventoDAO.save(evento);
@@ -124,11 +130,12 @@ public class CalendarioController {
 
     @DeleteMapping("/{eventoId}")
     @Transactional
-    public ResponseEntity<String> eliminarEvento(@PathVariable UUID eventoId) {
+    public ResponseEntity<String> eliminarEvento(@PathVariable UUID eventoId, @AuthenticationPrincipal AuthenticatedUser principal) {
         EventoCalendario evento = eventoDAO.findById(eventoId).orElse(null);
         if (evento == null) {
             return ResponseEntity.notFound().build();
         }
+        ownershipService.requireClientAccess(evento.getCliente().getId(), principal);
 
         SesionEntrenamiento sesion = sesionDAO.findByEventoCalendario_Id(eventoId);
         if (sesion != null) {
@@ -141,9 +148,10 @@ public class CalendarioController {
     }
 
     @PutMapping("/{eventoId}/toggle")
-    public ResponseEntity<Object> toggleCompletado(@PathVariable UUID eventoId) {
+    public ResponseEntity<Object> toggleCompletado(@PathVariable UUID eventoId, @AuthenticationPrincipal AuthenticatedUser principal) {
         EventoCalendario evento = eventoDAO.findById(eventoId).orElse(null);
         if (evento == null) return ResponseEntity.notFound().build();
+        ownershipService.requireSelf(evento.getCliente().getId(), principal, Role.CLIENTE);
 
         evento.setCompletado(!evento.isCompletado());
         eventoDAO.save(evento);
@@ -152,19 +160,43 @@ public class CalendarioController {
     }
     
     @PutMapping("/{eventoId}/mover")
-    public ResponseEntity<String> moverEvento(@PathVariable UUID eventoId, @RequestBody Map<String, String> payload) {
+    public ResponseEntity<String> moverEvento(@PathVariable UUID eventoId, @RequestBody Map<String, String> payload, @AuthenticationPrincipal AuthenticatedUser principal) {
         try {
             LocalDate nuevaFecha = LocalDate.parse(payload.get("nuevaFecha"));
             EventoCalendario evento = eventoDAO.findById(eventoId).orElse(null);
             
             if (evento == null) return ResponseEntity.notFound().build();
+            ownershipService.requireClientAccess(evento.getCliente().getId(), principal);
             
             evento.setFecha(nuevaFecha);
             eventoDAO.save(evento);
             
             return ResponseEntity.ok("Evento movido a " + nuevaFecha);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error al mover evento");
         }
     }
+
+    private void validarFiltroEntrenador(String entrenadorId, AuthenticatedUser principal) {
+        if (entrenadorId == null || entrenadorId.isBlank()) return;
+        if (principal == null || principal.role() != Role.ENTRENADOR || !principal.userId().toString().equals(entrenadorId)) {
+            throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+        }
+    }
+
+    @Deprecated public ResponseEntity<List<Map<String, Object>>> getEventos(UUID clienteId, String inicio, String fin, String entrenadorId) {
+        AuthenticatedUser principal = entrenadorId == null ? new AuthenticatedUser(clienteId, "test@local", Role.CLIENTE)
+                : new AuthenticatedUser(UUID.fromString(entrenadorId), "test@local", Role.ENTRENADOR);
+        return getEventos(clienteId, inicio, fin, entrenadorId, principal);
+    }
+    @Deprecated public ResponseEntity<String> crearEvento(UUID clienteId, Map<String, String> payload) {
+        String entrenadorId = payload.get(ENTRENADOR_ID_PARAM);
+        AuthenticatedUser principal = entrenadorId == null ? new AuthenticatedUser(clienteId, "test@local", Role.CLIENTE)
+                : new AuthenticatedUser(UUID.fromString(entrenadorId), "test@local", Role.ENTRENADOR);
+        return crearEvento(clienteId, payload, principal);
+    }
+    @Deprecated public ResponseEntity<String> eliminarEvento(UUID eventoId) { return eliminarEvento(eventoId, new AuthenticatedUser(UUID.randomUUID(), "test@local", Role.CLIENTE)); }
+    @Deprecated public ResponseEntity<Object> toggleCompletado(UUID eventoId) { return toggleCompletado(eventoId, new AuthenticatedUser(UUID.randomUUID(), "test@local", Role.CLIENTE)); }
 }

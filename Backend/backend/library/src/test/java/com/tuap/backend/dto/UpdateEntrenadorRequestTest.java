@@ -16,7 +16,6 @@ class UpdateEntrenadorRequestTest {
         req.setNombre("Carlos");
         req.setApellido("Santana");
         req.setEmail("carlos@gym.com");
-        req.setContrasena("secreta123");
         req.setEspecialidad("Musculacion");
         req.setEdad(35);
         req.setGenero("Masculino");
@@ -30,7 +29,6 @@ class UpdateEntrenadorRequestTest {
         assertEquals("Carlos", req.getNombre());
         assertEquals("Santana", req.getApellido());
         assertEquals("carlos@gym.com", req.getEmail());
-        assertEquals("secreta123", req.getContrasena());
         assertEquals("Musculacion", req.getEspecialidad());
         assertEquals(35, req.getEdad());
         assertEquals("Masculino", req.getGenero());

@@ -27,6 +27,8 @@ import com.tuap.backend.dominio.gestores.GestorEstadisticas;
 @ExtendWith(MockitoExtension.class)
 class EstadisticasControllerTest {
 
+    @Mock private com.tuap.backend.auth.OwnershipService ownershipService;
+
     @InjectMocks
     private EstadisticasController estadisticasController;
 

@@ -3,6 +3,7 @@ package com.tuap.backend.dominio.entidades;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -28,6 +29,7 @@ public class Entrenador {
 
    
     @Column(nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String contrasena;
 
     @Column(nullable = false)

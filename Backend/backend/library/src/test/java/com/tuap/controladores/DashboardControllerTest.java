@@ -34,6 +34,8 @@ import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
 @ExtendWith(MockitoExtension.class)
 class DashboardControllerTest {
 
+    @Mock private com.tuap.backend.auth.OwnershipService ownershipService;
+
     @InjectMocks
     private DashboardController dashboardController;
 

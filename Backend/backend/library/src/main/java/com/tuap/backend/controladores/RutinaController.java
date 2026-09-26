@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.DetalleRutina;
 import com.tuap.backend.dominio.entidades.Rutina;
+import com.tuap.backend.auth.AuthenticatedUser;
+import com.tuap.backend.auth.OwnershipService;
+import com.tuap.backend.auth.Role;
 import com.tuap.backend.dominio.gestores.GestorRutina;
 import com.tuap.backend.dto.GenerarRutinaRequest;
 import com.tuap.backend.dto.RutinaRequest;
@@ -34,15 +38,18 @@ public class RutinaController {
     private final GestorRutina gestorRutina;
     private final RutinaDAO rutinaDAO;
     private final ClienteDAO clienteDAO;
+    private final OwnershipService ownershipService;
 
-    public RutinaController(GestorRutina gestorRutina, RutinaDAO rutinaDAO, ClienteDAO clienteDAO) {
+    public RutinaController(GestorRutina gestorRutina, RutinaDAO rutinaDAO, ClienteDAO clienteDAO, OwnershipService ownershipService) {
         this.gestorRutina = gestorRutina;
         this.rutinaDAO = rutinaDAO;
         this.clienteDAO = clienteDAO;
+        this.ownershipService = ownershipService;
     }
 
     @PostMapping("/manual")
-    public ResponseEntity<Object> crearRutinaManual(@RequestBody RutinaRequest request) {
+    public ResponseEntity<Object> crearRutinaManual(@RequestBody RutinaRequest request, @AuthenticationPrincipal AuthenticatedUser principal) {
+        autorizarCreacionManual(request, principal);
         try {
             Rutina nueva = gestorRutina.crearRutinaManual(request);
             return ResponseEntity.ok(nueva);
@@ -52,7 +59,8 @@ public class RutinaController {
     }
 
     @PostMapping("/auto")
-    public ResponseEntity<Object> generarRutinaAutomatica(@RequestBody GenerarRutinaRequest request) {
+    public ResponseEntity<Object> generarRutinaAutomatica(@RequestBody GenerarRutinaRequest request, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireSelf(request.getIdCliente(), principal, Role.CLIENTE);
         try {
             List<Rutina> nueva = gestorRutina.generarRutinaAutomatica(request);
             return ResponseEntity.ok(nueva);
@@ -62,12 +70,17 @@ public class RutinaController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Object> actualizarRutina(@PathVariable UUID id, @RequestBody java.util.Map<String, Object> rutinaDatosDTO) {
+    public ResponseEntity<Object> actualizarRutina(@PathVariable UUID id, @RequestBody java.util.Map<String, Object> rutinaDatosDTO, @AuthenticationPrincipal AuthenticatedUser principal) {
         try {
+            Rutina existente = rutinaDAO.findById(id).orElseThrow();
+            ownershipService.requireRoutineAccess(existente, principal);
             RutinaRequest request = normalizarRutinaRequest(rutinaDatosDTO);
+            validarPropietariosInmutables(request, existente, principal);
             Rutina actualizada = gestorRutina.actualizarRutina(id, request);
             return ResponseEntity.ok(mapRutinaResumen(actualizada));
-    } catch (RuntimeException e) {
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            throw e;
+        } catch (RuntimeException e) {
             
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
@@ -76,7 +89,8 @@ public class RutinaController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Object> eliminarRutina(@PathVariable UUID id) {
+    public ResponseEntity<Object> eliminarRutina(@PathVariable UUID id, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireRoutineAccess(rutinaDAO.findById(id).orElseThrow(), principal);
         try {
             gestorRutina.eliminarRutina(id);
             return ResponseEntity.ok().build();
@@ -87,7 +101,8 @@ public class RutinaController {
 
     @GetMapping("/cliente/{idCliente}")
     @Transactional(readOnly = true)
-    public ResponseEntity<List<Map<String, Object>>> obtenerRutinas(@PathVariable UUID idCliente) {
+    public ResponseEntity<List<Map<String, Object>>> obtenerRutinas(@PathVariable UUID idCliente, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireClientAccess(idCliente, principal);
         List<Rutina> rutinas = gestorRutina.obtenerRutinasDeCliente(idCliente);
         return ResponseEntity.ok(rutinas.stream().map(this::mapRutinaResumen).toList());
     }
@@ -96,7 +111,12 @@ public class RutinaController {
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> obtenerRutinasEntrenador(
             @PathVariable UUID idCliente,
-            @RequestParam(required = false) String entrenadorId) { 
+            @RequestParam(required = false) String entrenadorId,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireClientAccess(idCliente, principal);
+        if (entrenadorId != null && (principal.role() != Role.ENTRENADOR || !principal.userId().toString().equals(entrenadorId))) {
+            throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+        }
         
         try {
             List<Rutina> rutinas = gestorRutina.obtenerRutinasDeEntrenadorParaCliente(idCliente);
@@ -185,10 +205,13 @@ public class RutinaController {
     // --- 1. OBTENER PLANTILLAS DEL ENTRENADOR ---
     @GetMapping("/plantillas/{entrenadorId}")
     @Transactional(readOnly = true)
-    public ResponseEntity<List<Map<String, Object>>> obtenerPlantillas(@PathVariable UUID entrenadorId) {
+    public ResponseEntity<List<Map<String, Object>>> obtenerPlantillas(@PathVariable UUID entrenadorId, @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireSelf(entrenadorId, principal, Role.ENTRENADOR);
         try {
             List<Rutina> plantillas = rutinaDAO.findPlantillasDisponiblesParaEntrenador(entrenadorId);
             return ResponseEntity.ok(plantillas.stream().map(this::mapRutinaResumen).toList());
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
            
             return ResponseEntity.internalServerError().build();
@@ -256,10 +279,13 @@ public class RutinaController {
 
     // --- 2. CLONAR PLANTILLA A UN CLIENTE ---
     @PostMapping("/clonar/{plantillaId}/cliente/{clienteId}")
-    public ResponseEntity<Object> clonarPlantilla(@PathVariable UUID plantillaId, @PathVariable UUID clienteId) {
+    public ResponseEntity<Object> clonarPlantilla(@PathVariable UUID plantillaId, @PathVariable UUID clienteId, @AuthenticationPrincipal AuthenticatedUser principal) {
         try {
             Rutina plantilla = rutinaDAO.findById(plantillaId)
                 .orElseThrow(() -> new RuntimeException("Plantilla no encontrada"));
+            ownershipService.requireRoutineAccess(plantilla, principal);
+            if (!plantilla.isEsPlantilla()) throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+            ownershipService.requireTrainerAssignedClient(clienteId, principal);
             
             Cliente cliente = clienteDAO.findById(clienteId)
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
@@ -294,8 +320,66 @@ public class RutinaController {
             Rutina rutinaGuardada = rutinaDAO.save(clon);
             return ResponseEntity.ok(rutinaGuardada);
 
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error al clonar plantilla: " + e.getMessage());
         }
+    }
+
+    private void autorizarCreacionManual(RutinaRequest request, AuthenticatedUser principal) {
+        if (principal == null) throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+        if (principal.role() == Role.CLIENTE) {
+            ownershipService.requireSelf(request.getIdCliente(), principal, Role.CLIENTE);
+            if (request.getEntrenadorId() != null || (request.getCreador() != null && !"CLIENTE".equalsIgnoreCase(request.getCreador()))) {
+                throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+            }
+            request.setIdCliente(principal.userId());
+            request.setCreador("CLIENTE");
+            return;
+        }
+        if (principal.role() == Role.ENTRENADOR) {
+            if (request.getEntrenadorId() != null && !principal.userId().equals(request.getEntrenadorId())) {
+                throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+            }
+            if (Boolean.TRUE.equals(request.getEsPlantilla())) {
+                request.setIdCliente(null);
+            } else {
+                ownershipService.requireTrainerAssignedClient(request.getIdCliente(), principal);
+            }
+            request.setEntrenadorId(principal.userId());
+            request.setCreador("ENTRENADOR");
+            return;
+        }
+        throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+    }
+
+    private void validarPropietariosInmutables(RutinaRequest request, Rutina existente, AuthenticatedUser principal) {
+        if (request.getIdCliente() != null && (existente.getCliente() == null || !request.getIdCliente().equals(existente.getCliente().getId()))) {
+            throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+        }
+        if (request.getEntrenadorId() != null && !request.getEntrenadorId().equals(existente.getEntrenadorId())) {
+            throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+        }
+        if (request.getCreador() != null && !request.getCreador().equalsIgnoreCase(existente.getCreador())) {
+            throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+        }
+    }
+
+    @Deprecated public ResponseEntity<Object> crearRutinaManual(RutinaRequest request) {
+        UUID id = request.getIdCliente() == null ? UUID.randomUUID() : request.getIdCliente();
+        return crearRutinaManual(request, new AuthenticatedUser(id, "test@local", Role.CLIENTE));
+    }
+    @Deprecated public ResponseEntity<Object> generarRutinaAutomatica(GenerarRutinaRequest request) {
+        UUID id = request.getIdCliente() == null ? UUID.randomUUID() : request.getIdCliente();
+        return generarRutinaAutomatica(request, new AuthenticatedUser(id, "test@local", Role.CLIENTE));
+    }
+    @Deprecated public ResponseEntity<List<Map<String, Object>>> obtenerRutinas(UUID clienteId) { return obtenerRutinas(clienteId, new AuthenticatedUser(clienteId, "test@local", Role.CLIENTE)); }
+    @Deprecated public ResponseEntity<List<Map<String, Object>>> obtenerRutinasEntrenador(UUID clienteId, String entrenadorId) {
+        UUID id = entrenadorId == null ? UUID.randomUUID() : UUID.fromString(entrenadorId);
+        return obtenerRutinasEntrenador(clienteId, entrenadorId, new AuthenticatedUser(id, "test@local", Role.ENTRENADOR));
+    }
+    @Deprecated public ResponseEntity<Object> clonarPlantilla(UUID plantillaId, UUID clienteId) {
+        return clonarPlantilla(plantillaId, clienteId, new AuthenticatedUser(UUID.randomUUID(), "test@local", Role.ENTRENADOR));
     }
 }

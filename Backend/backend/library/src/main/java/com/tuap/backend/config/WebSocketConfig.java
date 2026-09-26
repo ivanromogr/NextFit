@@ -9,10 +9,15 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+    private final StompJwtChannelInterceptor stompJwtChannelInterceptor;
+
+    public WebSocketConfig(StompJwtChannelInterceptor stompJwtChannelInterceptor) {
+        this.stompJwtChannelInterceptor = stompJwtChannelInterceptor;
+    }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic");
+        config.enableSimpleBroker("/queue");
         config.setApplicationDestinationPrefixes("/app");
     }
 
@@ -30,5 +35,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         "https://*.vercel.app"
                 )
                 .withSockJS();
+    }
+
+    @Override
+    public void configureClientInboundChannel(org.springframework.messaging.simp.config.ChannelRegistration registration) {
+        registration.interceptors(stompJwtChannelInterceptor);
     }
 }

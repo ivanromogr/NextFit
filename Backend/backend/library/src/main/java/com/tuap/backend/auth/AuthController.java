@@ -1,0 +1,121 @@
+package com.tuap.backend.auth;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.http.ResponseCookie;
+import org.springframework.beans.factory.annotation.Value;
+
+@RestController
+@RequestMapping("/api/auth")
+public class AuthController {
+
+    private final AuthService authService;
+    private final JwtService jwtService;
+    private final PasswordResetService passwordResetService;
+    private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenProperties refreshProperties;
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
+    private String allowedOrigins;
+
+    public AuthController(AuthService authService, JwtService jwtService, PasswordResetService passwordResetService,
+            RefreshTokenService refreshTokenService, RefreshTokenProperties refreshProperties) {
+        this.authService = authService;
+        this.jwtService = jwtService;
+        this.passwordResetService = passwordResetService;
+        this.refreshTokenService = refreshTokenService;
+        this.refreshProperties = refreshProperties;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody(required = false) LoginRequest request,
+            @RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader) {
+        if (request == null || !request.hasCredentials()) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiErrorResponse(400, "INVALID_REQUEST", "Email y contraseña son obligatorios"));
+        }
+
+        AuthenticatedUser user = authService.authenticate(request.email(), request.password());
+        return loginResponse(user, ClientType.fromHeader(clientTypeHeader));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader,
+            @RequestHeader(value = "Origin", required = false) String origin,
+            @CookieValue(value = "${refresh-token.cookie-name:nextfit_refresh}", required = false) String webToken,
+            @RequestBody(required = false) RefreshTokenRequest request) {
+        ClientType type = ClientType.fromHeader(clientTypeHeader);
+        requireAllowedWebOrigin(type, origin);
+        String raw = type == ClientType.WEB ? webToken : request == null ? null : request.refreshToken();
+        RefreshTokenService.Rotation rotation = refreshTokenService.rotate(raw, type);
+        return loginResponse(rotation.user(), type, rotation.issuedToken());
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader,
+            @RequestHeader(value = "Origin", required = false) String origin,
+            @CookieValue(value = "${refresh-token.cookie-name:nextfit_refresh}", required = false) String webToken,
+            @RequestBody(required = false) RefreshTokenRequest request) {
+        ClientType type = ClientType.fromHeader(clientTypeHeader);
+        requireAllowedWebOrigin(type, origin);
+        refreshTokenService.revoke(type == ClientType.WEB ? webToken : request == null ? null : request.refreshToken());
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok().header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store");
+        if (type == ClientType.WEB) response.header(org.springframework.http.HttpHeaders.SET_COOKIE, deleteCookie().toString());
+        return response.body(java.util.Map.of("message", "Sesión cerrada"));
+    }
+
+    private ResponseEntity<LoginResponse> loginResponse(AuthenticatedUser user, ClientType type) {
+        return loginResponse(user, type, refreshTokenService.issue(user, type));
+    }
+    private ResponseEntity<LoginResponse> loginResponse(AuthenticatedUser user, ClientType type, RefreshTokenService.IssuedToken refresh) {
+        String access = jwtService.generateAccessToken(user);
+        LoginResponse body = type == ClientType.MOBILE
+                ? LoginResponse.mobile(user, access, jwtService.getAccessTokenTtlSeconds(), refresh.rawToken())
+                : LoginResponse.from(user, access, jwtService.getAccessTokenTtlSeconds());
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok().header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store");
+        if (type == ClientType.WEB) response.header(org.springframework.http.HttpHeaders.SET_COOKIE, refreshCookie(refresh.rawToken()).toString());
+        return response.body(body);
+    }
+    private ResponseCookie refreshCookie(String value) { return ResponseCookie.from(refreshProperties.getCookieName(), value)
+            .httpOnly(true).secure(refreshProperties.isCookieSecure()).sameSite(refreshProperties.getCookieSameSite())
+            .path(refreshProperties.getCookiePath()).maxAge(java.time.Duration.ofDays(refreshProperties.getTtlDays())).build(); }
+    private ResponseCookie deleteCookie() { return ResponseCookie.from(refreshProperties.getCookieName(), "").httpOnly(true)
+            .secure(refreshProperties.isCookieSecure()).sameSite(refreshProperties.getCookieSameSite()).path(refreshProperties.getCookiePath()).maxAge(0).build(); }
+    private void requireAllowedWebOrigin(ClientType type, String origin) {
+        if (type != ClientType.WEB) return;
+        boolean allowed = origin != null && !origin.isBlank() && java.util.Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim).anyMatch(origin::equals);
+        if (!allowed) throw new InvalidRefreshTokenException();
+    }
+
+    @PostMapping("/password/forgot")
+    public ResponseEntity<?> forgotPassword(@RequestBody(required = false) ForgotPasswordRequest request) {
+        passwordResetService.requestReset(request == null ? null : request.email());
+        return ResponseEntity.ok(java.util.Map.of("message", "Si existe una cuenta asociada, se han enviado instrucciones para restablecer la contraseña"));
+    }
+
+    @PostMapping("/password/reset")
+    public ResponseEntity<?> resetPassword(@RequestBody(required = false) ResetPasswordRequest request) {
+        if (request == null || !PasswordResetService.isValidPassword(request.newPassword())) {
+            return ResponseEntity.badRequest().body(new ApiErrorResponse(400, "INVALID_PASSWORD", "Contraseña no válida"));
+        }
+        passwordResetService.resetPassword(request.token(), request.newPassword());
+        return ResponseEntity.ok(java.util.Map.of("message", "Contraseña restablecida correctamente"));
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<?> changePassword(@AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody(required = false) ChangePasswordRequest request) {
+        if (request == null || !PasswordResetService.isValidPassword(request.newPassword())) {
+            return ResponseEntity.badRequest().body(new ApiErrorResponse(400, "INVALID_PASSWORD", "Contraseña no válida"));
+        }
+        passwordResetService.changePassword(user, request.currentPassword(), request.newPassword());
+        return ResponseEntity.ok(java.util.Map.of("message", "Contraseña actualizada correctamente"));
+    }
+}

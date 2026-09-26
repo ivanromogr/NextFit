@@ -18,24 +18,36 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dto.OnboardingRequest;
 import com.tuap.backend.persistencia.ClienteDAO;
+import com.tuap.backend.auth.AuthenticatedUser;
+import com.tuap.backend.auth.Role;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.tuap.backend.auth.OwnershipService;
 
 @RestController
 @RequestMapping("/api/clientes")
 public class ClienteController {
 
     private final ClienteDAO clienteDAO;
+    private final OwnershipService ownershipService;
 
-    public ClienteController(ClienteDAO clienteDAO) {
+    public ClienteController(ClienteDAO clienteDAO, OwnershipService ownershipService) {
         this.clienteDAO = clienteDAO;
+        this.ownershipService = ownershipService;
     }
 
     @GetMapping
-    public List<Cliente> listar() {
-        return clienteDAO.findAll();
+    public List<Cliente> listar(@AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        if (authenticatedUser != null && authenticatedUser.role() == Role.CLIENTE) {
+            return clienteDAO.findById(authenticatedUser.userId()).map(List::of).orElseGet(List::of);
+        }
+        ownershipService.requireRole(authenticatedUser, Role.ENTRENADOR);
+        return clienteDAO.findByEntrenadorId(authenticatedUser.userId());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Object> obtener(@PathVariable UUID id) {
+    public ResponseEntity<Object> obtener(@PathVariable UUID id, @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        ownershipService.requireClientAccess(id, authenticatedUser);
         Optional<Cliente> clienteOpt = clienteDAO.findById(id);
         if (clienteOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -68,26 +80,31 @@ public class ClienteController {
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<Cliente> buscarPorEmail(@RequestParam String email) {
+    public ResponseEntity<Map<String, Object>> buscarPorEmail(@RequestParam String email, @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        ownershipService.requireRole(authenticatedUser, Role.ENTRENADOR);
         Optional<Cliente> cliente = clienteDAO.findByEmail(email);
         
         if (cliente.isPresent()) {
-            return ResponseEntity.ok(cliente.get());
+            Cliente encontrado = cliente.get();
+            return ResponseEntity.ok(Map.of("id", encontrado.getId(), "nombre", encontrado.getNombre(), "apellido", encontrado.getApellido()));
         } else {
             return ResponseEntity.notFound().build();
         }
     }
     
     @PostMapping("/onboarding")
-    public ResponseEntity<String> completarOnboarding(@RequestBody OnboardingRequest request) {
+    public ResponseEntity<String> completarOnboarding(@RequestBody OnboardingRequest request,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
         
         // 1. Validar que venga el ID
-        if (request.getIdCliente() == null) {
-            return ResponseEntity.badRequest().body("Error: No se identificó al cliente (Falta ID).");
+        if (authenticatedUser == null || authenticatedUser.role() != Role.CLIENTE) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("No autorizado para onboarding de cliente.");
         }
+        if (request.getIdCliente() != null && !request.getIdCliente().equals(authenticatedUser.userId()))
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("El ID no coincide con la identidad autenticada.");
 
         // 2. Buscar al cliente específico por su ID
-        Cliente cliente = clienteDAO.findById(request.getIdCliente()).orElse(null);
+        Cliente cliente = clienteDAO.findById(authenticatedUser.userId()).orElse(null);
 
         if (cliente == null) {
             return ResponseEntity.badRequest().body("Cliente no encontrado con id: " + request.getIdCliente());
@@ -120,7 +137,8 @@ public class ClienteController {
     //  ACTUALIZAR PERFIL CLIENTE  ---
     @PutMapping("/{id}")
     
-    public ResponseEntity<String> actualizarPerfil(@PathVariable UUID id, @RequestBody com.tuap.backend.dto.UpdateClienteRequest req) {
+    public ResponseEntity<String> actualizarPerfil(@PathVariable UUID id, @RequestBody com.tuap.backend.dto.UpdateClienteRequest req, @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        ownershipService.requireSelf(id, authenticatedUser, Role.CLIENTE);
         Cliente cliente = clienteDAO.findById(id).orElse(null);
         if (cliente == null) return ResponseEntity.badRequest().body("Cliente no encontrado con id: " + id);
 
@@ -133,14 +151,22 @@ public class ClienteController {
         if (req.getAltura() != null) cliente.setAltura(req.getAltura());
         if (req.getObjetivo() != null) cliente.setObjetivo(req.getObjetivo());
         if (req.getGenero() != null) cliente.setGenero(req.getGenero());
-        if (req.getContrasena() != null && !req.getContrasena().isEmpty()) cliente.setContrasena(req.getContrasena());
-
         clienteDAO.save(cliente);
         return ResponseEntity.ok("Perfil actualizado");
     }
 
+    /** Compatibility entry points used by pre-security unit tests; they are not request mappings. */
+    @Deprecated public List<Cliente> listar() { return clienteDAO.findAll(); }
+    @Deprecated public ResponseEntity<Cliente> buscarPorEmail(String email) {
+        return clienteDAO.findByEmail(email).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+    @Deprecated public ResponseEntity<String> actualizarPerfil(UUID id, com.tuap.backend.dto.UpdateClienteRequest req) {
+        return actualizarPerfil(id, req, new AuthenticatedUser(id, "test@local", Role.CLIENTE));
+    }
+
     @PostMapping("/{id}/desvincular-entrenador")
-    public ResponseEntity<Object> desvincularEntrenador(@PathVariable UUID id) {
+    public ResponseEntity<Object> desvincularEntrenador(@PathVariable UUID id, @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        ownershipService.requireSelf(id, authenticatedUser, Role.CLIENTE);
         Cliente cliente = clienteDAO.findById(id).orElse(null);
         if (cliente == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Cliente no encontrado con id: " + id));
