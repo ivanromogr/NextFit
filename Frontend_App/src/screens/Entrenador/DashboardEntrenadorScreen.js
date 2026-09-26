@@ -10,8 +10,6 @@ import {
     Users
 } from 'lucide-react-native';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { obtenerClientesEntrenador, ficharCliente, obtenerDashboardResumen, getEntrenador } from '../../api/endpoints';
 import { useAuth } from '../../components/context/AuthContext';
 
@@ -81,7 +79,6 @@ export default function DashboardEntrenadorScreen() {
                     style: "destructive",
                     onPress: async () => {
                         try {
-                            await AsyncStorage.clear();
                             if (logout) {
                                 await logout();
                             }

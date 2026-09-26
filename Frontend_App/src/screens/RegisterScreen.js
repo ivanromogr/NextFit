@@ -13,8 +13,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock, ArrowRight, Trophy, Dumbbell } from 'lucide-react-native'; 
 import { api } from '../api/api';
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../components/context/AuthContext';
 
 // Componentes UI reutilizables
 import GymButton from '../components/ui/GymButton';
@@ -41,6 +40,7 @@ const GymCard = ({ title, icon: Icon, selected, onPress }) => (
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -68,23 +68,11 @@ export default function RegisterScreen() {
 
       if (resp.status >= 200 && resp.status < 300) {
         
-        const dataBackend = resp.data || {};
-        const nuevoUserId = (form.rol === "CLIENTE")
-          ? (dataBackend.clienteId || dataBackend.idCliente || dataBackend.id)
-          : (dataBackend.entrenadorId || dataBackend.idEntrenador || dataBackend.id);
-
-        if (nuevoUserId) {
-            // Guardamos el ID en la memoria para que el Onboarding lo lea
-            await AsyncStorage.setItem("registration_userId", String(nuevoUserId));
+        const session = await login(resp.data);
+        if (session.role === "CLIENTE") {
+          navigation.navigate('ClienteOnboarding');
         } else {
-            console.warn("⚠️ Ojo: No se encontró el ID en la respuesta:", dataBackend);
-        }
-
-        // Derivamos al Onboarding correcto
-        if (form.rol === "CLIENTE") {
-          navigation.navigate('ClienteOnboarding', { userId: nuevoUserId });
-        } else {
-          navigation.navigate('EntrenadorOnboarding', { userId: nuevoUserId });
+          navigation.navigate('EntrenadorOnboarding');
         }
       }
     } catch (err) {

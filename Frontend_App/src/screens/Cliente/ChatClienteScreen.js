@@ -15,7 +15,7 @@ import 'react-native-get-random-values';
 import { WS_URL } from '../../config/environment';
 
 export default function ChatClienteScreen() {
-    const { userId: clienteId } = useAuth();
+    const { userId: clienteId, user } = useAuth();
     
     const [entrenador, setEntrenador] = useState(null);
     const [amigos, setAmigos] = useState([]);
@@ -58,8 +58,9 @@ export default function ChatClienteScreen() {
     const conectarSocketGlobal = () => {
         const client = new Client({
             brokerURL: WS_URL,
+            connectHeaders: { Authorization: `Bearer ${user?.accessToken || ''}` },
             onConnect: () => {
-                client.subscribe(`/topic/mensajes/${clienteId}`, (payload) => {
+                client.subscribe('/user/queue/mensajes', (payload) => {
                     const msg = JSON.parse(payload.body);
                     if (msg.remitenteId !== clienteId && contactoSeleccionado?.id !== msg.remitenteId) {
                         setUnreadUsers(prev => new Set(prev).add(msg.remitenteId));

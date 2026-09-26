@@ -25,8 +25,10 @@ import 'react-native-get-random-values';
 import * as ImagePicker from 'expo-image-picker';
 import { obtenerHistorialChat, api, getImageUrl } from '../../api/endpoints';
 import { WS_URL } from '../../config/environment';
+import { useAuth } from '../context/AuthContext';
 
 export default function ChatComponent({ usuarioId, destinatarioId, nombreDestinatario }) {
+    const { user } = useAuth();
     const [mensajes, setMensajes] = useState([]);
     const [nuevoMensaje, setNuevoMensaje] = useState('');
     const [conectado, setConectado] = useState(false);
@@ -59,7 +61,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         if (noLeidos.length > 0 && clientRef.current?.connected && conectado) {
             clientRef.current.publish({
                 destination: "/app/chat/leer",
-                body: JSON.stringify({ remitenteId: destinatarioId, destinatarioId: usuarioId })
+                body: JSON.stringify({ remitenteId: destinatarioId })
             });
             setMensajes(prev => prev.map(m => (m.remitenteId === destinatarioId && !m.leido) ? { ...m, leido: true } : m));
         }
@@ -68,6 +70,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const conectarWebSocket = () => {
         const client = new Client({
             brokerURL: WS_URL,
+            connectHeaders: { Authorization: `Bearer ${user?.accessToken || ''}` },
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
@@ -75,7 +78,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             appendMissingNULLonIncoming: true,
             onConnect: () => {
                 setConectado(true);
-                client.subscribe(`/topic/mensajes/${usuarioId}`, (payload) => {
+                client.subscribe('/user/queue/mensajes', (payload) => {
                     const msgRecibido = JSON.parse(payload.body);
                     if (msgRecibido.remitenteId === destinatarioId || msgRecibido.remitenteId === usuarioId) {
                         setMensajes(prev => {
@@ -117,8 +120,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             return;
         }
 
-        let archivoUrlFinal = null;
-        let tipoArchivoFinal = null;
+        let attachmentId = null;
 
         if (archivoAdjunto) {
             setIsUploading(true);
@@ -134,6 +136,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 name: filename,
                 type: tipoArchivo
             });
+            formData.append("purpose", "CHAT_ATTACHMENT");
 
             try {
                 const res = await api.post('/upload', formData, { 
@@ -146,8 +149,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     },
                 });
                 
-                archivoUrlFinal = typeof res.data === 'string' ? res.data : res.data.url || res.data.fileUrl; 
-                tipoArchivoFinal = archivoAdjunto.type === 'video' ? 'VIDEO' : 'IMAGEN';
+                attachmentId = res.data?.id;
             } catch (error) {
                 console.error("Error subiendo archivo:", error);
                 setIsUploading(false);
@@ -157,13 +159,11 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         }
 
         const msgObj = {
-            remitenteId: usuarioId,
             destinatarioId: destinatarioId,
             contenido: nuevoMensaje.trim(),
             leido: false,
             fechaHora: new Date().toISOString(),
-            archivoUrl: archivoUrlFinal,
-            tipoArchivo: tipoArchivoFinal
+            ...(attachmentId ? { attachmentId } : {})
         };
 
         clientRef.current.publish({
@@ -207,7 +207,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
 
     const renderMensaje = ({ item, index }) => {
         const esMio = item.remitenteId === usuarioId;
-        const soloEmoji = esSoloEmojis(item.contenido, item.archivoUrl);
+        const soloEmoji = esSoloEmojis(item.contenido, item.attachmentId);
         
         const mostrarFecha = index === 0 || 
             renderFechaSeparador(item.fechaHora) !== renderFechaSeparador(mensajes[index-1].fechaHora);
@@ -223,27 +223,13 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     styles.bubble, 
                     esMio ? styles.bubbleMe : styles.bubbleThem,
                     soloEmoji && styles.bubbleEmoji,
-                    item.archivoUrl && { paddingHorizontal: 6, paddingVertical: 6 } 
+                    item.attachmentId && { paddingHorizontal: 6, paddingVertical: 6 }
                 ]}>
                     
-                    {item.archivoUrl && (
-                        item.tipoArchivo === 'VIDEO' ? (
-                            <Video
-                                source={{ uri: getImageUrl(item.archivoUrl) }}
-                                style={styles.mediaImage}
-                                useNativeControls 
-                                resizeMode={ResizeMode.COVER}
-                                isLooping={false}
-                            />
-                        ) : (
-                            <TouchableOpacity activeOpacity={0.8} onPress={() => setImagenSeleccionada(getImageUrl(item.archivoUrl))}>
-                                <Image 
-                                    source={{ uri: getImageUrl(item.archivoUrl) }} 
-                                    style={styles.mediaImage} 
-                                    resizeMode="cover"
-                                />
-                            </TouchableOpacity>
-                        )
+                    {item.attachmentId && (
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => setImagenSeleccionada(getImageUrl(`/upload/files/${item.attachmentId}`))}>
+                            <Image source={{ uri: getImageUrl(`/upload/files/${item.attachmentId}`), headers: { Authorization: `Bearer ${user?.accessToken || ''}` } }} style={styles.mediaImage} resizeMode="cover" />
+                        </TouchableOpacity>
                     )}
 
                     {item.contenido ? (
@@ -251,13 +237,13 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                             styles.text, 
                             esMio ? styles.textMe : styles.textThem,
                             soloEmoji && { fontSize: 45, lineHeight: 55 },
-                            item.archivoUrl && { marginTop: 6, paddingHorizontal: 6 } 
+                            item.attachmentId && { marginTop: 6, paddingHorizontal: 6 }
                         ]}>
                             {item.contenido}
                         </Text>
                     ) : null}
                     
-                    <View style={[styles.msgFooter, item.archivoUrl && { paddingHorizontal: 6 }]}>
+                    <View style={[styles.msgFooter, item.attachmentId && { paddingHorizontal: 6 }]}>
                         <Text style={styles.time}>{format(new Date(item.fechaHora), 'HH:mm')}</Text>
                         
                         {esMio && !soloEmoji && (

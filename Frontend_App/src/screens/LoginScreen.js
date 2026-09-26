@@ -10,10 +10,8 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock, ArrowRight } from 'lucide-react-native'; 
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../components/context/AuthContext';
-import { BASE_URL } from '../config/environment';
+import { loginForm } from '../api/endpoints';
 
 // Componentes UI reutilizables
 import GymButton from '../components/ui/GymButton';
@@ -40,40 +38,10 @@ export default function LoginScreen() {
     try {
       const cleanEmail = email.trim().toLowerCase();
 
-      const loginData = {
-        username: cleanEmail,
-        password: password,
-        email: cleanEmail
-      };
-
-      const body = new URLSearchParams(loginData).toString();
-
-      const resp = await axios.post(`${BASE_URL}/login`, body, {
-         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-         timeout: 45000
-      });
+      const resp = await loginForm({ email: cleanEmail, password });
 
       if (resp.status >= 200 && resp.status < 300) {
-        // 👇 ESTE ES EL CHIVATO CLAVE
-        console.log("👀 DATOS REALES DEL LOGIN:", resp.data);
-
-        // Intentamos cazar el rol y el ID vengan como vengan
-        const rawRole = resp.data.rol || resp.data.role || resp.data.tipo || '';
-        const role = rawRole.toUpperCase();
-        const id = resp.data.id || resp.data.usuarioId || resp.data.entrenadorId;
-        const token =
-          resp.data.token ||
-          resp.data.accessToken ||
-          resp.data.jwt ||
-          resp.headers?.authorization?.replace(/^Bearer\s+/i, '') ||
-          null;
-        
-        console.log("💾 GUARDANDO EN MEMORIA -> ID:", id, " | ROLE:", role, " | TOKEN:", !!token);
-        
-        await login(id, role, token);
-        if (token) {
-          await AsyncStorage.setItem("token", token);
-        }
+        await login(resp.data);
       }
     } catch (err) {
       if (err.response?.status === 404 || err.response?.status === 401) {

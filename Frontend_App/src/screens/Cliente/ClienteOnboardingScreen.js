@@ -15,7 +15,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { completarOnboardingCliente } from "../../api/endpoints";
-import { useAuth } from "../../components/context/AuthContext";
+import { useAuth } from '../../components/context/AuthContext';
 
 // Iconos
 import { ChevronLeft, Check, Dumbbell, User, Ruler, Weight, Flame, Activity } from "lucide-react-native";
@@ -76,7 +76,7 @@ const GymSelectionCard = ({ title, icon: Icon, selected, onPress, variant = "row
 export default function ClienteOnboardingScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { login } = useAuth(); // Para el autologin final
+  const { userId: authenticatedUserId } = useAuth();
 
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -92,7 +92,7 @@ export default function ClienteOnboardingScreen() {
 
   useEffect(() => {
     const initId = async () => {
-      let idRecuperado = route.params?.userId;
+      let idRecuperado = authenticatedUserId || route.params?.userId;
       if (!idRecuperado) {
         idRecuperado = await AsyncStorage.getItem("registration_userId");
       }
@@ -100,7 +100,7 @@ export default function ClienteOnboardingScreen() {
       else console.warn("⚠️ No se encontró ID de usuario.");
     };
     initId();
-  }, [route.params]);
+  }, [route.params, authenticatedUserId]);
 
   const currentStep = STEPS[stepIndex];
   const totalSteps = STEPS.length;
@@ -195,10 +195,7 @@ export default function ClienteOnboardingScreen() {
       };
 
       await completarOnboardingCliente(payload);
-      await AsyncStorage.removeItem("registration_userId");
-
-      // Auto-Login: Mandamos al usuario directo al Dashboard
-      await login(userId, "CLIENTE");
+      navigation.navigate('ClienteTabs');
 
     } catch (error) {
       console.error(error);

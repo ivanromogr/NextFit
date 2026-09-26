@@ -1,7 +1,4 @@
-import axios from "axios";
 import api from "./api";
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BASE_URL } from '../config/environment';
 
 export { api };
@@ -23,16 +20,10 @@ export const getImageUrl = (path) => {
 // 1. AUTENTICACIÓN Y REGISTRO
 // ==========================================
 export const loginForm = async ({ email, password }) => {
-  const params = new URLSearchParams();
-  params.append("username", email);    
-  params.append("password", password); 
-  
-  return axios.post(`${BASE_URL}/login`, params, {
-    headers: { "Content-Type": "application/x-www-form-urlencoded" }
-  });
+  return api.post('/auth/login', { email, password }, { headers: { 'X-Client-Type': 'MOBILE' } });
 };
 
-export const registerUser = async (payload) => api.post("/register", payload);
+export const registerUser = async (payload) => api.post("/register", payload, { headers: { 'X-Client-Type': 'MOBILE' } });
 
 // ==========================================
 // 2. CLIENTE: PERFIL Y ONBOARDING
@@ -254,8 +245,8 @@ export const obtenerResumenDashboard = async (clienteId) => {
 // ==========================================
 // 7. CHAT
 // ==========================================
-export const obtenerContactosChat = async (usuarioId) => {
-  const response = await api.get(`/chat/contactos?usuarioId=${usuarioId}`);
+export const obtenerContactosChat = async () => {
+  const response = await api.get('/chat/contactos');
   return Array.isArray(response.data) ? response.data : [];
 };
 
@@ -264,16 +255,17 @@ export const buscarUsuarioPorEmail = async (email) => {
     return response.data;
 };
 
-export const obtenerHistorialChat = async (usuario1, usuario2) => {
-  const response = await api.get(`/chat/historial?usuario1=${usuario1}&usuario2=${usuario2}`);
+export const obtenerHistorialChat = async (_usuarioActual, otroUsuarioId) => {
+  const response = await api.get(`/chat/historial?otroUsuarioId=${otroUsuarioId}`);
   return Array.isArray(response.data) ? response.data : [];
 };
 
 // ==========================================
 // 8. MULTIMEDIA (UPLOAD)
 // ==========================================
-export const subirArchivoAdjunto = async (formData) => {
+export const subirArchivoAdjunto = async (formData, purpose = 'PROFILE_IMAGE') => {
   try {
+    if (!formData?._parts?.some?.(([key]) => key === 'purpose')) formData.append('purpose', purpose);
     const response = await api.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',

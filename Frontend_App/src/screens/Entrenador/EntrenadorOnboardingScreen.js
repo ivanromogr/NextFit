@@ -17,7 +17,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { completarOnboardingEntrenador } from "../../api/endpoints";
-import { useAuth } from "../../components/context/AuthContext"; 
+import { useAuth } from '../../components/context/AuthContext';
 
 // Iconos
 import {
@@ -99,7 +99,7 @@ const GymSelectionCard = ({ title, icon: Icon, selected, onPress, variant = "row
 export default function EntrenadorOnboardingScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { login } = useAuth(); 
+  const { userId: authenticatedUserId } = useAuth();
 
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -119,14 +119,14 @@ export default function EntrenadorOnboardingScreen() {
 
   useEffect(() => {
     const initId = async () => {
-      let idRecuperado = route.params?.userId;
+      let idRecuperado = authenticatedUserId || route.params?.userId;
       if (!idRecuperado) idRecuperado = await AsyncStorage.getItem("registration_userId");
       
       if (idRecuperado) setUserId(idRecuperado);
       else console.warn("⚠️ Sin ID de usuario.");
     };
     initId();
-  }, [route.params]);
+  }, [route.params, authenticatedUserId]);
 
   const currentStep = STEPS[stepIndex];
   const totalSteps = STEPS.length;
@@ -214,7 +214,7 @@ export default function EntrenadorOnboardingScreen() {
 
       await completarOnboardingEntrenador(payload);
       await AsyncStorage.removeItem("registration_userId");
-      await login(userId, "ENTRENADOR");
+      navigation.navigate('EntrenadorTabs');
 
     } catch (error) {
       console.error(error);

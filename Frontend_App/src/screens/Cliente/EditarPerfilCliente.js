@@ -138,9 +138,9 @@ export default function PerfilScreen() {
         });
 
         // 1. Subimos al servidor y recibimos la respuesta
-        const respuestaBackend = await subirArchivoAdjunto(formData);
+        const respuestaBackend = await subirArchivoAdjunto(formData, 'PROFILE_IMAGE');
         
-        const rutaRelativa = typeof respuestaBackend === 'string' ? respuestaBackend : respuestaBackend.url || respuestaBackend.fileUrl;
+        const rutaRelativa = respuestaBackend?.url;
 
         // 3. Usamos el Helper global para construir la URL completa
         const urlFinal = getImageUrl(rutaRelativa);

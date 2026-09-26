@@ -18,7 +18,7 @@ import SockJS from 'sockjs-client';
 
 export default function ChatsEntrenadorScreen() {
     const navigation = useNavigation();
-    const { userId: entrenadorId } = useAuth();
+    const { userId: entrenadorId, user } = useAuth();
     
     // Estados de las listas
     const [clientes, setClientes] = useState([]);
@@ -76,9 +76,9 @@ export default function ChatsEntrenadorScreen() {
         const client = Stomp.over(socket);
         client.debug = null;
 
-        client.connect({}, () => {
+        client.connect({ Authorization: `Bearer ${user?.accessToken || ''}` }, () => {
             socketRef.current = client;
-            client.subscribe(`/topic/mensajes/${entrenadorId}`, (payload) => {
+            client.subscribe('/user/queue/mensajes', (payload) => {
                 const msg = JSON.parse(payload.body);
 
                 if (msg.remitenteId && msg.remitenteId !== entrenadorId) {

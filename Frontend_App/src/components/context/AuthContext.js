@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  clearAuthSession,
+  getAuthSession,
+  saveAuthSession,
+  setSessionInvalidationHandler,
+} from './authSession';
+import { refreshMobileSession, logoutMobileSession } from '../../api/api';
 
 const AuthContext = createContext(null);
 
@@ -12,39 +18,36 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const loadSession = async () => {
       try {
-        const sessionData = await AsyncStorage.getItem("auth_session");
-        if (sessionData) {
-          const parsedSession = JSON.parse(sessionData);
-          setUser(parsedSession);
-          setRole(parsedSession.role);
+        const session = await getAuthSession();
+        if (session) {
+          const response = await refreshMobileSession();
+          const restored = await saveAuthSession(response.data);
+          setUser(restored);
+          setRole(restored.role);
         }
       } catch (error) {
         console.error("Error al recuperar sesión:", error);
+        await clearAuthSession();
       } finally {
         setLoading(false);
       }
     };
     loadSession();
+    return setSessionInvalidationHandler(() => {
+      setUser(null);
+      setRole(null);
+    });
   }, []);
 
   /**
    * Login: Guarda credenciales de forma persistente
    */
-  const login = async (userId, userRole, token = null) => {
-    const sessionData = {
-      id: userId,
-      role: userRole,
-      token,
-      loginTime: new Date().toISOString(),
-    };
-    
+  const login = async (loginResponse) => {
     try {
-      await AsyncStorage.setItem("auth_session", JSON.stringify(sessionData));
-      if (token) {
-        await AsyncStorage.setItem("token", token);
-      }
-      setUser(sessionData);
-      setRole(userRole);
+      const session = await saveAuthSession(loginResponse);
+      setUser(session);
+      setRole(session.role);
+      return session;
     } catch (error) {
       console.error("Error al guardar sesión:", error);
     }
@@ -55,8 +58,8 @@ export function AuthProvider({ children }) {
    */
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem("auth_session");
-      await AsyncStorage.removeItem("token");
+      await logoutMobileSession();
+      await clearAuthSession();
       setUser(null);
       setRole(null);
     } catch (error) {

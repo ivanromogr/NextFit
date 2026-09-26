@@ -1,6 +1,6 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, BASE_URL } from '../config/environment';
+import { clearAuthSession, getAccessToken, getRefreshToken, saveAuthSession } from '../components/context/authSession';
 
 console.log('[API CONFIG] 🔧 Conectando a:', API_URL);
 
@@ -11,26 +11,11 @@ export const api = axios.create({
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const getStoredToken = async () => {
-    const directToken = await AsyncStorage.getItem('token');
-    if (directToken) return directToken;
-
-    const sessionData = await AsyncStorage.getItem('auth_session');
-    if (!sessionData) return null;
-
-    try {
-        const session = JSON.parse(sessionData);
-        return session.token || session.accessToken || session.jwt || null;
-    } catch {
-        return null;
-    }
-};
-
 // Antes de que cualquier petición salga de la app, hacemos esto:
 api.interceptors.request.use(
     async (config) => {
         try {
-            const token = await getStoredToken(); 
+            const token = await getAccessToken();
             
             if (token) {
                 // Si hay token, lo pegamos en la cabecera Authorization
@@ -66,6 +51,19 @@ api.interceptors.response.use(
     },
     async (error) => {
         const config = error.config || {};
+        const authRequest = config.url?.includes('/auth/refresh') || config.url?.includes('/auth/login') || config.url?.includes('/auth/logout');
+        if (error.response?.status === 401 && !config.__refreshRetry && !authRequest) {
+            config.__refreshRetry = true;
+            try {
+                const response = await refreshMobileSession();
+                await saveAuthSession(response.data);
+                config.headers = config.headers || {};
+                config.headers.Authorization = `Bearer ${await getAccessToken()}`;
+                return api(config);
+            } catch {
+                await clearAuthSession();
+            }
+        }
         const shouldRetry =
             !config.__retry &&
             (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || !error.response);
@@ -94,3 +92,19 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+let refreshInFlight = null;
+export const refreshMobileSession = async () => {
+    if (!refreshInFlight) {
+        refreshInFlight = (async () => {
+            const refreshToken = await getRefreshToken();
+            if (!refreshToken) throw new Error('No refresh token');
+            return api.post('/auth/refresh', { refreshToken }, { headers: { 'X-Client-Type': 'MOBILE' } });
+        })().finally(() => { refreshInFlight = null; });
+    }
+    return refreshInFlight;
+};
+export const logoutMobileSession = async () => {
+    const refreshToken = await getRefreshToken();
+    if (refreshToken) await api.post('/auth/logout', { refreshToken }, { headers: { 'X-Client-Type': 'MOBILE' } });
+};
