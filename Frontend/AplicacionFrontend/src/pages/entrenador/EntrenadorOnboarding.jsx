@@ -35,9 +35,9 @@ const LISTA_TITULACIONES = [
 ];
 
 export default function EntrenadorOnboarding() {
+  const { userId: authenticatedUserId } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
 
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -55,7 +55,7 @@ export default function EntrenadorOnboarding() {
   });
 
   useEffect(() => {
-    let idRecuperado = location.state?.userId
+    let idRecuperado = authenticatedUserId || location.state?.userId
       || sessionStorage.getItem("registration_userId")
       || localStorage.getItem("registration_userId");
     if (idRecuperado) setUserId(idRecuperado);
@@ -139,11 +139,6 @@ export default function EntrenadorOnboarding() {
 
       await completarOnboardingEntrenador(payload);
 
-      sessionStorage.setItem("entrenadorId", userId);
-      localStorage.setItem("entrenadorId", userId);
-      login(userId, "entrenador");
-      sessionStorage.removeItem("registration_userId");
-      localStorage.removeItem("registration_userId");
       navigate("/entrenador/dashboard");
     } catch (error) {
       console.error(error);

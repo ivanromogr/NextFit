@@ -24,16 +24,9 @@ export default function Login() {
     try {
       const resp = await loginForm(form);
 
-      if (resp.status === 200 && resp.data?.id) {
-        const { role, id } = resp.data;
-
-        // 👇 Guardar en sessionStorage (exclusivo de esta pestaña) + Context
-        login(id, role);
-
-        // Mantener registration_userId para onboarding si es necesario
-        sessionStorage.setItem("registration_userId", id);
-
-        navigate(role === "entrenador" ? "/entrenador/dashboard" : "/cliente/dashboard");
+      if (resp.status === 200 && resp.data?.accessToken && resp.data?.user) {
+        const session = login(resp.data);
+        navigate(session.role === "ENTRENADOR" ? "/entrenador/dashboard" : "/cliente/dashboard");
       } else {
         setError("Error: No se pudieron obtener los datos del usuario.");
       }

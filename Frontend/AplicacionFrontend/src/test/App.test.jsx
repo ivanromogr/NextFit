@@ -57,8 +57,8 @@ describe("Integración de Rutas en App.jsx", () => {
     });
   });
 
-  it("permite acceso al dashboard de cliente si el rol es 'cliente'", async () => {
-    const sessionData = JSON.stringify({ id: "1", role: "cliente" });
+  it("permite acceso al dashboard de cliente con una sesión JWT válida", async () => {
+    const sessionData = JSON.stringify({ id: "1", email: "cliente@nextfit.test", role: "CLIENTE", accessToken: "token", expiresAt: Date.now() + 60_000 });
     sessionStorageMock.setItem("auth_session", sessionData);
     
     window.history.pushState({}, "Dashboard", "/cliente/dashboard");

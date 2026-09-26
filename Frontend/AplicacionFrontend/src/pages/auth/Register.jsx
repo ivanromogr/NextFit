@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { registerUser } from "../../api/endpoints";
+import { useAuth } from "../../context/AuthContext";
 import GymButton from "../../components/ui/GymButton";
 import GymInput from "../../components/ui/GymInput";
 import GymCard from "../../components/ui/GymCard";
@@ -11,6 +12,7 @@ import "../../styles/auth.css";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,19 +38,8 @@ export default function Register() {
       const resp = await registerUser(form);
 
       if (resp && resp.status >= 200 && resp.status < 300) {
-        const dataBackend = resp.data || {};
-        const idUsuario =
-          (form.rol === "CLIENTE")
-            ? (dataBackend.clienteId || dataBackend.idCliente || dataBackend.id)
-            : (dataBackend.entrenadorId || dataBackend.idEntrenador || dataBackend.id);
-
-        if (idUsuario) {
-          sessionStorage.setItem("registration_userId", idUsuario);
-          localStorage.setItem("registration_userId", idUsuario);
-        }
-
-        const ruta = form.rol === "CLIENTE" ? "/cliente/onboarding" : "/entrenador/onboarding";
-        navigate(ruta, { state: { userId: idUsuario } });
+        const session = login(resp.data);
+        navigate(session.role === "CLIENTE" ? "/cliente/onboarding" : "/entrenador/onboarding");
       }
     } catch (err) {
       if (err.response) {

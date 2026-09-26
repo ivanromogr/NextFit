@@ -5,8 +5,24 @@ import { Send, User, CheckCheck, Paperclip, Smile, X, Image as ImageIcon, Film }
 import EmojiPicker from 'emoji-picker-react';
 import { api } from '../../api/endpoints';
 import { API_BASE_URL, SOCKJS_URL } from '../../api/config';
+import { useAuth } from '../../context/AuthContext';
+
+function PrivateAttachmentImage({ attachmentId }) {
+    const [objectUrl, setObjectUrl] = useState(null);
+    useEffect(() => {
+        let active = true;
+        let url;
+        api.get(`/api/upload/files/${attachmentId}`, { responseType: 'blob' }).then(({ data }) => {
+            url = URL.createObjectURL(data);
+            if (active) setObjectUrl(url);
+        }).catch(() => { if (active) setObjectUrl(null); });
+        return () => { active = false; if (url) URL.revokeObjectURL(url); };
+    }, [attachmentId]);
+    return objectUrl ? <img src={objectUrl} alt="Adjunto" style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '6px', maxHeight: '250px', objectFit: 'cover' }} /> : null;
+}
 
 export default function ChatComponent({ usuarioId, destinatarioId, nombreDestinatario, fotoDestinatario, autoGreet = false, greetingMessage = '', onAutoGreetSent }) {
+    const { user } = useAuth();
     const [mensajes, setMensajes] = useState([]);
     const [nuevoMensaje, setNuevoMensaje] = useState("");
     const [conectado, setConectado] = useState(false);
@@ -57,8 +73,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             stompClientRef.current.publish({
                 destination: "/app/chat/leer",
                 body: JSON.stringify({
-                    remitenteId: destinatarioId,
-                    destinatarioId: usuarioId
+                    remitenteId: destinatarioId
                 })
             });
 
@@ -81,7 +96,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 : 'Hola, encantado. Me gustaría iniciar la transformación.';
 
         const mensaje = {
-            remitenteId: usuarioId,
             destinatarioId: destinatarioId,
             contenido: saludo,
             leido: false
@@ -104,7 +118,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
 
     const cargarHistorial = async () => {
         try {
-            const response = await api.get(`/api/chat/historial?usuario1=${usuarioId}&usuario2=${destinatarioId}`);
+            const response = await api.get(`/api/chat/historial?otroUsuarioId=${destinatarioId}`);
             setMensajes(response.data || []);
         } catch (error) {
             console.error(error);
@@ -118,12 +132,13 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         const client = new Client({
             brokerURL: undefined,
             webSocketFactory: () => new SockJS(SOCKJS_URL),
+            connectHeaders: { Authorization: `Bearer ${user?.accessToken || ''}` },
             reconnectDelay: 5000,
             onConnect: () => {
                 setConectado(true);
                 stompClientRef.current = client;
 
-                client.subscribe(`/topic/mensajes/${usuarioId}`, (payload) => {
+                client.subscribe('/user/queue/mensajes', (payload) => {
                     const mensajeRecibido = JSON.parse(payload.body);
 
                     if (
@@ -178,20 +193,19 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         if (!nuevoMensaje.trim() && !archivoAdjunto) return;
         if (!stompClientRef.current?.connected) return;
 
-        let archivoUrlFinal = null;
-        let tipoArchivoFinal = null;
+        let attachmentId = null;
 
         if (archivoAdjunto) {
             setIsUploading(true);
             const formData = new FormData();
             formData.append("file", archivoAdjunto);
+            formData.append("purpose", "CHAT_ATTACHMENT");
 
             try {
                 const res = await api.post('/api/upload', formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
-                archivoUrlFinal = res.data.url;
-                tipoArchivoFinal = archivoAdjunto.type.startsWith('video') ? 'VIDEO' : 'IMAGEN';
+                attachmentId = res.data.id;
             } catch (error) {
                 console.error("Error subiendo archivo", error);
                 setIsUploading(false);
@@ -202,12 +216,10 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         }
 
         const mensaje = {
-            remitenteId: usuarioId,
             destinatarioId: destinatarioId,
             contenido: nuevoMensaje,
             leido: false,
-            archivoUrl: archivoUrlFinal,
-            tipoArchivo: tipoArchivoFinal
+            ...(attachmentId ? { attachmentId } : {})
         };
 
         stompClientRef.current.publish({
@@ -234,16 +246,6 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             month: 'short',
             year: 'numeric'
         });
-    };
-
-    const formatearUrlMedia = (url) => {
-        if (!url) return null;
-
-        if (url.startsWith('http')) {
-            return url;
-        }
-
-        return `${API_BASE_URL}${url}`;
     };
 
     const esSoloEmojis = (texto, url) => {
@@ -352,7 +354,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     const fechaAnterior = i > 0 ? formatearFechaSeparador(mensajes[i - 1].fechaHora) : null;
                     const mostrarFecha = fechaActual !== fechaAnterior;
 
-                    const soloEmoji = esSoloEmojis(msg.contenido, msg.archivoUrl);
+                    const soloEmoji = esSoloEmojis(msg.contenido, msg.attachmentId);
 
                     return (
                         <React.Fragment key={msg.id || i}>
@@ -376,26 +378,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                                             : {})
                                     }}
                                 >
-                                    {msg.archivoUrl && (
-                                        msg.tipoArchivo === 'VIDEO' ? (
-                                            <video
-                                                controls
-                                                style={{ ...styles.mediaContent, backgroundColor: '#000' }}
-                                                preload="metadata"
-                                                playsInline
-                                            >
-                                                <source src={formatearUrlMedia(msg.archivoUrl)} type="video/mp4" />
-                                                <source src={formatearUrlMedia(msg.archivoUrl)} type="video/webm" />
-                                                Tu navegador no soporta la reproducción de este vídeo.
-                                            </video>
-                                        ) : (
-                                            <img
-                                                src={formatearUrlMedia(msg.archivoUrl)}
-                                                alt="Adjunto"
-                                                style={styles.mediaContent}
-                                            />
-                                        )
-                                    )}
+                                    {msg.attachmentId && <PrivateAttachmentImage attachmentId={msg.attachmentId} />}
 
                                     {msg.contenido && (
                                         <span

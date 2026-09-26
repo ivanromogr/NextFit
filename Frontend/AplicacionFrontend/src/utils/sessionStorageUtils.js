@@ -27,7 +27,7 @@ export function getClienteId() {
  */
 export function getEntrenadorId() {
   const session = getSession();
-  return session?.role === "entrenador" ? session?.id : null;
+  return session?.role === "ENTRENADOR" ? session?.id : null;
 }
 
 /**

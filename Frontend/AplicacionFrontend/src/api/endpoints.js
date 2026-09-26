@@ -1,11 +1,11 @@
 import axios from "axios";
 import { API_BASE_URL } from "./config";
 import { resolveExerciseImageUrl, resolveMediaUrl } from "../utils/media";
+import { clearAuthSession, getAccessToken, saveAuthSession } from "../utils/authSession";
 
 // --- 1. CONFIGURACIÓN AXIOS ---
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -13,12 +13,31 @@ export const api = axios.create({
 
 // Interceptor para inyectar el token automáticamente
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config || {};
+    const authUrl = original.url?.includes("/api/auth/");
+    if (error.response?.status === 401 && !original.__refreshRetry && !authUrl) {
+      original.__refreshRetry = true;
+      try {
+        const response = await refreshWebSession();
+        saveAuthSession(response.data);
+        original.headers = original.headers || {};
+        original.headers.Authorization = `Bearer ${getAccessToken()}`;
+        return api(original);
+      } catch { clearAuthSession(); }
+    }
+    return Promise.reject(error);
+  },
+);
 
 const normalizarPerfil = (data) => {
   if (!data || typeof data !== "object") return data;
@@ -65,23 +84,17 @@ const normalizarRutina = (rutina) => {
 
 // --- 2. AUTENTICACIÓN (LOGIN) ---
 export const loginForm = async ({ email, password }) => {
-  const params = new URLSearchParams();
-  params.append("username", email);
-  params.append("password", password);
-
-  if (!params.has("email")) params.append("email", email);
-
-  return api.post("/login", params, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-  });
+  return api.post("/api/auth/login", { email, password }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
 };
 
 // --- 3. REGISTRO ---
-export const registerUser = async (payload) => {
-  return api.post("/api/register", payload);
+export const registerUser = async (payload) => api.post("/api/register", payload, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
+let refreshInFlight = null;
+export const refreshWebSession = () => {
+  if (!refreshInFlight) refreshInFlight = api.post("/api/auth/refresh", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } }).finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
 };
+export const logoutSession = () => api.post("/api/auth/logout", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } });
 
 // --- 4. OBTENER DATOS DEL CLIENTE ---
 export const getCliente = async (id) => {
@@ -371,8 +384,8 @@ export const desvincularEntrenadorCliente = async (idCliente) => {
   return response.data;
 };
 
-export const obtenerContactosChat = async (usuarioId) => {
-  const response = await api.get(`/api/chat/contactos?usuarioId=${usuarioId}`);
+export const obtenerContactosChat = async () => {
+  const response = await api.get('/api/chat/contactos');
   return Array.isArray(response.data)
     ? response.data.map(normalizarPerfil)
     : [];

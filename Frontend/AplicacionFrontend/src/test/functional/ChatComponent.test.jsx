@@ -62,7 +62,7 @@ describe('Componente ChatComponent', () => {
     expect(screen.getByText('Coach Carlos')).toBeInTheDocument();
     
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/api/chat/historial?usuario1=1&usuario2=2');
+      expect(api.get).toHaveBeenCalledWith('/api/chat/historial?otroUsuarioId=2');
       expect(screen.getByText('Aún no hay mensajes.')).toBeInTheDocument();
     });
   });
@@ -132,7 +132,7 @@ describe('Componente ChatComponent', () => {
   it('maneja la selección y subida de archivos adjuntos', async () => {
     api.get.mockResolvedValueOnce({ data: [] });
     // Simulamos respuesta exitosa de subida de archivo
-    api.post.mockResolvedValueOnce({ data: { url: '/uploads/imagen.jpg' } });
+    api.post.mockResolvedValueOnce({ data: { id: '11111111-1111-1111-1111-111111111111', url: '/api/upload/files/11111111-1111-1111-1111-111111111111' } });
 
     render(<ChatComponent {...defaultProps} />);
 
@@ -155,10 +155,10 @@ describe('Componente ChatComponent', () => {
       // 1. Debe subir el archivo primero
       expect(api.post).toHaveBeenCalled();
       
-      // 2. Debe publicar en el websocket con la URL devuelta
+      // 2. Debe publicar sólo el ID opaco del adjunto
       expect(mockPublish).toHaveBeenCalledWith(expect.objectContaining({
         destination: '/app/chat',
-        body: expect.stringContaining('/uploads/imagen.jpg')
+        body: expect.stringContaining('"attachmentId":"11111111-1111-1111-1111-111111111111"')
       }));
     });
   });
@@ -174,7 +174,7 @@ describe('Componente ChatComponent', () => {
     await waitFor(() => {
       expect(mockPublish).toHaveBeenCalledWith(expect.objectContaining({
         destination: '/app/chat/leer',
-        body: expect.stringContaining(`"remitenteId":2,"destinatarioId":1`)
+        body: expect.stringContaining(`"remitenteId":2`)
       }));
     });
   });

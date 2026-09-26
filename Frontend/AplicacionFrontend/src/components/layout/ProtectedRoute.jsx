@@ -15,11 +15,11 @@ export default function ProtectedRoute({ role, children }) {
   }
 
   // Protegido por rol
-  if (role === "entrenador" && userRole !== "entrenador") {
+  if (role === "entrenador" && userRole !== "ENTRENADOR") {
     return <Navigate to="/cliente/dashboard" replace />;
   }
 
-  if (role === "cliente" && userRole !== "cliente") {
+  if (role === "cliente" && userRole !== "CLIENTE") {
     return <Navigate to="/entrenador/dashboard" replace />;
   }
 

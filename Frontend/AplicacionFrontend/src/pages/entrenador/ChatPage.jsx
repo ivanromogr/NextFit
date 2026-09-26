@@ -8,7 +8,7 @@ import Stomp from 'stompjs';
 import { SOCKJS_URL } from "../../api/config";
 
 export default function ChatPage() {
-    const { userId: entrenadorId } = useAuth();
+    const { userId: entrenadorId, user } = useAuth();
     const [clientes, setClientes] = useState([]);
     const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
     const [busqueda, setBusqueda] = useState("");
@@ -29,10 +29,10 @@ export default function ChatPage() {
     const client = Stomp.over(socket);
     client.debug = null;
 
-    client.connect({}, () => {
+    client.connect({ Authorization: `Bearer ${user?.accessToken || ''}` }, () => {
         socketRef.current = client;
 
-        client.subscribe(`/topic/mensajes/${entrenadorId}`, (payload) => {
+        client.subscribe('/user/queue/mensajes', (payload) => {
             const msg = JSON.parse(payload.body);
 
             if (msg.remitenteId && msg.remitenteId !== entrenadorId) {

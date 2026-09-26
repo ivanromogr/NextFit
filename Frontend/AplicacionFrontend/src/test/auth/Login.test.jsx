@@ -49,7 +49,7 @@ describe('Página de Login', () => {
     // Ahora loginForm SÍ tendrá el método mockResolvedValue
     api.loginForm.mockResolvedValue({
       status: 200,
-      data: { id: '123', role: 'cliente' }
+      data: { accessToken: 'token', expiresIn: 900, user: { id: '123', email: 'atleta@test.com', role: 'CLIENTE' } }
     });
 
     renderLogin();
@@ -64,9 +64,19 @@ describe('Página de Login', () => {
     fireEvent.click(screen.getByRole('button', { name: /INICIAR SESIÓN/i }));
 
     await waitFor(() => {
-      expect(api.loginForm).toHaveBeenCalled();
+      expect(api.loginForm).toHaveBeenCalledWith({ email: 'atleta@test.com', password: 'password123' });
       expect(mockNavigate).toHaveBeenCalledWith('/cliente/dashboard');
     });
+  });
+
+  it('redirige al dashboard de ENTRENADOR tras un login exitoso', async () => {
+    api.loginForm.mockResolvedValue({
+      status: 200,
+      data: { accessToken: 'token', expiresIn: 900, user: { id: '456', email: 'coach@test.com', role: 'ENTRENADOR' } }
+    });
+    renderLogin();
+    fireEvent.click(screen.getByRole('button', { name: /INICIAR SESIÓN/i }));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/entrenador/dashboard'));
   });
 
   it('muestra error de credenciales (401)', async () => {

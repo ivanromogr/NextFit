@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import logoNextFit from "../../assets/logo-nextfit.png";
 
 import {
@@ -15,6 +16,7 @@ import {
 export default function EntrenadorSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
 
   const styles = {
     sidebar: {
@@ -138,7 +140,7 @@ export default function EntrenadorSidebar() {
       <button
         style={styles.logoutBtn}
         onClick={() => {
-          localStorage.clear();
+          logout();
           navigate("/auth/login");
         }}
       >

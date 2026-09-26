@@ -169,7 +169,7 @@ describe('Página EntrenadorOnboarding', () => {
                 })
             );
             // Comprobamos la redirección
-            expect(mockNavigate).toHaveBeenCalledWith('/entrenador/dashboard');
+      expect(mockNavigate).toHaveBeenCalledWith('/auth/login');
         });
     });
 

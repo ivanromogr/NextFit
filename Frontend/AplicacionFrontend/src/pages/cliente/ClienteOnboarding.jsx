@@ -17,7 +17,7 @@ const STEPS = ["genero", "fechaNacimiento", "altura", "peso", "objetivo"];
 export default function ClienteOnboarding() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { userId: authenticatedUserId } = useAuth();
 
   // Estados
   const [userId, setUserId] = useState(null);
@@ -37,7 +37,7 @@ export default function ClienteOnboarding() {
 
   // Recuperar ID al cargar (desde State o LocalStorage)
   useEffect(() => {
-    let idRecuperado = location.state?.userId;
+    let idRecuperado = authenticatedUserId || location.state?.userId;
     if (!idRecuperado) {
       idRecuperado = sessionStorage.getItem("registration_userId") || localStorage.getItem("registration_userId");
     }
@@ -48,7 +48,7 @@ export default function ClienteOnboarding() {
       console.warn("⚠️ No se encontró ID de usuario. Asegúrate de venir del registro.");
       // Opcional: navigate("/auth/login");
     }
-  }, [location]);
+  }, [location, authenticatedUserId]);
 
   const currentStep = STEPS[stepIndex];
   const totalSteps = STEPS.length;
@@ -176,12 +176,9 @@ export default function ClienteOnboarding() {
       if (idDevuelto) {
         sessionStorage.setItem("clienteId", idDevuelto);
         localStorage.setItem("clienteId", idDevuelto);
-        login(idDevuelto, "cliente");
         setUserId(idDevuelto);
       }
 
-      sessionStorage.removeItem("registration_userId");
-      localStorage.removeItem("registration_userId");
       navigate("/cliente/dashboard");
     } catch (error) {
       console.error(error);

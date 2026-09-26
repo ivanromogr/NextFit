@@ -33,7 +33,7 @@ describe("AuthContext (AuthProvider & useAuth)", () => {
   });
 
   it("debe recuperar la sesión de sessionStorage al cargar", () => {
-    const mockSession = { id: "123", role: "CLIENTE", loginTime: "2026-01-01" };
+    const mockSession = { id: "123", email: "cliente@nextfit.test", role: "CLIENTE", accessToken: "token", expiresAt: Date.now() + 60_000 };
     sessionStorageMock.setItem("auth_session", JSON.stringify(mockSession));
 
     const { result } = renderHook(() => useAuth(), { wrapper });
@@ -56,7 +56,7 @@ describe("AuthContext (AuthProvider & useAuth)", () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     act(() => {
-      result.current.login("user-1", "ENTRENADOR");
+      result.current.login({ accessToken: "token", expiresIn: 60, user: { id: "user-1", email: "coach@nextfit.test", role: "ENTRENADOR" } });
     });
 
     expect(result.current.user.id).toBe("user-1");
@@ -72,7 +72,7 @@ describe("AuthContext (AuthProvider & useAuth)", () => {
 
     // Primero logueamos
     act(() => {
-      result.current.login("user-1", "CLIENTE");
+      result.current.login({ accessToken: "token", expiresIn: 60, user: { id: "user-1", email: "cliente@nextfit.test", role: "CLIENTE" } });
     });
 
     // Luego deslogueamos
@@ -91,7 +91,7 @@ describe("AuthContext (AuthProvider & useAuth)", () => {
     expect(result.current.isAuthenticated()).toBe(false);
 
     act(() => {
-      result.current.login("1", "CLIENTE");
+      result.current.login({ accessToken: "token", expiresIn: 60, user: { id: "1", email: "cliente@nextfit.test", role: "CLIENTE" } });
     });
 
     expect(result.current.isAuthenticated()).toBe(true);
@@ -103,5 +103,12 @@ describe("AuthContext (AuthProvider & useAuth)", () => {
     expect(result.current.user).toBeNull();
     expect(result.current.userId).toBeNull();
     expect(result.current.isAuthenticated()).toBe(false);
+  });
+
+  it("descarta una sesión expirada", () => {
+    sessionStorageMock.setItem("auth_session", JSON.stringify({ id: "1", email: "x@nextfit.test", role: "CLIENTE", accessToken: "token", expiresAt: Date.now() - 1 }));
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    expect(result.current.isAuthenticated()).toBe(false);
+    expect(sessionStorageMock.removeItem).toHaveBeenCalledWith("auth_session");
   });
 });

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Upload, Check, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../../api/config';
 import { resolveMediaUrl } from '../../utils/media';
+import { getAccessToken } from '../../utils/authSession';
 
 const ImageUpload = ({ onUploadSuccess, label = 'Subir imagen' }) => {
   const [uploading, setUploading] = useState(false);
@@ -31,13 +32,13 @@ const ImageUpload = ({ onUploadSuccess, label = 'Subir imagen' }) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('purpose', 'PROFILE_IMAGE');
+      const accessToken = getAccessToken();
 
       const response = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       });
 
       if (!response.ok) {

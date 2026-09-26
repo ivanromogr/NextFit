@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 import { SOCKJS_URL } from "../../api/config";
 
 export default function ChatClientePage() {
-    const { userId: clienteId } = useAuth();
+    const { userId: clienteId, user } = useAuth();
     const [entrenador, setEntrenador] = useState(null);
     
     // Al cargar, leemos si ya teníamos amigos guardados en la memoria de la pestaña
@@ -116,10 +116,10 @@ export default function ChatClientePage() {
     const client = Stomp.over(socket);
     client.debug = null;
 
-    client.connect({}, () => {
+    client.connect({ Authorization: `Bearer ${user?.accessToken || ''}` }, () => {
         socketRef.current = client;
 
-        client.subscribe(`/topic/mensajes/${clienteId}`, (payload) => {
+        client.subscribe('/user/queue/mensajes', (payload) => {
             const msg = JSON.parse(payload.body);
 
             if (msg.remitenteId !== clienteId) {
