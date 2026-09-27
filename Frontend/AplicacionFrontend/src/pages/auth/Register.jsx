@@ -17,7 +17,7 @@ export default function Register() {
   const [error, setError] = useState("");
 
   const [form, setForm] = useState({
-    nombre: "", apellido: "", email: "", contrasena: "", rol: "CLIENTE",
+    nombre: "", apellido: "", email: "", contrasena: "", rol: "CLIENTE", acceptTerms: false, acceptPrivacy: false, marketingConsent: false,
   });
 
   const [isNarrow, setIsNarrow] = useState(typeof window !== 'undefined' ? window.innerWidth <= 600 : false);
@@ -32,6 +32,14 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    if (!form.acceptTerms) {
+      setError("Debes aceptar los Términos de uso para continuar.");
+      return;
+    }
+    if (!form.acceptPrivacy) {
+      setError("Debes aceptar la Política de privacidad para continuar.");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -116,6 +124,9 @@ export default function Register() {
             onChange={handleChange("email")}
             autoComplete="email"
           />
+          <label><input type="checkbox" checked={form.acceptTerms} onChange={e => setForm({...form,acceptTerms:e.target.checked})} /> He leído y acepto los <Link to="/terms">Términos de uso</Link></label>
+          <label><input type="checkbox" checked={form.acceptPrivacy} onChange={e => setForm({...form,acceptPrivacy:e.target.checked})} /> He leído y acepto la <Link to="/privacy">Política de privacidad</Link></label>
+          <label><input type="checkbox" checked={form.marketingConsent} onChange={e => setForm({...form,marketingConsent:e.target.checked})} /> Quiero recibir comunicaciones de NextFit (opcional)</label>
 
           <GymInput
             label="Contraseña"

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEntrenador, actualizarEntrenador } from '../../api/endpoints';
+import { deleteProfileImage, getEntrenador, actualizarEntrenador } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import {
   User,
@@ -25,6 +25,7 @@ const EditarPerfilEntrenador = () => {
   const navigate = useNavigate();
   const { userId } = useAuth();
   const [loading, setLoading] = useState(true);
+  const removePhoto = async () => { try { await deleteProfileImage(); handleChange('fotoPerfil', ''); } catch { showToast('No se pudo eliminar la foto', 'error'); } };
 
   const [form, setForm] = useState({
     nombre: '',
@@ -37,7 +38,6 @@ const EditarPerfilEntrenador = () => {
     modalidadTrabajo: '',
     genero: '',
     fotoPerfil: '',
-    contrasena: '',
     perfilPublico: false,
     tarifaMensual: ''
   });
@@ -138,7 +138,6 @@ const EditarPerfilEntrenador = () => {
           modalidadTrabajo: data.modalidadTrabajo || 'ONLINE',
           genero: data.genero || '',
           fotoPerfil: data.fotoPerfil || '',
-          contrasena: '',
           perfilPublico: data.perfilPublico || false,
           tarifaMensual: data.tarifaMensual != null ? String(data.tarifaMensual) : ''
         };
@@ -179,7 +178,7 @@ const EditarPerfilEntrenador = () => {
 
     try {
       // 🔧 SIMPLIFICADO: Enviar todos los campos que se pueden editar
-      // (excluyendo email que es inmutable y contrasena que se envía solo si hay valor)
+      // (excluyendo email, que se actualiza mediante su operación dedicada)
       const payload = {
         nombre: form.nombre || '',
         apellido: form.apellido || '',
@@ -193,11 +192,6 @@ const EditarPerfilEntrenador = () => {
         perfilPublico: Boolean(form.perfilPublico),
         tarifaMensual: (form.tarifaMensual === '' || form.tarifaMensual === null) ? null : Number(form.tarifaMensual)
       };
-
-      // Agregar contrasena solo si tiene valor
-      if (form.contrasena && form.contrasena.trim() !== '') {
-        payload.contrasena = form.contrasena;
-      }
 
       console.log('📤 Enviando payload:', payload);
 
@@ -425,6 +419,7 @@ const EditarPerfilEntrenador = () => {
                   onUploadSuccess={(url) => handleChange('fotoPerfil', url)}
                   label="Seleccionar imagen"
                 />
+                {form.fotoPerfil && <button type="button" onClick={removePhoto}>Eliminar foto</button>}
               </div>
             </div>
 
@@ -551,8 +546,11 @@ const EditarPerfilEntrenador = () => {
             <div style={styles.divider} />
 
             <div style={styles.sectionTitle}><Lock size={18} color="#EF4444" /> Seguridad</div>
-            <GymInput label="Cambiar contrasena" type="password" placeholder="Déjalo vacío para mantener la actual" icon={Lock} value={form.contrasena} onChange={(e) => handleChange('contrasena', e.target.value)} autoComplete="new-password" />
-            <div style={styles.dangerHint}>La contrasena solo se enviará si escribes algo.</div>
+            <button type="button" onClick={() => navigate('/entrenador/seguridad/password')}>Cambiar contraseña</button>
+            <button type="button" onClick={() => navigate('/entrenador/seguridad/eliminar-cuenta')}>Eliminar cuenta</button>
+            <button type="button" onClick={() => navigate('/entrenador/seguridad/sesiones')}>Gestionar sesiones activas</button>
+            <button type="button" onClick={() => navigate('/entrenador/seguridad/exportar-datos')}>Exportar mis datos</button>
+            <button type="button" onClick={() => navigate('/entrenador/seguridad/privacidad')}>Privacidad y comunicaciones</button>
           </div>
         </form>
       </div>

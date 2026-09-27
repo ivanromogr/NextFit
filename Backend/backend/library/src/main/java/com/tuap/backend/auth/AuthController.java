@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -21,16 +24,22 @@ public class AuthController {
     private final PasswordResetService passwordResetService;
     private final RefreshTokenService refreshTokenService;
     private final RefreshTokenProperties refreshProperties;
+    private final EmailChangeService emailChangeService;
+    private final AccountDeletionService accountDeletionService;
+    private final UserDataExportService userDataExportService;
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private String allowedOrigins;
 
     public AuthController(AuthService authService, JwtService jwtService, PasswordResetService passwordResetService,
-            RefreshTokenService refreshTokenService, RefreshTokenProperties refreshProperties) {
+            RefreshTokenService refreshTokenService, RefreshTokenProperties refreshProperties, EmailChangeService emailChangeService, AccountDeletionService accountDeletionService, UserDataExportService userDataExportService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.passwordResetService = passwordResetService;
         this.refreshTokenService = refreshTokenService;
         this.refreshProperties = refreshProperties;
+        this.emailChangeService = emailChangeService;
+        this.accountDeletionService = accountDeletionService;
+        this.userDataExportService = userDataExportService;
     }
 
     @PostMapping("/login")
@@ -117,5 +126,39 @@ public class AuthController {
         }
         passwordResetService.changePassword(user, request.currentPassword(), request.newPassword());
         return ResponseEntity.ok(java.util.Map.of("message", "Contraseña actualizada correctamente"));
+    }
+
+    @PutMapping("/email")
+    public ResponseEntity<?> changeEmail(@AuthenticationPrincipal AuthenticatedUser user,
+            @RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader,
+            @RequestBody(required = false) ChangeEmailRequest request) {
+        if (request == null) throw new InvalidEmailException();
+        ClientType type = ClientType.fromHeader(clientTypeHeader);
+        EmailChangeService.Result result = emailChangeService.change(user, request.currentPassword(), request.newEmail(), type);
+        if (!result.changed()) return ResponseEntity.ok(LoginResponse.from(result.user(), jwtService.generateAccessToken(result.user()), jwtService.getAccessTokenTtlSeconds()));
+        return loginResponse(result.user(), type, result.refresh());
+    }
+    @GetMapping("/sessions")
+    public ResponseEntity<?> sessions(@AuthenticationPrincipal AuthenticatedUser user) { return ResponseEntity.ok(refreshTokenService.activeSessions(user)); }
+    @DeleteMapping("/sessions/{familyId}")
+    public ResponseEntity<?> revokeSession(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable java.util.UUID familyId) {
+        return refreshTokenService.revokeFamilyForUser(familyId, user) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+    @PostMapping("/sessions/logout-all")
+    public ResponseEntity<?> logoutAll(@AuthenticationPrincipal AuthenticatedUser user,
+            @RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader) {
+        ClientType type = ClientType.fromHeader(clientTypeHeader);
+        refreshTokenService.revokeAllForUser(user.userId(), user.role());
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok().header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store");
+        if (type == ClientType.WEB) response.header(org.springframework.http.HttpHeaders.SET_COOKIE, deleteCookie().toString());
+        return response.body(java.util.Map.of("message", "Sesiones cerradas"));
+    }
+    @DeleteMapping("/account")
+    public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal AuthenticatedUser user, @RequestBody(required=false) DeleteAccountRequest request) {
+        accountDeletionService.delete(user, request == null ? null : request.currentPassword());
+        return ResponseEntity.ok(java.util.Map.of("message", "Cuenta eliminada"));
+    }
+    @GetMapping("/data-export") public ResponseEntity<UserDataExportResponse> dataExport(@AuthenticationPrincipal AuthenticatedUser user) {
+        return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.CACHE_CONTROL,"no-store").header(org.springframework.http.HttpHeaders.PRAGMA,"no-cache").header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,"attachment; filename=nextfit-data-"+java.time.LocalDate.now()+".json").body(userDataExportService.exportFor(user));
     }
 }

@@ -49,7 +49,7 @@ export default function RegisterScreen() {
     apellido: "", 
     email: "", 
     contrasena: "", 
-    rol: "CLIENTE" // Por defecto
+    rol: "CLIENTE", acceptTerms: false, acceptPrivacy: false, marketingConsent: false
   });
 
   const handleChange = (field, value) => setForm({ ...form, [field]: value });
@@ -57,6 +57,14 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     if (!form.nombre || !form.apellido || !form.email || !form.contrasena) {
       setError("Por favor, rellena todos los campos.");
+      return;
+    }
+    if (!form.acceptTerms) {
+      setError("Debes aceptar los Términos de uso para continuar.");
+      return;
+    }
+    if (!form.acceptPrivacy) {
+      setError("Debes aceptar la Política de privacidad para continuar.");
       return;
     }
 
@@ -153,6 +161,11 @@ export default function RegisterScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
             />
+            <TouchableOpacity onPress={() => handleChange('acceptTerms', !form.acceptTerms)}><Text style={styles.footerText}>{form.acceptTerms ? '☑' : '☐'} Acepto los Términos de uso</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Terms')}><Text style={styles.legalLink}>Ver Términos de uso</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => handleChange('acceptPrivacy', !form.acceptPrivacy)}><Text style={styles.footerText}>{form.acceptPrivacy ? '☑' : '☐'} Acepto la Política de privacidad</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Privacy')}><Text style={styles.legalLink}>Ver Política de privacidad</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => handleChange('marketingConsent', !form.marketingConsent)}><Text style={styles.footerText}>{form.marketingConsent ? '☑' : '☐'} Comunicaciones de NextFit (opcional)</Text></TouchableOpacity>
 
             <GymInput
               label="Contraseña"
@@ -321,6 +334,7 @@ const styles = StyleSheet.create({
     color: '#a1a1aa',
     fontSize: 15,
   },
+  legalLink: { color: '#FACC15', marginBottom: 8, fontSize: 14 },
   loginLinkButton: {
     marginLeft: 6,
   },

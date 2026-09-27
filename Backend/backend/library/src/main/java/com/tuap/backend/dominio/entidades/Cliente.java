@@ -2,6 +2,7 @@ package com.tuap.backend.dominio.entidades;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.Instant;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties; 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -57,6 +58,8 @@ public class Cliente {
 
     @Column(nullable = false)
     private String genero;
+    @Column(nullable = false) private boolean active = true;
+    private Instant deletedAt;
 
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("cliente")
@@ -142,4 +145,6 @@ public class Cliente {
 
     public Entrenador getEntrenador() { return entrenador; }
     public void setEntrenador(Entrenador entrenador) { this.entrenador = entrenador; }
+    public boolean isActive() { return active; } public void setActive(boolean active) { this.active = active; }
+    public Instant getDeletedAt() { return deletedAt; } public void setDeletedAt(Instant deletedAt) { this.deletedAt = deletedAt; }
 }

@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,16 +23,22 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 
+import com.tuap.backend.auth.AuthenticatedUser;
+import com.tuap.backend.auth.Role;
 import com.tuap.backend.controladores.EntrenadorController;
 import com.tuap.backend.dominio.entidades.Cliente;
 import com.tuap.backend.dominio.entidades.Entrenador;
 import com.tuap.backend.dominio.entidades.Resena;
 import com.tuap.backend.dominio.entidades.SesionEntrenamiento;
+import com.tuap.backend.dto.EntrenadorPublicoResponse;
+import com.tuap.backend.dto.ReviewPublicResponse;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
 import com.tuap.backend.persistencia.ResenaDAO;
@@ -91,19 +99,105 @@ class EntrenadorControllerTest {
     @Test
     void getPerfilPublico_DevuelvePerfilCompleto() {
         // --- PREPARACIÓN ---
+        entrenadorMock.setPerfilPublico(true);
         when(entrenadorDAO.findById(entrenadorId)).thenReturn(Optional.of(entrenadorMock));
         when(resenaDAO.calcularMediaPorEntrenador(entrenadorId)).thenReturn(4.85); // Debería redondear a 4.9
         when(resenaDAO.findByEntrenadorIdOrderByFechaDesc(entrenadorId)).thenReturn(Arrays.asList(new Resena()));
         when(clienteDAO.countByEntrenador_Id(entrenadorId)).thenReturn(25L);
 
         // --- ACCIÓN ---
-        ResponseEntity<?> respuesta = entrenadorController.getPerfilPublico(entrenadorId);
+        ResponseEntity<?> respuesta = entrenadorController.getPerfilPublico(entrenadorId, null);
 
         // --- COMPROBACIÓN ---
         assertEquals(HttpStatus.OK, respuesta.getStatusCode());
         Map<String, Object> body = (Map<String, Object>) respuesta.getBody();
         assertEquals(4.9, body.get("valoracionMedia")); // Verifica el redondeo de tu código
         assertEquals(25L, body.get("numeroClientes"));
+        EntrenadorPublicoResponse publico = (EntrenadorPublicoResponse) body.get("entrenador");
+        assertEquals(entrenadorId, publico.id());
+        assertFalse(java.util.Arrays.stream(EntrenadorPublicoResponse.class.getRecordComponents())
+                .anyMatch(component -> component.getName().equals("email") || component.getName().equals("edad") || component.getName().equals("genero")));
+    }
+
+    @Test
+    void getPerfilPublico_PrivadoDevuelve404SalvoParaElPropietario() {
+        when(entrenadorDAO.findById(entrenadorId)).thenReturn(Optional.of(entrenadorMock));
+
+        ResponseEntity<?> anonimo = entrenadorController.getPerfilPublico(entrenadorId, null);
+        assertEquals(HttpStatus.NOT_FOUND, anonimo.getStatusCode());
+
+        when(resenaDAO.calcularMediaPorEntrenador(entrenadorId)).thenReturn(null);
+        when(resenaDAO.findByEntrenadorIdOrderByFechaDesc(entrenadorId)).thenReturn(List.of());
+        when(clienteDAO.countByEntrenador_Id(entrenadorId)).thenReturn(0L);
+        ResponseEntity<?> propietario = entrenadorController.getPerfilPublico(entrenadorId,
+                new AuthenticatedUser(entrenadorId, "coach@test.com", Role.ENTRENADOR));
+        assertEquals(HttpStatus.OK, propietario.getStatusCode());
+    }
+
+    @Test
+    void obtenerEntrenadoresPublicos_UsaDtoSinDatosPrivados() {
+        entrenadorMock.setPerfilPublico(true);
+        Entrenador privado = new Entrenador();
+        privado.setId(UUID.randomUUID());
+        privado.setPerfilPublico(false);
+        when(entrenadorDAO.findByPerfilPublicoTrue()).thenReturn(List.of(entrenadorMock));
+
+        ResponseEntity<?> respuesta = entrenadorController.obtenerEntrenadoresPublicos(null, null, null, null);
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        List<EntrenadorPublicoResponse> body = (List<EntrenadorPublicoResponse>) respuesta.getBody();
+        assertEquals(1, body.size());
+        assertEquals(entrenadorId, body.get(0).id());
+    }
+
+    @Test
+    void getReviewsEntrenador_NoExponeEmailNiObjetivoDelAutor() {
+        clienteMock.setApellido("Romo");
+        clienteMock.setObjetivo("Fuerza");
+        Resena resena = new Resena();
+        resena.setCliente(clienteMock);
+        resena.setEstrellas(5);
+        when(resenaDAO.findByEntrenadorIdOrderByFechaDesc(entrenadorId)).thenReturn(List.of(resena));
+
+        ResponseEntity<?> respuesta = entrenadorController.getReviewsEntrenador(entrenadorId);
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        ReviewPublicResponse review = ((List<ReviewPublicResponse>) respuesta.getBody()).get(0);
+        assertEquals("Paco", review.autor().nombre());
+        assertFalse(java.util.Arrays.stream(review.autor().getClass().getRecordComponents())
+                .anyMatch(component -> component.getName().equals("email") || component.getName().equals("objetivo")));
+    }
+
+    @Test
+    void publicarResena_DerivaAutorDelClienteAutenticado() {
+        when(entrenadorDAO.findById(entrenadorId)).thenReturn(Optional.of(entrenadorMock));
+        when(clienteDAO.findById(clienteId)).thenReturn(Optional.of(clienteMock));
+        Map<String, Object> payload = Map.of("estrellas", 5, "comentario", "Muy buen seguimiento");
+
+        ResponseEntity<?> respuesta = entrenadorController.publicarResena(entrenadorId, payload,
+                new AuthenticatedUser(clienteId, "paco@gym.com", Role.CLIENTE));
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        ArgumentCaptor<Resena> captor = ArgumentCaptor.forClass(Resena.class);
+        verify(resenaDAO).save(captor.capture());
+        assertEquals(clienteId, captor.getValue().getCliente().getId());
+    }
+
+    @Test
+    void publicarResena_RechazaClienteNoRelacionadoYOtroRol() {
+        AuthenticatedUser cliente = new AuthenticatedUser(clienteId, "paco@gym.com", Role.CLIENTE);
+        org.mockito.Mockito.doThrow(new AccessDeniedException("denied"))
+                .when(ownershipService).requireCanChatWith(cliente, entrenadorId);
+
+        assertThrows(AccessDeniedException.class,
+                () -> entrenadorController.publicarResena(entrenadorId, Map.of(), cliente));
+
+        AuthenticatedUser entrenador = new AuthenticatedUser(UUID.randomUUID(), "coach@test.com", Role.ENTRENADOR);
+        org.mockito.Mockito.doThrow(new AccessDeniedException("denied"))
+                .when(ownershipService).requireRole(entrenador, Role.CLIENTE);
+        assertThrows(AccessDeniedException.class,
+                () -> entrenadorController.publicarResena(entrenadorId, Map.of(), entrenador));
+        verify(resenaDAO, never()).save(any());
     }
 
     @Test

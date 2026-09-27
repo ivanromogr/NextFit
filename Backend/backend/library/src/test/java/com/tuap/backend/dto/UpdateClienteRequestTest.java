@@ -15,7 +15,6 @@ class UpdateClienteRequestTest {
         // 2. Usamos los Setters
         req.setNombre("Lucía");
         req.setApellido("Fernández");
-        req.setEmail("lucia@ejemplo.com");
         req.setFotoPerfil("lucia.png");
         req.setPeso(62.5);
         req.setAltura(168);
@@ -25,7 +24,6 @@ class UpdateClienteRequestTest {
         // 3. Verificamos con los Getters (100% Coverage)
         assertEquals("Lucía", req.getNombre());
         assertEquals("Fernández", req.getApellido());
-        assertEquals("lucia@ejemplo.com", req.getEmail());
         assertEquals("lucia.png", req.getFotoPerfil());
         assertEquals(62.5, req.getPeso());
         assertEquals(168, req.getAltura());

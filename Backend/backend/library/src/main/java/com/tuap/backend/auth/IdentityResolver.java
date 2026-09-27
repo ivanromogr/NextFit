@@ -31,10 +31,10 @@ public class IdentityResolver {
         if (cliente.isPresent() && entrenador.isPresent()) {
             throw new AmbiguousIdentityException();
         }
-        if (cliente.isPresent()) {
+        if (cliente.isPresent() && cliente.get().isActive()) {
             return cliente.map(this::fromCliente);
         }
-        return entrenador.map(this::fromEntrenador);
+        return entrenador.filter(Entrenador::isActive).map(this::fromEntrenador);
     }
 
     public Optional<AuthenticatedUser> findByIdAndRole(UUID userId, Role role) {
@@ -42,8 +42,8 @@ public class IdentityResolver {
             return Optional.empty();
         }
         return switch (role) {
-            case CLIENTE -> clienteDAO.findById(userId).map(this::fromCliente).map(AuthenticatableIdentity::authenticatedUser);
-            case ENTRENADOR -> entrenadorDAO.findById(userId).map(this::fromEntrenador).map(AuthenticatableIdentity::authenticatedUser);
+            case CLIENTE -> clienteDAO.findById(userId).filter(Cliente::isActive).map(this::fromCliente).map(AuthenticatableIdentity::authenticatedUser);
+            case ENTRENADOR -> entrenadorDAO.findById(userId).filter(Entrenador::isActive).map(this::fromEntrenador).map(AuthenticatableIdentity::authenticatedUser);
         };
     }
 

@@ -51,6 +51,7 @@ export function AuthProvider({ children }) {
         loading,
         login,
         logout,
+        clearLocalSession: () => { clearAuthSession(); applySession(null); },
         isAuthenticated,
         userId: user?.id ?? null,
       }}

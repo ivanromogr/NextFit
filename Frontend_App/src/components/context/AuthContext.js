@@ -3,6 +3,7 @@ import {
   clearAuthSession,
   getAuthSession,
   saveAuthSession,
+  updateAuthSession,
   setSessionInvalidationHandler,
 } from './authSession';
 import { refreshMobileSession, logoutMobileSession } from '../../api/api';
@@ -53,6 +54,11 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const applyEmailChange = async (response) => {
+    const session = response.refreshToken ? await saveAuthSession(response) : await updateAuthSession(response);
+    setUser(session); setRole(session.role); return session;
+  };
+
   /**
    * Logout: Limpia sesión
    */
@@ -76,7 +82,9 @@ export function AuthProvider({ children }) {
         role,
         loading,
         login,
+        applyEmailChange,
         logout,
+        clearLocalSession: async () => { await clearAuthSession(); setUser(null); setRole(null); },
         isAuthenticated,
         userId: user?.id,
       }}

@@ -95,6 +95,17 @@ export const refreshWebSession = () => {
   return refreshInFlight;
 };
 export const logoutSession = () => api.post("/api/auth/logout", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } });
+export const changeEmail = (currentPassword, newEmail) => api.put("/api/auth/email", { currentPassword, newEmail }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
+export const changePassword = (currentPassword, newPassword) => api.put("/api/auth/password", { currentPassword, newPassword });
+export const deleteAccount = (currentPassword) => api.delete("/api/auth/account", { data: { currentPassword } });
+export const getSessions = () => api.get("/api/auth/sessions");
+export const revokeSession = (familyId) => api.delete(`/api/auth/sessions/${familyId}`);
+export const logoutAllSessions = () => api.post("/api/auth/sessions/logout-all", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } });
+export const getDataExport = () => api.get("/api/auth/data-export", { responseType: "blob" });
+export const getConsents = () => api.get("/api/auth/consents");
+export const updateMarketingConsent = (accepted) => api.put("/api/auth/consents/marketing", { accepted });
+export const assignProfileImage = (fileId) => api.put("/api/auth/profile-image", { fileId });
+export const deleteProfileImage = () => api.delete("/api/auth/profile-image");
 
 // --- 4. OBTENER DATOS DEL CLIENTE ---
 export const getCliente = async (id) => {

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +20,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -133,6 +137,15 @@ class ChatControllerTest {
         verify(chatAttachmentAccessService).validateForMessage(attachmentId,
                 new AuthenticatedUser(remitenteId, "test@local", Role.CLIENTE));
         assertEquals(null, mensajeFake.getArchivoUrl());
+    }
+    @Test
+    void processMessage_DestinatarioInactivo_NoPersisteNiEntrega() {
+        doThrow(new org.springframework.security.access.AccessDeniedException("denied"))
+                .when(ownershipService).requireCanChatWith(any(), eq(destinatarioId));
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> chatController.processMessage(mensajeFake, principal(remitenteId, Role.CLIENTE)));
+        verify(mensajeDAO, never()).save(any());
+        verifyNoInteractions(messagingTemplate);
     }
 
     private java.security.Principal principal(UUID id, Role role) {

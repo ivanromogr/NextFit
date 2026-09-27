@@ -11,6 +11,14 @@ import EntrenadorLayout from "./components/layout/EntrenadorLayout";
 // --- IMPORTACIONES DE AUTENTICACIÓN Y ONBOARDING ---
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import CambiarEmail from "./pages/auth/CambiarEmail";
+import CambiarPassword from "./pages/auth/CambiarPassword";
+import EliminarCuenta from "./pages/auth/EliminarCuenta";
+import SesionesActivas from "./pages/auth/SesionesActivas";
+import Terms from "./pages/auth/Terms";
+import Privacy from "./pages/auth/Privacy";
+import ExportarDatos from "./pages/auth/ExportarDatos";
+import PrivacidadComunicaciones from "./pages/auth/PrivacidadComunicaciones";
 import ClienteOnboarding from "./pages/cliente/ClienteOnboarding";
 import EntrenadorOnboarding from "./pages/entrenador/EntrenadorOnboarding";
 
@@ -60,6 +68,8 @@ function App() {
             <Route path="/login" element={<Navigate to="/auth/login" replace />} />
             <Route path="/register" element={<AuthLayout><Register /></AuthLayout>} />
             <Route path="/registro" element={<Navigate to="/register" replace />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
 
             {/* --- ONBOARDING --- */}
             <Route path="/cliente/onboarding" element={<AuthLayout><ClienteOnboarding /></AuthLayout>} />
@@ -83,6 +93,12 @@ function App() {
               <Route path="generar-ia" element={<GenerarRutinaIA />} />
               <Route path="editar-rutina/:rutinaId" element={<EditarRutina />} />
               <Route path="perfil" element={<EditarPerfil />} />
+              <Route path="seguridad/email" element={<CambiarEmail />} />
+              <Route path="seguridad/password" element={<CambiarPassword />} />
+              <Route path="seguridad/eliminar-cuenta" element={<EliminarCuenta />} />
+              <Route path="seguridad/sesiones" element={<SesionesActivas />} />
+              <Route path="seguridad/exportar-datos" element={<ExportarDatos />} />
+              <Route path="seguridad/privacidad" element={<PrivacidadComunicaciones />} />
               <Route path="sesion/:rutinaId" element={<SesionEntrenamiento />} />
               <Route path="progreso" element={<ProgresoCliente />} />
               <Route path="calendario" element={<CalendarioCliente />} />
@@ -106,6 +122,12 @@ function App() {
               <Route path="chat" element={<ChatPage />} />
               <Route path="atletas" element={<GestionAtletas />} />
               <Route path="perfil" element={<EditarPerfilEntrenador />} />
+              <Route path="seguridad/email" element={<CambiarEmail />} />
+              <Route path="seguridad/password" element={<CambiarPassword />} />
+              <Route path="seguridad/eliminar-cuenta" element={<EliminarCuenta />} />
+              <Route path="seguridad/sesiones" element={<SesionesActivas />} />
+              <Route path="seguridad/exportar-datos" element={<ExportarDatos />} />
+              <Route path="seguridad/privacidad" element={<PrivacidadComunicaciones />} />
               <Route path="cliente/:clienteId/progreso" element={<VistaProgresoEntrenador />} />
               <Route path="cliente/:clienteId/calendario" element={<VistaCalendarioEntrenador />} />  
               <Route path="cliente/:clienteId/rutinas" element={<RutinasDeCliente />} />

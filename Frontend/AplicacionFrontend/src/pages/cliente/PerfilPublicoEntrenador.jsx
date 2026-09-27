@@ -181,7 +181,6 @@ export default function PerfilPublicoEntrenador() {
 
                         <div style={{display: 'flex', gap: '10px', marginBottom: '40px'}}>
                             <div style={{...styles.tag, background: '#FACC15', color: 'black', border: 'none'}}>Online</div>
-                            <div style={styles.tag}>{entrenador.genero?.toUpperCase()}</div>
                             <div style={{...styles.tag, borderColor: 'rgba(34, 197, 94, 0.3)', color: '#22c55e'}}>✓ Identidad Verificada</div>
                         </div>
 

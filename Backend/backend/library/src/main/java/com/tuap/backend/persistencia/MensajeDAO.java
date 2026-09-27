@@ -17,6 +17,10 @@ public interface MensajeDAO extends JpaRepository<Mensaje, UUID> {
            "(m.remitenteId = :usuario2 AND m.destinatarioId = :usuario1) " +
            "ORDER BY m.fechaHora ASC")
     List<Mensaje> findChatHistory(@Param("usuario1") UUID usuario1, @Param("usuario2") UUID usuario2);
+    @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM Mensaje m WHERE " +
+           "(m.remitenteId = :usuario1 AND m.destinatarioId = :usuario2) OR " +
+           "(m.remitenteId = :usuario2 AND m.destinatarioId = :usuario1)")
+    boolean existsHistoryBetween(@Param("usuario1") UUID usuario1, @Param("usuario2") UUID usuario2);
     
     @Query("SELECT DISTINCT CASE " +
        "  WHEN m.remitenteId = :usuarioId THEN m.destinatarioId " +

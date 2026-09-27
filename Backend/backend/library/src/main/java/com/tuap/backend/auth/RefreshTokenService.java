@@ -32,6 +32,16 @@ public class RefreshTokenService {
     @Transactional public void revoke(String rawToken) { if (rawToken != null && !rawToken.isBlank()) tokens.findByTokenHash(hash(rawToken)).ifPresent(t -> revokeFamily(t.getFamilyId())); }
     @Transactional public void revokeFamily(UUID familyId) { Instant now=clock.instant(); tokens.findByFamilyId(familyId).forEach(t -> t.revoke(now)); }
     @Transactional public void revokeAllForUser(UUID userId, Role role) { Instant now=clock.instant(); tokens.findByUserIdAndRole(userId, role).forEach(t -> t.revoke(now)); }
+    @Transactional(readOnly = true) public List<SessionResponse> activeSessions(AuthenticatedUser user) {
+        Instant now=clock.instant(); return tokens.findByUserIdAndRole(user.userId(), user.role()).stream()
+            .filter(t -> t.isActiveAt(now)).collect(java.util.stream.Collectors.groupingBy(RefreshToken::getFamilyId)).values().stream()
+            .map(family -> family.stream().max(java.util.Comparator.comparing(RefreshToken::getCreatedAt)).orElseThrow())
+            .map(t -> new SessionResponse(t.getFamilyId(), t.getClientType(), t.getCreatedAt(), t.getExpiresAt(), t.getRotatedAt(), false)).toList();
+    }
+    @Transactional public boolean revokeFamilyForUser(UUID familyId, AuthenticatedUser user) {
+        List<RefreshToken> family=tokens.findByFamilyId(familyId); if (family.isEmpty() || family.stream().anyMatch(t -> !t.getUserId().equals(user.userId()) || t.getRole()!=user.role())) return false;
+        family.forEach(t -> t.revoke(clock.instant())); return true;
+    }
     private IssuedToken issue(AuthenticatedUser user, ClientType clientType, UUID familyId) {
         byte[] bytes=new byte[32]; RANDOM.nextBytes(bytes); String raw=Base64.getUrlEncoder().withoutPadding().encodeToString(bytes); String hash=hash(raw); Instant now=clock.instant();
         tokens.save(new RefreshToken(user.userId(), user.role(), hash, familyId, clientType, now, now.plus(Duration.ofDays(properties.getTtlDays()))));

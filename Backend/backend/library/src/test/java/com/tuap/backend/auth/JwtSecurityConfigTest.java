@@ -4,7 +4,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
 import java.util.Base64;
@@ -34,6 +36,9 @@ class JwtSecurityConfigTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private JwtService jwtService;
+    @Autowired private com.tuap.backend.persistencia.ClienteDAO clienteDAO;
+    @Autowired private com.tuap.backend.persistencia.EntrenadorDAO entrenadorDAO;
+    @Autowired private com.tuap.backend.persistencia.UserConsentDAO consentDAO;
 
     @Test
     void rutasPublicas_PermanecenAccesiblesSinToken() throws Exception {
@@ -52,11 +57,36 @@ class JwtSecurityConfigTest {
     }
 
     @Test
+    void exportacionDatos_SinTokenDevuelve401Json() throws Exception {
+        mockMvc.perform(get("/api/auth/data-export"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("MISSING_TOKEN"));
+    }
+
+    @Test
+    void exportacionDatos_ClienteAutenticadoDevuelveJsonYHeadersPrivados() throws Exception {
+        String token = registerToken("CLIENTE", "exportacion-cliente@nextfit.test");
+
+        mockMvc.perform(get("/api/auth/data-export").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("application/json")))
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(header().string("Pragma", "no-cache"))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.matchesPattern(".*attachment.*nextfit-data-\\d{4}-\\d{2}-\\d{2}\\.json")))
+                .andExpect(jsonPath("$.generatedAt").isNotEmpty())
+                .andExpect(jsonPath("$.accountType").value("CLIENTE"))
+                .andExpect(jsonPath("$.profile.email").value("exportacion-cliente@nextfit.test"))
+                .andExpect(jsonPath("$.consents").isArray())
+                .andExpect(jsonPath("$.consents[0].type").isNotEmpty())
+                .andExpect(jsonPath("$.profile.contrasena").doesNotExist());
+    }
+
+    @Test
     void bearerValido_PermiteAlcanzarRutaProtegida() throws Exception {
         String token = jwtService.generateAccessToken(new AuthenticatedUser(UUID.randomUUID(), "cliente@nextfit.test", Role.CLIENTE));
         mockMvc.perform(get("/api/clientes/" + UUID.randomUUID()).header("Authorization", "Bearer " + token))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
     }
 
     @Test
@@ -72,12 +102,12 @@ class JwtSecurityConfigTest {
         String clientToken = jwtService.generateAccessToken(new AuthenticatedUser(UUID.randomUUID(), "cliente@nextfit.test", Role.CLIENTE));
         String trainerToken = jwtService.generateAccessToken(new AuthenticatedUser(UUID.randomUUID(), "entrenador@nextfit.test", Role.ENTRENADOR));
         mockMvc.perform(post("/api/entrenador/" + UUID.randomUUID() + "/fichar").header("Authorization", "Bearer " + clientToken))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
         mockMvc.perform(put("/api/clientes/" + UUID.randomUUID()).header("Authorization", "Bearer " + trainerToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/ejercicios/importar").header("Authorization", "Bearer " + clientToken))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -90,9 +120,41 @@ class JwtSecurityConfigTest {
         assertRegistration("ENTRENADOR", "registro-entrenador@nextfit.test");
     }
 
+    @Test
+    void registroExigeConsentimientosYNoCreaCuenta() throws Exception {
+        for (String role : new String[] { "CLIENTE", "ENTRENADOR" }) {
+            String termsEmail = "sin-terms-" + role.toLowerCase() + "@nextfit.test";
+            mockMvc.perform(post("/api/register").contentType(MediaType.APPLICATION_JSON).content(registrationJson(role, termsEmail, false, true, false)))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("TERMS_NOT_ACCEPTED"));
+            assertTrue(clienteDAO.findByEmail(termsEmail).isEmpty()); assertTrue(entrenadorDAO.findByEmail(termsEmail).isEmpty());
+            String privacyEmail = "sin-privacy-" + role.toLowerCase() + "@nextfit.test";
+            mockMvc.perform(post("/api/register").contentType(MediaType.APPLICATION_JSON).content(registrationJson(role, privacyEmail, true, false, false)))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("PRIVACY_NOT_ACCEPTED"));
+            assertTrue(clienteDAO.findByEmail(privacyEmail).isEmpty()); assertTrue(entrenadorDAO.findByEmail(privacyEmail).isEmpty());
+        }
+    }
+
+    @Test
+    void registroPersisteVersionYTimestampDeConsentimientos() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/register").contentType(MediaType.APPLICATION_JSON)
+                .content(registrationJson("CLIENTE", "marketing-si@nextfit.test", true, true, true))).andExpect(status().isCreated()).andReturn();
+        String token = new com.fasterxml.jackson.databind.ObjectMapper().readTree(result.getResponse().getContentAsString()).path("accessToken").asText();
+        AuthenticatedUser user = jwtService.extractAuthenticatedUser(token);
+        var consents = consentDAO.findByUserIdAndRole(user.userId(), user.role());
+        org.junit.jupiter.api.Assertions.assertEquals(3, consents.size());
+        assertTrue(consents.stream().allMatch(c -> c.isAccepted() && c.getAcceptedAt() != null && c.getVersion() != null));
+        mockMvc.perform(get("/api/auth/consents").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.terms.accepted").value(true))
+                .andExpect(jsonPath("$.privacy.accepted").value(true)).andExpect(jsonPath("$.marketing.accepted").value(true));
+        mockMvc.perform(put("/api/auth/consents/marketing").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"accepted\":false}"))
+                .andExpect(status().isNoContent());
+        assertTrue(consentDAO.findByUserIdAndRoleAndType(user.userId(), user.role(), com.tuap.backend.dominio.entidades.ConsentType.MARKETING).orElseThrow().getWithdrawnAt() != null);
+    }
+
     private void assertRegistration(String role, String email) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/register").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"nombre\":\"Nuevo\",\"apellido\":\"Usuario\",\"email\":\"" + email + "\",\"contrasena\":\"secreto\",\"rol\":\"" + role + "\"}"))
+                        .content("{\"nombre\":\"Nuevo\",\"apellido\":\"Usuario\",\"email\":\"" + email + "\",\"contrasena\":\"secreto\",\"rol\":\"" + role + "\",\"acceptTerms\":true,\"acceptPrivacy\":true,\"marketingConsent\":false}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
@@ -142,9 +204,13 @@ class JwtSecurityConfigTest {
 
     private String registerToken(String role, String email) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/register").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"nombre\":\"Nuevo\",\"apellido\":\"Usuario\",\"email\":\"" + email + "\",\"contrasena\":\"secreto\",\"rol\":\"" + role + "\"}"))
+                .content("{\"nombre\":\"Nuevo\",\"apellido\":\"Usuario\",\"email\":\"" + email + "\",\"contrasena\":\"secreto\",\"rol\":\"" + role + "\",\"acceptTerms\":true,\"acceptPrivacy\":true,\"marketingConsent\":false}"))
                 .andExpect(status().isCreated()).andReturn();
         return new com.fasterxml.jackson.databind.ObjectMapper().readTree(result.getResponse().getContentAsString()).path("accessToken").asText();
+    }
+
+    private String registrationJson(String role, String email, boolean terms, boolean privacy, boolean marketing) {
+        return "{\"nombre\":\"Nuevo\",\"apellido\":\"Usuario\",\"email\":\"" + email + "\",\"contrasena\":\"secreto\",\"rol\":\"" + role + "\",\"acceptTerms\":" + terms + ",\"acceptPrivacy\":" + privacy + ",\"marketingConsent\":" + marketing + "}";
     }
 
     private String expiredToken() {

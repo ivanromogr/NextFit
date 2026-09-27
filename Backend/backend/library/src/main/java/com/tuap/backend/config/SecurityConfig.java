@@ -29,6 +29,7 @@ import com.tuap.backend.auth.JwtAuthenticationFilter;
 import com.tuap.backend.auth.JwtService;
 import com.tuap.backend.auth.JwtProperties;
 import com.tuap.backend.auth.RefreshTokenProperties;
+import com.tuap.backend.auth.IdentityResolver;
 
 @Configuration
 @EnableWebSecurity
@@ -147,8 +148,8 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService,
-                                                            JwtAuthenticationEntryPoint authenticationEntryPoint) {
-        return new JwtAuthenticationFilter(jwtService, authenticationEntryPoint);
+            JwtAuthenticationEntryPoint authenticationEntryPoint, IdentityResolver identities) {
+        return new JwtAuthenticationFilter(jwtService, authenticationEntryPoint, identities);
     }
 
     @Bean

@@ -145,8 +145,7 @@ public class ClienteController {
         // Actualizamos solo los campos presentes
         if (req.getNombre() != null) cliente.setNombre(req.getNombre());
         if (req.getApellido() != null) cliente.setApellido(req.getApellido());
-        if (req.getEmail() != null) cliente.setEmail(req.getEmail());
-        if (req.getFotoPerfil() != null) cliente.setFotoPerfil(req.getFotoPerfil());
+        // Profile images are assigned exclusively through /api/auth/profile-image after ownership validation.
         if (req.getPeso() != null) cliente.setPeso(req.getPeso());
         if (req.getAltura() != null) cliente.setAltura(req.getAltura());
         if (req.getObjetivo() != null) cliente.setObjetivo(req.getObjetivo());

@@ -107,7 +107,11 @@ public class ChatController {
             @RequestParam(required = false) UUID otroUsuarioId,
             @AuthenticationPrincipal AuthenticatedUser user) {
         UUID other = otroUsuarioId != null ? otroUsuarioId : otherParticipant(usuario1, usuario2, user);
-        ownershipService.requireCanChatWith(user, other);
+        try { ownershipService.requireCanChatWith(user, other); }
+        catch (AccessDeniedException denied) {
+            // A detached/deleted participant may retain only an already persisted history.
+            if (!mensajeDAO.existsHistoryBetween(user.userId(), other)) throw denied;
+        }
         return ResponseEntity.ok(mensajeDAO.findChatHistory(user.userId(), other));
     }
 

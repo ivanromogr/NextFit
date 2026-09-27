@@ -35,6 +35,8 @@ import com.tuap.backend.persistencia.EntrenadorDAO;
 import com.tuap.backend.persistencia.ResenaDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO;
 import com.tuap.backend.persistencia.SesionEntrenamientoDAO.ActividadDashboardResumen;
+import com.tuap.backend.dto.EntrenadorPublicoResponse;
+import com.tuap.backend.dto.ReviewPublicResponse;
 
 @RestController
 @RequestMapping("/api/entrenador")
@@ -111,7 +113,7 @@ public class EntrenadorController {
     public ResponseEntity<Object> getReviewsEntrenador(@PathVariable UUID id) {
         try {
             List<Resena> listaResenas = resenaDAO.findByEntrenadorIdOrderByFechaDesc(id);
-            return ResponseEntity.ok(listaResenas.stream().map(this::serializarResena).toList());
+            return ResponseEntity.ok(listaResenas.stream().map(ReviewPublicResponse::from).toList());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error al obtener las reseñas: " + e.getMessage());
         }
@@ -181,20 +183,23 @@ public class EntrenadorController {
 
     // --- 3. DATOS PERFIL PÚBLICO ---
     @GetMapping("/{id}")
-    public ResponseEntity<Object> getPerfilPublico(@PathVariable UUID id) {
+    public ResponseEntity<Object> getPerfilPublico(@PathVariable UUID id,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
         try {
             Entrenador ent = entrenadorDAO.findById(id).orElse(null);
             if (ent == null) return ResponseEntity.notFound().build();
+            boolean owner = principal != null && principal.role() == Role.ENTRENADOR && id.equals(principal.userId());
+            if (!ent.isPerfilPublico() && !owner) return ResponseEntity.notFound().build();
 
             Double media = resenaDAO.calcularMediaPorEntrenador(id);
             List<Resena> listaResenas = resenaDAO.findByEntrenadorIdOrderByFechaDesc(id);
             long totalClientes = clienteDAO.countByEntrenador_Id(id); 
 
-            Map<String, Object> entrenador = serializarEntrenador(ent);
-            Map<String, Object> respuesta = new HashMap<>(entrenador);
+            Object entrenador = owner ? serializarPerfilPropio(ent) : EntrenadorPublicoResponse.from(ent);
+            Map<String, Object> respuesta = new HashMap<>();
             respuesta.put("entrenador", entrenador);
             respuesta.put("valoracionMedia", media != null ? Math.round(media * 10.0) / 10.0 : 0.0);
-            respuesta.put("resenas", listaResenas.stream().map(this::serializarResena).toList());
+            respuesta.put("resenas", listaResenas.stream().map(ReviewPublicResponse::from).toList());
             respuesta.put("numeroClientes", totalClientes); 
 
             return ResponseEntity.ok(respuesta);
@@ -204,11 +209,16 @@ public class EntrenadorController {
     }
     
     @PostMapping("/{idEntrenador}/resena")
-    public ResponseEntity<String> publicarResena(@PathVariable UUID idEntrenador, @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<String> publicarResena(@PathVariable UUID idEntrenador, @RequestBody Map<String, Object> payload,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        ownershipService.requireRole(principal, Role.CLIENTE);
+        ownershipService.requireCanChatWith(principal, idEntrenador);
         try {
             Entrenador entrenador = entrenadorDAO.findById(idEntrenador).orElseThrow();
+            Cliente cliente = clienteDAO.findById(principal.userId()).orElseThrow();
             Resena resena = new Resena();
             resena.setEntrenador(entrenador);
+            resena.setCliente(cliente);
             resena.setEstrellas(Integer.parseInt(payload.get("estrellas").toString()));
             resena.setComentario((String) payload.get("comentario"));
             resena.setFecha(LocalDateTime.now());
@@ -237,8 +247,7 @@ public class EntrenadorController {
     private void actualizarCamposPerfil(Entrenador e, Map<String, Object> p) {
         if (p.containsKey("nombre")) e.setNombre(toStringOrNull(p.get("nombre")));
         if (p.containsKey("apellido")) e.setApellido(toStringOrNull(p.get("apellido")));
-        if (p.containsKey("email")) e.setEmail(toStringOrNull(p.get("email")));
-        if (p.containsKey("fotoPerfil")) e.setFotoPerfil(toStringOrNull(p.get("fotoPerfil")));
+        // Profile images are assigned exclusively through /api/auth/profile-image after ownership validation.
         if (p.containsKey("especialidad")) e.setEspecialidad(toStringOrNull(p.get("especialidad")));
         if (p.containsKey(PARAM_EXPERIENCIA)) e.setAniosExperiencia(toIntegerOrNull(p.get(PARAM_EXPERIENCIA)));
         if (p.containsKey("formacion")) e.setFormacion(toStringOrNull(p.get("formacion")));
@@ -256,24 +265,24 @@ public class EntrenadorController {
     }
 
     @GetMapping("/publicos")
-    public ResponseEntity<List<Map<String, Object>>> obtenerEntrenadoresPublicos(
+    public ResponseEntity<List<EntrenadorPublicoResponse>> obtenerEntrenadoresPublicos(
             @RequestParam(required = false) String modalidad,
             @RequestParam(required = false) String especialidad,
             @RequestParam(required = false) Double tarifaMax,
             @RequestParam(required = false) Integer expMin) {
         
-        List<Map<String, Object>> filtrados = entrenadorDAO.findByPerfilPublicoTrue().stream()
+        List<EntrenadorPublicoResponse> filtrados = entrenadorDAO.findByPerfilPublicoTrue().stream()
             .filter(e -> modalidad == null || modalidad.trim().isEmpty() || (e.getModalidadTrabajo() != null && e.getModalidadTrabajo().equalsIgnoreCase(modalidad)))
             .filter(e -> especialidad == null || especialidad.trim().isEmpty() || (e.getEspecialidad() != null && e.getEspecialidad().toLowerCase().contains(especialidad.toLowerCase())))
             .filter(e -> tarifaMax == null || (e.getTarifaMensual() != null && e.getTarifaMensual() <= tarifaMax))
             .filter(e -> expMin == null || (e.getAniosExperiencia() != null && e.getAniosExperiencia() >= expMin))
-            .map(this::serializarEntrenador)
+            .map(EntrenadorPublicoResponse::from)
             .toList();
 
         return ResponseEntity.ok(filtrados);
     }
 
-    private Map<String, Object> serializarEntrenador(Entrenador entrenador) {
+    private Map<String, Object> serializarPerfilPropio(Entrenador entrenador) {
         Map<String, Object> data = new HashMap<>();
         data.put("id", entrenador.getId());
         data.put("nombre", entrenador.getNombre());
@@ -293,18 +302,6 @@ public class EntrenadorController {
         data.put("titulacion", entrenador.getTitulacion());
         data.put("tarifaMensual", entrenador.getTarifaMensual());
         data.put("perfilPublico", entrenador.isPerfilPublico());
-        return data;
-    }
-
-    private Map<String, Object> serializarResena(Resena resena) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("id", resena.getId());
-        data.put("estrellas", resena.getEstrellas());
-        data.put("comentario", resena.getComentario());
-        data.put("fecha", resena.getFecha());
-        if (resena.getCliente() != null) {
-            data.put("cliente", serializarClienteResumen(resena.getCliente()));
-        }
         return data;
     }
 

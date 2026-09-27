@@ -20,9 +20,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
     private final JwtService jwtService;
     private final AuthenticationEntryPoint authenticationEntryPoint;
+    private final IdentityResolver identities;
 
-    public JwtAuthenticationFilter(JwtService jwtService, AuthenticationEntryPoint authenticationEntryPoint) {
-        this.jwtService = jwtService;
+    public JwtAuthenticationFilter(JwtService jwtService, AuthenticationEntryPoint authenticationEntryPoint, IdentityResolver identities) {
+        this.jwtService = jwtService; this.identities = identities;
         this.authenticationEntryPoint = authenticationEntryPoint;
     }
 
@@ -39,7 +40,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         try {
-            AuthenticatedUser user = jwtService.extractAuthenticatedUser(authorization.substring(BEARER_PREFIX.length()));
+            AuthenticatedUser claims = jwtService.extractAuthenticatedUser(authorization.substring(BEARER_PREFIX.length()));
+            AuthenticatedUser user = identities.findByIdAndRole(claims.userId(), claims.role()).orElseThrow(() -> new JwtValidationException("Cuenta no activa"));
             Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(
                     user, null, List.of(new SimpleGrantedAuthority(user.role().toAuthority())));
             SecurityContextHolder.getContext().setAuthentication(authentication);

@@ -84,6 +84,7 @@ public class PasswordResetService {
         if (!isValidPassword(newPassword)) throw new InvalidPasswordException();
         String currentHash = passwordHash(user.userId(), user.role()).orElseThrow(InvalidCurrentPasswordException::new);
         if (currentPassword == null || !passwordEncoder.matches(currentPassword, currentHash)) throw new InvalidCurrentPasswordException();
+        if (currentPassword.equals(newPassword)) throw new NewPasswordMustBeDifferentException();
         setPassword(user.userId(), user.role(), newPassword);
         invalidateActiveTokens(user, clock.instant());
         refreshTokens.revokeAllForUser(user.userId(), user.role());

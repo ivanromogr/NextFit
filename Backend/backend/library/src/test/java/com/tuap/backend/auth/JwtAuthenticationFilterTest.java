@@ -25,11 +25,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class JwtAuthenticationFilterTest {
     @Mock private JwtService jwtService;
     @Mock private JwtAuthenticationEntryPoint entryPoint;
+    @Mock private IdentityResolver identities;
 
     private JwtAuthenticationFilter filter;
 
     @BeforeEach
-    void setUp() { filter = new JwtAuthenticationFilter(jwtService, entryPoint); }
+    void setUp() { filter = new JwtAuthenticationFilter(jwtService, entryPoint, identities); }
     @AfterEach
     void clearContext() { SecurityContextHolder.clearContext(); }
 
@@ -37,6 +38,7 @@ class JwtAuthenticationFilterTest {
     void bearerClienteValido_CreaPrincipalYAuthority() throws Exception {
         AuthenticatedUser user = new AuthenticatedUser(UUID.randomUUID(), "cliente@nextfit.test", Role.CLIENTE);
         when(jwtService.extractAuthenticatedUser("token")).thenReturn(user);
+        when(identities.findByIdAndRole(user.userId(), user.role())).thenReturn(java.util.Optional.of(user));
 
         filter.doFilter(new MockHttpServletRequest() {{ addHeader("Authorization", "Bearer token"); }},
                 new MockHttpServletResponse(), new MockFilterChain());
@@ -50,6 +52,7 @@ class JwtAuthenticationFilterTest {
     void bearerEntrenadorValido_CreaAuthorityCorrecta() throws Exception {
         AuthenticatedUser user = new AuthenticatedUser(UUID.randomUUID(), "entrenador@nextfit.test", Role.ENTRENADOR);
         when(jwtService.extractAuthenticatedUser("token")).thenReturn(user);
+        when(identities.findByIdAndRole(user.userId(), user.role())).thenReturn(java.util.Optional.of(user));
 
         filter.doFilter(new MockHttpServletRequest() {{ addHeader("Authorization", "Bearer token"); }},
                 new MockHttpServletResponse(), new MockFilterChain());

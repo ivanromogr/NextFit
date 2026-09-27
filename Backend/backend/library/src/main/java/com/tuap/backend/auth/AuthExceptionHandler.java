@@ -36,6 +36,18 @@ public class AuthExceptionHandler {
     public ResponseEntity<ApiErrorResponse> invalidPassword(InvalidPasswordException exception) {
         return ResponseEntity.badRequest().body(new ApiErrorResponse(400, "INVALID_PASSWORD", "Contraseña no válida"));
     }
+    @ExceptionHandler(NewPasswordMustBeDifferentException.class)
+    public ResponseEntity<ApiErrorResponse> newPasswordMustBeDifferent(NewPasswordMustBeDifferentException exception) {
+        return ResponseEntity.badRequest().body(new ApiErrorResponse(400, "NEW_PASSWORD_MUST_BE_DIFFERENT", "La nueva contraseña debe ser diferente"));
+    }
+    @ExceptionHandler(InvalidEmailException.class)
+    public ResponseEntity<ApiErrorResponse> invalidEmail(InvalidEmailException exception) {
+        return ResponseEntity.badRequest().body(new ApiErrorResponse(400, "INVALID_EMAIL", "Email no válido"));
+    }
+    @ExceptionHandler(EmailAlreadyInUseException.class)
+    public ResponseEntity<ApiErrorResponse> emailAlreadyInUse(EmailAlreadyInUseException exception) {
+        return ResponseEntity.status(409).body(new ApiErrorResponse(409, "EMAIL_ALREADY_IN_USE", "El email ya está en uso"));
+    }
 
     @ExceptionHandler(InvalidRefreshTokenException.class)
     public ResponseEntity<ApiErrorResponse> invalidRefresh(InvalidRefreshTokenException exception) {

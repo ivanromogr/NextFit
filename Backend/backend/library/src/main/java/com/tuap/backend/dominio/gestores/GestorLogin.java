@@ -11,8 +11,6 @@ import java.util.Locale;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,6 +31,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import com.tuap.backend.auth.ClientType;
 import com.tuap.backend.auth.RefreshTokenService;
 import com.tuap.backend.auth.RefreshTokenProperties;
+import com.tuap.backend.auth.ConsentService;
+import com.tuap.backend.auth.ConsentRequiredException;
+import org.springframework.transaction.annotation.Transactional;
 
 @RestController
 public class GestorLogin {
@@ -48,6 +49,7 @@ public class GestorLogin {
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokens;
     private final RefreshTokenProperties refreshProperties;
+    @org.springframework.beans.factory.annotation.Autowired private ConsentService consentService;
 
     public GestorLogin(ClienteDAO clienteDAO, 
                        EntrenadorDAO entrenadorDAO, 
@@ -67,6 +69,9 @@ public class GestorLogin {
         private String email;
         private String contrasena;
         private String rol; 
+        private boolean acceptTerms;
+        private boolean acceptPrivacy;
+        private boolean marketingConsent;
 
         public String getNombre() { return nombre; }
         public void setNombre(String nombre) { this.nombre = nombre; }
@@ -82,48 +87,13 @@ public class GestorLogin {
 
         public String getRol() { return rol; }
         public void setRol(String rol) { this.rol = rol; }
-    }
-
-    @PostMapping("/api/cliente/onboarding")
-    public ResponseEntity<Object> completarOnboardingCliente(@RequestBody OnboardingRequest req) {
-
-        if (req == null || req.getIdCliente() == null) {
-            return ResponseEntity.badRequest().body("Error: No se recibió el ID del cliente.");
-        }
-
-        Optional<Cliente> clienteOpt = clienteDAO.findById(req.getIdCliente());
-        if (clienteOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Cliente no encontrado con ID: " + req.getIdCliente());
-        }
-
-        Cliente cliente = clienteOpt.get();
-
-        if (req.getPesoKg() != null)       cliente.setPeso(req.getPesoKg());
-        if (req.getAlturaCm() != null)     cliente.setAltura(req.getAlturaCm().intValue());
-        if (req.getGenero() != null)       cliente.setGenero(req.getGenero());
-        if (req.getObjetivo() != null)     cliente.setObjetivo(req.getObjetivo());
-        
-        if (req.getFechaNacimiento() != null && !req.getFechaNacimiento().isBlank()) {
-            try {
-                LocalDate fechaNac = LocalDate.parse(req.getFechaNacimiento());
-                int edadCalculada = Period.between(fechaNac, LocalDate.now()).getYears();
-                cliente.setEdad(edadCalculada);
-            } catch (Exception e) {
-                // Log silent
-            }
-        }
-
-        clienteDAO.save(cliente);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("mensaje", "Onboarding completado exitosamente");
-        body.put("idCliente", cliente.getId());
-
-        return ResponseEntity.ok(body);
+        public boolean isAcceptTerms(){return acceptTerms;} public void setAcceptTerms(boolean value){acceptTerms=value;}
+        public boolean isAcceptPrivacy(){return acceptPrivacy;} public void setAcceptPrivacy(boolean value){acceptPrivacy=value;}
+        public boolean isMarketingConsent(){return marketingConsent;} public void setMarketingConsent(boolean value){marketingConsent=value;}
     }
 
     @PostMapping("/api/register")
-    public ResponseEntity<Object> registroApi(@RequestBody RegistroRequest req, @RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader) {
+    @Transactional public ResponseEntity<Object> registroApi(@RequestBody RegistroRequest req, @RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader) {
 
         if (req == null ||
                 req.getNombre() == null || req.getNombre().isBlank() ||
@@ -135,6 +105,8 @@ public class GestorLogin {
             return ResponseEntity.badRequest().body(RELLENA_CAMPOS);
         }
 
+        if (!req.isAcceptTerms()) return ResponseEntity.badRequest().body(Map.of("code", "TERMS_NOT_ACCEPTED"));
+        if (!req.isAcceptPrivacy()) return ResponseEntity.badRequest().body(Map.of("code", "PRIVACY_NOT_ACCEPTED"));
         Usuario usuario = new Usuario();
         usuario.setNombre(req.getNombre());
         usuario.setApellido(req.getApellido());
@@ -163,6 +135,7 @@ public class GestorLogin {
                 return ResponseEntity.badRequest().body("Rol inválido");
             }
         }
+        if (consentService != null) consentService.recordRegistration(authenticatedUser, true, true, req.isMarketingConsent());
 
         ClientType type = ClientType.fromHeader(clientTypeHeader);
         RefreshTokenService.IssuedToken refresh = refreshTokens.issue(authenticatedUser, type);
@@ -174,8 +147,7 @@ public class GestorLogin {
         return builder.body(response);
     }
 
-    /** Compatibility entry point for existing unit tests; HTTP requests use the header-aware mapping above. */
-    @Deprecated
+    /** Direct entry point retained for unit tests; it enforces the same consent contract as HTTP. */
     public ResponseEntity<Object> registroApi(RegistroRequest req) { return registroApi(req, "WEB"); }
 
     @PostMapping("/api/entrenador/onboarding")
@@ -204,7 +176,7 @@ public class GestorLogin {
         if (req.getFormacion() != null)         entrenador.setFormacion(req.getFormacion());
         if (req.getDescripcionPerfil() != null) entrenador.setDescripcionPerfil(req.getDescripcionPerfil());
         if (req.getModalidadTrabajo() != null)  entrenador.setModalidadTrabajo(req.getModalidadTrabajo());
-        if (req.getFotoPerfil() != null)        entrenador.setFotoPerfil(req.getFotoPerfil());
+        // Profile images are assigned only by /api/auth/profile-image after upload ownership validation.
 
         entrenadorDAO.save(entrenador);
 
@@ -248,14 +220,4 @@ public class GestorLogin {
         }
     }
 
-    @GetMapping("/clientes/{id}")
-    public Cliente getClienteById(@PathVariable UUID id) { 
-        return clienteDAO.findById(id).orElse(null);
-    }
-
-    @GetMapping("/entrenadores/{id}")
-    public Entrenador getEntrenadorById(@PathVariable UUID id) {
-        return entrenadorDAO.findById(id).orElse(null);
-    }
-    
 }

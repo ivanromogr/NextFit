@@ -2,6 +2,7 @@ package com.tuap.backend.dominio.entidades;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.Instant;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.CascadeType;
@@ -74,6 +75,8 @@ public class Entrenador {
 
     @Column(name = "perfil_publico")
     private boolean perfilPublico = false;
+    @Column(nullable = false) private boolean active = true;
+    private Instant deletedAt;
 
     @OneToMany(mappedBy = "entrenador", cascade = CascadeType.ALL)
     private List<Chat> chats;
@@ -274,4 +277,6 @@ public class Entrenador {
     public void setPerfilPublico(boolean perfilPublico) {
         this.perfilPublico = perfilPublico;
     }
+    public boolean isActive() { return active; } public void setActive(boolean active) { this.active = active; }
+    public Instant getDeletedAt() { return deletedAt; } public void setDeletedAt(Instant deletedAt) { this.deletedAt = deletedAt; }
 }

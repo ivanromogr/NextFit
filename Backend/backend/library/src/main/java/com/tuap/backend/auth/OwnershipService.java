@@ -55,13 +55,14 @@ public class OwnershipService {
     public void requireCanChatWith(AuthenticatedUser user, UUID otherUserId) {
         if (user == null || otherUserId == null || entrenadorDAO == null) deny();
         if (user.role() == Role.CLIENTE) {
-            boolean allowed = entrenadorDAO.findById(otherUserId).isPresent()
+            boolean allowed = clienteDAO.findById(user.userId()).filter(Cliente::isActive).isPresent()
+                    && entrenadorDAO.findById(otherUserId).filter(e -> e.isActive()).isPresent()
                     && isAssignedTrainer(user.userId(), otherUserId);
             if (allowed) return;
             deny();
         }
         if (user.role() == Role.ENTRENADOR) {
-            if (clienteDAO.findById(otherUserId)
+            if (entrenadorDAO.findById(user.userId()).filter(e -> e.isActive()).isPresent() && clienteDAO.findById(otherUserId).filter(Cliente::isActive)
                     .map(Cliente::getEntrenador)
                     .map(entrenador -> entrenador.getId().equals(user.userId()))
                     .orElse(false)) return;

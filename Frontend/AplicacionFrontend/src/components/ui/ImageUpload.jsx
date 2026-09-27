@@ -46,10 +46,14 @@ const ImageUpload = ({ onUploadSuccess, label = 'Subir imagen' }) => {
       }
 
       const data = await response.json();
-      console.log('✅ Imagen subida:', data.url);
-      
+      const assigned = await fetch(`${API_BASE_URL}/api/auth/profile-image`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+        body: JSON.stringify({ fileId: data.id }),
+      });
+      if (!assigned.ok) throw new Error(`Error: ${assigned.status}`);
+      const profile = await assigned.json();
       if (onUploadSuccess) {
-        onUploadSuccess(resolveMediaUrl(data.url));
+        onUploadSuccess(resolveMediaUrl(profile.fotoPerfil));
       }
       
       setMessage('Imagen subida correctamente');

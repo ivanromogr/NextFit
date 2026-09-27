@@ -5,13 +5,14 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { 
     User, ChevronLeft, Camera, CheckCircle, AlertCircle, 
     Briefcase, Mail, AlignLeft, Lock, Globe, ChevronDown, X
 } from 'lucide-react-native';
 
 // Tus endpoints y contexto
-import { getEntrenador, actualizarEntrenador } from '../../api/endpoints'; // Ajusta la ruta si es necesario
+import { getEntrenador, actualizarEntrenador, subirArchivoAdjunto, assignProfileImage, deleteProfileImage } from '../../api/endpoints';
 import { useAuth } from '../../components/context/AuthContext'; // Ajusta la ruta
 
 // Componentes UI de tu Design System
@@ -48,6 +49,7 @@ export default function EditarPerfilEntrenadorScreen() {
     const { userId } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     // Toast de notificaciones
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -55,7 +57,7 @@ export default function EditarPerfilEntrenadorScreen() {
     const [form, setForm] = useState({
         nombre: '', apellido: '', email: '', especialidad: [], aniosExperiencia: '',
         formacion: '', descripcionPerfil: '', modalidadTrabajo: '', genero: '',
-        fotoPerfil: '', contrasena: '', perfilPublico: false, tarifaMensual: ''
+        fotoPerfil: '', perfilPublico: false, tarifaMensual: ''
     });
 
     const [visibleEspecialidades, setVisibleEspecialidades] = useState(LISTA_ESPECIALIDADES);
@@ -98,7 +100,6 @@ export default function EditarPerfilEntrenadorScreen() {
                     modalidadTrabajo: data.modalidadTrabajo || 'ONLINE',
                     genero: data.genero || '',
                     fotoPerfil: data.fotoPerfil || '',
-                    contrasena: '',
                     perfilPublico: data.perfilPublico || false,
                     tarifaMensual: data.tarifaMensual != null ? String(data.tarifaMensual) : ''
                 });
@@ -147,10 +148,6 @@ export default function EditarPerfilEntrenadorScreen() {
                 tarifaMensual: form.tarifaMensual ? Number(form.tarifaMensual) : null
             };
 
-            if (form.contrasena && form.contrasena.trim() !== '') {
-                payload.contrasena = form.contrasena;
-            }
-
             await actualizarEntrenador(userId, payload);
             showToast('Perfil actualizado correctamente', 'success');
             
@@ -164,6 +161,24 @@ export default function EditarPerfilEntrenadorScreen() {
             setSaving(false);
         }
     };
+
+    const handleCambiarFoto = async () => {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permission.status !== 'granted') return showToast('Necesitamos acceso a tu galería', 'error');
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+        if (result.canceled) return;
+        setUploadingImage(true);
+        try {
+            const asset = result.assets[0]; const name = asset.fileName || asset.uri.split('/').pop() || 'perfil.jpg';
+            const type = asset.mimeType || 'image/jpeg'; const formData = new FormData();
+            formData.append('file', { uri: asset.uri, name, type });
+            const upload = await subirArchivoAdjunto(formData, 'PROFILE_IMAGE');
+            const assigned = await assignProfileImage(upload.id);
+            handleChange('fotoPerfil', assigned.data.fotoPerfil);
+        } catch { showToast('No se pudo actualizar la foto', 'error'); }
+        finally { setUploadingImage(false); }
+    };
+    const handleEliminarFoto = async () => { try { await deleteProfileImage(); handleChange('fotoPerfil', ''); } catch { showToast('No se pudo eliminar la foto', 'error'); } };
 
     const openPicker = (field, title, options) => {
         setPickerConfig({ visible: true, field, title, options });
@@ -214,10 +229,11 @@ export default function EditarPerfilEntrenadorScreen() {
                             <Text style={styles.photoTitle}>Foto de perfil</Text>
                             <Text style={styles.helper}>Sube una imagen profesional</Text>
                             {/* Aquí puedes poner tu componente ImageUpload nativo. Como placeholder ponemos un botón */}
-                            <TouchableOpacity style={styles.uploadBtn} onPress={() => console.log('Abre selector de imagen')}>
+                            <TouchableOpacity style={styles.uploadBtn} onPress={handleCambiarFoto} disabled={uploadingImage}>
                                 <Camera size={16} color="#000" />
-                                <Text style={styles.uploadBtnText}>Cambiar foto</Text>
+                                <Text style={styles.uploadBtnText}>{uploadingImage ? 'Subiendo...' : 'Cambiar foto'}</Text>
                             </TouchableOpacity>
+                            {form.fotoPerfil && <TouchableOpacity style={styles.uploadBtn} onPress={handleEliminarFoto}><Text style={styles.uploadBtnText}>Eliminar foto</Text></TouchableOpacity>}
                         </View>
                     </View>
 
@@ -367,17 +383,12 @@ export default function EditarPerfilEntrenadorScreen() {
                     <View style={styles.sectionHeader}>
                         <Lock size={18} color="#EF4444" />
                         <Text style={styles.sectionTitle}>Seguridad</Text>
+                        <TouchableOpacity onPress={() => navigation.navigate('SesionesActivas')} style={styles.selectBtn}><Text style={styles.selectBtnText}>Gestionar sesiones activas</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={() => navigation.navigate('CambiarPassword')} style={styles.selectBtn}><Text style={styles.selectBtnText}>Cambiar contraseña</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={() => navigation.navigate('EliminarCuenta')} style={styles.selectBtn}><Text style={styles.selectBtnText}>Eliminar cuenta</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={() => navigation.navigate('ExportarDatos')} style={styles.selectBtn}><Text style={styles.selectBtnText}>Exportar mis datos</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={() => navigation.navigate('PrivacidadComunicaciones')} style={styles.selectBtn}><Text style={styles.selectBtnText}>Privacidad y comunicaciones</Text></TouchableOpacity>
                     </View>
-                    <GymInput 
-                        label="Cambiar Contraseña" 
-                        placeholder="Déjalo vacío para no cambiar" 
-                        icon={Lock} 
-                        value={form.contrasena} 
-                        onChangeText={(val) => handleChange('contrasena', val)} 
-                        secureTextEntry 
-                    />
-                    <Text style={styles.dangerHint}>La contrasena solo se enviará si escribes algo aquí.</Text>
-
                     {/* BOTÓN GUARDAR */}
                     <View style={{ marginTop: 40, marginBottom: 20 }}>
                         <GymButton fullWidth loading={saving} onPress={handleGuardar}>

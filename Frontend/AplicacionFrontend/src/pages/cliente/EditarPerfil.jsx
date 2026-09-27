@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { actualizarCliente, getCliente } from '../../api/endpoints'; // Asegúrate de que esta importación es correcta
+import { actualizarCliente, deleteProfileImage, getCliente } from '../../api/endpoints'; // Asegúrate de que esta importación es correcta
 import { useAuth } from '../../context/AuthContext';
 import { User, Save, ChevronLeft, Camera, Mail, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 import ImageUpload from '../../components/ui/ImageUpload';
@@ -16,12 +16,12 @@ const EditarPerfil = () => {
     nombre: '', 
     apellido: '', 
     email: '', 
-    fotoPerfil: '', 
-    contrasena: '' 
+    fotoPerfil: ''
   });
 
   
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const removePhoto = async () => { try { await deleteProfileImage(); handleChange('fotoPerfil', ''); } catch { setToast({ show: true, message: 'No se pudo eliminar la foto', type: 'error' }); } };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,8 +39,7 @@ const EditarPerfil = () => {
           nombre: data.nombre || '',
           apellido: data.apellido || '',
           email: data.email || '',
-          fotoPerfil: data.fotoPerfil || '',
-          contrasena: ''
+          fotoPerfil: data.fotoPerfil || ''
         });
         console.log('✅ Form cliente actualizado');
       } catch (e) { 
@@ -71,11 +70,6 @@ const EditarPerfil = () => {
         apellido: form.apellido || '',
         fotoPerfil: form.fotoPerfil || ''
       };
-
-      // Agregar contrasena solo si tiene valor
-      if (form.contrasena && form.contrasena.trim() !== '') {
-        payload.contrasena = form.contrasena;
-      }
 
       console.log('📤 Enviando payload cliente:', payload);
 
@@ -179,6 +173,7 @@ const EditarPerfil = () => {
                           onUploadSuccess={(url) => handleChange('fotoPerfil', url)}
                           label="Seleccionar imagen"
                         />
+                        {form.fotoPerfil && <button type="button" onClick={removePhoto}>Eliminar foto</button>}
                     </div>
                 </div>
 
@@ -210,19 +205,11 @@ const EditarPerfil = () => {
 
                 {/* SEGURIDAD */}
                 <div style={styles.sectionTitle}><Lock size={20} color="#ef4444"/> Seguridad</div>
-                <div style={styles.inputGroup}>
-                    <label style={styles.label}>Nueva Contraseña</label>
-                    <input 
-                        type="password" 
-                        style={styles.input} 
-                        placeholder="Déjalo en blanco si no quieres cambiarla" 
-                        value={form.contrasena} 
-                        onChange={e => handleChange('contrasena', e.target.value)} 
-                        onFocus={e => e.target.style.borderColor = '#ef4444'} 
-                        onBlur={e => e.target.style.borderColor = '#333'}
-                    />
-                </div>
-
+                <button type="button" onClick={() => navigate('/cliente/seguridad/password')}>Cambiar contraseña</button>
+                <button type="button" onClick={() => navigate('/cliente/seguridad/eliminar-cuenta')}>Eliminar cuenta</button>
+                <button type="button" onClick={() => navigate('/cliente/seguridad/sesiones')}>Gestionar sesiones activas</button>
+                <button type="button" onClick={() => navigate('/cliente/seguridad/exportar-datos')}>Exportar mis datos</button>
+                <button type="button" onClick={() => navigate('/cliente/seguridad/privacidad')}>Privacidad y comunicaciones</button>
             </div>
         </div>
     </div>

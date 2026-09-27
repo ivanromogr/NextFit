@@ -24,6 +24,17 @@ export const loginForm = async ({ email, password }) => {
 };
 
 export const registerUser = async (payload) => api.post("/register", payload, { headers: { 'X-Client-Type': 'MOBILE' } });
+export const getConsents = () => api.get('/auth/consents');
+export const updateMarketingConsent = (accepted) => api.put('/auth/consents/marketing', { accepted });
+export const changeEmail = (currentPassword, newEmail) => api.put('/auth/email', { currentPassword, newEmail }, { headers: { 'X-Client-Type': 'MOBILE' } });
+export const changePassword = (currentPassword, newPassword) => api.put('/auth/password', { currentPassword, newPassword });
+export const deleteAccount = (currentPassword) => api.delete('/auth/account', { data: { currentPassword } });
+export const getSessions = () => api.get('/auth/sessions');
+export const revokeSession = (familyId) => api.delete(`/auth/sessions/${familyId}`);
+export const logoutAllSessions = () => api.post('/auth/sessions/logout-all', null, { headers: { 'X-Client-Type': 'MOBILE' } });
+export const getDataExport = () => api.get('/auth/data-export');
+export const assignProfileImage = (fileId) => api.put('/auth/profile-image', { fileId });
+export const deleteProfileImage = () => api.delete('/auth/profile-image');
 
 // ==========================================
 // 2. CLIENTE: PERFIL Y ONBOARDING

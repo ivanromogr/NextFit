@@ -101,4 +101,16 @@ class PasswordResetServiceTest {
         when(encoder.matches("mala", "new-bcrypt")).thenReturn(false);
         assertThrows(InvalidCurrentPasswordException.class, () -> service.changePassword(user, "mala", "another-good-password"));
     }
+    @Test void change_Entrenador_RevocaRefreshEInvalidaResetYRechazaPasswordIgual() {
+        UUID id = UUID.randomUUID(); Entrenador entrenador = new Entrenador(); entrenador.setId(id); entrenador.setContrasena("current-hash");
+        AuthenticatedUser user = new AuthenticatedUser(id, "coach@nextfit.test", Role.ENTRENADOR);
+        PasswordResetToken pending = new PasswordResetToken(id, Role.ENTRENADOR, PasswordResetService.hash("pending"), now.plusSeconds(60), now);
+        when(entrenadores.findById(id)).thenReturn(Optional.of(entrenador)); when(encoder.matches("actual-password", "current-hash")).thenReturn(true); when(encoder.encode("new-password")).thenReturn("new-bcrypt");
+        when(tokens.findByUserIdAndRoleAndUsedAtIsNull(id, Role.ENTRENADOR)).thenReturn(java.util.List.of(pending));
+        service.changePassword(user, "actual-password", "new-password");
+        assertEquals("new-bcrypt", entrenador.getContrasena()); assertEquals(now, pending.getUsedAt()); verify(refreshTokens).revokeAllForUser(id, Role.ENTRENADOR);
+        when(encoder.matches("same-password", "new-bcrypt")).thenReturn(true);
+        assertThrows(NewPasswordMustBeDifferentException.class, () -> service.changePassword(user, "same-password", "same-password"));
+        verify(refreshTokens, times(1)).revokeAllForUser(id, Role.ENTRENADOR);
+    }
 }

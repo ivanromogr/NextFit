@@ -1,0 +1,11 @@
+import React from 'react';
+import { Alert } from 'react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import CambiarPasswordScreen from '../screens/CambiarPasswordScreen';
+import * as endpoints from '../api/endpoints'; import { useAuth } from '../components/context/AuthContext';
+jest.mock('../api/endpoints', () => ({ changePassword: jest.fn() })); jest.mock('../components/context/AuthContext', () => ({ useAuth: jest.fn() }));
+describe('CambiarPasswordScreen', () => { const clearLocalSession = jest.fn(); beforeEach(() => { jest.clearAllMocks(); useAuth.mockReturnValue({ clearLocalSession }); jest.spyOn(Alert, 'alert').mockImplementation(jest.fn()); }); afterEach(() => Alert.alert.mockRestore());
+  const fill = (view, current = 'actual-password', next = 'new-password', confirm = next) => { fireEvent.changeText(view.getByPlaceholderText('Contraseña actual'), current); fireEvent.changeText(view.getByPlaceholderText('Nueva contraseña'), next); fireEvent.changeText(view.getByPlaceholderText('Confirmar nueva contraseña'), confirm); };
+  it('valida confirmación y no llama API', () => { const view = render(<CambiarPasswordScreen />); fill(view, 'actual-password', 'new-password', 'otra-password'); fireEvent.press(view.getByText('Actualizar contraseña')); expect(endpoints.changePassword).not.toHaveBeenCalled(); });
+  it('actualiza y limpia sesión', async () => { endpoints.changePassword.mockResolvedValue({}); const view = render(<CambiarPasswordScreen />); fill(view); fireEvent.press(view.getByText('Actualizar contraseña')); await waitFor(() => expect(endpoints.changePassword).toHaveBeenCalledWith('actual-password', 'new-password')); expect(clearLocalSession).toHaveBeenCalled(); });
+});

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { getCliente, actualizarCliente, subirArchivoAdjunto, getImageUrl } from '../../api/endpoints'; 
+import { getCliente, actualizarCliente, subirArchivoAdjunto, getImageUrl, assignProfileImage, deleteProfileImage } from '../../api/endpoints';
 import { useAuth } from '../../components/context/AuthContext';
 import { User, Save, ChevronLeft, Camera, Mail, Lock, LogOut } from 'lucide-react-native';
 
@@ -29,8 +29,7 @@ export default function PerfilScreen() {
     nombre: '', 
     apellido: '', 
     email: '', 
-    fotoPerfil: '', 
-    contrasena: '' 
+    fotoPerfil: ''
   });
   const [focusedInput, setFocusedInput] = useState(null);
 
@@ -44,8 +43,7 @@ export default function PerfilScreen() {
           nombre: data.nombre || '',
           apellido: data.apellido || '',
           email: data.email || '',
-          fotoPerfil: data.fotoPerfil || '',
-          contrasena: ''
+          fotoPerfil: data.fotoPerfil || ''
         });
       } catch (e) { 
         console.error('Error al cargar cliente:', e);
@@ -68,10 +66,6 @@ export default function PerfilScreen() {
         apellido: form.apellido || '',
         fotoPerfil: form.fotoPerfil || ''
       };
-
-      if (form.contrasena && form.contrasena.trim() !== '') {
-        payload.contrasena = form.contrasena;
-      }
 
       await actualizarCliente(userId, payload);
       
@@ -140,7 +134,8 @@ export default function PerfilScreen() {
         // 1. Subimos al servidor y recibimos la respuesta
         const respuestaBackend = await subirArchivoAdjunto(formData, 'PROFILE_IMAGE');
         
-        const rutaRelativa = respuestaBackend?.url;
+        const assigned = await assignProfileImage(respuestaBackend.id);
+        const rutaRelativa = assigned?.data?.fotoPerfil;
 
         // 3. Usamos el Helper global para construir la URL completa
         const urlFinal = getImageUrl(rutaRelativa);
@@ -155,6 +150,11 @@ export default function PerfilScreen() {
         setUploadingImage(false);
       }
     }
+  };
+
+  const handleEliminarFoto = async () => {
+    try { await deleteProfileImage(); setForm(prev => ({ ...prev, fotoPerfil: '' })); }
+    catch { Alert.alert('Error', 'No se pudo eliminar la foto de perfil.'); }
   };
 
   if (loading) {
@@ -220,6 +220,7 @@ export default function PerfilScreen() {
                   {uploadingImage ? 'Subiendo...' : 'Cambiar imagen'}
                 </Text>
               </TouchableOpacity>
+              {form.fotoPerfil && <TouchableOpacity style={styles.uploadBtn} onPress={handleEliminarFoto}><Text style={styles.uploadBtnText}>Eliminar foto</Text></TouchableOpacity>}
             </View>
           </View>
 
@@ -278,21 +279,12 @@ export default function PerfilScreen() {
           <View style={styles.sectionHeader}>
             <Lock size={20} color="#ef4444" />
             <Text style={[styles.sectionTitle, { color: '#ef4444' }]}>Seguridad</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('SesionesActivas')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Gestionar sesiones activas</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('CambiarPassword')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Cambiar contraseña</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('EliminarCuenta')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Eliminar cuenta</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('ExportarDatos')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Exportar mis datos</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('PrivacidadComunicaciones')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Privacidad y comunicaciones</Text></TouchableOpacity>
           </View>
-          <View style={styles.inputGroupFull}>
-            <Text style={styles.label}>Nueva Contraseña</Text>
-            <TextInput 
-              style={[styles.input, focusedInput === 'contrasena' && styles.inputFocusedError]} 
-              placeholder="Déjalo en blanco si no quieres cambiarla" 
-              placeholderTextColor="#666"
-              secureTextEntry
-              value={form.contrasena} 
-              onChangeText={v => handleChange('contrasena', v)}
-              onFocus={() => setFocusedInput('contrasena')}
-              onBlur={() => setFocusedInput(null)}
-            />
-          </View>
-
           <View style={styles.divider} />
 
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>

@@ -41,6 +41,14 @@ export async function saveAuthSession({ accessToken: nextAccessToken, refreshTok
   return session;
 }
 
+export async function updateAuthSession({ accessToken: nextAccessToken, user }) {
+  const session = { id: user?.id, email: user?.email, role: user?.role };
+  if (!isValidSession(session) || typeof nextAccessToken !== 'string') throw new Error('Respuesta de autenticación inválida');
+  accessToken = nextAccessToken;
+  await AsyncStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+  return session;
+}
+
 export async function getAccessToken() {
   return accessToken;
 }

@@ -28,6 +28,14 @@ import PantallaSesionEntrenamiento from './src/screens/Cliente/PantallaSesionEnt
 import EditarPerfilEntrenadorScreen from './src/screens/Entrenador/EditarPerfilEntrenadorScreen';
 import PlantillasEntrenadorScreen from './src/screens/Entrenador/PlantillasEntrenadorScreen';
 import GestionAtletas from './src/screens/Entrenador/GestionAtletas';
+import CambiarEmailScreen from './src/screens/CambiarEmailScreen';
+import CambiarPasswordScreen from './src/screens/CambiarPasswordScreen';
+import EliminarCuentaScreen from './src/screens/EliminarCuentaScreen';
+import SesionesActivasScreen from './src/screens/SesionesActivasScreen';
+import ExportarDatosScreen from './src/screens/ExportarDatosScreen';
+import TermsScreen from './src/screens/TermsScreen';
+import PrivacyScreen from './src/screens/PrivacyScreen';
+import PrivacidadComunicacionesScreen from './src/screens/PrivacidadComunicacionesScreen';
 const Stack = createStackNavigator();
 
 function RootNavigation() {
@@ -49,6 +57,8 @@ function RootNavigation() {
           <Stack.Screen name="Registro" component={RegisterScreen} />
           <Stack.Screen name="ClienteOnboarding" component={ClienteOnboardingScreen} />
           <Stack.Screen name="EntrenadorOnboarding" component={EntrenadorOnboardingScreen} />
+          <Stack.Screen name="Terms" component={TermsScreen} />
+          <Stack.Screen name="Privacy" component={PrivacyScreen} />
         </>
       ) : (
         <>
@@ -68,6 +78,12 @@ function RootNavigation() {
           <Stack.Screen name="EditarRutina" component={EditarRutinaScreen} />
           <Stack.Screen name="GestionarAtleta" component={GestionarAtletaScreen} />
           <Stack.Screen name="EntrenadorPerfil" component={EntrenadorPerfilScreen} />
+          <Stack.Screen name="CambiarEmail" component={CambiarEmailScreen} />
+          <Stack.Screen name="CambiarPassword" component={CambiarPasswordScreen} />
+          <Stack.Screen name="EliminarCuenta" component={EliminarCuentaScreen} />
+          <Stack.Screen name="SesionesActivas" component={SesionesActivasScreen} />
+          <Stack.Screen name="ExportarDatos" component={ExportarDatosScreen} />
+          <Stack.Screen name="PrivacidadComunicaciones" component={PrivacidadComunicacionesScreen} />
           <Stack.Screen name="PantallaChatIndividual" component={PantallaChatIndividual} />
           <Stack.Screen name="EditarPerfilEntrenador" component={EditarPerfilEntrenadorScreen} />
           <Stack.Screen name="CalendarioCliente" component={CalendarioClienteScreen} />

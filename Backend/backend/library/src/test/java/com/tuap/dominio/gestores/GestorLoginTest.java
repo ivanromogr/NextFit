@@ -69,6 +69,7 @@ req.setApellido("Pérez");
 req.setEmail("juan@ejemplo.com");
 req.setContrasena("123456"); 
 req.setRol("cliente");
+req.setAcceptTerms(true); req.setAcceptPrivacy(true); req.setMarketingConsent(false);
 
         // Simulamos el encriptador de contrasenas
         when(passwordEncoder.encode("123456")).thenReturn("contrasena_encriptada_123");
@@ -104,6 +105,7 @@ req.setRol("cliente");
         req.setEmail("test@test.com"); // Este email ya está pillado
         req.setContrasena("123456");
         req.setRol("cliente");
+        req.setAcceptTerms(true); req.setAcceptPrivacy(true); req.setMarketingConsent(false);
 
         // Simulamos que la BBDD encuentra a alguien con ese email
         when(clienteDAO.findByEmail("test@test.com")).thenReturn(Optional.of(clienteMock));
@@ -128,6 +130,8 @@ req.setRol("cliente");
         req.setEmail("Entrenador@Test.Com ");
         req.setContrasena("123456");
         req.setRol("cliente");
+        req.setAcceptTerms(true); req.setAcceptPrivacy(true); req.setMarketingConsent(false);
+        req.setAcceptTerms(true); req.setAcceptPrivacy(true); req.setMarketingConsent(false);
         when(clienteDAO.findByEmail("entrenador@test.com")).thenReturn(Optional.empty());
         when(entrenadorDAO.findByEmail("entrenador@test.com")).thenReturn(Optional.of(new com.tuap.backend.dominio.entidades.Entrenador()));
 
@@ -144,6 +148,7 @@ req.setRol("cliente");
         req.setEmail("admin@test.com");
         req.setContrasena("123456");
         req.setRol("ADMIN");
+        req.setAcceptTerms(true); req.setAcceptPrivacy(true); req.setMarketingConsent(false);
         when(clienteDAO.findByEmail("admin@test.com")).thenReturn(Optional.empty());
         when(entrenadorDAO.findByEmail("admin@test.com")).thenReturn(Optional.empty());
 
@@ -171,26 +176,4 @@ req.setRol("cliente");
         assertEquals("Rellena todos los campos", respuesta.getBody());
     }
 
-    @Test
-    void completarOnboardingCliente_DatosValidos_ActualizaYGuarda() {
-        // --- PREPARACIÓN ---
-        OnboardingRequest req = new OnboardingRequest();
-        req.setIdCliente(clienteId);
-        req.setPesoKg(75.5);
-        req.setFechaNacimiento("1995-05-20"); // Comprobaremos si sabe calcular la edad
-
-        when(clienteDAO.findById(clienteId)).thenReturn(Optional.of(clienteMock));
-
-        // --- ACCIÓN ---
-        ResponseEntity<?> respuesta = gestorLogin.completarOnboardingCliente(req);
-
-        // --- COMPROBACIÓN ---
-        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
-        
-        // Comprobamos que el Gestor modificó los datos físicos del cliente
-        assertEquals(75.5, clienteMock.getPeso());
-        assertTrue(clienteMock.getEdad() > 20); // Verificamos que calculó una edad lógica
-        
-        verify(clienteDAO, times(1)).save(clienteMock);
-    }
 }
