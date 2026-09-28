@@ -86,6 +86,8 @@ const normalizarRutina = (rutina) => {
 export const loginForm = async ({ email, password }) => {
   return api.post("/api/auth/login", { email, password }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
 };
+export const loginWithGoogle = (credential) => api.post("/api/auth/google", { credential }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
+export const completeGoogleOnboarding = (payload) => api.post("/api/auth/google/onboarding", payload, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
 // These public endpoints deliberately do not retain the reset token. It is only
 // sent from the reset form while the user is completing that request.
 export const requestPasswordReset = (email) => api.post("/api/auth/password/forgot", { email });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { registerUser } from "../../api/endpoints";
+import { registerUser, loginWithGoogle } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 import GymButton from "../../components/ui/GymButton";
 import GymInput from "../../components/ui/GymInput";
@@ -8,6 +8,7 @@ import GymCard from "../../components/ui/GymCard";
 import { Dumbbell, Trophy, ArrowRight, Mail, Lock } from "lucide-react";
 import logoNextFit from "../../assets/logo-nextfit.png";
 import "../../styles/auth.css";
+import GoogleSignIn from "../../components/auth/GoogleSignIn";
 
 
 export default function Register() {
@@ -59,6 +60,16 @@ export default function Register() {
     } finally {
       setLoading(false);
     }
+  };
+  const handleGoogle = async (credential) => {
+    setLoading(true); setError("");
+    try { const resp = await loginWithGoogle(credential); const data = resp.data;
+      if (data?.accessToken && data?.user) { const session = login(data); navigate(session.role === "ENTRENADOR" ? "/entrenador/dashboard" : "/cliente/dashboard"); }
+      else if (data?.status === "LINK_REQUIRED") setError("Ya existe una cuenta de NextFit con este correo. Inicia sesión con tu método habitual para vincular Google desde la configuración de tu cuenta.");
+      else if (data?.status === "ONBOARDING_REQUIRED" && data.pendingToken) navigate("/auth/google/onboarding", { state: { pendingToken: data.pendingToken, email: data.email } });
+      else setError("No se ha podido iniciar sesión con Google.");
+    } catch (err) { setError(err.response?.data?.code === "GOOGLE_AUTH_DISABLED" ? "Inicio de sesión con Google no disponible temporalmente." : "No se ha podido iniciar sesión con Google."); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -143,6 +154,8 @@ export default function Register() {
           <GymButton fullWidth loading={loading} onClick={handleSubmit}>
             {loading ? "CREANDO CUENTA..." : "COMENZAR AHORA"} <ArrowRight size={20} />
           </GymButton>
+          <div style={{ textAlign: "center", color: "rgba(255,255,255,.5)" }}>o regístrate con</div>
+          <GoogleSignIn onCredential={handleGoogle} disabled={loading} />
         </form>
 
         <div className="auth-footer">
