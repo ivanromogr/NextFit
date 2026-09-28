@@ -22,6 +22,8 @@ export const getImageUrl = (path) => {
 export const loginForm = async ({ email, password }) => {
   return api.post('/auth/login', { email, password }, { headers: { 'X-Client-Type': 'MOBILE' } });
 };
+export const loginWithGoogle = (credential) => api.post('/auth/google', { credential }, { headers: { 'X-Client-Type': 'MOBILE' } });
+export const completeGoogleOnboarding = (payload) => api.post('/auth/google/onboarding', payload, { headers: { 'X-Client-Type': 'MOBILE' } });
 export const requestPasswordReset = (email) => api.post('/auth/password/forgot', { email }, { headers: { 'X-Client-Type': 'MOBILE' } });
 export const resetPassword = (token, newPassword) => api.post('/auth/password/reset', { token, newPassword }, { headers: { 'X-Client-Type': 'MOBILE' } });
 

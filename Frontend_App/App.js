@@ -38,6 +38,7 @@ import SesionesActivasScreen from './src/screens/SesionesActivasScreen';
 import ExportarDatosScreen from './src/screens/ExportarDatosScreen';
 import TermsScreen from './src/screens/TermsScreen';
 import PrivacyScreen from './src/screens/PrivacyScreen';
+import GoogleOnboardingScreen from './src/screens/GoogleOnboardingScreen';
 import PrivacidadComunicacionesScreen from './src/screens/PrivacidadComunicacionesScreen';
 const Stack = createStackNavigator();
 
@@ -61,6 +62,7 @@ function RootNavigation() {
           <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           <Stack.Screen name="ConfirmEmailChange" component={ConfirmEmailChangeScreen} />
           <Stack.Screen name="Registro" component={RegisterScreen} />
+          <Stack.Screen name="GoogleOnboarding" component={GoogleOnboardingScreen} />
           <Stack.Screen name="ClienteOnboarding" component={ClienteOnboardingScreen} />
           <Stack.Screen name="EntrenadorOnboarding" component={EntrenadorOnboardingScreen} />
           <Stack.Screen name="Terms" component={TermsScreen} />

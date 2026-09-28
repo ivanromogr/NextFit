@@ -8,6 +8,10 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(), setItemAsync: jest.fn(), deleteItemAsync: jest.fn(),
 }));
+jest.mock('@react-native-google-signin/google-signin', () => ({
+  GoogleSignin: { configure: jest.fn(), hasPlayServices: jest.fn(), signIn: jest.fn() },
+  statusCodes: { SIGN_IN_CANCELLED: 'SIGN_IN_CANCELLED' },
+}));
 
 // Mock para Lucide Icons (evita errores con los SVG)
 jest.mock('lucide-react-native', () => {

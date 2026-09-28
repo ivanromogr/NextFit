@@ -18,6 +18,7 @@ import { useAuth } from '../components/context/AuthContext';
 // Componentes UI reutilizables
 import GymButton from '../components/ui/GymButton';
 import GymInput from '../components/ui/GymInput';
+import GoogleSignInButton from '../components/auth/GoogleSignInButton';
 
 // Logo
 import logoNextFit from '../../assets/logo-nextfit.png';
@@ -186,6 +187,12 @@ export default function RegisterScreen() {
             >
               {loading ? "CREANDO CUENTA..." : "COMENZAR AHORA"}
             </GymButton>
+            <GoogleSignInButton
+              onAuthenticated={login}
+              onOnboarding={(state) => navigation.navigate('GoogleOnboarding', state)}
+              onLinkRequired={() => Alert.alert('Cuenta existente', 'Ya existe una cuenta de NextFit asociada a este correo. Inicia sesión con tu método habitual y podrás vincular Google desde la configuración.')}
+              onError={(message) => setError(message)}
+            />
           </View>
 
           {/* Footer */}
