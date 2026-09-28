@@ -29,7 +29,7 @@ public class Entrenador {
     private String email;
 
    
-    @Column(nullable = false)
+    @Column(nullable = true)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String contrasena;
 

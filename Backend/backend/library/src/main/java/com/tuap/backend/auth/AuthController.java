@@ -27,6 +27,9 @@ public class AuthController {
     private final EmailChangeService emailChangeService;
     private final AccountDeletionService accountDeletionService;
     private final UserDataExportService userDataExportService;
+    @org.springframework.beans.factory.annotation.Autowired private AuthIdentityService authIdentityService;
+    @org.springframework.beans.factory.annotation.Autowired private GoogleAuthenticationService googleAuthenticationService;
+    @org.springframework.beans.factory.annotation.Autowired private GoogleOnboardingService googleOnboardingService;
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private String allowedOrigins;
 
@@ -52,6 +55,22 @@ public class AuthController {
 
         AuthenticatedUser user = authService.authenticate(request.email(), request.password());
         return loginResponse(user, ClientType.fromHeader(clientTypeHeader));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<?> google(@RequestBody(required = false) GoogleAuthRequest request,
+            @RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader) {
+        GoogleAuthenticationResult result = googleAuthenticationService.authenticate(request);
+        if (result.authenticated()) {
+            return loginResponse(result.user(), ClientType.fromHeader(clientTypeHeader));
+        }
+        return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store").body(result.socialResponse());
+    }
+
+    @PostMapping("/google/onboarding")
+    public ResponseEntity<?> completeGoogleOnboarding(@RequestBody(required = false) GoogleOnboardingRequest request,
+            @RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader) {
+        return loginResponse(googleOnboardingService.complete(request), ClientType.fromHeader(clientTypeHeader));
     }
 
     @PostMapping("/refresh")
@@ -139,6 +158,7 @@ public class AuthController {
     @PostMapping("/email/confirm") public ResponseEntity<?> confirmEmail(@RequestBody(required=false) java.util.Map<String,String> request,@RequestHeader(value="X-Client-Type",required=false) String clientTypeHeader){EmailChangeService.Result result=emailChangeService.confirm(request==null?null:request.get("token"),ClientType.fromHeader(clientTypeHeader));return loginResponse(result.user(),ClientType.fromHeader(clientTypeHeader),result.refresh());}
     @GetMapping("/sessions")
     public ResponseEntity<?> sessions(@AuthenticationPrincipal AuthenticatedUser user) { return ResponseEntity.ok(refreshTokenService.activeSessions(user)); }
+    @GetMapping("/identities") public ResponseEntity<?> identities(@AuthenticationPrincipal AuthenticatedUser user){return ResponseEntity.ok(authIdentityService.listIdentities(user));}
     @DeleteMapping("/sessions/{familyId}")
     public ResponseEntity<?> revokeSession(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable java.util.UUID familyId) {
         return refreshTokenService.revokeFamilyForUser(familyId, user) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
