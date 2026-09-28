@@ -26,6 +26,7 @@ public class AuthExceptionHandler {
     public ResponseEntity<ApiErrorResponse> invalidResetToken(InvalidResetTokenException exception) {
         return ResponseEntity.badRequest().body(new ApiErrorResponse(400, "INVALID_RESET_TOKEN", "Token de restablecimiento no válido"));
     }
+    @ExceptionHandler(InvalidEmailChangeTokenException.class) public ResponseEntity<ApiErrorResponse> invalidEmailChange(InvalidEmailChangeTokenException e){return ResponseEntity.badRequest().body(new ApiErrorResponse(400,"INVALID_EMAIL_CHANGE_TOKEN","Token de cambio de correo no válido"));}
 
     @ExceptionHandler(InvalidCurrentPasswordException.class)
     public ResponseEntity<ApiErrorResponse> invalidCurrentPassword(InvalidCurrentPasswordException exception) {

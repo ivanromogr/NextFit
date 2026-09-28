@@ -59,7 +59,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/ejercicios/importar", "/api/ejercicios/importar-json", "/api/ejercicios/retraducir",
                                  "/api/recover-password").denyAll()
-                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/auth/login", "/api/auth/refresh", "/api/auth/logout", "/api/auth/password/forgot", "/api/auth/password/reset", "/api/register").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/auth/login", "/api/auth/refresh", "/api/auth/logout", "/api/auth/password/forgot", "/api/auth/password/reset", "/api/auth/email/confirm", "/api/register").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/", "/api", "/actuator/health").permitAll()
                 // SockJS needs an HTTP handshake; STOMP CONNECT is authenticated by StompJwtChannelInterceptor.
                 .requestMatchers("/ws/**").permitAll()

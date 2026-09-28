@@ -133,11 +133,10 @@ public class AuthController {
             @RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader,
             @RequestBody(required = false) ChangeEmailRequest request) {
         if (request == null) throw new InvalidEmailException();
-        ClientType type = ClientType.fromHeader(clientTypeHeader);
-        EmailChangeService.Result result = emailChangeService.change(user, request.currentPassword(), request.newEmail(), type);
-        if (!result.changed()) return ResponseEntity.ok(LoginResponse.from(result.user(), jwtService.generateAccessToken(result.user()), jwtService.getAccessTokenTtlSeconds()));
-        return loginResponse(result.user(), type, result.refresh());
+        emailChangeService.request(user, request.currentPassword(), request.newEmail());
+        return ResponseEntity.ok(java.util.Map.of("message", "Te hemos enviado un enlace de confirmación al nuevo correo"));
     }
+    @PostMapping("/email/confirm") public ResponseEntity<?> confirmEmail(@RequestBody(required=false) java.util.Map<String,String> request,@RequestHeader(value="X-Client-Type",required=false) String clientTypeHeader){EmailChangeService.Result result=emailChangeService.confirm(request==null?null:request.get("token"),ClientType.fromHeader(clientTypeHeader));return loginResponse(result.user(),ClientType.fromHeader(clientTypeHeader),result.refresh());}
     @GetMapping("/sessions")
     public ResponseEntity<?> sessions(@AuthenticationPrincipal AuthenticatedUser user) { return ResponseEntity.ok(refreshTokenService.activeSessions(user)); }
     @DeleteMapping("/sessions/{familyId}")
