@@ -1,0 +1,3 @@
+package com.tuap.backend.persistencia;
+import java.util.*; import org.springframework.data.jpa.repository.JpaRepository; import com.tuap.backend.auth.*; import com.tuap.backend.dominio.entidades.AuthIdentity;
+public interface AuthIdentityDAO extends JpaRepository<AuthIdentity,UUID>{Optional<AuthIdentity> findByProviderAndProviderSubject(AuthProvider provider,String subject);List<AuthIdentity> findByUserIdAndRoleAndActiveTrue(UUID userId,Role role);boolean existsByUserIdAndRoleAndProviderAndActiveTrue(UUID userId,Role role,AuthProvider provider);long countByUserIdAndRoleAndActiveTrue(UUID userId,Role role);}

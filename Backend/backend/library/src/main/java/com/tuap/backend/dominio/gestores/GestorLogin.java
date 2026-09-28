@@ -33,6 +33,7 @@ import com.tuap.backend.auth.RefreshTokenService;
 import com.tuap.backend.auth.RefreshTokenProperties;
 import com.tuap.backend.auth.ConsentService;
 import com.tuap.backend.auth.ConsentRequiredException;
+import com.tuap.backend.auth.AuthIdentityService;
 import org.springframework.transaction.annotation.Transactional;
 
 @RestController
@@ -50,6 +51,7 @@ public class GestorLogin {
     private final RefreshTokenService refreshTokens;
     private final RefreshTokenProperties refreshProperties;
     @org.springframework.beans.factory.annotation.Autowired private ConsentService consentService;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private AuthIdentityService authIdentities;
 
     public GestorLogin(ClienteDAO clienteDAO, 
                        EntrenadorDAO entrenadorDAO, 
@@ -136,6 +138,7 @@ public class GestorLogin {
             }
         }
         if (consentService != null) consentService.recordRegistration(authenticatedUser, true, true, req.isMarketingConsent());
+        if (authIdentities != null) authIdentities.ensureLocalIdentity(authenticatedUser);
 
         ClientType type = ClientType.fromHeader(clientTypeHeader);
         RefreshTokenService.IssuedToken refresh = refreshTokens.issue(authenticatedUser, type);

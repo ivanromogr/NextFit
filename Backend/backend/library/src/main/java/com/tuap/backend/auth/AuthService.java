@@ -12,6 +12,7 @@ public class AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final IdentityResolver identityResolver;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private AuthIdentityService authIdentities;
 
     public AuthService(AuthenticationManager authenticationManager, IdentityResolver identityResolver) {
         this.authenticationManager = authenticationManager;
@@ -26,8 +27,9 @@ public class AuthService {
         // The authenticated username is useful to Spring Security, but the response identity is
         // always rebuilt from the controlled resolver to retain UUID and canonical role.
         String authenticatedEmail = IdentityResolver.normalizeEmail(authentication.getName());
-        return identityResolver.findByEmail(authenticatedEmail)
+        AuthenticatedUser user=identityResolver.findByEmail(authenticatedEmail)
                 .map(AuthenticatableIdentity::authenticatedUser)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+        if(authIdentities!=null){authIdentities.ensureLocalIdentity(user);authIdentities.updateLastUsed(user,AuthProvider.LOCAL);} return user;
     }
 }
