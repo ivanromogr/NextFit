@@ -62,6 +62,13 @@ class PasswordResetServiceTest {
         verifyNoInteractions(notifier);
         verify(tokens, never()).save(any());
     }
+    @Test void forgot_FalloDeEntregaPermaneceNeutral() {
+        AuthenticatedUser user = new AuthenticatedUser(UUID.randomUUID(), "cliente@nextfit.test", Role.CLIENTE);
+        when(identities.findByEmail(user.email())).thenReturn(Optional.of(new AuthenticatableIdentity(user.userId(), user.email(), user.role(), "hash")));
+        doThrow(new EmailDeliveryException()).when(notifier).notifyReset(eq(user), anyString());
+        assertDoesNotThrow(() -> service.requestReset(user.email()));
+        verify(tokens).save(any(PasswordResetToken.class));
+    }
 
     @Test void reset_EntrenadorValido_CambiaHashYConsumeToken() {
         UUID id = UUID.randomUUID();

@@ -64,7 +64,7 @@ public class PasswordResetService {
         RANDOM.nextBytes(random);
         String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(random);
         tokens.save(new PasswordResetToken(user.userId(), user.role(), hash(rawToken), now.plusSeconds(ttlMinutes * 60), now));
-        notifier.notifyReset(user, rawToken);
+        try { notifier.notifyReset(user, rawToken); } catch (EmailDeliveryException ignored) { }
     }
 
     @Transactional

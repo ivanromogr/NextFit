@@ -5,11 +5,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import com.tuap.backend.config.CleanupProperties;
+import com.tuap.backend.config.EmailProperties;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @EnableScheduling
-@EnableConfigurationProperties(CleanupProperties.class)
+@EnableConfigurationProperties({CleanupProperties.class,EmailProperties.class})
 @ComponentScan(basePackages = "com.tuap.backend")
 public class BackendApplication {
 

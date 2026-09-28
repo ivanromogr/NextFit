@@ -1,0 +1,8 @@
+package com.tuap.backend.auth;
+import static org.junit.jupiter.api.Assertions.*; import org.junit.jupiter.api.Test; import org.springframework.boot.autoconfigure.AutoConfigurations; import org.springframework.boot.context.properties.EnableConfigurationProperties; import org.springframework.boot.test.context.runner.ApplicationContextRunner; import org.springframework.context.annotation.*; import org.springframework.web.client.RestClient; import com.tuap.backend.config.EmailProperties;
+class EmailServiceConfigurationTest {
+ private final ApplicationContextRunner context=new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(Config.class));
+ @Test void disabledSelectsOnlyDisabledService(){context.withPropertyValues("app.email.enabled=false").run(c->{assertEquals(1,c.getBeansOfType(EmailService.class).size());assertInstanceOf(DisabledEmailService.class,c.getBean(EmailService.class));assertFalse(c.containsBean("resendEmailService"));});}
+ @Test void enabledSelectsOnlyResendService(){context.withPropertyValues("app.email.enabled=true","app.email.resend-api-key=fake","app.email.from=test@nextfit.example","app.email.password-reset-url=https://example.test/reset-password").run(c->{assertEquals(1,c.getBeansOfType(EmailService.class).size());assertInstanceOf(ResendEmailService.class,c.getBean(EmailService.class));assertFalse(c.containsBean("disabledEmailService"));});}
+ @Configuration(proxyBeanMethods=false) @EnableConfigurationProperties(EmailProperties.class) @Import({DisabledEmailService.class,ResendEmailService.class}) static class Config { @Bean RestClient.Builder restClientBuilder(){return RestClient.builder();} }
+}
