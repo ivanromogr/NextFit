@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
 process.env.EXPO_PUBLIC_API_BASE_URL = 'http://localhost:8080';
-const { api, loginForm } = require('../../api/endpoints');
+const { api, loginForm, requestPasswordReset, resetPassword } = require('../../api/endpoints');
 
 describe('cliente HTTP de autenticación móvil', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -10,6 +10,16 @@ describe('cliente HTTP de autenticación móvil', () => {
     const post = jest.spyOn(api, 'post').mockResolvedValue({ status: 200 });
     await loginForm({ email: 'cliente@nextfit.test', password: 'secret' });
     expect(post).toHaveBeenCalledWith('/auth/login', { email: 'cliente@nextfit.test', password: 'secret' }, { headers: { 'X-Client-Type': 'MOBILE' } });
+    post.mockRestore();
+  });
+
+  it('usa el contrato público de recuperación sin persistir el token', async () => {
+    const post = jest.spyOn(api, 'post').mockResolvedValue({ status: 200 });
+    await requestPasswordReset('cliente@nextfit.test');
+    await resetPassword('only-in-memory', 'password123');
+    expect(post).toHaveBeenNthCalledWith(1, '/auth/password/forgot', { email: 'cliente@nextfit.test' }, { headers: { 'X-Client-Type': 'MOBILE' } });
+    expect(post).toHaveBeenNthCalledWith(2, '/auth/password/reset', { token: 'only-in-memory', newPassword: 'password123' }, { headers: { 'X-Client-Type': 'MOBILE' } });
+    expect(SecureStore.setItemAsync).not.toHaveBeenCalledWith(expect.stringMatching(/reset/i), expect.anything());
     post.mockRestore();
   });
 

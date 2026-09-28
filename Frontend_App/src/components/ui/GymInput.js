@@ -31,6 +31,7 @@ export default function GymInput({
         ) : null}
 
         <TextInput
+          accessibilityLabel={label}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}

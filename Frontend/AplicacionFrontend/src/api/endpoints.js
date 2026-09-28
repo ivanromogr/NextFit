@@ -86,6 +86,10 @@ const normalizarRutina = (rutina) => {
 export const loginForm = async ({ email, password }) => {
   return api.post("/api/auth/login", { email, password }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
 };
+// These public endpoints deliberately do not retain the reset token. It is only
+// sent from the reset form while the user is completing that request.
+export const requestPasswordReset = (email) => api.post("/api/auth/password/forgot", { email });
+export const resetPassword = (token, newPassword) => api.post("/api/auth/password/reset", { token, newPassword });
 
 // --- 3. REGISTRO ---
 export const registerUser = async (payload) => api.post("/api/register", payload, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
@@ -95,7 +99,8 @@ export const refreshWebSession = () => {
   return refreshInFlight;
 };
 export const logoutSession = () => api.post("/api/auth/logout", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } });
-export const changeEmail = (currentPassword, newEmail) => api.put("/api/auth/email", { currentPassword, newEmail }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
+export const requestEmailChange = (currentPassword, newEmail) => api.put("/api/auth/email", { currentPassword, newEmail }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
+export const confirmEmailChange = (token) => api.post("/api/auth/email/confirm", { token }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
 export const changePassword = (currentPassword, newPassword) => api.put("/api/auth/password", { currentPassword, newPassword });
 export const deleteAccount = (currentPassword) => api.delete("/api/auth/account", { data: { currentPassword } });
 export const getSessions = () => api.get("/api/auth/sessions");

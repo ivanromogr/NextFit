@@ -69,6 +69,10 @@ export default function Login() {
 
           {error && <div className="auth-error">{error}</div>}
 
+          <Link to="/forgot-password" className="auth-link" style={{ alignSelf: "flex-end", marginTop: "-4px" }}>
+            ¿Olvidaste tu contraseña?
+          </Link>
+
           
           <GymButton fullWidth loading={loading} onClick={handleSubmit}>
             INICIAR SESIÓN

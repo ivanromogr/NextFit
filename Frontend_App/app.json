@@ -2,6 +2,7 @@
   "expo": {
     "name": "Frontend_App",
     "slug": "Frontend_App",
+    "scheme": "nextfit",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

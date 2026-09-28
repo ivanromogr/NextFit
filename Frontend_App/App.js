@@ -8,6 +8,9 @@ import { AuthProvider, useAuth } from './src/components/context/AuthContext';
 
 // Pantallas Públicas
 import LoginScreen from './src/screens/LoginScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
+import ConfirmEmailChangeScreen from './src/screens/ConfirmEmailChangeScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import ClienteOnboardingScreen from './src/screens/Cliente/ClienteOnboardingScreen'; 
 import EntrenadorOnboardingScreen from './src/screens/Entrenador/EntrenadorOnboardingScreen'; 
@@ -54,6 +57,9 @@ function RootNavigation() {
       {!isAuthenticated() ? (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+          <Stack.Screen name="ConfirmEmailChange" component={ConfirmEmailChangeScreen} />
           <Stack.Screen name="Registro" component={RegisterScreen} />
           <Stack.Screen name="ClienteOnboarding" component={ClienteOnboardingScreen} />
           <Stack.Screen name="EntrenadorOnboarding" component={EntrenadorOnboardingScreen} />
@@ -97,9 +103,10 @@ function RootNavigation() {
 }
 
 export default function App() {
+  const linking = { prefixes: ['nextfit://'], config: { screens: { ResetPassword: 'reset-password', ConfirmEmailChange: 'confirm-email-change' } } };
   return (
     <AuthProvider>
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         <RootNavigation />
       </NavigationContainer>
     </AuthProvider>

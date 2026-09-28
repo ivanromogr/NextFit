@@ -92,4 +92,9 @@ describe('Página de Login', () => {
       expect(screen.getByText(/credenciales incorrectas/i)).toBeInTheDocument();
     });
   });
+
+  it('ofrece navegación real a recuperación de contraseña', () => {
+    renderLogin();
+    expect(screen.getByRole('link', { name: /olvidaste tu contraseña/i })).toHaveAttribute('href', '/forgot-password');
+  });
 });

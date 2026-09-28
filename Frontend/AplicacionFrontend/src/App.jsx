@@ -10,6 +10,9 @@ import EntrenadorLayout from "./components/layout/EntrenadorLayout";
 
 // --- IMPORTACIONES DE AUTENTICACIÓN Y ONBOARDING ---
 import Login from "./pages/auth/Login";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+import ConfirmEmailChange from "./pages/auth/ConfirmEmailChange";
 import Register from "./pages/auth/Register";
 import CambiarEmail from "./pages/auth/CambiarEmail";
 import CambiarPassword from "./pages/auth/CambiarPassword";
@@ -66,6 +69,9 @@ function App() {
             {/* --- RUTAS DE AUTENTICACIÓN --- */}
             <Route path="/auth/login" element={<AuthLayout><Login /></AuthLayout>} />
             <Route path="/login" element={<Navigate to="/auth/login" replace />} />
+            <Route path="/forgot-password" element={<AuthLayout><ForgotPassword /></AuthLayout>} />
+            <Route path="/reset-password" element={<AuthLayout><ResetPassword /></AuthLayout>} />
+            <Route path="/confirm-email-change" element={<AuthLayout><ConfirmEmailChange /></AuthLayout>} />
             <Route path="/register" element={<AuthLayout><Register /></AuthLayout>} />
             <Route path="/registro" element={<Navigate to="/register" replace />} />
             <Route path="/terms" element={<Terms />} />

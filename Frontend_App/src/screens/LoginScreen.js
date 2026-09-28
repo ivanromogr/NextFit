@@ -93,8 +93,8 @@ export default function LoginScreen() {
               secureTextEntry={true}
             />
 
-            <TouchableOpacity 
-              onPress={() => Alert.alert('Info', 'Funcionalidad en desarrollo.')} 
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ForgotPassword')}
               style={styles.forgotPasswordContainer}
             >
               <Text style={styles.forgotPasswordText}>¿Olvidaste tu contrasena?</Text>
