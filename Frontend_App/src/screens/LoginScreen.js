@@ -13,6 +13,7 @@ import { Mail, Lock, ArrowRight } from 'lucide-react-native';
 import { useAuth } from '../components/context/AuthContext';
 import { loginForm } from '../api/endpoints';
 import GoogleSignInButton from '../components/auth/GoogleSignInButton';
+import AppleSignInButton from '../components/auth/AppleSignInButton';
 
 // Componentes UI reutilizables
 import GymButton from '../components/ui/GymButton';
@@ -114,6 +115,12 @@ export default function LoginScreen() {
               onOnboarding={(state) => navigation.navigate('GoogleOnboarding', state)}
               onLinkRequired={() => Alert.alert('Cuenta existente', 'Ya existe una cuenta de NextFit asociada a este correo. Inicia sesión con tu método habitual y podrás vincular Google desde la configuración.')}
               onError={(message) => Alert.alert('Google', message)}
+            />
+            <AppleSignInButton
+              onAuthenticated={login}
+              onOnboarding={(state) => navigation.navigate('AppleOnboarding', state)}
+              onLinkRequired={(message) => Alert.alert('Cuenta existente', message)}
+              onError={(message) => Alert.alert('Apple', message)}
             />
           </View>
 

@@ -12,6 +12,18 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   GoogleSignin: { configure: jest.fn(), hasPlayServices: jest.fn(), signIn: jest.fn() },
   statusCodes: { SIGN_IN_CANCELLED: 'SIGN_IN_CANCELLED' },
 }));
+jest.mock('expo-apple-authentication', () => ({
+  isAvailableAsync: jest.fn(),
+  signInAsync: jest.fn(),
+  AppleAuthenticationScope: { FULL_NAME: 0, EMAIL: 1 },
+  AppleAuthenticationButton: ({ onPress }) => {
+    const React = require('react');
+    const { TouchableOpacity, Text } = require('react-native');
+    return React.createElement(TouchableOpacity, { accessibilityRole: 'button', accessibilityLabel: 'Continuar con Apple', onPress }, React.createElement(Text, null, 'Continuar con Apple'));
+  },
+  AppleAuthenticationButtonType: { CONTINUE: 1 },
+  AppleAuthenticationButtonStyle: { BLACK: 2 },
+}));
 
 // Mock para Lucide Icons (evita errores con los SVG)
 jest.mock('lucide-react-native', () => {

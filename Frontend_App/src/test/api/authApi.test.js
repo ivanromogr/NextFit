@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
 process.env.EXPO_PUBLIC_API_BASE_URL = 'http://localhost:8080';
-const { api, loginForm, requestPasswordReset, resetPassword } = require('../../api/endpoints');
+const { api, loginForm, requestPasswordReset, resetPassword, authenticateWithApple, completeAppleOnboarding } = require('../../api/endpoints');
 
 describe('cliente HTTP de autenticación móvil', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -20,6 +20,16 @@ describe('cliente HTTP de autenticación móvil', () => {
     expect(post).toHaveBeenNthCalledWith(1, '/auth/password/forgot', { email: 'cliente@nextfit.test' }, { headers: { 'X-Client-Type': 'MOBILE' } });
     expect(post).toHaveBeenNthCalledWith(2, '/auth/password/reset', { token: 'only-in-memory', newPassword: 'password123' }, { headers: { 'X-Client-Type': 'MOBILE' } });
     expect(SecureStore.setItemAsync).not.toHaveBeenCalledWith(expect.stringMatching(/reset/i), expect.anything());
+    post.mockRestore();
+  });
+
+  it('envía los contratos Apple mínimos sin persistir identityToken', async () => {
+    const post = jest.spyOn(api, 'post').mockResolvedValue({ status: 200 });
+    await authenticateWithApple('apple-token', 'nonce');
+    await completeAppleOnboarding({ pendingToken: 'pending', role: 'CLIENTE', nombre: 'Ada', apellido: 'Lovelace', acceptTerms: true, acceptPrivacy: true, marketingConsent: false, provider: 'APPLE', email: 'untrusted@example.test' });
+    expect(post).toHaveBeenNthCalledWith(1, '/auth/apple', { identityToken: 'apple-token', nonce: 'nonce' }, { headers: { 'X-Client-Type': 'MOBILE' } });
+    expect(post).toHaveBeenNthCalledWith(2, '/auth/apple/onboarding', { pendingToken: 'pending', role: 'CLIENTE', nombre: 'Ada', apellido: 'Lovelace', acceptTerms: true, acceptPrivacy: true, marketingConsent: false }, { headers: { 'X-Client-Type': 'MOBILE' } });
+    expect(SecureStore.setItemAsync).not.toHaveBeenCalledWith(expect.stringMatching(/apple/i), expect.anything());
     post.mockRestore();
   });
 

@@ -39,6 +39,7 @@ import ExportarDatosScreen from './src/screens/ExportarDatosScreen';
 import TermsScreen from './src/screens/TermsScreen';
 import PrivacyScreen from './src/screens/PrivacyScreen';
 import GoogleOnboardingScreen from './src/screens/GoogleOnboardingScreen';
+import AppleOnboardingScreen from './src/screens/AppleOnboardingScreen';
 import PrivacidadComunicacionesScreen from './src/screens/PrivacidadComunicacionesScreen';
 const Stack = createStackNavigator();
 
@@ -63,6 +64,7 @@ function RootNavigation() {
           <Stack.Screen name="ConfirmEmailChange" component={ConfirmEmailChangeScreen} />
           <Stack.Screen name="Registro" component={RegisterScreen} />
           <Stack.Screen name="GoogleOnboarding" component={GoogleOnboardingScreen} />
+          <Stack.Screen name="AppleOnboarding" component={AppleOnboardingScreen} />
           <Stack.Screen name="ClienteOnboarding" component={ClienteOnboardingScreen} />
           <Stack.Screen name="EntrenadorOnboarding" component={EntrenadorOnboardingScreen} />
           <Stack.Screen name="Terms" component={TermsScreen} />
