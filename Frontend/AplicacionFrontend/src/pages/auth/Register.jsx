@@ -9,6 +9,7 @@ import { Dumbbell, Trophy, ArrowRight, Mail, Lock } from "lucide-react";
 import logoNextFit from "../../assets/logo-nextfit.png";
 import "../../styles/auth.css";
 import GoogleSignIn from "../../components/auth/GoogleSignIn";
+import AppleSignIn from "../../components/auth/AppleSignIn";
 
 
 export default function Register() {
@@ -156,6 +157,7 @@ export default function Register() {
           </GymButton>
           <div style={{ textAlign: "center", color: "rgba(255,255,255,.5)" }}>o regístrate con</div>
           <GoogleSignIn onCredential={handleGoogle} disabled={loading} />
+          <AppleSignIn />
         </form>
 
         <div className="auth-footer">

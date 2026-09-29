@@ -11,6 +11,7 @@ import EntrenadorLayout from "./components/layout/EntrenadorLayout";
 // --- IMPORTACIONES DE AUTENTICACIÓN Y ONBOARDING ---
 import Login from "./pages/auth/Login";
 import GoogleOnboarding from "./pages/auth/GoogleOnboarding";
+import AppleOnboarding from "./pages/auth/AppleOnboarding";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import ConfirmEmailChange from "./pages/auth/ConfirmEmailChange";
@@ -70,6 +71,7 @@ function App() {
             {/* --- RUTAS DE AUTENTICACIÓN --- */}
             <Route path="/auth/login" element={<AuthLayout><Login /></AuthLayout>} />
             <Route path="/auth/google/onboarding" element={<AuthLayout><GoogleOnboarding /></AuthLayout>} />
+            <Route path="/auth/apple/onboarding" element={<AuthLayout><AppleOnboarding /></AuthLayout>} />
             <Route path="/login" element={<Navigate to="/auth/login" replace />} />
             <Route path="/forgot-password" element={<AuthLayout><ForgotPassword /></AuthLayout>} />
             <Route path="/reset-password" element={<AuthLayout><ResetPassword /></AuthLayout>} />

@@ -248,6 +248,31 @@ body {
   text-decoration: underline;
 }
 
+.apple-sign-in {
+  width: 100%;
+}
+
+.apple-sign-in-button {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(255,255,255,0.75);
+  border-radius: 10px;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.apple-sign-in-button:hover:not(:disabled) {
+  background: #1d1d1f;
+}
+
+.apple-sign-in-button:disabled {
+  cursor: default;
+  opacity: .65;
+}
+
 /* ================= RESPONSIVE ================= */
 @media (max-width: 480px) {
   .auth-card {

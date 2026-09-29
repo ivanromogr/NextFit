@@ -8,6 +8,7 @@ import { Mail, Lock, ArrowRight } from "lucide-react";
 import logoNextFit from "../../assets/logo-nextfit.png";
 import "../../styles/auth.css";
 import GoogleSignIn from "../../components/auth/GoogleSignIn";
+import AppleSignIn from "../../components/auth/AppleSignIn";
 
 
 export default function Login() {
@@ -90,6 +91,7 @@ export default function Login() {
           </GymButton>
           <div style={{ textAlign: "center", color: "rgba(255,255,255,.5)" }}>o</div>
           <GoogleSignIn onCredential={handleGoogle} disabled={loading} />
+          <AppleSignIn />
         </form>
 
         <div className="auth-footer">
