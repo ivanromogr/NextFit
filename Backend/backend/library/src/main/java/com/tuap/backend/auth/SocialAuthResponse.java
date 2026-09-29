@@ -10,6 +10,8 @@ public record SocialAuthResponse(SocialAuthStatus status, AuthProvider provider,
         return new SocialAuthResponse(SocialAuthStatus.ONBOARDING_REQUIRED, AuthProvider.GOOGLE, email, true, true, false, pendingToken);
     }
     static SocialAuthResponse onboarding(String email) { return onboarding(email, null); }
+    static SocialAuthResponse onboarding(AuthProvider provider,String email,String pendingToken) { return new SocialAuthResponse(SocialAuthStatus.ONBOARDING_REQUIRED,provider,email,email!=null,true,false,pendingToken); }
+    static SocialAuthResponse linking(AuthProvider provider,String email) { return new SocialAuthResponse(SocialAuthStatus.LINK_REQUIRED,provider,email,email!=null,false,true,null); }
     static SocialAuthResponse linking(String email) {
         return new SocialAuthResponse(SocialAuthStatus.LINK_REQUIRED, AuthProvider.GOOGLE, email, true, false, true, null);
     }

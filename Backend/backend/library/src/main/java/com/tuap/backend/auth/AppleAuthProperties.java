@@ -1,0 +1,3 @@
+package com.tuap.backend.auth;
+import java.util.*; import org.springframework.boot.context.properties.ConfigurationProperties; import org.springframework.stereotype.Component;
+@Component @ConfigurationProperties(prefix="app.auth.apple") public class AppleAuthProperties {private boolean enabled;private List<String> allowedAudiences=List.of();public boolean isEnabled(){return enabled;}public void setEnabled(boolean value){enabled=value;}public List<String> getAllowedAudiences(){return allowedAudiences==null?List.of():allowedAudiences.stream().filter(v->v!=null&&!v.isBlank()).map(String::trim).toList();}public void setAllowedAudiences(List<String> values){allowedAudiences=values;}}

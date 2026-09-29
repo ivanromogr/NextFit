@@ -30,6 +30,8 @@ public class AuthController {
     @org.springframework.beans.factory.annotation.Autowired private AuthIdentityService authIdentityService;
     @org.springframework.beans.factory.annotation.Autowired private GoogleAuthenticationService googleAuthenticationService;
     @org.springframework.beans.factory.annotation.Autowired private GoogleOnboardingService googleOnboardingService;
+    @org.springframework.beans.factory.annotation.Autowired private AppleAuthenticationService appleAuthenticationService;
+    @org.springframework.beans.factory.annotation.Autowired private SocialOnboardingService socialOnboardingService;
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private String allowedOrigins;
 
@@ -66,11 +68,19 @@ public class AuthController {
         }
         return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store").body(result.socialResponse());
     }
+    @PostMapping("/apple") public ResponseEntity<?> apple(@RequestBody(required=false) AppleAuthRequest request,@RequestHeader(value="X-Client-Type",required=false) String type){GoogleAuthenticationResult result=appleAuthenticationService.authenticate(request);return result.authenticated()?loginResponse(result.user(),ClientType.fromHeader(type)):ResponseEntity.ok().header(org.springframework.http.HttpHeaders.CACHE_CONTROL,"no-store").body(result.socialResponse());}
 
     @PostMapping("/google/onboarding")
     public ResponseEntity<?> completeGoogleOnboarding(@RequestBody(required = false) GoogleOnboardingRequest request,
             @RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader) {
         return loginResponse(googleOnboardingService.complete(request), ClientType.fromHeader(clientTypeHeader));
+    }
+
+    @PostMapping("/apple/onboarding")
+    public ResponseEntity<?> completeAppleOnboarding(@RequestBody(required = false) AppleOnboardingRequest request,
+            @RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader) {
+        return loginResponse(socialOnboardingService.complete(AuthProvider.APPLE, request == null ? null : request.asSocialRequest()),
+                ClientType.fromHeader(clientTypeHeader));
     }
 
     @PostMapping("/refresh")

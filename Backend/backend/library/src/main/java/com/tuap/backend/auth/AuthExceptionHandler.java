@@ -73,6 +73,45 @@ public class AuthExceptionHandler {
                 .body(new ApiErrorResponse(401, "INVALID_GOOGLE_TOKEN", "La credencial de Google no es válida"));
     }
 
+    @ExceptionHandler(InvalidAppleTokenException.class)
+    public ResponseEntity<ApiErrorResponse> invalidAppleToken(InvalidAppleTokenException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiErrorResponse(401, "INVALID_APPLE_TOKEN", "La credencial de Apple no es válida"));
+    }
+
+    @ExceptionHandler(AppleAuthDisabledException.class)
+    public ResponseEntity<ApiErrorResponse> appleDisabled(AppleAuthDisabledException exception) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ApiErrorResponse(503, "APPLE_AUTH_DISABLED", "La autenticación con Apple no está disponible"));
+    }
+
+    @ExceptionHandler(AppleAccountInactiveException.class)
+    public ResponseEntity<ApiErrorResponse> inactiveAppleAccount(AppleAccountInactiveException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiErrorResponse(401, "APPLE_ACCOUNT_INACTIVE", "La cuenta no está activa"));
+    }
+
+    @ExceptionHandler(InvalidPendingSocialAuthException.class)
+    public ResponseEntity<ApiErrorResponse> invalidPendingSocialAuth(InvalidPendingSocialAuthException exception) {
+        return ResponseEntity.badRequest()
+                .body(new ApiErrorResponse(400, "INVALID_PENDING_SOCIAL_AUTH", "Registro social pendiente no válido"));
+    }
+
+    @ExceptionHandler(SocialProviderMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> socialProviderMismatch(SocialProviderMismatchException exception) {
+        return ResponseEntity.badRequest().body(new ApiErrorResponse(400, "SOCIAL_PROVIDER_MISMATCH", "El registro social no corresponde al proveedor solicitado"));
+    }
+
+    @ExceptionHandler(SocialEmailRequiredException.class)
+    public ResponseEntity<ApiErrorResponse> socialEmailRequired(SocialEmailRequiredException exception) {
+        return ResponseEntity.badRequest().body(new ApiErrorResponse(400, "SOCIAL_EMAIL_REQUIRED", "El proveedor no ha proporcionado un email válido"));
+    }
+
+    @ExceptionHandler(SocialIdentityAlreadyLinkedException.class)
+    public ResponseEntity<ApiErrorResponse> socialIdentityAlreadyLinked(SocialIdentityAlreadyLinkedException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiErrorResponse(409, "SOCIAL_IDENTITY_ALREADY_LINKED", "La identidad social ya está vinculada"));
+    }
+
     @ExceptionHandler(GoogleEmailNotVerifiedException.class)
     public ResponseEntity<ApiErrorResponse> unverifiedGoogleEmail(GoogleEmailNotVerifiedException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

@@ -1,0 +1,3 @@
+# Pending social auth
+
+`PendingSocialAuthService.issue(VerifiedSocialIdentity)` is the canonical pending-token issuer. The Google overload delegates to it; Apple uses the same provider-backed model. The persisted record stores only SHA-256 of a 256-bit URL-safe token, expires in 15 minutes, is one-use, and never exposes the provider subject. Apple email metadata may be null or a private relay address. Invalid, expired and consumed pending tokens return `INVALID_PENDING_SOCIAL_AUTH`; provider credential verification errors remain provider-specific. Social onboarding remains the next implementation step.

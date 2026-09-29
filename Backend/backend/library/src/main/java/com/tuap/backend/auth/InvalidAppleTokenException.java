@@ -1,0 +1,1 @@
+package com.tuap.backend.auth; public class InvalidAppleTokenException extends RuntimeException {public InvalidAppleTokenException(){} public InvalidAppleTokenException(Throwable cause){super(cause);}}
