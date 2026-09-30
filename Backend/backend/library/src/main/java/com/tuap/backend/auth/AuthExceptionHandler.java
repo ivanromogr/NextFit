@@ -123,4 +123,14 @@ public class AuthExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ApiErrorResponse(401, "ACCOUNT_INACTIVE", "La cuenta no está activa"));
     }
+
+    @ExceptionHandler(AccountInactiveException.class)
+    public ResponseEntity<ApiErrorResponse> inactiveCurrentAccount(AccountInactiveException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiErrorResponse(401, "ACCOUNT_INACTIVE", "La cuenta no está activa"));
+    }
+    @ExceptionHandler(InvalidReauthenticationTokenException.class) public ResponseEntity<ApiErrorResponse> invalidReauth(InvalidReauthenticationTokenException e){return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiErrorResponse(401,"INVALID_REAUTH_TOKEN","Reautenticación no válida"));}
+    @ExceptionHandler(LocalIdentityNotAvailableException.class) public ResponseEntity<ApiErrorResponse> noLocal(LocalIdentityNotAvailableException e){return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiErrorResponse(409,"LOCAL_IDENTITY_NOT_AVAILABLE","La cuenta no dispone de acceso local"));}
+    @ExceptionHandler(IdentityNotLinkedException.class) public ResponseEntity<ApiErrorResponse> notLinked(IdentityNotLinkedException e){return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiErrorResponse(404,"IDENTITY_NOT_LINKED","La identidad no está vinculada"));}
+    @ExceptionHandler(CannotUnlinkLastIdentityException.class) public ResponseEntity<ApiErrorResponse> lastIdentity(CannotUnlinkLastIdentityException e){return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiErrorResponse(409,"CANNOT_UNLINK_LAST_IDENTITY","No se puede eliminar el último método de acceso"));}
 }

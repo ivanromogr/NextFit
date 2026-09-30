@@ -32,6 +32,13 @@ public class AuthController {
     @org.springframework.beans.factory.annotation.Autowired private GoogleOnboardingService googleOnboardingService;
     @org.springframework.beans.factory.annotation.Autowired private AppleAuthenticationService appleAuthenticationService;
     @org.springframework.beans.factory.annotation.Autowired private SocialOnboardingService socialOnboardingService;
+    @org.springframework.beans.factory.annotation.Autowired private AuthIdentityLinkService authIdentityLinkService;
+    @org.springframework.beans.factory.annotation.Autowired private GoogleTokenVerifier googleTokenVerifier;
+    @org.springframework.beans.factory.annotation.Autowired private AppleTokenVerifier appleTokenVerifier;
+    @org.springframework.beans.factory.annotation.Autowired private GoogleAuthProperties googleAuthProperties;
+    @org.springframework.beans.factory.annotation.Autowired private AppleAuthProperties appleAuthProperties;
+    @org.springframework.beans.factory.annotation.Autowired private ReauthenticationService reauthenticationService;
+    @org.springframework.beans.factory.annotation.Autowired private AuthIdentityUnlinkService authIdentityUnlinkService;
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private String allowedOrigins;
 
@@ -82,6 +89,49 @@ public class AuthController {
         return loginResponse(socialOnboardingService.complete(AuthProvider.APPLE, request == null ? null : request.asSocialRequest()),
                 ClientType.fromHeader(clientTypeHeader));
     }
+
+    @PostMapping("/identities/google/link")
+    public ResponseEntity<AuthIdentityLinkResponse> linkGoogleIdentity(@AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody(required = false) GoogleIdentityLinkRequest request) {
+        if (!googleAuthProperties.isEnabled()) throw new GoogleAuthDisabledException();
+        VerifiedGoogleIdentity google = googleTokenVerifier.verify(request == null ? null : request.credential());
+        if (!google.emailVerified() || google.email() == null || google.email().isBlank()) {
+            throw new GoogleEmailNotVerifiedException();
+        }
+        return ResponseEntity.ok(authIdentityLinkService.linkExternalIdentity(user, VerifiedSocialIdentity.fromGoogle(google)));
+    }
+
+    @PostMapping("/identities/apple/link")
+    public ResponseEntity<AuthIdentityLinkResponse> linkAppleIdentity(@AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody(required = false) AppleAuthRequest request) {
+        if (!appleAuthProperties.isEnabled()) throw new AppleAuthDisabledException();
+        VerifiedAppleIdentity apple = appleTokenVerifier.verify(request == null ? null : request.identityToken(),
+                request == null ? null : request.nonce());
+        return ResponseEntity.ok(authIdentityLinkService.linkExternalIdentity(user, VerifiedSocialIdentity.fromApple(apple)));
+    }
+
+    @PostMapping("/identities/reauth/password")
+    public ResponseEntity<ReauthTokenResponse> reauthPassword(@AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody(required=false) ReauthPasswordRequest request) {
+        return ResponseEntity.ok(reauthenticationService.password(user, request == null ? null : request.password(), request == null ? null : request.targetProvider()));
+    }
+    @PostMapping("/identities/reauth/google")
+    public ResponseEntity<ReauthTokenResponse> reauthGoogle(@AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody(required=false) ReauthGoogleRequest request) {
+        if (!googleAuthProperties.isEnabled()) throw new GoogleAuthDisabledException();
+        VerifiedGoogleIdentity google=googleTokenVerifier.verify(request==null?null:request.credential());
+        if(!google.emailVerified()||google.email()==null||google.email().isBlank())throw new GoogleEmailNotVerifiedException();
+        return ResponseEntity.ok(reauthenticationService.provider(user,VerifiedSocialIdentity.fromGoogle(google),request==null?null:request.targetProvider()));
+    }
+    @PostMapping("/identities/reauth/apple")
+    public ResponseEntity<ReauthTokenResponse> reauthApple(@AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody(required=false) ReauthAppleRequest request) {
+        if (!appleAuthProperties.isEnabled()) throw new AppleAuthDisabledException();
+        VerifiedAppleIdentity apple=appleTokenVerifier.verify(request==null?null:request.identityToken(),request==null?null:request.nonce());
+        return ResponseEntity.ok(reauthenticationService.provider(user,VerifiedSocialIdentity.fromApple(apple),request==null?null:request.targetProvider()));
+    }
+    @DeleteMapping("/identities/google") public ResponseEntity<?> unlinkGoogle(@AuthenticationPrincipal AuthenticatedUser user,@RequestBody(required=false) ReauthTokenRequest request){authIdentityUnlinkService.unlink(user,AuthProvider.GOOGLE,request==null?null:request.reauthToken());return ResponseEntity.noContent().build();}
+    @DeleteMapping("/identities/apple") public ResponseEntity<?> unlinkApple(@AuthenticationPrincipal AuthenticatedUser user,@RequestBody(required=false) ReauthTokenRequest request){authIdentityUnlinkService.unlink(user,AuthProvider.APPLE,request==null?null:request.reauthToken());return ResponseEntity.noContent().build();}
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@RequestHeader(value = "X-Client-Type", required = false) String clientTypeHeader,

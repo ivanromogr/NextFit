@@ -64,6 +64,19 @@ class JwtSecurityConfigTest {
     }
 
     @Test
+    void linksDeIdentidadExigenJwtYAlcanzanElControladorConJwt() throws Exception {
+        mockMvc.perform(post("/api/auth/identities/google/link").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("MISSING_TOKEN"));
+        mockMvc.perform(post("/api/auth/identities/apple/link").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("MISSING_TOKEN"));
+
+        String token = registerToken("CLIENTE", "link-security@nextfit.test");
+        mockMvc.perform(post("/api/auth/identities/google/link").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
     void exportacionDatos_ClienteAutenticadoDevuelveJsonYHeadersPrivados() throws Exception {
         String token = registerToken("CLIENTE", "exportacion-cliente@nextfit.test");
 
