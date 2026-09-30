@@ -24,6 +24,7 @@ import Terms from "./pages/auth/Terms";
 import Privacy from "./pages/auth/Privacy";
 import ExportarDatos from "./pages/auth/ExportarDatos";
 import PrivacidadComunicaciones from "./pages/auth/PrivacidadComunicaciones";
+import MetodosAcceso from "./pages/auth/MetodosAcceso";
 import ClienteOnboarding from "./pages/cliente/ClienteOnboarding";
 import EntrenadorOnboarding from "./pages/entrenador/EntrenadorOnboarding";
 
@@ -109,6 +110,7 @@ function App() {
               <Route path="seguridad/sesiones" element={<SesionesActivas />} />
               <Route path="seguridad/exportar-datos" element={<ExportarDatos />} />
               <Route path="seguridad/privacidad" element={<PrivacidadComunicaciones />} />
+              <Route path="seguridad/identidades" element={<MetodosAcceso />} />
               <Route path="sesion/:rutinaId" element={<SesionEntrenamiento />} />
               <Route path="progreso" element={<ProgresoCliente />} />
               <Route path="calendario" element={<CalendarioCliente />} />
@@ -138,6 +140,7 @@ function App() {
               <Route path="seguridad/sesiones" element={<SesionesActivas />} />
               <Route path="seguridad/exportar-datos" element={<ExportarDatos />} />
               <Route path="seguridad/privacidad" element={<PrivacidadComunicaciones />} />
+              <Route path="seguridad/identidades" element={<MetodosAcceso />} />
               <Route path="cliente/:clienteId/progreso" element={<VistaProgresoEntrenador />} />
               <Route path="cliente/:clienteId/calendario" element={<VistaCalendarioEntrenador />} />  
               <Route path="cliente/:clienteId/rutinas" element={<RutinasDeCliente />} />

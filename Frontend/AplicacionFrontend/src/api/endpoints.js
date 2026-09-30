@@ -108,6 +108,14 @@ export const confirmEmailChange = (token) => api.post("/api/auth/email/confirm",
 export const changePassword = (currentPassword, newPassword) => api.put("/api/auth/password", { currentPassword, newPassword });
 export const deleteAccount = (currentPassword) => api.delete("/api/auth/account", { data: { currentPassword } });
 export const getSessions = () => api.get("/api/auth/sessions");
+export const getAuthIdentities = () => api.get("/api/auth/identities");
+export const linkGoogleIdentity = (credential) => api.post("/api/auth/identities/google/link", { credential });
+export const linkAppleIdentity = (identityToken, nonce) => api.post("/api/auth/identities/apple/link", { identityToken, nonce });
+export const reauthWithPassword = (password, targetProvider) => api.post("/api/auth/identities/reauth/password", { password, targetProvider });
+export const reauthWithGoogle = (credential, targetProvider) => api.post("/api/auth/identities/reauth/google", { credential, targetProvider });
+export const reauthWithApple = (identityToken, nonce, targetProvider) => api.post("/api/auth/identities/reauth/apple", { identityToken, nonce, targetProvider });
+export const unlinkGoogleIdentity = (reauthToken) => api.delete("/api/auth/identities/google", { data: { reauthToken } });
+export const unlinkAppleIdentity = (reauthToken) => api.delete("/api/auth/identities/apple", { data: { reauthToken } });
 export const revokeSession = (familyId) => api.delete(`/api/auth/sessions/${familyId}`);
 export const logoutAllSessions = () => api.post("/api/auth/sessions/logout-all", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } });
 export const getDataExport = () => api.get("/api/auth/data-export", { responseType: "blob" });
