@@ -41,6 +41,7 @@ import PrivacyScreen from './src/screens/PrivacyScreen';
 import GoogleOnboardingScreen from './src/screens/GoogleOnboardingScreen';
 import AppleOnboardingScreen from './src/screens/AppleOnboardingScreen';
 import PrivacidadComunicacionesScreen from './src/screens/PrivacidadComunicacionesScreen';
+import MetodosAccesoScreen from './src/screens/MetodosAccesoScreen';
 const Stack = createStackNavigator();
 
 function RootNavigation() {
@@ -94,6 +95,7 @@ function RootNavigation() {
           <Stack.Screen name="SesionesActivas" component={SesionesActivasScreen} />
           <Stack.Screen name="ExportarDatos" component={ExportarDatosScreen} />
           <Stack.Screen name="PrivacidadComunicaciones" component={PrivacidadComunicacionesScreen} />
+          <Stack.Screen name="MetodosAcceso" component={MetodosAccesoScreen} />
           <Stack.Screen name="PantallaChatIndividual" component={PantallaChatIndividual} />
           <Stack.Screen name="EditarPerfilEntrenador" component={EditarPerfilEntrenadorScreen} />
           <Stack.Screen name="CalendarioCliente" component={CalendarioClienteScreen} />

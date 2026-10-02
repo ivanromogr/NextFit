@@ -280,6 +280,7 @@ export default function PerfilScreen() {
             <Lock size={20} color="#ef4444" />
             <Text style={[styles.sectionTitle, { color: '#ef4444' }]}>Seguridad</Text>
             <TouchableOpacity onPress={() => navigation.navigate('SesionesActivas')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Gestionar sesiones activas</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('MetodosAcceso')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Métodos de acceso</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('CambiarPassword')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Cambiar contraseña</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('EliminarCuenta')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Eliminar cuenta</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('ExportarDatos')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Exportar mis datos</Text></TouchableOpacity>

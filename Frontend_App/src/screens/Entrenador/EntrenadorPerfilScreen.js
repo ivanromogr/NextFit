@@ -211,6 +211,9 @@ export default function EntrenadorPerfilScreen() {
                                 <Edit size={20} color="#000" />
                                 <Text style={styles.editButtonText}>EDITAR PERFIL</Text>
                             </TouchableOpacity>
+                            <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('MetodosAcceso')}>
+                                <Text style={styles.editButtonText}>Métodos de acceso</Text>
+                            </TouchableOpacity>
                             <TouchableOpacity style={styles.logoutButton} onPress={handleCerrarSesion}>
                                 <LogOut size={20} color="#EF4444" />
                             </TouchableOpacity>

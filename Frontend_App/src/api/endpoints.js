@@ -37,6 +37,14 @@ export const confirmEmailChange = (token) => api.post('/auth/email/confirm', { t
 export const changePassword = (currentPassword, newPassword) => api.put('/auth/password', { currentPassword, newPassword });
 export const deleteAccount = (currentPassword) => api.delete('/auth/account', { data: { currentPassword } });
 export const getSessions = () => api.get('/auth/sessions');
+export const getAuthIdentities = () => api.get('/auth/identities');
+export const linkGoogleIdentity = credential => api.post('/auth/identities/google/link', { credential });
+export const linkAppleIdentity = (identityToken, nonce) => api.post('/auth/identities/apple/link', { identityToken, nonce });
+export const reauthWithPassword = (password, targetProvider) => api.post('/auth/identities/reauth/password', { password, targetProvider });
+export const reauthWithGoogle = (credential, targetProvider) => api.post('/auth/identities/reauth/google', { credential, targetProvider });
+export const reauthWithApple = (identityToken, nonce, targetProvider) => api.post('/auth/identities/reauth/apple', { identityToken, nonce, targetProvider });
+export const unlinkGoogleIdentity = reauthToken => api.delete('/auth/identities/google', { data: { reauthToken } });
+export const unlinkAppleIdentity = reauthToken => api.delete('/auth/identities/apple', { data: { reauthToken } });
 export const revokeSession = (familyId) => api.delete(`/auth/sessions/${familyId}`);
 export const logoutAllSessions = () => api.post('/auth/sessions/logout-all', null, { headers: { 'X-Client-Type': 'MOBILE' } });
 export const getDataExport = () => api.get('/auth/data-export');
