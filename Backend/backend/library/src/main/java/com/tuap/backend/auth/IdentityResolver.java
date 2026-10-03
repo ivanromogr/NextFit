@@ -42,8 +42,10 @@ public class IdentityResolver {
             return Optional.empty();
         }
         return switch (role) {
-            case CLIENTE -> clienteDAO.findById(userId).filter(Cliente::isActive).map(this::fromCliente).map(AuthenticatableIdentity::authenticatedUser);
-            case ENTRENADOR -> entrenadorDAO.findById(userId).filter(Entrenador::isActive).map(this::fromEntrenador).map(AuthenticatableIdentity::authenticatedUser);
+            case CLIENTE -> clienteDAO.findById(userId).filter(Cliente::isActive)
+                    .map(c -> new AuthenticatedUser(c.getId(), normalizeEmail(c.getEmail()), Role.fromStoredValue(c.getRol())));
+            case ENTRENADOR -> entrenadorDAO.findById(userId).filter(Entrenador::isActive)
+                    .map(e -> new AuthenticatedUser(e.getId(), normalizeEmail(e.getEmail()), Role.fromStoredValue(e.getRol())));
         };
     }
 

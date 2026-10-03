@@ -1,0 +1,15 @@
+package com.tuap.backend.auth;
+import static org.junit.jupiter.api.Assertions.*;
+import java.time.*; import java.util.*;
+import org.junit.jupiter.api.*; import org.springframework.beans.factory.annotation.*; import org.springframework.boot.test.context.SpringBootTest; import org.springframework.transaction.annotation.Transactional;
+import com.tuap.backend.dominio.entidades.*; import com.tuap.backend.persistencia.*;
+@SpringBootTest @Transactional class LocalIdentityLifecycleIntegrationTest {
+ @Autowired ClienteDAO clients; @Autowired AuthIdentityDAO identities; @Autowired ReauthenticationTokenDAO reauthTokens; @Autowired PasswordResetTokenDAO resetTokens; @Autowired LocalIdentityCreationService createLocal; @Autowired AuthService auth; @Autowired PasswordResetService resets;
+ Cliente client; AuthenticatedUser user;
+ @BeforeEach void setup(){client=clients.save(new Cliente("Social","Only","social-only@nextfit.test",null,"ROLE_CLIENTE",0,0,0,"","",""));user=new AuthenticatedUser(client.getId(),client.getEmail(),Role.CLIENTE);identities.save(new AuthIdentity(client.getId(),Role.CLIENTE,AuthProvider.GOOGLE,"google-"+client.getId(),client.getEmail(),Instant.now()));}
+ private String create(String password){String raw="reauth-"+UUID.randomUUID();reauthTokens.save(new ReauthenticationToken(PasswordResetService.hash(raw),user.userId(),user.role(),null,ReauthenticationPurpose.CREATE_LOCAL_IDENTITY,Instant.now(),Instant.now().plusSeconds(300)));createLocal.create(user,new LocalIdentityCreationRequest(raw,password));return raw;}
+ private long localCount(){return identities.findByUserIdAndRoleAndActiveTrue(user.userId(),user.role()).stream().filter(i->i.getProvider()==AuthProvider.LOCAL).count();}
+ @Test void createThenLoginHasOneExplicitLocalIdentity(){create("ValidPassword123");assertEquals(1,localCount());assertNotNull(auth.authenticate(client.getEmail(),"ValidPassword123"));assertEquals(1,localCount());assertEquals(1,identities.findByUserIdAndRoleAndActiveTrue(user.userId(),user.role()).stream().filter(i->i.getProvider()==AuthProvider.GOOGLE).count());}
+ @Test void resetAfterCreateKeepsLocalAndUsesNewPassword(){create("ValidPassword123");String raw="reset-"+UUID.randomUUID();resetTokens.save(new PasswordResetToken(user.userId(),user.role(),PasswordResetService.hash(raw),Instant.now().plusSeconds(300),Instant.now()));resets.resetPassword(raw,"NewValidPassword123");assertEquals(1,localCount());assertNotNull(auth.authenticate(client.getEmail(),"NewValidPassword123"));assertThrows(RuntimeException.class,()->auth.authenticate(client.getEmail(),"ValidPassword123"));}
+ @Test void oldResetTokenCannotEnableSocialOnly(){String raw="old-"+UUID.randomUUID();resetTokens.save(new PasswordResetToken(user.userId(),user.role(),PasswordResetService.hash(raw),Instant.now().plusSeconds(300),Instant.now()));assertThrows(InvalidResetTokenException.class,()->resets.resetPassword(raw,"ValidPassword123"));clients.flush();assertNull(clients.findById(client.getId()).orElseThrow().getContrasena());assertEquals(0,localCount());}
+}

@@ -22,6 +22,7 @@ import com.tuap.backend.dominio.entidades.PasswordResetToken;
 import com.tuap.backend.persistencia.ClienteDAO;
 import com.tuap.backend.persistencia.EntrenadorDAO;
 import com.tuap.backend.persistencia.PasswordResetTokenDAO;
+import com.tuap.backend.persistencia.AuthIdentityDAO;
 
 @Service
 public class PasswordResetService {
@@ -35,6 +36,7 @@ public class PasswordResetService {
     private final Clock clock;
     private final RefreshTokenService refreshTokens;
     private final long ttlMinutes;
+    @Autowired(required = false) private AuthIdentityDAO authIdentities;
 
     @Autowired
     public PasswordResetService(IdentityResolver identities, ClienteDAO clientes, EntrenadorDAO entrenadores,
@@ -58,6 +60,7 @@ public class PasswordResetService {
         try { identity = identities.findByEmail(IdentityResolver.normalizeEmail(email)); } catch (RuntimeException e) { return; }
         if (identity.isEmpty()) return;
         AuthenticatedUser user = identity.get().authenticatedUser();
+        if (!hasLocalIdentity(user)) return;
         Instant now = clock.instant();
         invalidateActiveTokens(user, now);
         byte[] random = new byte[32];
@@ -73,6 +76,7 @@ public class PasswordResetService {
         PasswordResetToken token = tokens.findByTokenHash(hash(rawToken)).orElseThrow(InvalidResetTokenException::new);
         Instant now = clock.instant();
         if (!token.isUsableAt(now)) throw new InvalidResetTokenException();
+        if (!hasLocalIdentity(new AuthenticatedUser(token.getUserId(), "reset@internal", token.getRole()))) throw new InvalidResetTokenException();
         if (!setPassword(token.getUserId(), token.getRole(), newPassword)) throw new InvalidResetTokenException();
         token.consume(now);
         invalidateActiveTokens(new AuthenticatedUser(token.getUserId(), "reset@internal", token.getRole()), now);
@@ -97,6 +101,7 @@ public class PasswordResetService {
     private Optional<String> passwordHash(java.util.UUID id, Role role) {
         return switch (role) { case CLIENTE -> clientes.findById(id).map(Cliente::getContrasena); case ENTRENADOR -> entrenadores.findById(id).map(Entrenador::getContrasena); };
     }
+    private boolean hasLocalIdentity(AuthenticatedUser user) { return authIdentities == null || authIdentities.existsByUserIdAndRoleAndProviderAndActiveTrue(user.userId(), user.role(), AuthProvider.LOCAL); }
     private boolean setPassword(java.util.UUID id, Role role, String raw) {
         return switch (role) {
             case CLIENTE -> clientes.findById(id).map(c -> { c.setContrasena(passwordEncoder.encode(raw)); clientes.save(c); return true; }).orElse(false);

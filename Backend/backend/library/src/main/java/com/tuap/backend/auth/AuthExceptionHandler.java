@@ -38,6 +38,10 @@ public class AuthExceptionHandler {
     public ResponseEntity<ApiErrorResponse> invalidPassword(InvalidPasswordException exception) {
         return ResponseEntity.badRequest().body(new ApiErrorResponse(400, "INVALID_PASSWORD", "Contraseña no válida"));
     }
+    @ExceptionHandler(PasswordPolicyViolationException.class)
+    public ResponseEntity<ApiErrorResponse> passwordPolicy(PasswordPolicyViolationException exception) {
+        return ResponseEntity.badRequest().body(new ApiErrorResponse(400, "PASSWORD_POLICY_VIOLATION", "La contraseña no cumple la política de seguridad"));
+    }
     @ExceptionHandler(NewPasswordMustBeDifferentException.class)
     public ResponseEntity<ApiErrorResponse> newPasswordMustBeDifferent(NewPasswordMustBeDifferentException exception) {
         return ResponseEntity.badRequest().body(new ApiErrorResponse(400, "NEW_PASSWORD_MUST_BE_DIFFERENT", "La nueva contraseña debe ser diferente"));
@@ -133,4 +137,7 @@ public class AuthExceptionHandler {
     @ExceptionHandler(LocalIdentityNotAvailableException.class) public ResponseEntity<ApiErrorResponse> noLocal(LocalIdentityNotAvailableException e){return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiErrorResponse(409,"LOCAL_IDENTITY_NOT_AVAILABLE","La cuenta no dispone de acceso local"));}
     @ExceptionHandler(IdentityNotLinkedException.class) public ResponseEntity<ApiErrorResponse> notLinked(IdentityNotLinkedException e){return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiErrorResponse(404,"IDENTITY_NOT_LINKED","La identidad no está vinculada"));}
     @ExceptionHandler(CannotUnlinkLastIdentityException.class) public ResponseEntity<ApiErrorResponse> lastIdentity(CannotUnlinkLastIdentityException e){return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiErrorResponse(409,"CANNOT_UNLINK_LAST_IDENTITY","No se puede eliminar el último método de acceso"));}
+    @ExceptionHandler(LocalIdentityAlreadyExistsException.class) public ResponseEntity<ApiErrorResponse> localExists(LocalIdentityAlreadyExistsException e){return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiErrorResponse(409,"LOCAL_IDENTITY_ALREADY_EXISTS","La cuenta ya dispone de acceso local"));}
+    @ExceptionHandler(LocalEmailRequiredException.class) public ResponseEntity<ApiErrorResponse> localEmailRequired(LocalEmailRequiredException e){return ResponseEntity.badRequest().body(new ApiErrorResponse(400,"LOCAL_EMAIL_REQUIRED","Se requiere un correo para crear acceso local"));}
+    @ExceptionHandler(LocalEmailNotVerifiedException.class) public ResponseEntity<ApiErrorResponse> localEmailVerified(LocalEmailNotVerifiedException e){return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiErrorResponse(409,"LOCAL_EMAIL_NOT_VERIFIED","El correo debe estar verificado"));}
 }

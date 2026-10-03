@@ -39,6 +39,7 @@ public class AuthController {
     @org.springframework.beans.factory.annotation.Autowired private AppleAuthProperties appleAuthProperties;
     @org.springframework.beans.factory.annotation.Autowired private ReauthenticationService reauthenticationService;
     @org.springframework.beans.factory.annotation.Autowired private AuthIdentityUnlinkService authIdentityUnlinkService;
+    @org.springframework.beans.factory.annotation.Autowired private LocalIdentityCreationService localIdentityCreationService;
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private String allowedOrigins;
 
@@ -130,6 +131,9 @@ public class AuthController {
         VerifiedAppleIdentity apple=appleTokenVerifier.verify(request==null?null:request.identityToken(),request==null?null:request.nonce());
         return ResponseEntity.ok(reauthenticationService.provider(user,VerifiedSocialIdentity.fromApple(apple),request==null?null:request.targetProvider()));
     }
+    @PostMapping("/identities/local/reauth/google") public ResponseEntity<ReauthTokenResponse> reauthGoogleForLocal(@AuthenticationPrincipal AuthenticatedUser user,@RequestBody(required=false) GoogleIdentityLinkRequest request){if(!googleAuthProperties.isEnabled())throw new GoogleAuthDisabledException();VerifiedGoogleIdentity google=googleTokenVerifier.verify(request==null?null:request.credential());if(!google.emailVerified()||!sameEmail(user,google.email()))throw new LocalEmailNotVerifiedException();return ResponseEntity.ok(reauthenticationService.providerForCreateLocal(user,VerifiedSocialIdentity.fromGoogle(google)));}
+    @PostMapping("/identities/local/reauth/apple") public ResponseEntity<ReauthTokenResponse> reauthAppleForLocal(@AuthenticationPrincipal AuthenticatedUser user,@RequestBody(required=false) AppleAuthRequest request){if(!appleAuthProperties.isEnabled())throw new AppleAuthDisabledException();VerifiedAppleIdentity apple=appleTokenVerifier.verify(request==null?null:request.identityToken(),request==null?null:request.nonce());if(!apple.emailVerified()||!sameEmail(user,apple.email()))throw new LocalEmailNotVerifiedException();return ResponseEntity.ok(reauthenticationService.providerForCreateLocal(user,VerifiedSocialIdentity.fromApple(apple)));}
+    @PostMapping("/identities/local") public ResponseEntity<AuthIdentityLinkResponse> createLocal(@AuthenticationPrincipal AuthenticatedUser user,@RequestBody(required=false) LocalIdentityCreationRequest request){return ResponseEntity.ok(localIdentityCreationService.create(user,request));}
     @DeleteMapping("/identities/google") public ResponseEntity<?> unlinkGoogle(@AuthenticationPrincipal AuthenticatedUser user,@RequestBody(required=false) ReauthTokenRequest request){authIdentityUnlinkService.unlink(user,AuthProvider.GOOGLE,request==null?null:request.reauthToken());return ResponseEntity.noContent().build();}
     @DeleteMapping("/identities/apple") public ResponseEntity<?> unlinkApple(@AuthenticationPrincipal AuthenticatedUser user,@RequestBody(required=false) ReauthTokenRequest request){authIdentityUnlinkService.unlink(user,AuthProvider.APPLE,request==null?null:request.reauthToken());return ResponseEntity.noContent().build();}
 
@@ -181,6 +185,7 @@ public class AuthController {
                 .map(String::trim).anyMatch(origin::equals);
         if (!allowed) throw new InvalidRefreshTokenException();
     }
+    private boolean sameEmail(AuthenticatedUser user,String email){return user!=null&&email!=null&&!email.isBlank()&&user.email()!=null&&user.email().trim().equalsIgnoreCase(email.trim());}
 
     @PostMapping("/password/forgot")
     public ResponseEntity<?> forgotPassword(@RequestBody(required = false) ForgotPasswordRequest request) {
