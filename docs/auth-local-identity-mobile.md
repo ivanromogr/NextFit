@@ -18,5 +18,5 @@ refresh tokens.
 
 Credentials sociales, nonce, reauth token y contraseñas permanecen sólo en
 memoria. Los errores de email, policy, token caducado y LOCAL ya existente se
-muestran sin detalles internos. AUTH-10.6E queda pendiente para validación
-final del bloque.
+muestran sin detalles internos. AUTH-10.6E completó la validación final
+cross-platform del bloque.
