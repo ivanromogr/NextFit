@@ -22,4 +22,5 @@ componente; no se almacenan ni se registran. Los errores de correo no
 verificado/requerido, token caducado, policy y estado LOCAL existente se
 presentan con mensajes seguros.
 
-Pendiente: AUTH-10.6D implementará el mismo flujo para móvil.
+AUTH-10.6D implementa el mismo flujo para móvil. La validación cross-platform
+AUTH-10.6E está completada.

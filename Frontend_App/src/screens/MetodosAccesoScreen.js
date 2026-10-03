@@ -27,6 +27,7 @@ const msg = error => {
   if (code(error) === 'LOCAL_EMAIL_NOT_VERIFIED') return 'Antes de crear una contraseña debes verificar tu correo electrónico.';
   if (code(error) === 'LOCAL_EMAIL_REQUIRED') return 'Antes de crear una contraseña debes completar y verificar tu correo electrónico.';
   if (code(error) === 'PASSWORD_POLICY_VIOLATION') return 'La contraseña debe cumplir la política de seguridad.';
+  if (code(error) === 'ACCOUNT_INACTIVE') return 'Tu cuenta no está activa.';
   return 'No se pudo completar la operación.';
 };
 

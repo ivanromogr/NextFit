@@ -40,4 +40,5 @@ body y el alta devuelve exclusivamente `provider` y `status`. Se validaron los
 mappings seguros `LOCAL_IDENTITY_ALREADY_EXISTS`, `INVALID_REAUTH_TOKEN`,
 `LOCAL_EMAIL_NOT_VERIFIED` y `PASSWORD_POLICY_VIOLATION`.
 
-Pendiente: web/móvil AUTH-10.6C/D.
+Web y móvil AUTH-10.6C/D están implementados. La validación cross-platform
+AUTH-10.6E está completada.
