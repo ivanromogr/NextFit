@@ -43,6 +43,9 @@ export const linkAppleIdentity = (identityToken, nonce) => api.post('/auth/ident
 export const reauthWithPassword = (password, targetProvider) => api.post('/auth/identities/reauth/password', { password, targetProvider });
 export const reauthWithGoogle = (credential, targetProvider) => api.post('/auth/identities/reauth/google', { credential, targetProvider });
 export const reauthWithApple = (identityToken, nonce, targetProvider) => api.post('/auth/identities/reauth/apple', { identityToken, nonce, targetProvider });
+export const reauthCreateLocalWithGoogle = credential => api.post('/auth/identities/local/reauth/google', { credential });
+export const reauthCreateLocalWithApple = (identityToken, nonce) => api.post('/auth/identities/local/reauth/apple', { identityToken, nonce });
+export const createLocalIdentity = (reauthToken, password) => api.post('/auth/identities/local', { reauthToken, password });
 export const unlinkGoogleIdentity = reauthToken => api.delete('/auth/identities/google', { data: { reauthToken } });
 export const unlinkAppleIdentity = reauthToken => api.delete('/auth/identities/apple', { data: { reauthToken } });
 export const revokeSession = (familyId) => api.delete(`/auth/sessions/${familyId}`);

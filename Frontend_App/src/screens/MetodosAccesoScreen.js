@@ -11,6 +11,9 @@ import {
   reauthWithPassword,
   reauthWithGoogle,
   reauthWithApple,
+  reauthCreateLocalWithGoogle,
+  reauthCreateLocalWithApple,
+  createLocalIdentity,
   unlinkGoogleIdentity,
   unlinkAppleIdentity,
 } from '../api/endpoints';
@@ -21,6 +24,9 @@ const msg = error => {
   if (code(error) === 'SOCIAL_IDENTITY_ALREADY_LINKED') return 'Esta cuenta ya está vinculada a otra cuenta de NextFit.';
   if (code(error) === 'INVALID_REAUTH_TOKEN') return 'La confirmación ha caducado. Vuelve a verificar tu identidad.';
   if (code(error) === 'CANNOT_UNLINK_LAST_IDENTITY') return 'No puedes eliminar tu único método de acceso.';
+  if (code(error) === 'LOCAL_EMAIL_NOT_VERIFIED') return 'Antes de crear una contraseña debes verificar tu correo electrónico.';
+  if (code(error) === 'LOCAL_EMAIL_REQUIRED') return 'Antes de crear una contraseña debes completar y verificar tu correo electrónico.';
+  if (code(error) === 'PASSWORD_POLICY_VIOLATION') return 'La contraseña debe cumplir la política de seguridad.';
   return 'No se pudo completar la operación.';
 };
 
@@ -31,6 +37,11 @@ export default function MetodosAccesoScreen() {
   const [reauthMethods, setReauthMethods] = useState([]);
   const [password, setPassword] = useState('');
   const [passwordSelected, setPasswordSelected] = useState(false);
+  const [createMethods, setCreateMethods] = useState([]);
+  const [createStep, setCreateStep] = useState(null);
+  const [createToken, setCreateToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const { clearLocalSession } = useAuth();
   const navigation = useNavigation();
   const active = provider => items.some(identity => identity.provider === provider && identity.active);
@@ -52,6 +63,30 @@ export default function MetodosAccesoScreen() {
     setReauthMethods([]);
     setPassword('');
     setPasswordSelected(false);
+  };
+  const closeCreate = () => { setCreateMethods([]); setCreateStep(null); setCreateToken(''); setNewPassword(''); setConfirmPassword(''); };
+  const getCreateMethods = async () => {
+    const methods = [];
+    if (active('GOOGLE')) methods.push('GOOGLE');
+    if (active('APPLE') && Platform.OS === 'ios' && await isAppleSignInAvailable()) methods.push('APPLE');
+    return methods;
+  };
+  const openCreate = async () => {
+    setBusy(true);
+    try { const methods = await getCreateMethods(); if (!methods.length) return Alert.alert('Métodos de acceso', 'No hay un método de verificación disponible en este dispositivo.'); setCreateMethods(methods); setCreateStep(methods.length === 1 ? methods[0] : 'SELECT'); }
+    catch (error) { Alert.alert('Métodos de acceso', msg(error)); } finally { setBusy(false); }
+  };
+  const finishCreateReauth = response => { setCreateToken(response.data.reauthToken); setCreateStep('PASSWORD'); };
+  const createWithGoogle = async () => { setBusy(true); try { const credential = await getGoogleIdToken(); if (!credential) return; finishCreateReauth(await reauthCreateLocalWithGoogle(credential)); } catch (error) { if (!isGoogleCancel(error)) Alert.alert('Métodos de acceso', msg(error)); } finally { setBusy(false); } };
+  const createWithApple = async () => { setBusy(true); try { const { identityToken, nonce } = await startAppleSignIn(); finishCreateReauth(await reauthCreateLocalWithApple(identityToken, nonce)); } catch (error) { if (error?.message !== 'APPLE_AUTH_CANCELLED' && !isAppleSignInCancel(error)) Alert.alert('Métodos de acceso', msg(error)); } finally { setBusy(false); } };
+  const submitCreate = async () => {
+    if (!newPassword || !confirmPassword) return Alert.alert('Métodos de acceso', 'Completa los dos campos de contraseña.');
+    if (newPassword !== confirmPassword) return Alert.alert('Métodos de acceso', 'Las contraseñas no coinciden.');
+    if (newPassword.length < 8 || newPassword.length > 128) return Alert.alert('Métodos de acceso', 'La contraseña debe tener entre 8 y 128 caracteres.');
+    setBusy(true);
+    try { await createLocalIdentity(createToken, newPassword); closeCreate(); await load(); Alert.alert('Métodos de acceso', 'Contraseña creada correctamente.'); }
+    catch (error) { const value = code(error); Alert.alert('Métodos de acceso', msg(error)); if (value === 'LOCAL_IDENTITY_ALREADY_EXISTS') { closeCreate(); await load(); } else if (value === 'INVALID_REAUTH_TOKEN') { setCreateToken(''); setNewPassword(''); setConfirmPassword(''); setCreateStep('SELECT'); } }
+    finally { setBusy(false); }
   };
 
   const getAvailableReauthMethods = async targetProvider => {
@@ -184,6 +219,18 @@ export default function MetodosAccesoScreen() {
           {provider !== 'LOCAL' && active(provider) && <Button title="Desvincular" disabled={busy || count <= 1} onPress={() => confirmUnlink(provider)} />}
         </View>
       ))}
+      {!active('LOCAL') && <Button title="Crear contraseña" disabled={busy} onPress={openCreate} />}
+
+      {createStep && (
+        <View accessibilityLabel="crear-contrasena">
+          <Text>Crear contraseña</Text>
+          {createStep === 'SELECT' && <Text>Confirma tu identidad</Text>}
+          {createMethods.includes('GOOGLE') && createStep !== 'PASSWORD' && <Button title="Continuar con Google" disabled={busy} onPress={createWithGoogle} />}
+          {createMethods.includes('APPLE') && createStep !== 'PASSWORD' && <Button title="Continuar con Apple" disabled={busy} onPress={createWithApple} />}
+          {createStep === 'PASSWORD' && <View><TextInput secureTextEntry placeholder="Nueva contraseña" value={newPassword} onChangeText={setNewPassword} editable={!busy} /><TextInput secureTextEntry placeholder="Confirmar contraseña" value={confirmPassword} onChangeText={setConfirmPassword} editable={!busy} /><Button title="Guardar contraseña" disabled={busy} onPress={submitCreate} /></View>}
+          <Button title="Cancelar crear contraseña" disabled={busy} onPress={closeCreate} />
+        </View>
+      )}
 
       {reauthTarget && (
         <View accessibilityLabel="selector-de-reautenticacion">

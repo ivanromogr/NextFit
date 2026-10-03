@@ -10,6 +10,7 @@ import { useAuth } from '../../components/context/AuthContext';
 jest.mock('../../api/endpoints', () => ({
   getAuthIdentities: jest.fn(), linkGoogleIdentity: jest.fn(), linkAppleIdentity: jest.fn(),
   reauthWithPassword: jest.fn(), reauthWithGoogle: jest.fn(), reauthWithApple: jest.fn(),
+  reauthCreateLocalWithGoogle: jest.fn(), reauthCreateLocalWithApple: jest.fn(), createLocalIdentity: jest.fn(),
   unlinkGoogleIdentity: jest.fn(), unlinkAppleIdentity: jest.fn(),
 }));
 jest.mock('../../services/googleSignIn', () => ({ getGoogleIdToken: jest.fn(), isGoogleCancel: jest.fn(() => false) }));
@@ -124,6 +125,27 @@ describe('MetodosAccesoScreen social reauthentication', () => {
     const screen = await renderScreen([GOOGLE]);
     expect(screen.getByText(/Correo y contraseña.*No configurado/)).toBeTruthy();
     expect(screen.getAllByRole('button')[0]).toBeDisabled();
+  });
+  it('creates LOCAL from Google without ending the current session', async () => {
+    getGoogleIdToken.mockResolvedValue('fresh-google-credential');
+    endpoints.reauthCreateLocalWithGoogle.mockResolvedValue({ data: { reauthToken: 'one-use' } });
+    endpoints.createLocalIdentity.mockResolvedValue({});
+    const screen = await renderScreen([GOOGLE]);
+    await act(async () => { fireEvent.press(screen.getByText(/crear contraseña/i)); });
+    await act(async () => { fireEvent.press(screen.getByText('Continuar con Google')); });
+    fireEvent.changeText(screen.getByPlaceholderText('Nueva contraseña'), 'ValidPassword123');
+    fireEvent.changeText(screen.getByPlaceholderText('Confirmar contraseña'), 'ValidPassword123');
+    await act(async () => { fireEvent.press(screen.getByText('Guardar contraseña')); });
+    expect(endpoints.reauthCreateLocalWithGoogle).toHaveBeenCalledWith('fresh-google-credential');
+    expect(endpoints.createLocalIdentity).toHaveBeenCalledWith('one-use', 'ValidPassword123');
+    expect(clearLocalSession).not.toHaveBeenCalled(); expect(mockReset).not.toHaveBeenCalled();
+  });
+  it('blocks Apple-only create on Android', async () => {
+    platform = 'android';
+    const screen = await renderScreen([APPLE]);
+    await act(async () => { fireEvent.press(screen.getByText(/crear contraseña/i)); });
+    expect(Alert.alert).toHaveBeenCalledWith('Métodos de acceso', 'No hay un método de verificación disponible en este dispositivo.');
+    expect(startAppleSignIn).not.toHaveBeenCalled();
   });
 
   it('links Google through the native helper and refetches identities', async () => {
