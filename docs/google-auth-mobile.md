@@ -13,7 +13,7 @@ For Android, configure the Google OAuth Android client for package `com.iviromo.
 
 ## Android validation and remaining setup
 
-The JavaScript Android bundle exports successfully with Expo SDK 54. Authentication API, access-method screens and native Google credential handling are covered by 29 passing tests (Google SDK mocked). This does not establish native compilation, certificate validity or real Google login.
+The JavaScript Android bundle exports successfully with Expo SDK 54. Android native prebuild also succeeds in an isolated temporary copy, and Expo autolinking detects the native Google SDK. No APK or native Gradle compilation has been produced yet. Authentication API, access-method screens and native Google credential handling are covered by 29 passing tests (Google SDK mocked). This does not establish native compilation, certificate validity or real Google login.
 
 Local checks, from `Frontend_App`:
 
