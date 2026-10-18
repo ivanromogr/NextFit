@@ -32,3 +32,18 @@ Before creating the APK:
 5. On a device with Google Play Services, verify cancellation, a new Google account's consent/onboarding, subsequent login, and NextFit session refresh after restarting the app. A local account with the same email must still require authenticated linking.
 
 The preview APK uses the configured API; do not make destructive tests against existing user accounts. iOS, Apple sign-in and store submission remain separate work.
+
+
+## EAS project and Android preview signing
+
+EAS access was verified for `@iviromo/Frontend_App` (project ID already in `app.json`). The preview environment now has `EXPO_PUBLIC_API_BASE_URL` and `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`; the latter uses the client accepted by the deployed backend. No production environment variables were changed.
+
+The existing default Android keystore was inspected through EAS Credentials without downloading or replacing it. Its preview certificate SHA-1 is:
+
+```text
+2B:B6:7E:F0:7F:79:F3:9C:0B:77:54:A3:62:9F:8C:44:9A:C1:5F:70
+```
+
+Use it only for the corresponding Android OAuth client with package `com.iviromo.Frontend_App`. It is distinct from a future Play App Signing certificate. This fingerprint is public certificate metadata, not the keystore or its password.
+
+The build submission reached source upload but was rejected with HTTP 403 at `storage.googleapis.com`. No new native build was created by those attempts. The required storage destination has been added to the cloud environment network draft; publish that configuration before retrying. EAS API authentication and remote signing credential selection both succeeded.
