@@ -50,12 +50,8 @@ export default function AccountSecurityMenu({ role }) {
   const base = `/${role}/seguridad`;
   return (
     <section className="account-menu" aria-label="Seguridad y privacidad">
-      <p className="account-menu-intro">
-        Tu cuenta, bajo tu control. Gestiona el acceso, tus sesiones y tu
-        privacidad.
-      </p>
       <div className="account-menu-grid">
-        {actions.map(([path, title, description, Icon]) => (
+        {actions.slice(0, 4).map(([path, title, description, Icon]) => (
           <Link key={path} to={`${base}/${path}`} className="account-action">
             <span className="account-action-icon">
               {createElement(Icon, { size: 21, "aria-hidden": true })}
@@ -72,6 +68,22 @@ export default function AccountSecurityMenu({ role }) {
           </Link>
         ))}
       </div>
+      <details className="account-privacy-details">
+        <summary>
+          <ShieldCheck size={18} aria-hidden="true" />
+          <span>Privacidad y datos</span>
+          <ChevronRight size={16} aria-hidden="true" />
+        </summary>
+        <div className="account-privacy-links">
+          {actions.slice(4).map(([path, title, , Icon]) => (
+            <Link key={path} to={`${base}/${path}`}>
+              {createElement(Icon, { size: 18, "aria-hidden": true })}
+              <span>{title}</span>
+              <ChevronRight size={16} aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
+      </details>
       <Link to={`${base}/eliminar-cuenta`} className="account-danger-link">
         <Trash2 size={18} aria-hidden="true" />
         <span>Eliminar cuenta</span>
