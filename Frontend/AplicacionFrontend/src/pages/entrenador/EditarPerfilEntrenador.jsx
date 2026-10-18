@@ -1,3 +1,4 @@
+import AccountSecurityMenu from "../../components/account/AccountSecurityMenu";
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { deleteProfileImage, getEntrenador, actualizarEntrenador } from '../../api/endpoints';
@@ -419,7 +420,7 @@ const EditarPerfilEntrenador = () => {
                   onUploadSuccess={(url) => handleChange('fotoPerfil', url)}
                   label="Seleccionar imagen"
                 />
-                {form.fotoPerfil && <button type="button" onClick={removePhoto}>Eliminar foto</button>}
+                {form.fotoPerfil && <button className="account-photo-remove" type="button" onClick={removePhoto}>Eliminar foto</button>}
               </div>
             </div>
 
@@ -546,11 +547,7 @@ const EditarPerfilEntrenador = () => {
             <div style={styles.divider} />
 
             <div style={styles.sectionTitle}><Lock size={18} color="#EF4444" /> Seguridad</div>
-            <button type="button" onClick={() => navigate('/entrenador/seguridad/password')}>Cambiar contraseña</button>
-            <button type="button" onClick={() => navigate('/entrenador/seguridad/eliminar-cuenta')}>Eliminar cuenta</button>
-            <button type="button" onClick={() => navigate('/entrenador/seguridad/sesiones')}>Gestionar sesiones activas</button>
-            <button type="button" onClick={() => navigate('/entrenador/seguridad/exportar-datos')}>Exportar mis datos</button>
-            <button type="button" onClick={() => navigate('/entrenador/seguridad/privacidad')}>Privacidad y comunicaciones</button>
+            <AccountSecurityMenu role="entrenador" />
           </div>
         </form>
       </div>

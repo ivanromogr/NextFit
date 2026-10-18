@@ -1,3 +1,4 @@
+import AccountSecurityMenu from "../../components/account/AccountSecurityMenu";
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { actualizarCliente, deleteProfileImage, getCliente } from '../../api/endpoints'; // Asegúrate de que esta importación es correcta
@@ -173,7 +174,7 @@ const EditarPerfil = () => {
                           onUploadSuccess={(url) => handleChange('fotoPerfil', url)}
                           label="Seleccionar imagen"
                         />
-                        {form.fotoPerfil && <button type="button" onClick={removePhoto}>Eliminar foto</button>}
+                        {form.fotoPerfil && <button className="account-photo-remove" type="button" onClick={removePhoto}>Eliminar foto</button>}
                     </div>
                 </div>
 
@@ -205,11 +206,7 @@ const EditarPerfil = () => {
 
                 {/* SEGURIDAD */}
                 <div style={styles.sectionTitle}><Lock size={20} color="#ef4444"/> Seguridad</div>
-                <button type="button" onClick={() => navigate('/cliente/seguridad/password')}>Cambiar contraseña</button>
-                <button type="button" onClick={() => navigate('/cliente/seguridad/eliminar-cuenta')}>Eliminar cuenta</button>
-                <button type="button" onClick={() => navigate('/cliente/seguridad/sesiones')}>Gestionar sesiones activas</button>
-                <button type="button" onClick={() => navigate('/cliente/seguridad/exportar-datos')}>Exportar mis datos</button>
-                <button type="button" onClick={() => navigate('/cliente/seguridad/privacidad')}>Privacidad y comunicaciones</button>
+                <AccountSecurityMenu role="cliente" />
             </div>
         </div>
     </div>

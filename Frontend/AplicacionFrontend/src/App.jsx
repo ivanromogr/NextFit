@@ -1,3 +1,4 @@
+import AccountPage from "./components/account/AccountPage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Layouts / Guards
@@ -104,13 +105,13 @@ function App() {
               <Route path="generar-ia" element={<GenerarRutinaIA />} />
               <Route path="editar-rutina/:rutinaId" element={<EditarRutina />} />
               <Route path="perfil" element={<EditarPerfil />} />
-              <Route path="seguridad/email" element={<CambiarEmail />} />
-              <Route path="seguridad/password" element={<CambiarPassword />} />
-              <Route path="seguridad/eliminar-cuenta" element={<EliminarCuenta />} />
-              <Route path="seguridad/sesiones" element={<SesionesActivas />} />
-              <Route path="seguridad/exportar-datos" element={<ExportarDatos />} />
-              <Route path="seguridad/privacidad" element={<PrivacidadComunicaciones />} />
-              <Route path="seguridad/identidades" element={<MetodosAcceso />} />
+              <Route path="seguridad/email" element={<AccountPage><CambiarEmail /></AccountPage>} />
+              <Route path="seguridad/password" element={<AccountPage><CambiarPassword /></AccountPage>} />
+              <Route path="seguridad/eliminar-cuenta" element={<AccountPage><EliminarCuenta /></AccountPage>} />
+              <Route path="seguridad/sesiones" element={<AccountPage><SesionesActivas /></AccountPage>} />
+              <Route path="seguridad/exportar-datos" element={<AccountPage><ExportarDatos /></AccountPage>} />
+              <Route path="seguridad/privacidad" element={<AccountPage><PrivacidadComunicaciones /></AccountPage>} />
+              <Route path="seguridad/identidades" element={<AccountPage><MetodosAcceso /></AccountPage>} />
               <Route path="sesion/:rutinaId" element={<SesionEntrenamiento />} />
               <Route path="progreso" element={<ProgresoCliente />} />
               <Route path="calendario" element={<CalendarioCliente />} />
@@ -134,13 +135,13 @@ function App() {
               <Route path="chat" element={<ChatPage />} />
               <Route path="atletas" element={<GestionAtletas />} />
               <Route path="perfil" element={<EditarPerfilEntrenador />} />
-              <Route path="seguridad/email" element={<CambiarEmail />} />
-              <Route path="seguridad/password" element={<CambiarPassword />} />
-              <Route path="seguridad/eliminar-cuenta" element={<EliminarCuenta />} />
-              <Route path="seguridad/sesiones" element={<SesionesActivas />} />
-              <Route path="seguridad/exportar-datos" element={<ExportarDatos />} />
-              <Route path="seguridad/privacidad" element={<PrivacidadComunicaciones />} />
-              <Route path="seguridad/identidades" element={<MetodosAcceso />} />
+              <Route path="seguridad/email" element={<AccountPage><CambiarEmail /></AccountPage>} />
+              <Route path="seguridad/password" element={<AccountPage><CambiarPassword /></AccountPage>} />
+              <Route path="seguridad/eliminar-cuenta" element={<AccountPage><EliminarCuenta /></AccountPage>} />
+              <Route path="seguridad/sesiones" element={<AccountPage><SesionesActivas /></AccountPage>} />
+              <Route path="seguridad/exportar-datos" element={<AccountPage><ExportarDatos /></AccountPage>} />
+              <Route path="seguridad/privacidad" element={<AccountPage><PrivacidadComunicaciones /></AccountPage>} />
+              <Route path="seguridad/identidades" element={<AccountPage><MetodosAcceso /></AccountPage>} />
               <Route path="cliente/:clienteId/progreso" element={<VistaProgresoEntrenador />} />
               <Route path="cliente/:clienteId/calendario" element={<VistaCalendarioEntrenador />} />  
               <Route path="cliente/:clienteId/rutinas" element={<RutinasDeCliente />} />
