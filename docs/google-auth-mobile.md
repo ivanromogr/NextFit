@@ -13,7 +13,7 @@ For Android, configure the Google OAuth Android client for package `com.iviromo.
 
 ## Android validation and remaining setup
 
-The JavaScript Android bundle exports successfully with Expo SDK 54. Android native prebuild also succeeds in an isolated temporary copy, and Expo autolinking detects the native Google SDK. No APK or native Gradle compilation has been produced yet. Authentication API, access-method screens and native Google credential handling are covered by 29 passing tests (Google SDK mocked). This does not establish native compilation, certificate validity or real Google login.
+The JavaScript Android bundle exports successfully with Expo SDK 54. Android native prebuild also succeeds in an isolated temporary copy, and Expo autolinking detects the native Google SDK. The GitHub-backed Android preview build subsequently completed native compilation successfully; see the build record below. Authentication API, access-method screens and native Google credential handling are covered by 29 passing tests (Google SDK mocked). This does not establish native compilation, certificate validity or real Google login.
 
 Local checks, from `Frontend_App`:
 
@@ -46,4 +46,10 @@ The existing default Android keystore was inspected through EAS Credentials with
 
 Use it only for the corresponding Android OAuth client with package `com.iviromo.Frontend_App`. It is distinct from a future Play App Signing certificate. This fingerprint is public certificate metadata, not the keystore or its password.
 
-The build submission reached source upload but was rejected with HTTP 403 at `storage.googleapis.com`. No new native build was created by those attempts. The required storage destination has been added to the cloud environment network draft; publish that configuration before retrying. EAS API authentication and remote signing credential selection both succeeded.
+Local source upload was rejected with HTTP 403 at `storage.googleapis.com`, including after publishing its network rule. Do not keep retrying local uploads or request another token for that failure. Expo is now connected to `ivanromogr/NextFit` through the GitHub App, with project base directory `/Frontend_App`. Trigger Android preview builds directly from the work branch through that integration; do not submit to Google Play. EAS API authentication and remote signing credential selection both succeeded.
+
+The first GitHub-backed preview build `f9536ce6-89c5-4dbe-b002-0373e0abbf0a`, for commit `9fa1d52e6e68f428a6a9eaff7ce90e1627c1b237`, finished successfully on 2026-10-18. EAS reports Android / internal distribution / version 1.0.0 and provides a downloadable APK.
+
+Build page: https://expo.dev/accounts/iviromo/projects/Frontend_App/builds/f9536ce6-89c5-4dbe-b002-0373e0abbf0a
+
+Real Google login on a device remains unvalidated. The Google Cloud Android OAuth client must authorize the package and certificate SHA-1 above; the previously supplied web OAuth client ID alone does not establish that Android registration. Do not mark Google Android complete until device sign-in, onboarding and session restart checks pass.
