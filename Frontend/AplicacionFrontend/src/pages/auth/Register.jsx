@@ -10,10 +10,12 @@ import logoNextFit from "../../assets/logo-nextfit.png";
 import "../../styles/auth.css";
 import GoogleSignIn from "../../components/auth/GoogleSignIn";
 import AppleSignIn from "../../components/auth/AppleSignIn";
+import { appleConfig } from "../../services/appleAuthWeb";
 
 
 export default function Register() {
   const navigate = useNavigate();
+  const socialAvailable = Boolean(import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || appleConfig().appleAuthEnabled);
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -101,6 +103,15 @@ export default function Register() {
           </div>
         </div>
 
+        {socialAvailable && <section className="auth-registration-methods" aria-label="Registro con tu cuenta">
+          <p>Elige cómo crear tu cuenta</p>
+          <GoogleSignIn onCredential={handleGoogle} disabled={loading} />
+          <AppleSignIn />
+          <span className="auth-method-note">Después podrás entrar con el mismo método.</span>
+          <div className="auth-method-divider"><span>O regístrate con tu correo</span></div>
+        </section>}
+        {error && <div className="auth-error" role="alert">{error}</div>}
+
         <form className="auth-form" onSubmit={handleSubmit} style={{ marginTop: 22 }}>
           <div>
             <label style={{ display: "block", marginBottom: 12, color: "rgba(255,255,255,0.45)", fontSize: "0.75rem", fontWeight: 900, letterSpacing: "2px", textTransform: "uppercase" }}>
@@ -143,21 +154,17 @@ export default function Register() {
           <GymInput
             label="Contraseña"
             type="password"
-            placeholder="Mínimo 6 caracteres"
+            placeholder="Mínimo 8 caracteres"
             icon={Lock}
             value={form.contrasena}
             onChange={handleChange("contrasena")}
             autoComplete="new-password"
           />
 
-          {error && <div className="auth-error">⚠️ {error}</div>}
 
           <GymButton fullWidth loading={loading} onClick={handleSubmit}>
             {loading ? "CREANDO CUENTA..." : "COMENZAR AHORA"} <ArrowRight size={20} />
           </GymButton>
-          <div style={{ textAlign: "center", color: "rgba(255,255,255,.5)" }}>o regístrate con</div>
-          <GoogleSignIn onCredential={handleGoogle} disabled={loading} />
-          <AppleSignIn />
         </form>
 
         <div className="auth-footer">

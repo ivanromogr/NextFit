@@ -26,7 +26,7 @@ describe('3.9 web: registro y legales', () => {
     fireEvent.change(screen.getByPlaceholderText('Juan'), { target: { value: 'Ana' } });
     fireEvent.change(screen.getByPlaceholderText('Pérez'), { target: { value: 'Test' } });
     fireEvent.change(screen.getByPlaceholderText('juan@gym.com'), { target: { value: 'ana@test.dev' } });
-    fireEvent.change(screen.getByPlaceholderText(/Mínimo 6/), { target: { value: 'secreto' } });
+    fireEvent.change(screen.getByPlaceholderText(/Mínimo 8/), { target: { value: 'SecretoSeguro123' } });
     registerUser.mockResolvedValue({ status: 201, data: {} });
     fireEvent.click(screen.getByRole('button', { name: /comenzar ahora/i }));
     await waitFor(() => expect(registerUser).toHaveBeenCalledWith(expect.objectContaining({ rol: 'CLIENTE', acceptTerms: true, acceptPrivacy: true, marketingConsent: false })));
