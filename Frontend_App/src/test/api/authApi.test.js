@@ -50,3 +50,31 @@ describe('cliente HTTP de autenticación móvil', () => {
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('nextfit_refresh');
   });
 });
+
+it('la baja usa solo el método elegido y desactiva reintentos automáticos', async () => {
+  const { deleteAccount, deleteAccountWithGoogle, deleteAccountWithApple } = require('../../api/endpoints');
+  const remove = jest.spyOn(api, 'delete').mockResolvedValue({});
+  await deleteAccount('password'); await deleteAccountWithGoogle('google'); await deleteAccountWithApple('apple', 'nonce');
+  expect(remove).toHaveBeenNthCalledWith(1, '/auth/account', { data: { currentPassword: 'password' }, skipAuthRefresh: true, skipNetworkRetry: true });
+  expect(remove).toHaveBeenNthCalledWith(2, '/auth/account', { data: { provider: 'GOOGLE', credential: 'google' }, skipAuthRefresh: true, skipNetworkRetry: true });
+  expect(remove).toHaveBeenNthCalledWith(3, '/auth/account', { data: { provider: 'APPLE', identityToken: 'apple', nonce: 'nonce' }, skipAuthRefresh: true, skipNetworkRetry: true });
+  remove.mockRestore();
+});
+
+it('una verificación rechazada no renueva ni elimina la sesión automáticamente', async () => {
+  const post = jest.spyOn(api, 'post').mockRejectedValue(new Error('must not refresh'));
+  const AsyncStorage = require('@react-native-async-storage/async-storage');
+  jest.clearAllMocks();
+  const rejected = api.interceptors.response.handlers.at(-1).rejected;
+  const error = { response: { status: 401, data: { code: 'INVALID_REAUTH_TOKEN' } }, config: { skipAuthRefresh: true, skipNetworkRetry: true, silentError: true } };
+  await expect(rejected(error)).rejects.toBe(error);
+  expect(post).not.toHaveBeenCalled(); expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
+  expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled(); post.mockRestore();
+});
+
+it('un timeout de baja no reenvía una operación cuyo resultado puede haberse perdido', async () => {
+  const rejected = api.interceptors.response.handlers.at(-1).rejected;
+  const error = { code: 'ECONNABORTED', message: 'timeout', config: { skipAuthRefresh: true, skipNetworkRetry: true, silentError: true } };
+  await expect(rejected(error)).rejects.toBe(error);
+  expect(error.config.__retry).toBeUndefined();
+});

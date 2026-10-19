@@ -120,3 +120,22 @@ móvil con **162 pruebas** correctas. Se eliminan las pruebas exclusivas de la
 función retirada y se mantienen las de autenticación, cambio de correo y
 protección de calendario/sesiones. Las cifras anteriores son ejecuciones
 históricas con la función aún presente.
+
+
+## Baja de cuentas sociales
+
+Se elimina la dependencia de una contraseña para las cuentas Google/Apple que
+no la tienen. El usuario confirma y verifica el proveedor vinculado; el backend
+comprueba proveedor/subject, usuario y rol antes de aplicar la baja existente.
+Se mantienen los controles de contraseña y se evitan reintentos automáticos de
+baja en móvil. No cambia el esquema ni la conservación de históricos. Los
+proveedores reales, la revocación externa de Apple y la prueba en iPhone siguen
+pendientes. Detalle y alcance: [Baja de cuenta](account-deletion.md).
+
+Validación de la baja social: suite backend de 373 pruebas y JAR correctos;
+clase social final de 11 casos correcta (incluye entrenador); suite web de 289
+pruebas y ocho casos finales del formulario correctos; suite móvil de 169 pruebas
+y 17 casos finales de formulario/HTTP correctos. Build web y exportaciones
+JavaScript Android/iOS del código final completados. No son pruebas con
+proveedores reales ni builds firmadas. El despliegue conjunto de API y clientes
+sigue pendiente: la API de producción anterior solo admite contraseña para baja.

@@ -35,7 +35,7 @@ export const updateMarketingConsent = (accepted) => api.put('/auth/consents/mark
 export const requestEmailChange = (currentPassword, newEmail) => api.put('/auth/email', { currentPassword, newEmail }, { headers: { 'X-Client-Type': 'MOBILE' } });
 export const confirmEmailChange = (token) => api.post('/auth/email/confirm', { token }, { headers: { 'X-Client-Type': 'MOBILE' } });
 export const changePassword = (currentPassword, newPassword) => api.put('/auth/password', { currentPassword, newPassword });
-export const deleteAccount = (currentPassword) => api.delete('/auth/account', { data: { currentPassword } });
+export const deleteAccount = (currentPassword) => api.delete('/auth/account', { data: { currentPassword }, skipAuthRefresh: true, skipNetworkRetry: true });
 export const getSessions = () => api.get('/auth/sessions');
 export const getAuthIdentities = () => api.get('/auth/identities');
 export const linkGoogleIdentity = credential => api.post('/auth/identities/google/link', { credential });
@@ -382,3 +382,6 @@ export const clonarPlantilla = async (plantillaId, clienteId) => {
         throw error;
     }
 };
+
+export const deleteAccountWithGoogle = (credential) => api.delete('/auth/account', { data: { provider: 'GOOGLE', credential }, skipAuthRefresh: true, skipNetworkRetry: true });
+export const deleteAccountWithApple = (identityToken, nonce) => api.delete('/auth/account', { data: { provider: 'APPLE', identityToken, nonce }, skipAuthRefresh: true, skipNetworkRetry: true });

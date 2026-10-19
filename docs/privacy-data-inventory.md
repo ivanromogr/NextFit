@@ -65,7 +65,9 @@ sigue pendiente de concretar con el correo y el responsable.
 La baja actual desactiva la cuenta, anonimiza campos del perfil, revoca sesiones
 e identidades y desvincula relaciones. **No elimina automáticamente todo el
 historial de entrenamiento, los mensajes o las denuncias.** Las cuentas sociales
-sin contraseña también necesitan revisión del recorrido de baja.
+sin contraseña cuentan con un recorrido de verificación mediante su proveedor
+vinculado en el código de la beta; siguen pendientes la configuración y las
+comprobaciones reales de cada plataforma. Véase [Baja de cuenta](account-deletion.md).
 
 El mantenimiento automático tiene reglas para tokens y archivos huérfanos;
 no sustituye una política de conservación de todas las categorías. Concretar

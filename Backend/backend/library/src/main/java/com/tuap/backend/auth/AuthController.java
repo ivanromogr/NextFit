@@ -237,7 +237,26 @@ public class AuthController {
     }
     @DeleteMapping("/account")
     public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal AuthenticatedUser user, @RequestBody(required=false) DeleteAccountRequest request) {
-        accountDeletionService.delete(user, request == null ? null : request.currentPassword());
-        return ResponseEntity.ok(java.util.Map.of("message", "Cuenta eliminada"));
+        AuthProvider provider = request == null ? null : request.provider();
+        if (provider == null || provider == AuthProvider.LOCAL) {
+            if (request != null && (request.credential() != null || request.identityToken() != null || request.nonce() != null))
+                throw new InvalidReauthenticationTokenException();
+            accountDeletionService.delete(user, request == null ? null : request.currentPassword());
+        } else if (provider == AuthProvider.GOOGLE) {
+            if (request.currentPassword() != null || request.identityToken() != null || request.nonce() != null)
+                throw new InvalidReauthenticationTokenException();
+            if (!googleAuthProperties.isEnabled()) throw new GoogleAuthDisabledException();
+            VerifiedGoogleIdentity verified = googleTokenVerifier.verify(request.credential());
+            accountDeletionService.deleteWithSocialIdentity(user, VerifiedSocialIdentity.fromGoogle(verified));
+        } else {
+            if (request.currentPassword() != null || request.credential() != null)
+                throw new InvalidReauthenticationTokenException();
+            if (!appleAuthProperties.isEnabled()) throw new AppleAuthDisabledException();
+            VerifiedAppleIdentity verified = appleTokenVerifier.verify(request.identityToken(), request.nonce());
+            accountDeletionService.deleteWithSocialIdentity(user, VerifiedSocialIdentity.fromApple(verified));
+        }
+        return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store")
+                .header(org.springframework.http.HttpHeaders.SET_COOKIE, deleteCookie().toString())
+                .body(java.util.Map.of("message", "Cuenta eliminada"));
     }
 }

@@ -52,7 +52,7 @@ api.interceptors.response.use(
     async (error) => {
         const config = error.config || {};
         const authRequest = config.url?.includes('/auth/refresh') || config.url?.includes('/auth/login') || config.url?.includes('/auth/logout');
-        if (error.response?.status === 401 && !config.__refreshRetry && !authRequest) {
+        if (error.response?.status === 401 && !config.__refreshRetry && !authRequest && !config.skipAuthRefresh) {
             config.__refreshRetry = true;
             try {
                 const response = await refreshMobileSession();
@@ -65,7 +65,7 @@ api.interceptors.response.use(
             }
         }
         const shouldRetry =
-            !config.__retry &&
+            !config.skipNetworkRetry && !config.__retry &&
             (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || !error.response);
 
         if (shouldRetry) {

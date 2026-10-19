@@ -106,7 +106,7 @@ export const logoutSession = () => api.post("/api/auth/logout", null, { withCred
 export const requestEmailChange = (currentPassword, newEmail) => api.put("/api/auth/email", { currentPassword, newEmail }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
 export const confirmEmailChange = (token) => api.post("/api/auth/email/confirm", { token }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
 export const changePassword = (currentPassword, newPassword) => api.put("/api/auth/password", { currentPassword, newPassword });
-export const deleteAccount = (currentPassword) => api.delete("/api/auth/account", { data: { currentPassword } });
+export const deleteAccount = (currentPassword) => api.delete("/api/auth/account", { data: { currentPassword }, withCredentials: true });
 export const getSessions = () => api.get("/api/auth/sessions");
 export const getAuthIdentities = () => api.get("/api/auth/identities");
 export const linkGoogleIdentity = (credential) => api.post("/api/auth/identities/google/link", { credential });
@@ -420,3 +420,6 @@ export const obtenerContactosChat = async () => {
     ? response.data.map(normalizarPerfil)
     : [];
 };
+
+export const deleteAccountWithGoogle = (credential) => api.delete('/api/auth/account', { data: { provider: 'GOOGLE', credential }, withCredentials: true });
+export const deleteAccountWithApple = (identityToken, nonce) => api.delete('/api/auth/account', { data: { provider: 'APPLE', identityToken, nonce }, withCredentials: true });
