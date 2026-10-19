@@ -31,13 +31,14 @@ vi.mock('lucide-react', async () => {
 });
 
 const mockNavigate = vi.fn();
+let mockReadOnly = false;
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
         useNavigate: () => mockNavigate,
         useParams: () => ({ rutinaId: 'rutina-99' }),
-        useLocation: () => ({ state: {} })
+        useLocation: () => ({ state: { isReadOnly: mockReadOnly } })
     };
 });
 
@@ -63,6 +64,7 @@ describe('Página SesionEntrenamiento', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        mockReadOnly = false;
         vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
         navigator.vibrate = vi.fn();
     });
@@ -199,6 +201,32 @@ describe('Página SesionEntrenamiento', () => {
         fireEvent.click(screen.getByRole('button', { name: 'SEGUIR' }));
         fireEvent.change(rpe, { target: { value: '8' } });
         expect(screen.getByLabelText('Peso de la serie 1 de Press Militar')).toHaveValue('40');
+    });
+
+    it('permite recuperar una carga fallida sin expulsar de la pantalla', async () => {
+        obtenerRutinasCliente.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce([mockRutina]);
+        obtenerUltimaSesionRutina.mockResolvedValue(null);
+        renderComponent();
+        expect(await screen.findByRole('alert')).toHaveTextContent('No se ha podido cargar');
+        expect(mockNavigate).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+        expect(await screen.findByText('Torso Explosivo')).toBeInTheDocument();
+        expect(obtenerRutinasCliente).toHaveBeenCalledTimes(2);
+    });
+
+    it('no presenta los objetivos como resultados cuando falla el historial en modo lectura', async () => {
+        mockReadOnly = true;
+        obtenerRutinasCliente.mockResolvedValue([mockRutina]);
+        obtenerUltimaSesionRutina.mockRejectedValueOnce(new Error('network'));
+        obtenerUltimaSesionRutina.mockResolvedValueOnce({ series: [{ ejercicioId: 'ej-1', setIndex: 0, peso: 55, reps: 8, rpe: 7 }] });
+        renderComponent();
+        expect(await screen.findByRole('alert')).toHaveTextContent('datos reales');
+        expect(screen.queryByDisplayValue('40')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+        const weight = await screen.findByLabelText('Peso de la serie 1 de Press Militar');
+        expect(weight).toHaveValue('55');
+        expect(weight).toBeDisabled();
+        expect(guardarSesionRealizada).not.toHaveBeenCalled();
     });
 
 });

@@ -87,8 +87,6 @@ export default function SesionEntrenamiento() {
     const navigate = useNavigate();
     const location = useLocation();
     const toast = useToast();
-    const toastRef = useRef(toast);
-    toastRef.current = toast;
     const { userId } = useAuth();
 
     const eventoIdCalendario = location.state?.eventoId;
@@ -100,6 +98,8 @@ export default function SesionEntrenamiento() {
     // --- ESTADOS ---
     const [rutina, setRutina] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [loadAttempt, setLoadAttempt] = useState(0);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
     const saveLock = useRef(false);
@@ -123,29 +123,38 @@ export default function SesionEntrenamiento() {
 
     // --- CARGA DE DATOS ---
     useEffect(() => {
+        let active = true;
+        setLoading(true);
+        setLoadError('');
         const cargar = async () => {
             if (!targetUserId) return navigate("/auth/login");
 
             try {
                 // 1. Buscamos la Rutina en el cliente
                 let todas = await obtenerRutinasCliente(targetUserId);
+                if (!active) return;
                 let actual = todas.find(r => r.id === rutinaId);
 
                 // 2. Si no está, la buscamos en las rutinas asignadas
                 if (!actual) {
                     try {
                         const asignadas = await obtenerRutinasAsignadasPorEntrenador(targetUserId, userId);
+                        if (!active) return;
                         actual = asignadas.find(r => r.id === rutinaId);
                     } catch { /* Fall back to the routines already loaded. */ }
                 }
 
+                if (!active) return;
                 if (actual) {
-                    setRutina(actual);
 
                     // 3. Obtener Historial de la última sesión (o de ESE día)
                     let mapaHistorial = {};
                     try {
                         const lastSession = await obtenerUltimaSesionRutina(targetUserId, rutinaId);
+                        if (!active) return;
+                        if (isReadOnly && (!lastSession || !Array.isArray(lastSession.series) || lastSession.series.length === 0)) {
+                            throw new Error('Historical session unavailable');
+                        }
                         if (lastSession) {
                             if (isReadOnly && lastSession.duracionSegundos) {
                                 setTiempo(lastSession.duracionSegundos);
@@ -155,26 +164,29 @@ export default function SesionEntrenamiento() {
                                 setHistorialPrevio(mapaHistorial);
                             }
                         }
-                    } catch (err) {
-                        console.log("Primera vez haciendo esta rutina o error:", err);
+                    } catch {
+                        if (!active) return;
+                        if (isReadOnly) {
+                            setLoadError('No se ha podido consultar la sesión registrada. Reintenta para ver los datos reales.');
+                            return;
+                        }
                     }
-
+                    if (!active) return;
+                    setRutina(actual);
                     inicializarSesion(actual.detalles || [], mapaHistorial, isReadOnly);
 
                 } else {
-                    toastRef.current.error("Rutina no encontrada.");
-                    navigate(-1);
+                    setLoadError('No se encuentra esta rutina. Comprueba si sigue disponible.');
                 }
-            } catch (e) {
-                console.error(e);
-                toastRef.current.error("Error al cargar la rutina");
-                navigate(-1);
+            } catch {
+                if (active) setLoadError('No se ha podido cargar el entrenamiento. Puedes volver a intentarlo.');
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
         cargar();
-    }, [rutinaId, navigate, targetUserId, isReadOnly, userId]);
+        return () => { active = false; };
+    }, [rutinaId, navigate, targetUserId, isReadOnly, userId, loadAttempt]);
 
     const generarMapaHistorial = (seriesPasadas) => {
         const mapa = {};
@@ -583,7 +595,17 @@ export default function SesionEntrenamiento() {
         btnConfirm: { flex: 1, background: '#FACC15', border: 'none', color: 'black', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem' },
     };
 
-    if (loading) return <div style={{ ...styles.page, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando...</div>;
+    if (loading) return <div role="status" style={{ ...styles.page, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando...</div>;
+
+    if (loadError) return (
+        <div style={{ ...styles.page, padding: '40px' }}>
+            <p role="alert">{loadError}</p>
+            <div style={{ display: 'flex', gap: '12px', maxWidth: '500px' }}>
+                <button type="button" style={styles.btnConfirm} onClick={() => setLoadAttempt(value => value + 1)}>Reintentar</button>
+                <button type="button" style={styles.btnCancel} onClick={() => navigate(-1)}>Volver</button>
+            </div>
+        </div>
+    );
 
     return (
         <div style={styles.page}>

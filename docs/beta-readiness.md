@@ -14,6 +14,22 @@ hacia la beta, se retoman las comprobaciones generales del paso 7 sin ocultar
 esa dependencia pendiente. No se autoriza un gasto por el mero hecho de preparar
 la beta.
 
+## Resumen actual del plan
+
+| Paso | Estado real |
+|---|---|
+| 1–3 Organización, seguridad y cuentas | Base implementada; Google/Apple nativos reales y revocación externa de Apple siguen pendientes de configuración y dispositivo |
+| 4 Chat y moderación | Implementado; moderación interna y recorrido real con ambos perfiles pendiente de la beta |
+| 5 BD y producción | Parcial: almacenamiento persistente verificado, copia/restauración real de PostgreSQL y migraciones pendientes |
+| 6 UX móvil | Mejoras implementadas en rama; falta validar en iPhone real, no se declara cerrado |
+| 7 Testing general | En curso: correcciones web de rutinas y sesiones con pruebas focalizadas; falta recorrido integrado final sobre los despliegues definitivos |
+| 8 Legal y web | Responsable y correo de soporte pendientes; textos públicos provisionales |
+| 9–10 iOS/TestFlight y App Store | Aplazados; faltan alta/credenciales, compilación firmada y pruebas en dispositivo |
+| API de ejercicios de pago | Aplazada al último tramo antes de publicar todo; sin contratación ni conexión nuevas |
+| AI Coach | Aplazado; auditoría disponible, sin implementación ni consumo de modelos |
+
+Los commits de `codex/mobile-ux` no equivalen a desplegar producción. No se da por completada una fase solo por pasar sus pruebas simuladas.
+
 ## Correcciones de aislamiento para la beta
 
 - Programar una rutina exige que pertenezca al cliente del calendario. Tener
@@ -200,3 +216,9 @@ Finalizar bloquea peticiones simultáneas y ofrece un aviso dentro del resumen s
 Validación: 7 pruebas de la sesión web correctas, incluidas fallo/reintento con 42,5 kg conservados y enviados como 42.5, bloqueo simultáneo, ausencia de recarga al editar y corrección de RPE inválido. API simulada, sin registrar entrenamientos reales.
 
 Compilación web de producción de esta revisión completada correctamente; cambios sin desplegar.
+
+### Carga recuperable y datos reales de sesión
+
+La carga del entrenamiento ofrece reintento sin expulsar al usuario y descarta respuestas obsoletas al salir o cambiar de rutina. En modo lectura, un historial fallido, ausente o vacío no se sustituye por objetivos marcados como realizados. Ofrece reintento para consultar las series registradas. En una sesión editable nueva, la falta de historial previo sigue permitiendo entrenar con los objetivos de la rutina.
+
+Validación: 9 pruebas de sesión web correctas, incluyendo fallo/reintento de carga y fallo de historial en modo lectura seguido de recuperación de valores reales. Compilación web completada. No se han modificado entrenamientos reales ni desplegado producción.
