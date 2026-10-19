@@ -7,7 +7,6 @@ const actions = [
   ['CambiarEmail', 'Cambiar correo', 'Confirma una nueva dirección de correo.'],
   ['SesionesActivas', 'Sesiones activas', 'Revisa y cierra los accesos que ya no uses.'],
   ['PrivacidadComunicaciones', 'Privacidad y comunicaciones', 'Elige qué comunicaciones quieres recibir.'],
-  ['ExportarDatos', 'Exportar mis datos', 'Obtén una copia de tu información.'],
   ['EliminarCuenta', 'Eliminar cuenta', 'Cierra tu cuenta de NextFit.'],
 ];
 export default function AccountSettingsSection({ navigation }) {

@@ -108,13 +108,15 @@ privacidad; falta la identidad del responsable. Los textos públicos siguen
 provisionales. El inventario y las diferencias que deben resolverse antes de
 publicar se registran en [Privacidad para la beta](privacy-data-inventory.md).
 
-La exportación incorpora `trainingData`: rutinas, sesiones/series y calendario
-pasado/futuro propios del cliente; para el entrenador, sus plantillas sin cliente.
-No amplía su acceso a historiales privados de clientes. Se mantiene JWT, el
-formato de descarga y las cabeceras sin caché. No se hacen migraciones ni cambios
-de consentimientos o producción. Validación de esta ampliación: `mvnw verify` termina con BUILD SUCCESS y
-**373 pruebas sin fallos, errores ni omisiones**, JAR compilado. Son tres pruebas
-adicionales de exportación sobre las 370 anteriores: pauta y series reales con
-calendario futuro, separación del entrenador y referencias inconsistentes hacia
-otra cuenta. Las suites web/móvil no se han repetido en esta ejecución porque
-no se ha cambiado su código. La ampliación permanece en la rama, sin desplegar.
+Por petición del propietario, se ha retirado **Exportar mis datos** de web y
+móvil: menús, pantallas, rutas, clientes de API, servicios y endpoint de descarga.
+La ampliación descrita en el historial de esta rama no forma parte del producto
+actual. No se eliminan datos de usuarios ni las herramientas operativas de copia
+y restauración de PostgreSQL. La modificación sigue en la rama, sin desplegar.
+
+Validación tras retirar la exportación: backend `mvnw verify` con **363 pruebas**
+sin fallos, errores ni omisiones y JAR compilado; web con **284 pruebas** correctas;
+móvil con **162 pruebas** correctas. Se eliminan las pruebas exclusivas de la
+función retirada y se mantienen las de autenticación, cambio de correo y
+protección de calendario/sesiones. Las cifras anteriores son ejecuciones
+históricas con la función aún presente.

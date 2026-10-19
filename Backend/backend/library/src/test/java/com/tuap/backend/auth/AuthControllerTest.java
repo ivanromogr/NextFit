@@ -28,7 +28,6 @@ class AuthControllerTest {
     private RefreshTokenProperties refreshTokenProperties;
     private EmailChangeService emailChangeService;
     private AccountDeletionService accountDeletionService;
-    private UserDataExportService userDataExportService;
     private AuthController controller;
     private MockMvc mockMvc;
 
@@ -40,13 +39,12 @@ class AuthControllerTest {
         refreshTokenService = Mockito.mock(RefreshTokenService.class);
         emailChangeService = Mockito.mock(EmailChangeService.class);
         accountDeletionService = Mockito.mock(AccountDeletionService.class);
-        userDataExportService = Mockito.mock(UserDataExportService.class);
         refreshTokenProperties = new RefreshTokenProperties();
         when(refreshTokenService.issue(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new RefreshTokenService.IssuedToken("refresh-token", "refresh-hash", UUID.randomUUID(), java.time.Instant.now().plusSeconds(3600)));
         when(jwtService.getAccessTokenTtlSeconds()).thenReturn(900L);
         when(jwtService.generateAccessToken(org.mockito.ArgumentMatchers.any())).thenReturn("signed-access-token");
-        controller = new AuthController(authService, jwtService, passwordResetService, refreshTokenService, refreshTokenProperties, emailChangeService, accountDeletionService, userDataExportService);
+        controller = new AuthController(authService, jwtService, passwordResetService, refreshTokenService, refreshTokenProperties, emailChangeService, accountDeletionService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new AuthExceptionHandler())
                 .build();
@@ -119,23 +117,7 @@ class AuthControllerTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.message").value(expected));
     }
 
-    @Test
-    void exportacionDatos_DeclaraDescargaJsonSinCacheYSinEmailEnNombre() {
-        AuthenticatedUser user = new AuthenticatedUser(UUID.randomUUID(), "privado@nextfit.test", Role.CLIENTE);
-        UserDataExportResponse export = new UserDataExportResponse(java.time.Instant.now(), "CLIENTE", java.util.Map.of(),
-                java.util.Map.of(), java.util.List.of(), java.util.List.of(), java.util.List.of(), java.util.List.of(), java.util.Map.of());
-        when(userDataExportService.exportFor(user)).thenReturn(export);
 
-        ResponseEntity<UserDataExportResponse> response = controller.dataExport(user);
-
-        org.junit.jupiter.api.Assertions.assertEquals(200, response.getStatusCode().value());
-        org.junit.jupiter.api.Assertions.assertEquals("no-store", response.getHeaders().getCacheControl());
-        org.junit.jupiter.api.Assertions.assertEquals("no-cache", response.getHeaders().getFirst("Pragma"));
-        String disposition = response.getHeaders().getFirst("Content-Disposition");
-        org.junit.jupiter.api.Assertions.assertTrue(disposition.contains("attachment"));
-        org.junit.jupiter.api.Assertions.assertTrue(disposition.matches(".*nextfit-data-\\d{4}-\\d{2}-\\d{2}\\.json"));
-        org.junit.jupiter.api.Assertions.assertFalse(disposition.contains("privado@nextfit.test"));
-    }
 
     private void assertUnauthorized(String body) throws Exception {
         mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))

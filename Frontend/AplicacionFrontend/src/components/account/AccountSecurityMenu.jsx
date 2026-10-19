@@ -5,7 +5,6 @@ import {
   KeyRound,
   Mail,
   MonitorSmartphone,
-  Download,
   ShieldCheck,
   Fingerprint,
   ChevronRight,
@@ -38,12 +37,6 @@ const actions = [
     "Privacidad y comunicaciones",
     "Elige qué comunicaciones quieres recibir.",
     ShieldCheck,
-  ],
-  [
-    "exportar-datos",
-    "Exportar mis datos",
-    "Descarga una copia de tu información.",
-    Download,
   ],
 ];
 

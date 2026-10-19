@@ -31,7 +31,7 @@ class GoogleAuthControllerTest {
         when(refresh.issue(any(), any())).thenReturn(new RefreshTokenService.IssuedToken("refresh-value", "hash", UUID.randomUUID(), Instant.now().plusSeconds(600)));
         when(jwt.generateAccessToken(any())).thenReturn("nextfit-access"); when(jwt.getAccessTokenTtlSeconds()).thenReturn(900L);
         AuthController controller = new AuthController(auth, jwt, Mockito.mock(PasswordResetService.class), refresh, refreshProperties,
-                Mockito.mock(EmailChangeService.class), Mockito.mock(AccountDeletionService.class), Mockito.mock(UserDataExportService.class));
+                Mockito.mock(EmailChangeService.class), Mockito.mock(AccountDeletionService.class));
         ReflectionTestUtils.setField(controller, "googleAuthenticationService", google);
         mvc = MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new AuthExceptionHandler()).build();
     }

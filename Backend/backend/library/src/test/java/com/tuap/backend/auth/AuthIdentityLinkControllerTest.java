@@ -25,7 +25,7 @@ class AuthIdentityLinkControllerTest {
         apple = Mockito.mock(AppleTokenVerifier.class);
         controller = new AuthController(Mockito.mock(AuthService.class), Mockito.mock(JwtService.class),
                 Mockito.mock(PasswordResetService.class), Mockito.mock(RefreshTokenService.class), new RefreshTokenProperties(),
-                Mockito.mock(EmailChangeService.class), Mockito.mock(AccountDeletionService.class), Mockito.mock(UserDataExportService.class));
+                Mockito.mock(EmailChangeService.class), Mockito.mock(AccountDeletionService.class));
         ReflectionTestUtils.setField(controller, "authIdentityLinkService", links);
         ReflectionTestUtils.setField(controller, "googleTokenVerifier", google);
         ReflectionTestUtils.setField(controller, "appleTokenVerifier", apple);

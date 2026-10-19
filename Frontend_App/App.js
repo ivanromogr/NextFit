@@ -36,7 +36,6 @@ import CambiarEmailScreen from './src/screens/CambiarEmailScreen';
 import CambiarPasswordScreen from './src/screens/CambiarPasswordScreen';
 import EliminarCuentaScreen from './src/screens/EliminarCuentaScreen';
 import SesionesActivasScreen from './src/screens/SesionesActivasScreen';
-import ExportarDatosScreen from './src/screens/ExportarDatosScreen';
 import TermsScreen from './src/screens/TermsScreen';
 import PrivacyScreen from './src/screens/PrivacyScreen';
 import GoogleOnboardingScreen from './src/screens/GoogleOnboardingScreen';
@@ -94,7 +93,6 @@ function RootNavigation() {
           <Stack.Screen name="CambiarPassword" component={CambiarPasswordScreen} />
           <Stack.Screen name="EliminarCuenta" component={EliminarCuentaScreen} />
           <Stack.Screen name="SesionesActivas" component={SesionesActivasScreen} />
-          <Stack.Screen name="ExportarDatos" component={ExportarDatosScreen} />
           <Stack.Screen name="PrivacidadComunicaciones" component={PrivacidadComunicacionesScreen} />
           <Stack.Screen name="MetodosAcceso" component={MetodosAccesoScreen} />
           <Stack.Screen name="PantallaChatIndividual" component={PantallaChatIndividual} />

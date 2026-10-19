@@ -50,28 +50,15 @@ no demuestra que exista una campaña de envíos activa. Auditar también los med
 del catálogo y sus derechos; un campo `PROPIO` no constituye por sí solo prueba
 de autoría o licencia.
 
-## Exportación técnica ampliada
+## Exportación de usuario retirada
 
-`GET /api/auth/data-export` mantiene autorización JWT, descarga JSON y cabeceras
-sin caché. Conserva los campos anteriores y añade `trainingData`:
-
-- Cliente: `routines`, `sessions` con sus series y `calendarEvents`, incluyendo
-  fechas futuras. Los DTOs contienen las referencias y los datos de entrenamiento,
-  sin serializar entidades de usuario completas ni claves de almacenamiento.
-- Entrenador: solo sus plantillas sin cliente; no se exportan en bloque sesiones
-  o calendarios de terceros. Las referencias mínimas de relación ya existentes
-  no se amplían a sus perfiles privados.
-- Las referencias históricas inconsistentes a rutinas/eventos de otro cliente
-  no se siguen para revelar su nombre o identificador desde la nueva sección.
-- Los consumidores web/móvil descargan/comparten el JSON sin necesitar una
-  actualización de contrato obligatoria. El móvil conserva su archivo temporal
-  y limpieza posterior existentes.
-
-Es una ampliación concreta, no una certificación de que se resuelve cualquier
-solicitud de acceso/portabilidad. Auditar por separado los registros antiguos
-`Entrenamiento`/`Progreso`, seguridad/moderación, terceros y obligaciones que
-puedan exigir un tratamiento específico. No incluir secretos de autenticación
-por intentar exportar todas las tablas.
+El propietario ha decidido eliminar «Exportar mis datos» de la aplicación.
+Se retiran la interfaz web/móvil, sus rutas, las llamadas de cliente y el endpoint
+`GET /api/auth/data-export`, junto con sus servicios específicos. Las notas
+anteriores de implementación quedan como historial, no como funcionalidad activa.
+La retirada no borra registros personales ni cambia el sistema operativo de copias
+cifradas y restauración. El procedimiento de atención de solicitudes de privacidad
+sigue pendiente de concretar con el correo y el responsable.
 
 ## Baja y conservación: no prometer un borrado que no ocurre
 

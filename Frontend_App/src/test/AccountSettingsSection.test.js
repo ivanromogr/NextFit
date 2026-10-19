@@ -8,7 +8,6 @@ test.each([
   ['Cambiar correo', 'CambiarEmail'],
   ['Sesiones activas', 'SesionesActivas'],
   ['Privacidad y comunicaciones', 'PrivacidadComunicaciones'],
-  ['Exportar mis datos', 'ExportarDatos'],
   ['Eliminar cuenta', 'EliminarCuenta'],
 ])('%s opens its account flow without executing the action', (label, route) => {
   const navigate = jest.fn();

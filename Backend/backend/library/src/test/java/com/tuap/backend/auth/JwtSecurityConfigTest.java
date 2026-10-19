@@ -56,12 +56,7 @@ class JwtSecurityConfigTest {
                 .andExpect(jsonPath("$.code").value("MISSING_TOKEN"));
     }
 
-    @Test
-    void exportacionDatos_SinTokenDevuelve401Json() throws Exception {
-        mockMvc.perform(get("/api/auth/data-export"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("MISSING_TOKEN"));
-    }
+
 
     @Test
     void linksDeIdentidadExigenJwtYAlcanzanElControladorConJwt() throws Exception {
@@ -76,23 +71,7 @@ class JwtSecurityConfigTest {
                 .andExpect(status().isServiceUnavailable());
     }
 
-    @Test
-    void exportacionDatos_ClienteAutenticadoDevuelveJsonYHeadersPrivados() throws Exception {
-        String token = registerToken("CLIENTE", "exportacion-cliente@nextfit.test");
 
-        mockMvc.perform(get("/api/auth/data-export").header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("application/json")))
-                .andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(header().string("Pragma", "no-cache"))
-                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.matchesPattern(".*attachment.*nextfit-data-\\d{4}-\\d{2}-\\d{2}\\.json")))
-                .andExpect(jsonPath("$.generatedAt").isNotEmpty())
-                .andExpect(jsonPath("$.accountType").value("CLIENTE"))
-                .andExpect(jsonPath("$.profile.email").value("exportacion-cliente@nextfit.test"))
-                .andExpect(jsonPath("$.consents").isArray())
-                .andExpect(jsonPath("$.consents[0].type").isNotEmpty())
-                .andExpect(jsonPath("$.profile.contrasena").doesNotExist());
-    }
 
     @Test
     void bearerValido_PermiteAlcanzarRutaProtegida() throws Exception {

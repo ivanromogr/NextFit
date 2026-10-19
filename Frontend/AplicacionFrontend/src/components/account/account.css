@@ -215,8 +215,7 @@
   border-color: #72727d;
 }
 .account-panel form > button[type="submit"],
-.account-panel form > button:not([type]),
-.account-panel #data-export-title ~ button {
+.account-panel form > button:not([type]) {
   background: var(--account-accent);
   border-color: var(--account-accent);
   color: #15130a;

@@ -50,7 +50,6 @@ export const unlinkGoogleIdentity = reauthToken => api.delete('/auth/identities/
 export const unlinkAppleIdentity = reauthToken => api.delete('/auth/identities/apple', { data: { reauthToken } });
 export const revokeSession = (familyId) => api.delete(`/auth/sessions/${familyId}`);
 export const logoutAllSessions = () => api.post('/auth/sessions/logout-all', null, { headers: { 'X-Client-Type': 'MOBILE' } });
-export const getDataExport = () => api.get('/auth/data-export');
 export const assignProfileImage = (fileId) => api.put('/auth/profile-image', { fileId });
 export const deleteProfileImage = () => api.delete('/auth/profile-image');
 

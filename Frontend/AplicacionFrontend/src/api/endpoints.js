@@ -121,7 +121,6 @@ export const unlinkGoogleIdentity = (reauthToken) => api.delete("/api/auth/ident
 export const unlinkAppleIdentity = (reauthToken) => api.delete("/api/auth/identities/apple", { data: { reauthToken } });
 export const revokeSession = (familyId) => api.delete(`/api/auth/sessions/${familyId}`);
 export const logoutAllSessions = () => api.post("/api/auth/sessions/logout-all", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } });
-export const getDataExport = () => api.get("/api/auth/data-export", { responseType: "blob" });
 export const getConsents = () => api.get("/api/auth/consents");
 export const updateMarketingConsent = (accepted) => api.put("/api/auth/consents/marketing", { accepted });
 export const assignProfileImage = (fileId) => api.put("/api/auth/profile-image", { fileId });

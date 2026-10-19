@@ -1,5 +1,9 @@
 # Experiencia móvil: acceso y registro
 
+> Actualización del 19 de octubre de 2026: «Exportar mis datos» se ha retirado por
+> petición del propietario. Sus referencias en las revisiones anteriores de este
+> documento describen trabajo histórico y no una opción disponible en la app.
+
 Cambios del 19 de octubre de 2026 en `Frontend_App`:
 
 - Los campos compartidos permiten mostrar y ocultar contraseñas, conservando

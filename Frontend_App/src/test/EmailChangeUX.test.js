@@ -1,12 +1,9 @@
 import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import CambiarEmailScreen from '../screens/CambiarEmailScreen';
-import ExportarDatosScreen from '../screens/ExportarDatosScreen';
 import { requestEmailChange } from '../api/endpoints';
-import { exportAndShareUserData } from '../services/dataExport';
 
 jest.mock('../api/endpoints', () => ({ requestEmailChange: jest.fn() }));
-jest.mock('../services/dataExport', () => ({ exportAndShareUserData: jest.fn() }));
 beforeEach(() => jest.clearAllMocks());
 
 test('email change validates email and password before contacting the server', () => {
@@ -45,28 +42,3 @@ test('a rejected password leaves the email change form available for correction'
   expect(view.queryByText(/Revisa tu nuevo correo/)).toBeNull();
 });
 
-test('export creates only one sharing operation at a time and can be used again', async () => {
-  let resolve;
-  exportAndShareUserData.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
-  const view = render(<ExportarDatosScreen />);
-  const button = view.getByText('EXPORTAR MIS DATOS');
-  fireEvent.press(button);
-  fireEvent.press(button);
-  expect(exportAndShareUserData).toHaveBeenCalledTimes(1);
-  resolve();
-  await waitFor(() => view.getByText('EXPORTAR MIS DATOS'));
-  exportAndShareUserData.mockResolvedValueOnce();
-  fireEvent.press(view.getByText('EXPORTAR MIS DATOS'));
-  await waitFor(() => expect(exportAndShareUserData).toHaveBeenCalledTimes(2));
-});
-
-test('export explains unavailable sharing and permits retry after an error', async () => {
-  exportAndShareUserData.mockRejectedValueOnce(new Error('SHARING_UNAVAILABLE'));
-  const view = render(<ExportarDatosScreen />);
-  fireEvent.press(view.getByText('EXPORTAR MIS DATOS'));
-  await waitFor(() => view.getByText('Compartir archivos no está disponible en este dispositivo.'));
-  exportAndShareUserData.mockResolvedValueOnce();
-  fireEvent.press(view.getByText('EXPORTAR MIS DATOS'));
-  await waitFor(() => view.getByText('EXPORTAR MIS DATOS'));
-  expect(view.queryByText('Compartir archivos no está disponible en este dispositivo.')).toBeNull();
-});

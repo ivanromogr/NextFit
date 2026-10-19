@@ -26,7 +26,6 @@ public class AuthController {
     private final RefreshTokenProperties refreshProperties;
     private final EmailChangeService emailChangeService;
     private final AccountDeletionService accountDeletionService;
-    private final UserDataExportService userDataExportService;
     @org.springframework.beans.factory.annotation.Autowired private AuthIdentityService authIdentityService;
     @org.springframework.beans.factory.annotation.Autowired private GoogleAuthenticationService googleAuthenticationService;
     @org.springframework.beans.factory.annotation.Autowired private GoogleOnboardingService googleOnboardingService;
@@ -44,7 +43,7 @@ public class AuthController {
     private String allowedOrigins;
 
     public AuthController(AuthService authService, JwtService jwtService, PasswordResetService passwordResetService,
-            RefreshTokenService refreshTokenService, RefreshTokenProperties refreshProperties, EmailChangeService emailChangeService, AccountDeletionService accountDeletionService, UserDataExportService userDataExportService) {
+            RefreshTokenService refreshTokenService, RefreshTokenProperties refreshProperties, EmailChangeService emailChangeService, AccountDeletionService accountDeletionService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.passwordResetService = passwordResetService;
@@ -52,7 +51,6 @@ public class AuthController {
         this.refreshProperties = refreshProperties;
         this.emailChangeService = emailChangeService;
         this.accountDeletionService = accountDeletionService;
-        this.userDataExportService = userDataExportService;
     }
 
     @PostMapping("/login")
@@ -241,8 +239,5 @@ public class AuthController {
     public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal AuthenticatedUser user, @RequestBody(required=false) DeleteAccountRequest request) {
         accountDeletionService.delete(user, request == null ? null : request.currentPassword());
         return ResponseEntity.ok(java.util.Map.of("message", "Cuenta eliminada"));
-    }
-    @GetMapping("/data-export") public ResponseEntity<UserDataExportResponse> dataExport(@AuthenticationPrincipal AuthenticatedUser user) {
-        return ResponseEntity.ok().header(org.springframework.http.HttpHeaders.CACHE_CONTROL,"no-store").header(org.springframework.http.HttpHeaders.PRAGMA,"no-cache").header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,"attachment; filename=nextfit-data-"+java.time.LocalDate.now()+".json").body(userDataExportService.exportFor(user));
     }
 }
