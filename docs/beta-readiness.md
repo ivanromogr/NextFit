@@ -160,3 +160,9 @@ Por indicación del propietario, la integración con la API de ejercicios de pag
 Las tarjetas de creación y las opciones del generador web usan botones nativos enfocables. Las opciones anuncian su estado seleccionado y se bloquean mientras se guarda o tras finalizar, para evitar cambiar lo que aparece seleccionado durante el envío.
 
 Validación de estos controles: 14 pruebas web de creación/generación correctas y compilación de producción completada. Una primera ejecución superó el límite de 5 segundos en un caso de enfoque; la repetición con límite de 15 segundos completó los 14 casos sin cambios de comportamiento. Las pruebas comprueban controles nativos, foco, selección y bloqueo; no sustituyen una revisión con lector de pantalla ni Safari real.
+
+### Exploración del catálogo web
+
+El catálogo distingue fallo de carga, catálogo vacío y búsqueda sin coincidencias. El fallo ofrece reintento sin perder la búsqueda y las respuestas posteriores a salir de la pantalla no actualizan su estado. Los resultados siguen mostrándose en bloques de 50, pero ahora se pueden abrir los siguientes con «Mostrar más ejercicios». Esta paginación es local: no modifica las consultas al proveedor ni integra la API de pago aplazada.
+
+Validación: 7 pruebas de exploración web correctas (carga, búsqueda, medios, error, reintento, estados vacíos y resultados posteriores a 50) y compilación web completada. No se ha consultado ni contratado una API externa de ejercicios.

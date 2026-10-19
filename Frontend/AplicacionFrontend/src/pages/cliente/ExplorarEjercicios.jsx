@@ -3,29 +3,41 @@ import { obtenerEjercicios } from "../../api/endpoints";
 import { Search, Dumbbell } from "lucide-react"; 
 import GymInput from "../../components/ui/GymInput";
 
+const actionStyle = {
+  background: '#FACC15', color: '#09090b', border: 0, borderRadius: '12px',
+  padding: '12px 20px', minHeight: '44px', font: 'inherit', fontWeight: 700,
+  cursor: 'pointer', marginTop: '16px'
+};
+
 export default function ExplorarEjercicios() {
   const [ejercicios, setEjercicios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [visible, setVisible] = useState(50);
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(false);
     async function cargar() {
       try {
         const data = await obtenerEjercicios();
-        if (Array.isArray(data)) {
-            setEjercicios(data);
-        }
-      } catch (error) {
-        console.error("Error cargando ejercicios:", error);
+        if (!Array.isArray(data)) throw new Error('Invalid catalogue');
+        if (active) setEjercicios(data);
+      } catch {
+        if (active) setError(true);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
     cargar();
-  }, []);
+    return () => { active = false; };
+  }, [attempt]);
 
   const ejerciciosFiltrados = ejercicios.filter(ej => {
-    const textoBusqueda = busqueda.toLowerCase();
+    const textoBusqueda = busqueda.trim().toLowerCase();
     const nombre = (ej.nombreTraducido || ej.nombre || "").toLowerCase();
     const grupo = (ej.grupoMuscularTraducido || ej.grupoMuscular || "").toLowerCase();
 
@@ -56,23 +68,36 @@ export default function ExplorarEjercicios() {
       </div>
 
       <GymInput 
-        placeholder="Buscar (ej: Press, Squat, Chest)..." 
+        aria-label="Buscar ejercicios"
+        placeholder="Buscar por nombre o grupo muscular..."
         icon={Search}
         value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
+        onChange={(e) => { setBusqueda(e.target.value); setVisible(50); }}
       />
 
       {loading ? (
-        <div style={{ textAlign: 'center', color: '#FACC15' }}>CARGANDO...</div>
+        <div role="status" style={{ textAlign: 'center', color: '#FACC15' }}>CARGANDO...</div>
+      ) : error ? (
+        <div role="alert" style={{ color: '#fca5a5' }}>
+          <p>No se han podido cargar los ejercicios. Tu búsqueda se conserva.</p>
+          <button type="button" style={actionStyle} onClick={() => setAttempt(value => value + 1)}>Reintentar</button>
+        </div>
+      ) : ejercicios.length === 0 ? (
+        <p role="status">El catálogo todavía no tiene ejercicios disponibles.</p>
+      ) : ejerciciosFiltrados.length === 0 ? (
+        <p role="status">No hay ejercicios que coincidan con tu búsqueda.</p>
       ) : (
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', 
           gap: 'var(--spacing-md)'}}>
-          {ejerciciosFiltrados.slice(0, 50).map((ej) => (
+          {ejerciciosFiltrados.slice(0, visible).map((ej) => (
             <TarjetaEjercicio key={ej.id} ejercicio={ej} />
           ))}
         </div>
+      )}
+      {!loading && !error && ejerciciosFiltrados.length > visible && (
+        <button type="button" style={actionStyle} onClick={() => setVisible(count => count + 50)}>Mostrar más ejercicios</button>
       )}
     </div>
   );

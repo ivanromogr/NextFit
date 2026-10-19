@@ -109,4 +109,40 @@ describe('Página ExplorarEjercicios', () => {
     // El grid debería estar vacío (ninguna tarjeta)
     expect(screen.queryByRole('heading', { level: 3 })).not.toBeInTheDocument();
   });
+  it('distingue un fallo y permite reintentar conservando la búsqueda', async () => {
+    obtenerEjercicios.mockRejectedValueOnce(new Error('private details'));
+    obtenerEjercicios.mockResolvedValueOnce(mockEjercicios);
+    renderComponent();
+    fireEvent.change(screen.getByTestId('gym-input-mock'), { target: { value: 'Sentadilla' } });
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se han podido cargar');
+    expect(screen.queryByText(/catálogo todavía/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByText('Sentadilla')).toBeInTheDocument();
+    expect(screen.queryByText('Press Banca')).not.toBeInTheDocument();
+    expect(screen.getByTestId('gym-input-mock')).toHaveValue('Sentadilla');
+    expect(obtenerEjercicios).toHaveBeenCalledTimes(2);
+  });
+
+  it('distingue catálogo vacío de búsqueda sin coincidencias', async () => {
+    obtenerEjercicios.mockResolvedValueOnce([]);
+    const view = render(<ExplorarEjercicios />);
+    expect(await screen.findByText(/catálogo todavía/i)).toBeInTheDocument();
+    view.unmount();
+    obtenerEjercicios.mockResolvedValueOnce(mockEjercicios);
+    renderComponent();
+    await screen.findByText('Sentadilla');
+    fireEvent.change(screen.getByTestId('gym-input-mock'), { target: { value: 'inexistente' } });
+    expect(screen.getByRole('status')).toHaveTextContent('coincidan');
+  });
+
+  it('permite consultar ejercicios posteriores a los primeros cincuenta', async () => {
+    obtenerEjercicios.mockResolvedValue(Array.from({ length: 51 }, (_, i) => ({ id: i, nombre: `Ejercicio ${i}` })));
+    renderComponent();
+    await screen.findByText('Ejercicio 0');
+    expect(screen.queryByText('Ejercicio 50')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar más ejercicios' }));
+    expect(screen.getByText('Ejercicio 50')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mostrar más ejercicios' })).not.toBeInTheDocument();
+  });
+
 });
