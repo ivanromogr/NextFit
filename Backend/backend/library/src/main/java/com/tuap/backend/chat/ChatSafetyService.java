@@ -12,15 +12,17 @@ import com.tuap.backend.persistencia.MensajeDAO;
 @Transactional
 public class ChatSafetyService {
     public record State(boolean blockedByMe, boolean canSend) {}
+    private final ChatRestrictionRepository restrictions;
     private final ChatBlockRepository blocks;
     private final ChatReportRepository reports;
     private final MensajeDAO messages;
     private final OwnershipService ownership;
-    public ChatSafetyService(ChatBlockRepository blocks, ChatReportRepository reports, MensajeDAO messages, OwnershipService ownership) {
+    public ChatSafetyService(ChatBlockRepository blocks, ChatReportRepository reports, MensajeDAO messages, OwnershipService ownership, ChatRestrictionRepository restrictions) {
+        this.restrictions = restrictions;
         this.blocks = blocks; this.reports = reports; this.messages = messages; this.ownership = ownership;
     }
     public void requireCanSend(UUID sender, UUID recipient) {
-        if (blocks.existsById(new ChatBlock.Key(sender, recipient)) || blocks.existsById(new ChatBlock.Key(recipient, sender))) {
+        if (restrictions.existsByUserIdAndActiveTrue(sender) || restrictions.existsByUserIdAndActiveTrue(recipient) || blocks.existsById(new ChatBlock.Key(sender, recipient)) || blocks.existsById(new ChatBlock.Key(recipient, sender))) {
             throw new AccessDeniedException("No se pueden enviar mensajes en esta conversación");
         }
     }
@@ -30,7 +32,7 @@ public class ChatSafetyService {
         boolean mine = blocks.existsById(new ChatBlock.Key(user.userId(), other));
         boolean related = true;
         try { ownership.requireCanChatWith(user, other); } catch (AccessDeniedException denied) { related = false; }
-        return new State(mine, related && !mine && !blocks.existsById(new ChatBlock.Key(other, user.userId())));
+        return new State(mine, related && !mine && !restrictions.existsByUserIdAndActiveTrue(user.userId()) && !restrictions.existsByUserIdAndActiveTrue(other) && !blocks.existsById(new ChatBlock.Key(other, user.userId())));
     }
     public State block(AuthenticatedUser user, UUID other) {
         requireConversation(user, other);

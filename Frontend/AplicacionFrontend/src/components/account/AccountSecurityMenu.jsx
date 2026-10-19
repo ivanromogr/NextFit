@@ -1,3 +1,4 @@
+import ModerationEntry from "./ModerationEntry";
 import { createElement } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -84,6 +85,7 @@ export default function AccountSecurityMenu({ role }) {
           ))}
         </div>
       </details>
+      <ModerationEntry />
       <Link to={`${base}/eliminar-cuenta`} className="account-danger-link">
         <Trash2 size={18} aria-hidden="true" />
         <span>Eliminar cuenta</span>

@@ -19,6 +19,7 @@ vi.mock('../../../context/AuthContext', () => ({
 
 // 2. MOCK DE API
 vi.mock('../../../api/endpoints', () => ({
+    api: { get: vi.fn().mockResolvedValue({ data: { allowed: false } }) },
   actualizarCliente: vi.fn(),
   getCliente: vi.fn()
 }));
@@ -97,23 +98,16 @@ describe('Página EditarPerfil', () => {
     expect(await screen.findByText(/Perfil actualizado correctamente/i)).toBeInTheDocument();
   });
 
-  it('envía la contraseña solo si el usuario la escribe', async () => {
+  it('gestiona la contraseña desde seguridad y no la envía al guardar el perfil', async () => {
     getCliente.mockResolvedValue(mockCliente);
     actualizarCliente.mockResolvedValue('Perfil actualizado');
-
     renderComponent();
-
-    const passInput = await screen.findByPlaceholderText(/Déjalo en blanco/i);
-    fireEvent.change(passInput, { target: { value: 'nuevaPass123' } });
-
+    await screen.findByDisplayValue('Juan');
+    expect(screen.getByRole('link', { name: /Cambiar contraseña/i })).toHaveAttribute('href', '/cliente/seguridad/password');
+    expect(document.querySelector('input[type="password"]')).toBeNull();
     fireEvent.click(screen.getByText(/GUARDAR/i));
-
-    await waitFor(() => {
-      expect(actualizarCliente).toHaveBeenCalledWith(
-        'atleta-123',
-        expect.objectContaining({ contrasena: 'nuevaPass123' })
-      );
-    });
+    await waitFor(() => expect(actualizarCliente).toHaveBeenCalled());
+    expect(actualizarCliente.mock.calls[0][1]).not.toHaveProperty('contrasena');
   });
 
   it('muestra error si la actualización falla', async () => {

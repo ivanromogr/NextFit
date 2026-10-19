@@ -1,3 +1,4 @@
+import ModerationPage from "./pages/moderation/ModerationPage";
 import AccountPage from "./components/account/AccountPage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -82,6 +83,8 @@ function App() {
             <Route path="/registro" element={<Navigate to="/register" replace />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
+
+            <Route path="/moderacion" element={<ProtectedRoute><ModerationPage /></ProtectedRoute>} />
 
             {/* --- ONBOARDING --- */}
             <Route path="/cliente/onboarding" element={<AuthLayout><ClienteOnboarding /></AuthLayout>} />

@@ -8,6 +8,7 @@ import * as endpoints from '../../../api/endpoints';
 
 // 1. MOCK DE LA API
 vi.mock('../../../api/endpoints', () => ({
+    api: { get: vi.fn().mockResolvedValue({ data: { allowed: false } }) },
     getEntrenador: vi.fn(),
     actualizarEntrenador: vi.fn()
 }));
@@ -29,7 +30,8 @@ vi.mock('../../../context/AuthContext', () => ({
 
 // 4. MOCK DE ICONOS LUCIDE (Para evitar ruido visual y warnings)
 // 4. MOCK DE ICONOS LUCIDE (Asegúrate de incluir 'Check')
-vi.mock('lucide-react', () => ({
+vi.mock('lucide-react', async () => ({
+    ...await vi.importActual('lucide-react'),
     User: () => <span data-testid="icon-user" />,
     ChevronLeft: () => <span data-testid="icon-chevron-left" />,
     Camera: () => <span data-testid="icon-camera" />,
