@@ -172,3 +172,11 @@ Validación: 7 pruebas de exploración web correctas (carga, búsqueda, medios, 
 Un fallo de carga o una rutina inexistente ya no abre un editor vacío: ofrece reintentar o volver. Se ignoran respuestas de carga obsoletas al cambiar de rutina o salir. El guardado bloquea solicitudes simultáneas y conserva la edición tras un error. Los temporizadores de avisos y navegación se cancelan al salir. No se cambia el contrato ni el esquema de rutinas; la integración del catálogo de pago sigue aplazada.
 
 Validación: 8 pruebas del editor correctas, incluida recuperación de carga, rutina inexistente y guardado repetido/fallo/reintento con cambios conservados. Compilación web completada. Las pruebas usan API simulada y no modifican rutinas reales.
+
+### Creación manual web: recuperación y guardado
+
+El creador manual distingue un fallo del catálogo de una búsqueda vacía y permite reintentar sin borrar el plan ni el filtro. Las respuestas de carga posteriores a salir se ignoran. El guardado bloquea envíos simultáneos, conserva los campos y ejercicios tras un error y mantiene el bloqueo tras confirmar el guardado. Los temporizadores de avisos y redirección se limpian al salir. Ante una respuesta incierta se pide revisar las rutinas antes de reintentar; no se garantiza idempotencia entre peticiones independientes.
+
+Validación: 5 pruebas del creador manual correctas, incluidas recuperación del catálogo con nombre/búsqueda conservados y fallo/reintento de guardado con ejercicios conservados. API simulada, sin modificar planes reales. La API de ejercicios de pago sigue aplazada.
+
+La compilación web de producción de esta revisión también se completó correctamente.

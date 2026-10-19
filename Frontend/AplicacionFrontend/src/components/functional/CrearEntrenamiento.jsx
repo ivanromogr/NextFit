@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { obtenerEjercicios, guardarRutinaManual, actualizarRutina } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
@@ -153,6 +153,21 @@ const CrearEntrenamiento = ({
   const [todosEjercicios, setTodosEjercicios] = useState([]);
   const [listaEjercicios, setListaEjercicios] = useState([]);
   const [loadingEjercicios, setLoadingEjercicios] = useState(false);
+  const [catalogueError, setCatalogueError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const saveLock = useRef(false);
+  const mounted = useRef(true);
+  const toastTimer = useRef(null);
+  const navigationTimer = useRef(null);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      clearTimeout(toastTimer.current);
+      clearTimeout(navigationTimer.current);
+    };
+  }, []);
 
   const [nombreRutina, setNombreRutina] = useState("");
   const [descripcionRutina, setDescripcionRutina] = useState("");
@@ -188,24 +203,26 @@ const CrearEntrenamiento = ({
   }, [rutinaInicial]);
 
   useEffect(() => {
+    let active = true;
+    setCatalogueError(false);
     const fetchEjercicios = async () => {
       try {
         setLoadingEjercicios(true);
         const data = await obtenerEjercicios();
-        const ejercicios = Array.isArray(data) ? data : [];
-        setTodosEjercicios(ejercicios);
-        setListaEjercicios(ejercicios);
-      } catch (err) {
-        console.error("Error cargando ejercicios:", err);
-        setTodosEjercicios([]);
-        setListaEjercicios([]);
+        if (!Array.isArray(data)) throw new Error('Invalid catalogue');
+        if (!active) return;
+        setTodosEjercicios(data);
+        setListaEjercicios(data);
+      } catch {
+        if (active) setCatalogueError(true);
       } finally {
-        setLoadingEjercicios(false);
+        if (active) setLoadingEjercicios(false);
       }
     };
 
     fetchEjercicios();
-  }, []);
+    return () => { active = false; };
+  }, [attempt]);
 
   useEffect(() => {
     const filtrados = todosEjercicios.filter((ejercicio) =>
@@ -217,7 +234,8 @@ const CrearEntrenamiento = ({
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   };
 
   const agregarEjercicio = (ej) => {
@@ -282,6 +300,7 @@ const CrearEntrenamiento = ({
   };
 
   const guardar = async () => {
+    if (saveLock.current) return;
     if (!nombreRutina.trim()) {
       showToast("Asigna un nombre a la rutina", "error");
       return;
@@ -316,6 +335,8 @@ const CrearEntrenamiento = ({
 
     Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
+    saveLock.current = true;
+    setSaving(true);
     try {
       if (rutinaInicial?.id) {
         await actualizarRutina(rutinaInicial.id, payload);
@@ -323,6 +344,7 @@ const CrearEntrenamiento = ({
         await guardarRutinaManual(payload);
       }
 
+      if (!mounted.current) return;
       showToast(
         isTemplate
           ? "Plantilla guardada en tu biblioteca"
@@ -330,7 +352,7 @@ const CrearEntrenamiento = ({
         "success"
       );
 
-      setTimeout(() => {
+      navigationTimer.current = setTimeout(() => {
         if (onGuardarSuccess) {
           onGuardarSuccess();
         } else {
@@ -343,9 +365,12 @@ const CrearEntrenamiento = ({
           }
         }
       }, 1500);
-    } catch (e) {
-      console.error("Error guardando rutina:", e);
-      showToast("Error de conexión con el servidor", "error");
+    } catch {
+      saveLock.current = false;
+      if (mounted.current) {
+        setSaving(false);
+        showToast("No se ha podido confirmar el guardado. Tu plan se conserva; revisa tus rutinas antes de reintentar.", "error");
+      }
     }
   };
 
@@ -463,6 +488,11 @@ const CrearEntrenamiento = ({
         <div style={{ flex: 1, overflowY: 'auto', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {loadingEjercicios ? (
             <div style={{ color: '#888', textAlign: 'center', marginTop: '30px' }}>Cargando ejercicios...</div>
+          ) : catalogueError ? (
+            <div role="alert" style={{ color: '#fca5a5', padding: '16px' }}>
+              <p>No se han podido cargar los ejercicios. Tu plan se conserva.</p>
+              <button type="button" style={{ background: '#FACC15', color: '#09090b', border: 0, borderRadius: '10px', padding: '12px 20px', minHeight: '44px', font: 'inherit', cursor: 'pointer' }} onClick={() => setAttempt(value => value + 1)}>Reintentar</button>
+            </div>
           ) : listaEjercicios.length === 0 ? (
             <div style={{ color: '#666', textAlign: 'center', marginTop: '30px' }}>No se encontraron ejercicios</div>
           ) : (
@@ -537,11 +567,13 @@ const CrearEntrenamiento = ({
 
           <button
             style={styles.saveBtn}
+            disabled={saving}
+            aria-busy={saving}
             onClick={guardar}
             onMouseEnter={e => {e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = isTemplate ? '0 0 25px rgba(96, 165, 250, 0.6)' : '0 0 25px rgba(250, 204, 21, 0.6)';}}
             onMouseLeave={e => {e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = isTemplate ? '0 0 15px rgba(96, 165, 250, 0.4)' : '0 0 15px rgba(250, 204, 21, 0.4)';}}
           >
-            <IconSave /> {isTemplate ? "GUARDAR PLANTILLA" : (rutinaInicial ? "ACTUALIZAR" : "GUARDAR")}
+            <IconSave /> {saving ? "GUARDANDO..." : isTemplate ? "GUARDAR PLANTILLA" : (rutinaInicial ? "ACTUALIZAR" : "GUARDAR")}
           </button>
         </div>
 

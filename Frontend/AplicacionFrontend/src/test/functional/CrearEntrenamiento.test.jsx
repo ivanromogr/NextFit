@@ -31,6 +31,7 @@ describe('Componente CrearEntrenamiento', () => {
   beforeEach(() => {
     // Empezamos con relojes reales por defecto
     vi.useRealTimers();
+    vi.clearAllMocks();
     vi.stubGlobal('localStorage', {
       getItem: vi.fn().mockReturnValue('cliente-456'),
       setItem: vi.fn(),
@@ -123,4 +124,40 @@ describe('Componente CrearEntrenamiento', () => {
       }));
     });
   });
+  it('recupera el catálogo sin borrar el nombre ni la búsqueda', async () => {
+    obtenerEjercicios.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([{ id: 1, nombre: 'Press Banca' }]);
+    renderComponent();
+    fireEvent.change(screen.getByPlaceholderText(/NOMBRE DE TU RUTINA/i), { target: { value: 'Mi borrador' } });
+    fireEvent.change(screen.getByPlaceholderText(/Buscar ejercicio/i), { target: { value: 'Press' } });
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se han podido cargar');
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByText('Press Banca')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Mi borrador')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Press')).toBeInTheDocument();
+    expect(obtenerEjercicios).toHaveBeenCalledTimes(2);
+  });
+
+  it('no duplica guardados y conserva el plan al fallar para reintentar', async () => {
+    obtenerEjercicios.mockResolvedValue([{ id: 1, nombre: 'Press Banca' }]);
+    let reject;
+    guardarRutinaManual.mockImplementationOnce(() => new Promise((resolve, fail) => { reject = fail; }));
+    guardarRutinaManual.mockResolvedValueOnce({});
+    renderComponent();
+    fireEvent.change(screen.getByPlaceholderText(/NOMBRE DE TU RUTINA/i), { target: { value: 'Mi borrador' } });
+    fireEvent.click(await screen.findByText('Press Banca'));
+    const save = screen.getByRole('button', { name: /^GUARDAR$/i });
+    fireEvent.click(save);
+    fireEvent.click(save);
+    expect(guardarRutinaManual).toHaveBeenCalledTimes(1);
+    expect(save).toBeDisabled();
+    await act(async () => reject(new Error('offline')));
+    expect(save).toBeEnabled();
+    expect(screen.getByDisplayValue('Mi borrador')).toBeInTheDocument();
+    expect(screen.getAllByText('Press Banca')).toHaveLength(2);
+    await act(async () => fireEvent.click(save));
+    expect(guardarRutinaManual).toHaveBeenCalledTimes(2);
+    expect(guardarRutinaManual).toHaveBeenLastCalledWith(expect.objectContaining({ nombre: 'Mi borrador', ejercicios: [expect.objectContaining({ idEjercicio: 1 })] }));
+    expect(save).toBeDisabled();
+  });
+
 });
