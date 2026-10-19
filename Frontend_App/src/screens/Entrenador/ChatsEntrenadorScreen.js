@@ -1,3 +1,4 @@
+import { getAccessToken } from '../../components/context/authSession';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
     View, Text, StyleSheet, FlatList, TouchableOpacity, 
@@ -18,7 +19,7 @@ import SockJS from 'sockjs-client';
 
 export default function ChatsEntrenadorScreen() {
     const navigation = useNavigation();
-    const { userId: entrenadorId, user } = useAuth();
+    const { userId: entrenadorId } = useAuth();
     
     // Estados de las listas
     const [clientes, setClientes] = useState([]);
@@ -71,12 +72,12 @@ export default function ChatsEntrenadorScreen() {
         }
     };
 
-    const conectarSocketGlobal = () => {
+    const conectarSocketGlobal = async () => {
         const socket = new SockJS(`${BASE_URL}/ws`); 
         const client = Stomp.over(socket);
         client.debug = null;
 
-        client.connect({ Authorization: `Bearer ${user?.accessToken || ''}` }, () => {
+        client.connect({ Authorization: `Bearer ${await getAccessToken() || ''}` }, () => {
             socketRef.current = client;
             client.subscribe('/user/queue/mensajes', (payload) => {
                 const msg = JSON.parse(payload.body);

@@ -1,3 +1,4 @@
+import { getAccessToken } from '../../utils/authSession';
 import React, { useState, useEffect, useRef } from "react";
 import { obtenerClientesEntrenador, getCliente, obtenerContactosChat } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
@@ -8,7 +9,7 @@ import Stomp from 'stompjs';
 import { SOCKJS_URL } from "../../api/config";
 
 export default function ChatPage() {
-    const { userId: entrenadorId, user } = useAuth();
+    const { userId: entrenadorId } = useAuth();
     const [clientes, setClientes] = useState([]);
     const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
     const [busqueda, setBusqueda] = useState("");
@@ -29,7 +30,7 @@ export default function ChatPage() {
     const client = Stomp.over(socket);
     client.debug = null;
 
-    client.connect({ Authorization: `Bearer ${user?.accessToken || ''}` }, () => {
+    client.connect({ Authorization: `Bearer ${getAccessToken() || ''}` }, () => {
         socketRef.current = client;
 
         client.subscribe('/user/queue/mensajes', (payload) => {

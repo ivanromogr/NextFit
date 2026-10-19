@@ -20,7 +20,7 @@ const currentEnvironment = {
 
 const WS_URL = currentEnvironment.BASE_URL
   .replace(/^https/, 'wss')
-  .replace(/^http/, 'ws') + '/ws';
+  .replace(/^http/, 'ws') + '/ws/websocket';
 
 console.log(`[ENVIRONMENT] 🌍 Modo: ${currentEnvironment.NAME}`);
 console.log(`[ENVIRONMENT] 🔗 Base URL: ${currentEnvironment.BASE_URL}`);

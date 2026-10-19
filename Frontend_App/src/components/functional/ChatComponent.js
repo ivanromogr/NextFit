@@ -24,11 +24,34 @@ import 'react-native-get-random-values';
 
 import * as ImagePicker from 'expo-image-picker';
 import { obtenerHistorialChat, api, getImageUrl } from '../../api/endpoints';
+import { getAccessToken } from '../context/authSession';
+import ChatSafetyControls from './ChatSafetyControls';
 import { WS_URL } from '../../config/environment';
-import { useAuth } from '../context/AuthContext';
+
+
+function PrivateAttachmentImage({ attachmentId, onOpen }) {
+    const [source, setSource] = useState(null);
+    useEffect(() => {
+        let active = true;
+        setSource(null);
+        getAccessToken().then(token => {
+            if (active && token) setSource({ uri: getImageUrl(`/api/upload/files/${attachmentId}`), headers: { Authorization: `Bearer ${token}` } });
+        });
+        return () => { active = false; };
+    }, [attachmentId]);
+    return source ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="Ver adjunto" activeOpacity={0.8} onPress={() => onOpen(source)}>
+        <Image source={source} style={styles.mediaImage} resizeMode="cover" />
+    </TouchableOpacity> : null;
+}
 
 export default function ChatComponent({ usuarioId, destinatarioId, nombreDestinatario }) {
-    const { user } = useAuth();
+
+    const [safety, setSafety] = useState(null);
+    const [safetyRevision, setSafetyRevision] = useState(0);
+    const [reportMessageId, setReportMessageId] = useState(null);
+    const [sendError, setSendError] = useState('');
+    const safetyRef = useRef(null);
+    safetyRef.current = safety;
     const [mensajes, setMensajes] = useState([]);
     const [nuevoMensaje, setNuevoMensaje] = useState('');
     const [conectado, setConectado] = useState(false);
@@ -43,44 +66,57 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     
     const clientRef = useRef(null);
     const flatListRef = useRef(null);
+    const conversationVersion = useRef(0);
 
     useEffect(() => {
+        const version = ++conversationVersion.current;
         setMensajes([]);
-        cargarHistorial();
-        conectarWebSocket();
+        setSafety(null); setReportMessageId(null); setSendError(''); setNuevoMensaje(''); setArchivoAdjunto(null); setConectado(false);
+        cargarHistorial(version);
+        conectarWebSocket(version);
 
         return () => {
+            conversationVersion.current += 1;
             if (clientRef.current) {
                 clientRef.current.deactivate();
             }
         };
-    }, [destinatarioId]);
+    }, [usuarioId, destinatarioId]);
 
     useEffect(() => {
         const noLeidos = mensajes.filter(m => m.remitenteId === destinatarioId && !m.leido);
-        if (noLeidos.length > 0 && clientRef.current?.connected && conectado) {
+        if (safety?.canSend && noLeidos.length > 0 && clientRef.current?.connected && conectado) {
             clientRef.current.publish({
                 destination: "/app/chat/leer",
+                headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({ remitenteId: destinatarioId })
             });
             setMensajes(prev => prev.map(m => (m.remitenteId === destinatarioId && !m.leido) ? { ...m, leido: true } : m));
         }
-    }, [mensajes, conectado]);
+    }, [mensajes, conectado, destinatarioId, safety?.canSend]);
 
-    const conectarWebSocket = () => {
+    const conectarWebSocket = (version) => {
         const client = new Client({
             brokerURL: WS_URL,
-            connectHeaders: { Authorization: `Bearer ${user?.accessToken || ''}` },
+
             reconnectDelay: 5000,
+            beforeConnect: async () => { client.connectHeaders = { Authorization: `Bearer ${await getAccessToken() || ''}` }; },
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
-            forceBinaryWSFrames: true,
+            forceBinaryWSFrames: false,
             appendMissingNULLonIncoming: true,
             onConnect: () => {
+                if (version !== conversationVersion.current) { client.deactivate(); return; }
                 setConectado(true);
                 client.subscribe('/user/queue/mensajes', (payload) => {
+                    if (version !== conversationVersion.current) return;
                     const msgRecibido = JSON.parse(payload.body);
-                    if (msgRecibido.remitenteId === destinatarioId || msgRecibido.remitenteId === usuarioId) {
+                    if (msgRecibido.type === 'CHAT_ERROR') {
+                        setSendError(msgRecibido.message || 'No se pudo enviar el mensaje.');
+                        setSafetyRevision(value => value + 1);
+                        return;
+                    }
+                    if ((msgRecibido.remitenteId === destinatarioId && msgRecibido.destinatarioId === usuarioId) || (msgRecibido.remitenteId === usuarioId && msgRecibido.destinatarioId === destinatarioId)) {
                         setMensajes(prev => {
                             const existe = prev.find(m => m.id === msgRecibido.id);
                             if (existe) return prev.map(m => m.id === msgRecibido.id ? msgRecibido : m);
@@ -89,12 +125,13 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     }
                 });
             },
-            onDisconnect: () => setConectado(false),
+            onDisconnect: () => { if (version === conversationVersion.current) setConectado(false); },
+            onWebSocketClose: () => { if (version === conversationVersion.current) setConectado(false); },
             onStompError: (frame) => console.error('💥 Error STOMP: ' + frame.headers['message'])
         });
 
-        client.activate();
         clientRef.current = client;
+        client.activate();
     };
 
     const seleccionarArchivo = async () => {
@@ -116,10 +153,12 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     };
 
     const enviarMensaje = async () => {
-        if ((!nuevoMensaje.trim() && !archivoAdjunto) || !clientRef.current?.connected || isUploading) {
+        if ((!nuevoMensaje.trim() && !archivoAdjunto) || !clientRef.current?.connected || isUploading || !safety?.canSend || nuevoMensaje.trim().length > 4000) {
             return;
         }
 
+        const sendingVersion = conversationVersion.current;
+        setSendError('');
         let attachmentId = null;
 
         if (archivoAdjunto) {
@@ -166,8 +205,10 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             ...(attachmentId ? { attachmentId } : {})
         };
 
+        if (sendingVersion !== conversationVersion.current || !safetyRef.current?.canSend || !clientRef.current?.connected) return;
         clientRef.current.publish({
             destination: "/app/chat",
+            headers: { 'content-type': 'application/json' },
             body: JSON.stringify(msgObj)
         });
 
@@ -176,15 +217,15 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         setIsEmojiPickerOpen(false); 
     };
 
-    const cargarHistorial = async () => {
+    const cargarHistorial = async (version) => {
         try {
             setLoading(true);
             const dataMensajes = await obtenerHistorialChat(usuarioId, destinatarioId);
-            setMensajes(dataMensajes);
+            if (version === conversationVersion.current) setMensajes(dataMensajes);
         } catch (error) {
             console.error("Error cargando historial:", error);
         } finally {
-            setLoading(false);
+            if (version === conversationVersion.current) setLoading(false);
         }
     };
 
@@ -226,12 +267,9 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     item.attachmentId && { paddingHorizontal: 6, paddingVertical: 6 }
                 ]}>
                     
-                    {item.attachmentId && (
-                        <TouchableOpacity activeOpacity={0.8} onPress={() => setImagenSeleccionada(getImageUrl(`/upload/files/${item.attachmentId}`))}>
-                            <Image source={{ uri: getImageUrl(`/upload/files/${item.attachmentId}`), headers: { Authorization: `Bearer ${user?.accessToken || ''}` } }} style={styles.mediaImage} resizeMode="cover" />
-                        </TouchableOpacity>
-                    )}
+                    {item.attachmentId && <PrivateAttachmentImage attachmentId={item.attachmentId} onOpen={setImagenSeleccionada} />}
 
+                    {!esMio && <TouchableOpacity accessibilityRole="button" onPress={() => setReportMessageId(item.id)} style={{ paddingVertical: 8, alignSelf: 'flex-end' }}><Text style={{ color: '#a1a1aa', fontSize: 12 }}>Denunciar mensaje</Text></TouchableOpacity>}
                     {item.contenido ? (
                         <Text style={[
                             styles.text, 
@@ -267,6 +305,9 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             style={styles.container}
             keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
         >
+            <ChatSafetyControls key={destinatarioId} otherId={destinatarioId} onStateChange={setSafety}
+                reportMessageId={reportMessageId} onCloseReport={() => setReportMessageId(null)} revision={safetyRevision} />
+            {!!sendError && <Text accessibilityRole="alert" style={{ color: '#fca5a5', padding: 12 }}>{sendError}</Text>}
             {loading ? (
                 <View style={styles.center}><ActivityIndicator color="#FACC15" /></View>
             ) : (
@@ -305,6 +346,8 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                             placeholderTextColor="#52525b"
                             value={nuevoMensaje}
                             onChangeText={setNuevoMensaje}
+                            maxLength={4000}
+                            editable={!!safety?.canSend && !isUploading}
                             multiline
                             onFocus={() => setIsEmojiPickerOpen(false)}
                             disabled={isUploading}
@@ -318,7 +361,8 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     <TouchableOpacity 
                         style={[styles.sendBtn, (!nuevoMensaje.trim() && !archivoAdjunto) && styles.sendBtnDisabled]} 
                         onPress={enviarMensaje}
-                        disabled={(!nuevoMensaje.trim() && !archivoAdjunto) || isUploading}
+                        accessibilityLabel="Enviar mensaje"
+                        disabled={(!nuevoMensaje.trim() && !archivoAdjunto) || isUploading || !safety?.canSend || !conectado}
                     >
                         {isUploading ? (
                             <ActivityIndicator size="small" color="#0A0A0A" />
@@ -352,7 +396,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     </TouchableOpacity>
                     {imagenSeleccionada && (
                         <Image 
-                            source={{ uri: imagenSeleccionada }} 
+                            source={imagenSeleccionada}
                             style={styles.fullScreenImage} 
                             resizeMode="contain" 
                         />

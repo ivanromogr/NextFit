@@ -1,3 +1,4 @@
+import { getAccessToken } from '../../utils/authSession';
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from 'react-router-dom';
 import ChatComponent from "../../components/functional/ChatComponent";
@@ -9,7 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { SOCKJS_URL } from "../../api/config";
 
 export default function ChatClientePage() {
-    const { userId: clienteId, user } = useAuth();
+    const { userId: clienteId } = useAuth();
     const [entrenador, setEntrenador] = useState(null);
     
     // Al cargar, leemos si ya teníamos amigos guardados en la memoria de la pestaña
@@ -116,11 +117,12 @@ export default function ChatClientePage() {
     const client = Stomp.over(socket);
     client.debug = null;
 
-    client.connect({ Authorization: `Bearer ${user?.accessToken || ''}` }, () => {
+    client.connect({ Authorization: `Bearer ${getAccessToken() || ''}` }, () => {
         socketRef.current = client;
 
         client.subscribe('/user/queue/mensajes', (payload) => {
             const msg = JSON.parse(payload.body);
+                    if (msg.type || !msg.remitenteId) return;
 
             if (msg.remitenteId !== clienteId) {
                 if (contactoSeleccionado?.id !== msg.remitenteId) {

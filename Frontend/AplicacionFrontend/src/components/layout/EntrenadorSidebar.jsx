@@ -91,7 +91,7 @@ export default function EntrenadorSidebar() {
         )}
       </div>
 
-      <nav style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
+      <nav aria-label="Navegación principal" style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
         <button
           style={styles.navItem(isDashboard)}
           onClick={() => navigate("/entrenador/dashboard")}
@@ -138,6 +138,7 @@ export default function EntrenadorSidebar() {
       </nav>
 
       <button
+        aria-label="Cerrar sesión"
         style={styles.logoutBtn}
         onClick={() => {
           logout();

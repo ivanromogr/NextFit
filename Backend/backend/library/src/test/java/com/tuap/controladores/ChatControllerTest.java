@@ -51,6 +51,8 @@ class ChatControllerTest {
     @Mock private com.tuap.backend.auth.OwnershipService ownershipService;
     @Mock private com.tuap.backend.servicios.ChatAttachmentAccessService chatAttachmentAccessService;
 
+    @Mock private com.tuap.backend.chat.ChatSafetyService chatSafety;
+
     private UUID remitenteId;
     private UUID destinatarioId;
     private Mensaje mensajeFake;
@@ -146,6 +148,39 @@ class ChatControllerTest {
                 () -> chatController.processMessage(mensajeFake, principal(remitenteId, Role.CLIENTE)));
         verify(mensajeDAO, never()).save(any());
         verifyNoInteractions(messagingTemplate);
+    }
+
+    @Test
+    void rejectsClientSuppliedMessageId() {
+        mensajeFake.setId(UUID.randomUUID());
+        assertThrows(IllegalArgumentException.class, () -> chatController.processMessage(mensajeFake, principal(remitenteId, Role.CLIENTE)));
+        verify(mensajeDAO, never()).save(any());
+    }
+
+    @Test
+    void rejectsEmptyAndOversizedMessages() {
+        mensajeFake.setContenido("  ");
+        assertThrows(IllegalArgumentException.class, () -> chatController.processMessage(mensajeFake, principal(remitenteId, Role.CLIENTE)));
+        mensajeFake.setContenido("a".repeat(4001));
+        assertThrows(IllegalArgumentException.class, () -> chatController.processMessage(mensajeFake, principal(remitenteId, Role.CLIENTE)));
+        verify(mensajeDAO, never()).save(any());
+    }
+
+    @Test
+    void blockedConversationCannotDeliverMessages() {
+        doThrow(new org.springframework.security.access.AccessDeniedException("blocked")).when(chatSafety).requireCanSend(remitenteId, destinatarioId);
+        assertThrows(org.springframework.security.access.AccessDeniedException.class, () -> chatController.processMessage(mensajeFake, principal(remitenteId, Role.CLIENTE)));
+        verify(mensajeDAO, never()).save(any());
+        verifyNoInteractions(messagingTemplate);
+    }
+
+    @Test
+    void blockedConversationCannotPublishReadReceipts() {
+        doThrow(new org.springframework.security.access.AccessDeniedException("blocked")).when(chatSafety).requireCanSend(destinatarioId, remitenteId);
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> chatController.marcarComoLeido(Map.of("remitenteId", remitenteId.toString()), principal(destinatarioId, Role.ENTRENADOR)));
+        verifyNoInteractions(messagingTemplate);
+        verify(mensajeDAO, never()).saveAll(any());
     }
 
     private java.security.Principal principal(UUID id, Role role) {

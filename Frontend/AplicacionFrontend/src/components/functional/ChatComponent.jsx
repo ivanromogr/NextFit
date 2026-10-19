@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { Send, User, CheckCheck, Paperclip, Smile, X, Image as ImageIcon, Film } from 'lucide-react';
+import { getAccessToken } from '../../utils/authSession';
+import ChatSafetyControls from './ChatSafetyControls';
 import EmojiPicker from 'emoji-picker-react';
 import { api } from '../../api/endpoints';
 import { API_BASE_URL, SOCKJS_URL } from '../../api/config';
-import { useAuth } from '../../context/AuthContext';
+
 
 function PrivateAttachmentImage({ attachmentId }) {
     const [objectUrl, setObjectUrl] = useState(null);
@@ -22,7 +24,15 @@ function PrivateAttachmentImage({ attachmentId }) {
 }
 
 export default function ChatComponent({ usuarioId, destinatarioId, nombreDestinatario, fotoDestinatario, autoGreet = false, greetingMessage = '', onAutoGreetSent }) {
-    const { user } = useAuth();
+
+    const [safety, setSafety] = useState(null);
+    const [safetyRevision, setSafetyRevision] = useState(0);
+    const [reportMessageId, setReportMessageId] = useState(null);
+    const [sendError, setSendError] = useState('');
+    const safetyRef = useRef(null);
+    safetyRef.current = safety;
+    const [historyReady, setHistoryReady] = useState(false);
+    const greeted = useRef(false);
     const [mensajes, setMensajes] = useState([]);
     const [nuevoMensaje, setNuevoMensaje] = useState("");
     const [conectado, setConectado] = useState(false);
@@ -35,19 +45,25 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const messagesEndRef = useRef(null);
     const isConnected = useRef(false);
     const fileInputRef = useRef(null);
+    const conversationVersion = useRef(0);
 
     useEffect(() => {
+        const version = ++conversationVersion.current;
+        greeted.current = false; setHistoryReady(false);
         setMensajes([]);
-        cargarHistorial();
+        setSafety(null); setReportMessageId(null); setSendError('');
+        setNuevoMensaje(''); setArchivoAdjunto(null); setConectado(false);
+        cargarHistorial(version);
 
         if (stompClientRef.current) {
             stompClientRef.current.deactivate();
             isConnected.current = false;
         }
 
-        conectarWebSocket();
+        conectarWebSocket(version);
 
         return () => {
+            conversationVersion.current += 1;
             if (stompClientRef.current) {
                 stompClientRef.current.deactivate();
             }
@@ -69,9 +85,10 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             document.hasFocus &&
             document.hasFocus();
 
-        if (noLeidos.length > 0 && stompClientRef.current?.connected && isVisible) {
+        if (safety?.canSend && noLeidos.length > 0 && stompClientRef.current?.connected && isVisible) {
             stompClientRef.current.publish({
                 destination: "/app/chat/leer",
+                headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
                     remitenteId: destinatarioId
                 })
@@ -85,10 +102,10 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 )
             );
         }
-    }, [mensajes, destinatarioId, usuarioId, conectado]);
+    }, [mensajes, destinatarioId, usuarioId, conectado, safety?.canSend]);
 
     useEffect(() => {
-        if (!conectado || !autoGreet || !stompClientRef.current || mensajes.length > 0) return;
+        if (!historyReady || greeted.current || !safety?.canSend || !conectado || !autoGreet || !stompClientRef.current || mensajes.length > 0) return;
 
         const saludo =
             greetingMessage && greetingMessage.trim() !== ''
@@ -102,8 +119,10 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         };
 
         try {
+            greeted.current = true;
             stompClientRef.current.publish({
                 destination: "/app/chat",
+            headers: { 'content-type': 'application/json' },
                 body: JSON.stringify(mensaje)
             });
 
@@ -111,39 +130,48 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 onAutoGreetSent();
             }
         } catch (err) {
+            greeted.current = false;
             console.error('Error enviando saludo automático', err);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [conectado, autoGreet, destinatarioId, usuarioId]);
+    }, [conectado, autoGreet, destinatarioId, usuarioId, safety?.canSend, historyReady]);
 
-    const cargarHistorial = async () => {
+    const cargarHistorial = async (version) => {
         try {
             const response = await api.get(`/api/chat/historial?otroUsuarioId=${destinatarioId}`);
-            setMensajes(response.data || []);
+            if (version === conversationVersion.current) { setMensajes(response.data || []); setHistoryReady(true); }
         } catch (error) {
             console.error(error);
         }
     };
 
-    const conectarWebSocket = () => {
+    const conectarWebSocket = (version) => {
         if (isConnected.current) return;
         isConnected.current = true;
 
         const client = new Client({
             brokerURL: undefined,
             webSocketFactory: () => new SockJS(SOCKJS_URL),
-            connectHeaders: { Authorization: `Bearer ${user?.accessToken || ''}` },
+
             reconnectDelay: 5000,
+            beforeConnect: () => { client.connectHeaders = { Authorization: `Bearer ${getAccessToken() || ''}` }; },
             onConnect: () => {
+                if (version !== conversationVersion.current) { client.deactivate(); return; }
                 setConectado(true);
                 stompClientRef.current = client;
 
                 client.subscribe('/user/queue/mensajes', (payload) => {
+                    if (version !== conversationVersion.current) return;
                     const mensajeRecibido = JSON.parse(payload.body);
+                    if (mensajeRecibido.type === 'CHAT_ERROR') {
+                        setSendError(mensajeRecibido.message || 'No se pudo enviar el mensaje.');
+                        setSafetyRevision(value => value + 1);
+                        return;
+                    }
 
                     if (
-                        mensajeRecibido.remitenteId === destinatarioId ||
-                        mensajeRecibido.remitenteId === usuarioId
+                        (mensajeRecibido.remitenteId === destinatarioId && mensajeRecibido.destinatarioId === usuarioId) ||
+                        (mensajeRecibido.remitenteId === usuarioId && mensajeRecibido.destinatarioId === destinatarioId)
                     ) {
                         setMensajes((prev) => {
                             const index = prev.findIndex((m) => m.id === mensajeRecibido.id);
@@ -159,7 +187,9 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     }
                 });
             },
+            onWebSocketClose: () => { if (version === conversationVersion.current) setConectado(false); },
             onDisconnect: () => {
+                if (version !== conversationVersion.current) return;
                 setConectado(false);
                 isConnected.current = false;
             },
@@ -168,6 +198,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             }
         });
 
+        stompClientRef.current = client;
         client.activate();
     };
 
@@ -191,7 +222,9 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const enviarMensaje = async (e) => {
         e.preventDefault();
         if (!nuevoMensaje.trim() && !archivoAdjunto) return;
-        if (!stompClientRef.current?.connected) return;
+        if (!stompClientRef.current?.connected || !safety?.canSend || isUploading || nuevoMensaje.trim().length > 4000) return;
+        const sendingVersion = conversationVersion.current;
+        setSendError('');
 
         let attachmentId = null;
 
@@ -222,8 +255,10 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             ...(attachmentId ? { attachmentId } : {})
         };
 
+        if (sendingVersion !== conversationVersion.current || !safetyRef.current?.canSend || !stompClientRef.current?.connected) return;
         stompClientRef.current.publish({
             destination: "/app/chat",
+            headers: { 'content-type': 'application/json' },
             body: JSON.stringify(mensaje)
         });
 
@@ -335,12 +370,15 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                             {nombreDestinatario}
                         </div>
                         <div style={{ color: conectado ? '#22c55e' : '#71717a', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            {conectado ? 'En línea' : 'Desconectado'}
+                            {conectado ? 'Chat conectado' : 'Reconectando…'}
                         </div>
                     </div>
                 </div>
             </div>
 
+            <ChatSafetyControls key={destinatarioId} otherId={destinatarioId} onStateChange={setSafety}
+                reportMessageId={reportMessageId} onCloseReport={() => setReportMessageId(null)} revision={safetyRevision} />
+            {sendError && <p role="alert" style={{ color: '#fca5a5', padding: '0 20px' }}>{sendError}</p>}
             <div className="hide-scroll" style={styles.chatArea}>
                 {mensajes.length === 0 && (
                     <div style={{ textAlign: 'center', color: '#52525b', marginTop: 'auto', marginBottom: 'auto' }}>
@@ -380,6 +418,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                                 >
                                     {msg.attachmentId && <PrivateAttachmentImage attachmentId={msg.attachmentId} />}
 
+                                    {!esMio && <button type="button" className="chat-report-button" onClick={() => setReportMessageId(msg.id)}>Denunciar mensaje</button>}
                                     {msg.contenido && (
                                         <span
                                             style={{
@@ -461,6 +500,8 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                             value={nuevoMensaje}
                             onChange={(e) => setNuevoMensaje(e.target.value)}
                             autoComplete="off"
+                            maxLength={4000}
+                            disabled={!safety?.canSend || isUploading}
                         />
                         <button
                             type="button"
@@ -478,7 +519,8 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     <button
                         type="submit"
                         style={styles.sendBtn}
-                        disabled={(!nuevoMensaje && !archivoAdjunto) || isUploading}
+                        aria-label="Enviar mensaje"
+                        disabled={(!nuevoMensaje.trim() && !archivoAdjunto) || isUploading || !safety?.canSend || !conectado}
                     >
                         <Send size={18} style={{ marginLeft: (nuevoMensaje || archivoAdjunto) ? '-2px' : '0' }} />
                     </button>

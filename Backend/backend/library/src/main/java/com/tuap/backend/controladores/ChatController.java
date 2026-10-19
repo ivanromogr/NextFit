@@ -33,6 +33,8 @@ import com.tuap.backend.servicios.ChatAttachmentAccessService;
 @RestController
 public class ChatController {
 
+    private final com.tuap.backend.chat.ChatSafetyService chatSafety;
+
     private static final String USER_QUEUE = "/queue/mensajes";
 
     private final SimpMessagingTemplate messagingTemplate;
@@ -47,7 +49,9 @@ public class ChatController {
                           ClienteDAO clienteDAO,
                           EntrenadorDAO entrenadorDAO,
                           OwnershipService ownershipService,
-                          ChatAttachmentAccessService chatAttachmentAccessService) {
+                          ChatAttachmentAccessService chatAttachmentAccessService,
+                          com.tuap.backend.chat.ChatSafetyService chatSafety) {
+        this.chatSafety = chatSafety;
         this.messagingTemplate = messagingTemplate;
         this.mensajeDAO = mensajeDAO;
         this.clienteDAO = clienteDAO;
@@ -62,6 +66,14 @@ public class ChatController {
         AuthenticatedUser user = authenticatedUser(principal);
         if (mensaje.getRemitenteId() != null && !mensaje.getRemitenteId().equals(user.userId())) deny();
         ownershipService.requireCanChatWith(user, mensaje.getDestinatarioId());
+        chatSafety.requireCanSend(user.userId(), mensaje.getDestinatarioId());
+        if (mensaje.getId() != null) throw new IllegalArgumentException("No se puede modificar un mensaje existente");
+        String text = mensaje.getContenido() == null ? "" : mensaje.getContenido().strip();
+        if (text.length() > 4000 || (text.isBlank() && mensaje.getAttachmentId() == null)) {
+            throw new IllegalArgumentException("Escribe un mensaje de hasta 4000 caracteres o adjunta un archivo");
+        }
+        mensaje.setContenido(text);
+        mensaje.setTipoArchivo(null);
         if (mensaje.getAttachmentId() != null) {
             chatAttachmentAccessService.validateForMessage(mensaje.getAttachmentId(), user);
         }
@@ -75,6 +87,13 @@ public class ChatController {
         messagingTemplate.convertAndSendToUser(mensaje.getDestinatarioId().toString(), USER_QUEUE, guardado);
     }
 
+    @org.springframework.messaging.handler.annotation.MessageExceptionHandler({AccessDeniedException.class, IllegalArgumentException.class})
+    public void messageRejected(Exception exception, Principal principal) {
+        AuthenticatedUser user = authenticatedUser(principal);
+        messagingTemplate.convertAndSendToUser(user.userId().toString(), USER_QUEUE,
+                Map.of("type", "CHAT_ERROR", "message", exception.getMessage()));
+    }
+
     // Marcar mensajes como leídos (WebSocket)
     @MessageMapping("/chat/leer")
     @Transactional
@@ -83,6 +102,7 @@ public class ChatController {
         UUID remitenteId = UUID.fromString(payload.get("remitenteId"));
         if (payload.containsKey("destinatarioId") && !user.userId().toString().equals(payload.get("destinatarioId"))) deny();
         ownershipService.requireCanChatWith(user, remitenteId);
+        chatSafety.requireCanSend(user.userId(), remitenteId);
 
         List<Mensaje> noLeidos = mensajeDAO.findByRemitenteIdAndDestinatarioIdAndLeidoFalse(remitenteId, user.userId());
 

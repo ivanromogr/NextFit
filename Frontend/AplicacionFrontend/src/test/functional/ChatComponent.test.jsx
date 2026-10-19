@@ -9,7 +9,7 @@ import { api } from '../../api/endpoints';
 vi.mock('../../api/endpoints', () => ({
   api: {
     get: vi.fn(),
-    post: vi.fn()
+    post: vi.fn(), put: vi.fn(), delete: vi.fn()
   }
 }));
 
@@ -32,6 +32,8 @@ vi.mock('@stomp/stompjs', () => ({
   })
 }));
 
+const mockHistory = data => api.get.mockImplementation(url => Promise.resolve({ data: url.includes('/safety/') ? { blockedByMe: false, canSend: true } : data }));
+
 // 3. MOCK DEL SCROLL (Vital para evitar que JSDOM colapse)
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
@@ -45,6 +47,10 @@ describe('Componente ChatComponent', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    api.get.mockReset(); api.post.mockReset(); api.put.mockReset(); api.delete.mockReset();
+    api.get.mockImplementation(url => Promise.resolve({ data: url.includes('/safety/') ? { blockedByMe: false, canSend: true } : [] }));
+    HTMLDialogElement.prototype.showModal = function() { this.setAttribute('open', ''); };
+    HTMLDialogElement.prototype.close = function() { this.removeAttribute('open'); };
     // Simulamos que la pestaña está activa para la lógica de "leído"
     Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
     document.hasFocus = vi.fn().mockReturnValue(true);
@@ -55,7 +61,7 @@ describe('Componente ChatComponent', () => {
   });
 
   it('renderiza correctamente y carga el historial vacío', async () => {
-    api.get.mockResolvedValueOnce({ data: [] });
+    mockHistory([]);
 
     render(<ChatComponent {...defaultProps} />);
 
@@ -69,10 +75,10 @@ describe('Componente ChatComponent', () => {
 
   it('muestra el historial de mensajes al cargar', async () => {
     const mockHistorial = [
-      { id: 101, remitenteId: 2, contenido: 'Hola, ¿cómo van las agujetas?', fechaHora: new Date().toISOString(), leido: true },
-      { id: 102, remitenteId: 1, contenido: 'Me duele todo 😭', fechaHora: new Date().toISOString(), leido: true }
+      { id: 101, remitenteId: 2, destinatarioId: 1, contenido: 'Hola, ¿cómo van las agujetas?', fechaHora: new Date().toISOString(), leido: true },
+      { id: 102, remitenteId: 1, destinatarioId: 2, contenido: 'Me duele todo 😭', fechaHora: new Date().toISOString(), leido: true }
     ];
-    api.get.mockResolvedValueOnce({ data: mockHistorial });
+    mockHistory(mockHistorial);
 
     render(<ChatComponent {...defaultProps} />);
 
@@ -83,12 +89,13 @@ describe('Componente ChatComponent', () => {
   });
 
   it('envía un mensaje de texto mediante WebSocket', async () => {
-    api.get.mockResolvedValueOnce({ data: [] });
+    mockHistory([]);
 
     render(<ChatComponent {...defaultProps} />);
 
     const input = screen.getByPlaceholderText('Escribe un mensaje...');
     
+    await waitFor(() => expect(input).not.toBeDisabled());
     // Escribimos el mensaje
     fireEvent.change(input, { target: { value: '¡Listo para entrenar!' } });
 
@@ -107,7 +114,7 @@ describe('Componente ChatComponent', () => {
     expect(input.value).toBe('');
   });
   it('ejecuta el saludo automático (autoGreet) si está activado', async () => {
-    api.get.mockResolvedValueOnce({ data: [] });
+    mockHistory([]);
     const mockOnAutoGreetSent = vi.fn();
 
     render(
@@ -130,7 +137,7 @@ describe('Componente ChatComponent', () => {
   });
 
   it('maneja la selección y subida de archivos adjuntos', async () => {
-    api.get.mockResolvedValueOnce({ data: [] });
+    mockHistory([]);
     // Simulamos respuesta exitosa de subida de archivo
     api.post.mockResolvedValueOnce({ data: { id: '11111111-1111-1111-1111-111111111111', url: '/api/upload/files/11111111-1111-1111-1111-111111111111' } });
 
@@ -147,6 +154,7 @@ describe('Componente ChatComponent', () => {
       expect(screen.getByText('chucknorris.png')).toBeInTheDocument();
     });
 
+    await waitFor(() => expect(screen.getByPlaceholderText('Añade un comentario...')).not.toBeDisabled());
     // Enviamos el formulario
     const form = screen.getByPlaceholderText('Añade un comentario...').closest('form');
     fireEvent.submit(form);
@@ -165,9 +173,9 @@ describe('Componente ChatComponent', () => {
 
   it('marca los mensajes recibidos como leídos si la ventana está visible', async () => {
     const mockHistorial = [
-      { id: 101, remitenteId: 2, contenido: 'Mensaje nuevo', fechaHora: new Date().toISOString(), leido: false }
+      { id: 101, remitenteId: 2, destinatarioId: 1, contenido: 'Mensaje nuevo', fechaHora: new Date().toISOString(), leido: false }
     ];
-    api.get.mockResolvedValueOnce({ data: mockHistorial });
+    mockHistory(mockHistorial);
 
     render(<ChatComponent {...defaultProps} />);
 
@@ -178,4 +186,85 @@ describe('Componente ChatComponent', () => {
       }));
     });
   });
+  it('does not mix outgoing messages addressed to another conversation', async () => {
+    render(<ChatComponent {...defaultProps} />);
+    await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
+    const receive = mockSubscribe.mock.calls[0][1];
+    const { act } = await import('@testing-library/react');
+    act(() => receive({ body: JSON.stringify({ id: 999, remitenteId: 1, destinatarioId: 3, contenido: 'Different conversation', fechaHora: new Date().toISOString() }) }));
+    expect(screen.queryByText('Different conversation')).not.toBeInTheDocument();
+  });
+
+  it('blocks, disables sending, and unblocks only after server confirmation', async () => {
+    api.put.mockResolvedValue({ data: { blockedByMe: true, canSend: false } });
+    api.delete.mockResolvedValue({ data: { blockedByMe: false, canSend: true } });
+    render(<ChatComponent {...defaultProps} />);
+    const block = screen.getByRole('button', { name: 'Bloquear chat' });
+    await waitFor(() => expect(block).not.toBeDisabled());
+    fireEvent.click(block);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith('/api/chat/blocks/2'));
+    await waitFor(() => expect(screen.getByPlaceholderText('Escribe un mensaje...')).toBeDisabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Desbloquear' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/api/chat/blocks/2'));
+    await waitFor(() => expect(screen.getByPlaceholderText('Escribe un mensaje...')).not.toBeDisabled());
+  });
+
+  it('reports a received message with the selected reason', async () => {
+    mockHistory([{ id: 101, remitenteId: 2, destinatarioId: 1, contenido: 'Received', fechaHora: new Date().toISOString(), leido: true }]);
+    api.post.mockResolvedValue({ status: 202 });
+    render(<ChatComponent {...defaultProps} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Denunciar mensaje' }));
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'SPAM' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar denuncia' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/api/chat/messages/101/reports', { reason: 'SPAM' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Denuncia registrada');
+  });
+
+  it('keeps sending disabled if safety state cannot be loaded', async () => {
+    api.get.mockImplementation(url => url.includes('/safety/') ? Promise.reject(new Error('offline')) : Promise.resolve({ data: [] }));
+    render(<ChatComponent {...defaultProps} />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo comprobar');
+    expect(screen.getByPlaceholderText('Escribe un mensaje...')).toBeDisabled();
+  });
+
+  it('ignores a delayed history response from the previously selected contact', async () => {
+    let resolveOld;
+    api.get.mockImplementation(url => {
+      if (url.includes('/safety/')) return Promise.resolve({ data: { blockedByMe: false, canSend: true } });
+      if (url.endsWith('=2')) return new Promise(resolve => { resolveOld = resolve; });
+      return Promise.resolve({ data: [] });
+    });
+    const { rerender } = render(<ChatComponent {...defaultProps} />);
+    rerender(<ChatComponent {...defaultProps} destinatarioId={3} />);
+    const { act } = await import('@testing-library/react');
+    await act(async () => resolveOld({ data: [{ id: 999, remitenteId: 2, destinatarioId: 1, contenido: 'Old conversation history', fechaHora: new Date().toISOString(), leido: true }] }));
+    expect(screen.queryByText('Old conversation history')).not.toBeInTheDocument();
+  });
+
+  it('shows a server rejection without inserting it as a chat message', async () => {
+    render(<ChatComponent {...defaultProps} />);
+    await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
+    const receive = mockSubscribe.mock.calls[0][1];
+    const { act } = await import('@testing-library/react');
+    act(() => receive({ body: JSON.stringify({ type: 'CHAT_ERROR', message: 'No se pueden enviar mensajes en esta conversación' }) }));
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pueden enviar mensajes');
+    expect(screen.getByText('Aún no hay mensajes.')).toBeInTheDocument();
+  });
+
+  it('does not send an automatic greeting before learning the conversation already has messages', async () => {
+    let resolveHistory;
+    api.get.mockImplementation(url => url.includes('/safety/')
+      ? Promise.resolve({ data: { blockedByMe: false, canSend: true } })
+      : new Promise(resolve => { resolveHistory = resolve; }));
+    render(<ChatComponent {...defaultProps} autoGreet greetingMessage="Automatic greeting" />);
+    await waitFor(() => expect(screen.getByPlaceholderText('Escribe un mensaje...')).not.toBeDisabled());
+    expect(mockPublish).not.toHaveBeenCalled();
+    const { act } = await import('@testing-library/react');
+    await act(async () => resolveHistory({ data: [{ id: 101, remitenteId: 2, destinatarioId: 1, contenido: 'Existing message', fechaHora: new Date().toISOString(), leido: true }] }));
+    expect(screen.getByText('Existing message')).toBeInTheDocument();
+    expect(mockPublish).not.toHaveBeenCalled();
+  });
+
 });
