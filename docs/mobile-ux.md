@@ -24,7 +24,7 @@ consentimiento opcional de comunicaciones.
 
 ## Validación
 
-Desde `Frontend_App`, `npm test -- --runInBand`: 29 suites, 151 pruebas correctas.
+Desde `Frontend_App`, `npm test -- --runInBand`: 30 suites, 159 pruebas correctas.
 Incluye recuperación, consentimientos, Google/Apple, chat y las pruebas nuevas
 para visibilidad, eventos del campo y bloqueo de peticiones concurrentes.
 
@@ -211,3 +211,34 @@ credencial de conexión, limpieza del socket, errores del historial y mensajes
 en directo durante su carga. No se han enviado mensajes reales para validar
 estos cambios. La revisión en teléfono y la revisión final del resto de los
 recorridos siguen pendientes dentro del paso 6; no se ha comenzado el 7.
+
+## Exploración, rutinas e inicio/finalización del entrenamiento
+
+Explorar entrenadores y listar rutinas distinguen fallos de red de listas sin
+resultados y ofrecen reintentar. Las respuestas de filtros o cargas anteriores
+no reemplazan los datos más recientes. Los accesos a perfiles, creación, edición
+e inicio de rutina tienen etiquetas accesibles; las pestañas de rutinas
+anuncian cuál está seleccionada. Se revisan áreas seguras y zonas táctiles.
+
+Entrenamiento permite reintentar una carga fallida en la misma pantalla en lugar
+de expulsar al usuario. Descarta respuestas de una rutina anterior y reinicia
+sus datos locales al cambiar de rutina. El temporizador comienza después de
+cargar, no durante la espera. El modo observador permanece de solo lectura y
+no presenta valores planificados como una sesión registrada cuando no puede
+recuperarla.
+
+Guardar muestra primero un resumen desplazable, bloquea peticiones simultáneas
+y confirma éxito después de la respuesta. Tras un fallo conserva las series y
+permite seguir editando o reintentar; tras una respuesta correcta bloquea un
+segundo guardado desde esa pantalla. Estos controles no sustituyen una garantía
+de idempotencia del servidor ante una respuesta de red perdida. Los pesos con
+coma decimal se interpretan correctamente al calcular volumen y guardar.
+
+Ocho pruebas adicionales comprueban perfiles públicos, filtros fuera de orden,
+rutinas propias/asignadas, inicio, fallo de carga, guardado duplicado, conservación
+de series y pesos decimales tras un fallo, y modo observador. No se han guardado
+entrenamientos reales para esta validación.
+
+Pendiente en el paso 6: revisar los formularios de creación/edición de rutinas y
+realizar la comprobación visual y de teclado con una compilación nueva en un
+teléfono. El paso 7 sigue sin comenzar, conforme a la indicación del propietario.

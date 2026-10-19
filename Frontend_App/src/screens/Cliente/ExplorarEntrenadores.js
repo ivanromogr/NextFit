@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     View,
     Text,
@@ -9,9 +9,10 @@ import {
     Image,
     ActivityIndicator,
     ScrollView,
-    SafeAreaView,
     StatusBar
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenLoadError from '../../components/ui/ScreenLoadError';
 import { useNavigation } from "@react-navigation/native";
 import { 
     Search, 
@@ -35,6 +36,8 @@ export default function ExplorarEntrenadores() {
     const [entrenadores, setEntrenadores] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState('');
+    const requestVersion = useRef(0);
 
     // --- ESTADOS DE LOS FILTROS ---
     const [busqueda, setBusqueda] = useState("");
@@ -44,7 +47,9 @@ export default function ExplorarEntrenadores() {
     const [showFilters, setShowFilters] = useState(false);
 
     const cargarEntrenadores = async () => {
+        const request = ++requestVersion.current;
         setLoading(true);
+        setError('');
         try {
             const params = {};
             if (filtroEspecialidad) params.especialidad = filtroEspecialidad;
@@ -52,12 +57,11 @@ export default function ExplorarEntrenadores() {
             if (tarifaMax) params.tarifaMax = tarifaMax;
 
             const res = await api.get("/entrenador/publicos", { params });
-            setEntrenadores(res.data);
+            if (request === requestVersion.current) setEntrenadores(Array.isArray(res.data) ? res.data : []);
         } catch (error) {
-            console.error("Error cargando el marketplace", error);
+            if (request === requestVersion.current) setError('No se pudieron cargar los entrenadores. Comprueba la conexión e inténtalo de nuevo.');
         } finally {
-            setLoading(false);
-            setRefreshing(false);
+            if (request === requestVersion.current) { setLoading(false); setRefreshing(false); }
         }
     };
 
@@ -75,6 +79,8 @@ export default function ExplorarEntrenadores() {
 
     const renderEntrenador = ({ item }) => (
         <TouchableOpacity 
+            accessibilityRole="button"
+            accessibilityLabel={`Ver perfil de ${item.nombre || ''} ${item.apellido || ''}`}
             style={styles.card}
             activeOpacity={0.9}
             onPress={() => navigation.navigate('EntrenadorPerfil', { id: item.id })}
@@ -122,6 +128,8 @@ export default function ExplorarEntrenadores() {
         </TouchableOpacity>
     );
 
+    if (error && !loading) return <ScreenLoadError title="Explorar entrenadores" message={error} onRetry={cargarEntrenadores} />;
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" />
@@ -133,12 +141,13 @@ export default function ExplorarEntrenadores() {
                     <Search size={20} color="#71717a" />
                     <TextInput 
                         style={styles.input}
+                        accessibilityLabel="Buscar entrenadores"
                         placeholder="Buscar por nombre o bio..."
                         placeholderTextColor="#71717a"
                         value={busqueda}
                         onChangeText={setBusqueda}
                     />
-                    <TouchableOpacity onPress={() => setShowFilters(!showFilters)} style={styles.filterBtn}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Filtros de entrenadores" accessibilityState={{ expanded: showFilters }} onPress={() => setShowFilters(!showFilters)} style={styles.filterBtn}>
                         <Filter size={20} color={showFilters ? "#FACC15" : "#71717a"} />
                     </TouchableOpacity>
                 </View>
@@ -187,6 +196,7 @@ export default function ExplorarEntrenadores() {
                                 <Euro size={14} color="#71717a" />
                                 <TextInput 
                                     style={styles.priceInput}
+                                    accessibilityLabel="Precio máximo mensual"
                                     keyboardType="numeric"
                                     placeholder="€"
                                     placeholderTextColor="#71717a"
@@ -207,6 +217,8 @@ export default function ExplorarEntrenadores() {
                 </View>
             ) : (
                 <FlatList
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
                     data={entrenadoresFiltrados}
                     renderItem={renderEntrenador}
                     keyExtractor={item => item.id.toString()}

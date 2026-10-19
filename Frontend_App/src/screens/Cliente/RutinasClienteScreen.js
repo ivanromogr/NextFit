@@ -1,8 +1,10 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
   ActivityIndicator, RefreshControl, Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenLoadError from '../../components/ui/ScreenLoadError';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Dumbbell, Play, Plus, Activity, Edit3, User, Sparkles, ChevronDown, ChevronUp } from 'lucide-react-native';
 
@@ -16,19 +18,23 @@ export default function RutinasClienteScreen() {
   const [rutinas, setRutinas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const requestVersion = useRef(0);
   const [filtroActivo, setFiltroActivo] = useState('propias'); // 'propias' | 'asignadas'
   
   const [carpetasExpandidas, setCarpetasExpandidas] = useState({});
 
   const cargarRutinas = async () => {
+    const request = ++requestVersion.current;
+    setLoading(true);
+    setError('');
     try {
-      const data = await obtenerRutinasCliente(userId);
-      setRutinas(data || []);
+      const data = await obtenerRutinasCliente(userId, { throwOnError: true });
+      if (request === requestVersion.current) setRutinas(data || []);
     } catch (error) {
-      console.error("Error cargando rutinas:", error);
+      if (request === requestVersion.current) setError('No se pudieron cargar tus rutinas. Comprueba la conexión e inténtalo de nuevo.');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (request === requestVersion.current) { setLoading(false); setRefreshing(false); }
     }
   };
 
@@ -130,6 +136,7 @@ export default function RutinasClienteScreen() {
       <View style={styles.cardFooter}>
         {filtroActivo === 'propias' ? (
           <TouchableOpacity 
+            accessibilityRole="button" accessibilityLabel={`Editar ${item.nombre}`}
             style={styles.editBtn} 
             onPress={() => navigation.navigate('EditarRutina', { rutinaId: item.id })}
           >
@@ -143,6 +150,7 @@ export default function RutinasClienteScreen() {
         )}
 
         <TouchableOpacity 
+          accessibilityRole="button" accessibilityLabel={`Iniciar ${item.nombre}`}
           style={styles.btnStart} 
           onPress={() => navigation.navigate('PantallaSesionEntrenamiento', { 
             rutinaId: item.id, 
@@ -244,12 +252,15 @@ export default function RutinasClienteScreen() {
     );
   }
 
+  if (error) return <ScreenLoadError title="Rutinas" message={error} onRetry={cargarRutinas} onBack={() => navigation.goBack()} />;
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>RUTINAS</Text>
         <TouchableOpacity 
+          accessibilityRole="button" accessibilityLabel="Crear rutina"
           style={styles.addBtn}
           onPress={() => navigation.navigate('CrearRutina', { isTemplate: false })}
         >
@@ -260,6 +271,7 @@ export default function RutinasClienteScreen() {
       {/* SELECTOR DE PESTAÑAS */}
       <View style={styles.tabContainer}>
         <TouchableOpacity 
+          accessibilityRole="tab" accessibilityState={{ selected: filtroActivo === 'propias' }}
           style={[styles.tabBtn, filtroActivo === 'propias' && styles.tabBtnActive]}
           onPress={() => setFiltroActivo('propias')}
         >
@@ -268,6 +280,7 @@ export default function RutinasClienteScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity 
+          accessibilityRole="tab" accessibilityState={{ selected: filtroActivo === 'asignadas' }}
           style={[styles.tabBtn, filtroActivo === 'asignadas' && styles.tabBtnActive]}
           onPress={() => setFiltroActivo('asignadas')}
         >
@@ -301,7 +314,7 @@ export default function RutinasClienteScreen() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -309,9 +322,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#050505' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#050505' },
   
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingHorizontal: 20, paddingBottom: 15, backgroundColor: '#0a0a0a' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, paddingHorizontal: 20, paddingBottom: 15, backgroundColor: '#0a0a0a' },
   headerTitle: { color: 'white', fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
-  addBtn: { backgroundColor: '#FACC15', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  addBtn: { backgroundColor: '#FACC15', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
 
   tabContainer: { flexDirection: 'row', backgroundColor: '#121214', marginHorizontal: 20, marginBottom: 15, borderRadius: 12, padding: 4, borderWidth: 1, borderColor: '#1f1f22' },
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
@@ -367,7 +380,7 @@ const styles = StyleSheet.create({
   tagText: { color: '#a1a1aa', fontSize: 11, fontWeight: '800' },
 
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#18181b', paddingTop: 15 },
-  editBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#18181b', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#27272a' },
+  editBtn: { width: 44, height: 44, borderRadius: 20, backgroundColor: '#18181b', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#27272a' },
   coachBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   coachBadgeText: { color: '#a1a1aa', fontSize: 12, fontWeight: '700' },
   

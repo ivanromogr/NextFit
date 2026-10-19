@@ -2,10 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
   Image, Modal, ActivityIndicator, Platform, Alert, KeyboardAvoidingView,
-  Vibration, Linking
+  Vibration, Linking, Keyboard
 } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { WebView } from 'react-native-webview';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenLoadError from '../../components/ui/ScreenLoadError';
+import GymButton from '../../components/ui/GymButton';
+import { FormMessage } from '../../components/ui/AccountFormScreen';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   ChevronLeft, Check, Clock, Save, Plus, Info, Trash2, X,
@@ -19,6 +23,8 @@ import {
   obtenerRutinasAsignadasPorEntrenador 
 } from '../../api/endpoints';
 import { useAuth } from '../../components/context/AuthContext';
+
+const pesoDecimal = (value) => parseFloat(String(value).replace(',', '.'));
 
 const obtenerYoutubeId = (url = "") => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^?&/]+)/);
@@ -114,6 +120,14 @@ export default function PantallaSesionEntrenamiento() {
 
   const [rutina, setRutina] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [retry, setRetry] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const loadVersion = useRef(0);
+  const savingRef = useRef(false);
+  const savedRef = useRef(false);
 
   const [datosSesion, setDatosSesion] = useState({});
   const [notasSesion, setNotasSesion] = useState({});
@@ -124,67 +138,47 @@ export default function PantallaSesionEntrenamiento() {
   const [showFinishModal, setShowFinishModal] = useState(false);
 
   const [tiempo, setTiempo] = useState(0);
-  const [timerActivo, setTimerActivo] = useState(!isReadOnly); 
+  const [timerActivo, setTimerActivo] = useState(false);
   const timerRef = useRef(null);
 
   // --- CARGA DE DATOS ---
   useEffect(() => {
+    const version = ++loadVersion.current;
+    setLoading(true); setLoadError(''); setSaveError(''); setSaving(false); setSaved(false);
+    setRutina(null); setDatosSesion({}); setNotasSesion({}); setHistorialPrevio({});
+    savingRef.current = false; savedRef.current = false;
+    setTimerActivo(false); setTiempo(0);
     const cargar = async () => {
-      if (!targetUserId || !rutinaId) {
-        Alert.alert("Error", "No se encontró la información de la rutina.");
-        navigation.goBack();
-        return;
-      }
-
       try {
-        // 1. Buscamos en las rutinas del cliente
-        let todas = await obtenerRutinasCliente(targetUserId);
-        let actual = todas.find(r => r.id === rutinaId);
-
-        // 2. 🔥 SI NO ESTÁ, BUSCAMOS EN LAS RUTINAS ASIGNADAS POR EL ENTRENADOR
+        if (!targetUserId || !rutinaId) throw new Error('MISSING_ROUTINE');
+        const todas = await obtenerRutinasCliente(targetUserId, { throwOnError: true });
+        let actual = todas.find((item) => String(item.id) === String(rutinaId));
         if (!actual) {
-          try {
-            const asignadas = await obtenerRutinasAsignadasPorEntrenador(targetUserId);
-            actual = asignadas.find(r => r.id === rutinaId);
-          } catch (errorBusqueda) {
-            console.log("No se encontraron rutinas asignadas.");
-          }
+          const asignadas = await obtenerRutinasAsignadasPorEntrenador(targetUserId, isReadOnly ? userId : undefined, { throwOnError: true });
+          actual = asignadas.find((item) => String(item.id) === String(rutinaId));
         }
-
-        if (actual) {
-          setRutina(actual);
-
-          let mapaHistorial = {};
-          try {
-            const lastSession = await obtenerUltimaSesionRutina(targetUserId, rutinaId);
-            if (lastSession) {
-               if(isReadOnly && lastSession.duracionSegundos) {
-                  setTiempo(lastSession.duracionSegundos);
-               }
-               if (lastSession.series) {
-                 mapaHistorial = generarMapaHistorial(lastSession.series);
-                 setHistorialPrevio(mapaHistorial);
-               }
-            }
-          } catch (err) {
-            console.log("No hay historial para esta rutina.");
-          }
-
-          inicializarSesion(actual.detalles || [], mapaHistorial, isReadOnly);
-        } else {
-          Alert.alert("Aviso", "Rutina no encontrada. Comprueba la conexión o si la rutina fue borrada.");
-          navigation.goBack();
-        }
-      } catch (e) {
-        console.error(e);
-        Alert.alert("Error", "No se pudo cargar el entrenamiento.");
-        navigation.goBack();
+        if (!actual) throw new Error('ROUTINE_NOT_FOUND');
+        const lastSession = await obtenerUltimaSesionRutina(targetUserId, rutinaId);
+        if (isReadOnly && !lastSession) throw new Error('SESSION_UNAVAILABLE');
+        if (version !== loadVersion.current) return;
+        const history = lastSession?.series ? generarMapaHistorial(lastSession.series) : {};
+        setRutina(actual);
+        setHistorialPrevio(history);
+        if (isReadOnly && lastSession?.duracionSegundos) setTiempo(lastSession.duracionSegundos);
+        inicializarSesion(actual.detalles || [], history, isReadOnly);
+        setTimerActivo(!isReadOnly);
+      } catch (error) {
+        if (version === loadVersion.current) setLoadError(error.message === 'ROUTINE_NOT_FOUND'
+          ? 'Esta rutina ya no está disponible. Vuelve a tu lista de rutinas.'
+          : error.message === 'SESSION_UNAVAILABLE' ? 'No se pudo recuperar la sesión registrada. Reintenta o vuelve a tu calendario.'
+          : 'No se pudo cargar el entrenamiento. Comprueba la conexión e inténtalo de nuevo.');
       } finally {
-        setLoading(false);
+        if (version === loadVersion.current) setLoading(false);
       }
     };
     cargar();
-  }, [rutinaId, targetUserId, isReadOnly]);
+    return () => { loadVersion.current += 1; };
+  }, [rutinaId, targetUserId, isReadOnly, userId, retry]);
 
   const generarMapaHistorial = (seriesPasadas) => {
     const mapa = {};
@@ -267,7 +261,7 @@ export default function PantallaSesionEntrenamiento() {
     Object.values(datosSesion).forEach(sets => {
       sets.forEach(s => {
         if (isReadOnly || s.hecho) {
-          volumen += (parseFloat(s.peso) || 0) * (parseFloat(s.reps) || 0);
+          volumen += (pesoDecimal(s.peso) || 0) * (parseFloat(s.reps) || 0);
         }
       });
     });
@@ -275,12 +269,18 @@ export default function PantallaSesionEntrenamiento() {
   };
 
   const handleTerminarClick = () => {
-    if (isReadOnly) return;
+    if (isReadOnly || savingRef.current || savedRef.current) return;
+    setSaveError('');
+    Keyboard.dismiss();
     setTimerActivo(false);
     setShowFinishModal(true);
   };
 
   const confirmFinish = async () => {
+    if (isReadOnly || savingRef.current || savedRef.current || !rutina) return;
+    const version = loadVersion.current;
+    savingRef.current = true;
+    setSaving(true); setSaveError('');
     try {
       const notasUnificadas = Object.entries(notasSesion)
         .map(([id, texto]) => texto ? `Nota: ${texto}` : '')
@@ -290,11 +290,11 @@ export default function PantallaSesionEntrenamiento() {
       const seriesLimpias = [];
       Object.entries(datosSesion).forEach(([ejercicioId, sets]) => {
         sets.forEach((set, index) => {
-          if (set.hecho || parseFloat(set.peso) > 0 || parseInt(set.reps) > 0) {
+          if (set.hecho || pesoDecimal(set.peso) > 0 || parseInt(set.reps) > 0) {
             seriesLimpias.push({
               ejercicioId: ejercicioId,
               setIndex: index,
-              peso: parseFloat(set.peso) || 0.0,
+              peso: pesoDecimal(set.peso) || 0.0,
               reps: parseInt(set.reps, 10) || 0,
               rpe: parseInt(set.rpe, 10) || 0,
               hecho: set.hecho === true
@@ -313,15 +313,17 @@ export default function PantallaSesionEntrenamiento() {
       };
 
       await guardarSesionRealizada(payload);
+      if (version !== loadVersion.current) return;
+      savedRef.current = true; setSaved(true); setShowFinishModal(false);
 
       Alert.alert("¡Enhorabuena! 🔥", "Entrenamiento guardado correctamente.", [
         { text: "OK", onPress: () => navigation.navigate("ClienteTabs") }
       ]);
 
     } catch (error) {
-      console.error("Error al guardar sesión:", error);
-      Alert.alert("Error", "Hubo un error al guardar la sesión.");
-      setTimerActivo(true);
+      if (version === loadVersion.current) setSaveError('No se pudo guardar el entrenamiento. Tus series siguen aquí; puedes reintentar.');
+    } finally {
+      if (version === loadVersion.current) { savingRef.current = false; setSaving(false); }
     }
   };
 
@@ -333,10 +335,12 @@ export default function PantallaSesionEntrenamiento() {
     );
   }
 
+  if (loadError) return <ScreenLoadError title="Entrenamiento" message={loadError} onRetry={() => setRetry((value) => value + 1)} onBack={() => navigation.goBack()} />;
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Volver" disabled={saving} onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ChevronLeft color="white" size={28} />
         </TouchableOpacity>
         
@@ -351,8 +355,8 @@ export default function PantallaSesionEntrenamiento() {
         </View>
 
         {!isReadOnly && (
-          <TouchableOpacity style={styles.finishBtn} onPress={handleTerminarClick}>
-            <Text style={styles.finishBtnText}>TERMINAR</Text>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Terminar entrenamiento" disabled={saving || saved} style={styles.finishBtn} onPress={handleTerminarClick}>
+            <Text style={styles.finishBtnText}>{saved ? 'GUARDADO' : 'TERMINAR'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -374,8 +378,8 @@ export default function PantallaSesionEntrenamiento() {
         </View>
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : null} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
 
           {rutina?.detalles?.map((ej) => {
             const exerciseId = ej.ejercicio.id;
@@ -468,6 +472,7 @@ export default function PantallaSesionEntrenamiento() {
                           keyboardType="numeric"
                           placeholder="0"
                           placeholderTextColor="#444"
+                          accessibilityLabel={`Peso de la serie ${i + 1} de ${ej.ejercicio.nombreTraducido}`}
                           value={set.peso}
                           onChangeText={(v) => updateSet(exerciseId, i, 'peso', v)}
                           editable={!isReadOnly} 
@@ -480,6 +485,7 @@ export default function PantallaSesionEntrenamiento() {
                           keyboardType="numeric"
                           placeholder="0"
                           placeholderTextColor="#444"
+                          accessibilityLabel={`Repeticiones de la serie ${i + 1} de ${ej.ejercicio.nombreTraducido}`}
                           value={set.reps}
                           onChangeText={(v) => updateSet(exerciseId, i, 'reps', v)}
                           editable={!isReadOnly} 
@@ -553,14 +559,14 @@ export default function PantallaSesionEntrenamiento() {
         </View>
       </Modal>
 
-      <Modal visible={showFinishModal} transparent animationType="slide">
+      <Modal visible={showFinishModal} transparent animationType="slide" onRequestClose={() => { if (!saving) { setShowFinishModal(false); setTimerActivo(true); } }}>
         <View style={styles.modalOverlay}>
-          <View style={styles.finishModalCard}>
+          <ScrollView style={{ width: '100%', maxWidth: 480, maxHeight: '100%', alignSelf: 'center' }} contentContainerStyle={styles.finishModalCard}>
             <View style={styles.trophyWrap}>
               <Trophy size={40} color="#FACC15" />
             </View>
-            <Text style={styles.finishTitle}>¡Sesión Completada!</Text>
-            <Text style={styles.finishSub}>Gran trabajo hoy. Resumen de tu entreno:</Text>
+            <Text style={styles.finishTitle}>Guardar entrenamiento</Text>
+            <Text style={styles.finishSub}>Revisa el resumen antes de guardar:</Text>
 
             <View style={styles.summaryGrid}>
               <View style={styles.summaryItem}>
@@ -577,19 +583,17 @@ export default function PantallaSesionEntrenamiento() {
               </View>
             </View>
 
+            <FormMessage>{saveError}</FormMessage>
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.btnCancel} onPress={() => { setShowFinishModal(false); setTimerActivo(true); }}>
+              <TouchableOpacity accessibilityRole="button" disabled={saving} style={styles.btnCancel} onPress={() => { setShowFinishModal(false); setTimerActivo(true); }}>
                 <Text style={styles.btnCancelText}>SEGUIR</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.btnConfirm} onPress={confirmFinish}>
-                <Save size={18} color="black" style={{ marginRight: 6 }} />
-                <Text style={styles.btnConfirmText}>GUARDAR</Text>
-              </TouchableOpacity>
+              <GymButton fullWidth loading={saving} onPress={confirmFinish}>Guardar</GymButton>
             </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -602,9 +606,9 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingHorizontal: 20, paddingBottom: 20,
     backgroundColor: '#0a0a0a', borderBottomWidth: 1, borderBottomColor: '#1A1A1A'
   },
-  backBtn: { padding: 5 },
+  backBtn: { minWidth: 44, minHeight: 44, justifyContent: 'center', padding: 5 },
   headerTitle: { color: 'white', fontWeight: '900', fontSize: 18, textTransform: 'uppercase', letterSpacing: 0.5 },
-  finishBtn: { backgroundColor: '#FACC15', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 20 },
+  finishBtn: { minHeight: 44, justifyContent: 'center', backgroundColor: '#FACC15', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 20 },
   finishBtnText: { color: '#0A0A0A', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
 
   statsBar: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 15, backgroundColor: '#0a0a0a', borderBottomWidth: 1, borderBottomColor: '#111' },
@@ -664,8 +668,8 @@ const styles = StyleSheet.create({
   summaryItem: { alignItems: 'center' },
   summaryLabel: { color: '#666', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
   summaryValue: { color: '#FACC15', fontSize: 18, fontWeight: '900' },
-  modalActions: { flexDirection: 'row', width: '100%', gap: 10 },
-  btnCancel: { flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: '#333', alignItems: 'center' },
+  modalActions: { flexDirection: 'column', width: '100%', gap: 10 },
+  btnCancel: { minHeight: 44, width: '100%', paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: '#333', alignItems: 'center' },
   btnCancelText: { color: 'white', fontWeight: '800', fontSize: 13 },
   btnConfirm: { flex: 1, flexDirection: 'row', backgroundColor: '#FACC15', paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   btnConfirmText: { color: '#0A0A0A', fontWeight: '800', fontSize: 13 }
