@@ -53,3 +53,13 @@ The first GitHub-backed preview build `f9536ce6-89c5-4dbe-b002-0373e0abbf0a`, fo
 Build page: https://expo.dev/accounts/iviromo/projects/Frontend_App/builds/f9536ce6-89c5-4dbe-b002-0373e0abbf0a
 
 Real Google login on a device remains unvalidated. The Google Cloud Android OAuth client must authorize the package and certificate SHA-1 above; the previously supplied web OAuth client ID alone does not establish that Android registration. Do not mark Google Android complete until device sign-in, onboarding and session restart checks pass.
+
+## Google iOS preparation
+
+Android device installation was deferred by the user. No iOS EAS builds existed when inspected.
+
+`Frontend_App/app.config.js` derives the native Google return URL scheme from `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`. Without that variable, Android configuration is preserved; iOS Google login fails before invoking the SDK until its client is supplied. Play Services is checked only on Android.
+
+Validated: seven Google service tests, iOS JavaScript export, and iOS native prebuild in a disposable directory. The prebuild used an explicitly fictional OAuth ID and bundle identifier, and its generated Info.plist contained both the Google reversed scheme and `nextfit`. These checks do not verify a signed iOS build or real login.
+
+Before a real iOS build, establish the app's permanent Apple bundle identifier, register a Google OAuth client of type iOS for that identifier, and add its public client ID as `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` in EAS preview. Set `ios.bundleIdentifier` to that same permanent identifier. Keep the existing web client ID as the backend token audience. Never substitute the Android or web client ID for the iOS client. A physical iPhone build additionally needs Apple signing credentials and device provisioning; those have not been configured or verified.
