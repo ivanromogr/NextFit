@@ -24,7 +24,7 @@ consentimiento opcional de comunicaciones.
 
 ## Validación
 
-Desde `Frontend_App`, `npm test -- --runInBand`: 30 suites, 159 pruebas correctas.
+Desde `Frontend_App`, `npm test -- --runInBand`: 31 suites, 168 pruebas correctas.
 Incluye recuperación, consentimientos, Google/Apple, chat y las pruebas nuevas
 para visibilidad, eventos del campo y bloqueo de peticiones concurrentes.
 
@@ -239,6 +239,42 @@ rutinas propias/asignadas, inicio, fallo de carga, guardado duplicado, conservac
 de series y pesos decimales tras un fallo, y modo observador. No se han guardado
 entrenamientos reales para esta validación.
 
-Pendiente en el paso 6: revisar los formularios de creación/edición de rutinas y
-realizar la comprobación visual y de teclado con una compilación nueva en un
-teléfono. El paso 7 sigue sin comenzar, conforme a la indicación del propietario.
+Pendiente en el paso 6: preparar la compilación instalable y realizar la
+comprobación visual y de teclado en un teléfono. El paso 7 sigue sin comenzar, conforme a la indicación del propietario.
+
+## Creación y edición de rutinas
+
+Ambos formularios bloquean guardados simultáneos y una repetición tras una
+respuesta correcta. Los errores son visibles y permiten reintentar conservando
+nombre, ejercicios, notas y pesos. Los pesos con coma decimal se convierten
+correctamente. La generación de planes comparte la protección contra peticiones
+simultáneas y conserva las opciones seleccionadas si falla. No se imprimen el
+borrador completo ni detalles internos de errores al guardar.
+
+La biblioteca permite reintentar sin presentar un fallo como ausencia de
+ejercicios. Descarta respuestas al abandonar el modo manual y conserva el
+borrador al recargar. El editor busca por nombres originales y traducidos y no
+muestra un formulario vacío cuando falla la carga de la rutina. Los modales
+admiten cierre nativo, se revisan las áreas seguras, el teclado y las zonas
+táctiles; el selector inicial puede desplazarse con texto grande.
+
+El contrato de rutinas conserva una pauta de peso/repeticiones/esfuerzo por
+ejercicio. El editor ahora refleja esa pauta en todas sus series; los valores
+individuales de cada serie se registran al entrenar. Así evita aparentar que se
+han guardado variantes que el contrato no admite.
+
+Nueve pruebas adicionales cubren validación, reintento de catálogo, preservación
+del borrador, pesos decimales, protección de guardado/generación, coherencia de
+las series y búsqueda por nombre traducido. Se corrige también una espera de
+las pruebas de métodos de acceso: ahora esperan a que finalice la carga, antes
+de intentar pulsar las acciones.
+
+## Cierre pendiente del paso 6
+
+La revisión de código de los recorridos principales está realizada en
+`codex/mobile-ux`. Siguen pendientes una compilación nativa instalable con estos
+cambios y la comprobación visual/funcional en teléfono de ambos perfiles, texto
+grande, teclado, navegación, acceso social y entrenamiento/chat. Las exportaciones
+JavaScript y las pruebas de componentes no sustituyen esas comprobaciones.
+No se declara cerrado el paso 6 y no se comienza el paso 7. El propietario debe
+recibir el aviso de cierre antes de continuar al testing general.

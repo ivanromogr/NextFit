@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,9 @@ import {
 } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { WebView } from 'react-native-webview';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import GymButton from '../ui/GymButton';
+import { FormMessage } from '../ui/AccountFormScreen';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   ChevronLeft,
@@ -46,6 +49,8 @@ import {
   actualizarRutina
 } from '../../api/endpoints';
 import { useAuth } from '../../components/context/AuthContext';
+
+const pesoDecimal = (value) => parseFloat(String(value).replace(',', '.'));
 
 const MUSCULOS = ["Todos", "Pecho", "Espalda", "Piernas", "Hombros", "Brazos", "Abdominales"];
 
@@ -220,6 +225,15 @@ export default function CrearRutinaScreen() {
   }, [esEntrenador, viewMode]);
 
   const [loadingIA, setLoadingIA] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [exerciseError, setExerciseError] = useState('');
+  const [libraryRetry, setLibraryRetry] = useState(0);
+  const operation = useRef(false);
+  const completed = useRef(false);
+  const version = useRef(0);
+  useEffect(() => () => { version.current += 1; }, []);
 
   const [aiObjetivo, setAiObjetivo] = useState(null);
   const [aiNivel, setAiNivel] = useState(null);
@@ -240,51 +254,17 @@ export default function CrearRutinaScreen() {
   const [ultimoAñadidoId, setUltimoAñadidoId] = useState(null);
 
   useEffect(() => {
-    const cargarEjercicios = async () => {
-      if (viewMode !== 'manual') return;
-
-      try {
-        setLoadingEjercicios(true);
-        console.log('[CrearRutinaScreen] 🏋️ Cargando ejercicios para modo manual...');
-        
-        const data = await obtenerEjercicios();
-        
-        console.log('[CrearRutinaScreen] ✅ Ejercicios cargados exitosamente:', {
-          cantidad: data?.length || 0,
-          tipoData: Array.isArray(data) ? 'array' : typeof data,
-          primero: data?.[0]?.nombre,
-        });
-        
-        const ejerciciosValidos = Array.isArray(data) ? data : [];
-        
-        if (ejerciciosValidos.length === 0) {
-          console.warn('[CrearRutinaScreen] ⚠️ ADVERTENCIA: Se recibió array vacío de ejercicios');
-        }
-        
-        setTodosEjercicios(ejerciciosValidos);
-      } catch (error) {
-        console.error('[CrearRutinaScreen] ❌ Error cargando ejercicios:', {
-          message: error.message,
-          status: error.response?.status,
-          errorData: error.response?.data,
-          stack: error.stack,
-        });
-        
-        // Mostrar alerta visual al usuario en móvil
-        Alert.alert(
-          'Error de conexión',
-          'No se pudieron cargar los ejercicios. Verifica que el backend esté disponible.',
-          [{ text: 'OK', onPress: () => console.log('Alert cerrada') }]
-        );
-        
-        setTodosEjercicios([]);
-      } finally {
-        setLoadingEjercicios(false);
-      }
-    };
-
-    cargarEjercicios();
-  }, [viewMode]);
+    if (viewMode !== 'manual') return;
+    let active = true;
+    setLoadingEjercicios(true); setExerciseError('');
+    obtenerEjercicios().then((data) => {
+      if (!Array.isArray(data)) throw new Error('INVALID_LIBRARY');
+      if (active) setTodosEjercicios(data);
+    }).catch(() => {
+      if (active) setExerciseError('No se pudo cargar la biblioteca de ejercicios. Comprueba la conexión e inténtalo de nuevo.');
+    }).finally(() => { if (active) setLoadingEjercicios(false); });
+    return () => { active = false; };
+  }, [viewMode, libraryRetry]);
 
   useEffect(() => {
     if (rutinaInicial?.detalles?.length) {
@@ -323,6 +303,7 @@ export default function CrearRutinaScreen() {
   }, [todosEjercicios, busqueda, filtroMusculo]);
 
   const handleGenerarIA = async () => {
+    if (operation.current || completed.current) return;
     if (!aiObjetivo || !aiNivel || !aiDias) {
       return Alert.alert(
         "Faltan datos",
@@ -330,7 +311,9 @@ export default function CrearRutinaScreen() {
       );
     }
 
-    setLoadingIA(true);
+    const request = version.current;
+    operation.current = true;
+    setSaveError(''); setLoadingIA(true);
     try {
       const payload = {
         idCliente: userId,
@@ -342,24 +325,16 @@ export default function CrearRutinaScreen() {
       };
 
       await generarRutinaAuto(payload);
+      if (request !== version.current) return;
+      completed.current = true; setSaved(true);
 
       Alert.alert("¡Plan Creado! 🧠", "La IA ha diseñado tu rutina con éxito.", [
         { text: "Ver mis rutinas", onPress: () => navigation.navigate("Rutinas") }
       ]);
-    } catch (error) {
-      const mensajeErrorJava =
-        error.response?.data?.message ||
-        JSON.stringify(error.response?.data) ||
-        error.message;
-
-      Alert.alert(
-        "Error del Servidor (400)",
-        typeof mensajeErrorJava === 'string'
-          ? mensajeErrorJava
-          : "Error desconocido, revisa la consola."
-      );
+    } catch {
+      if (request === version.current) setSaveError('No se pudo generar el plan. Conservamos tus opciones para que puedas reintentar.');
     } finally {
-      setLoadingIA(false);
+      if (request === version.current) { operation.current = false; setLoadingIA(false); }
     }
   };
 
@@ -406,6 +381,7 @@ export default function CrearRutinaScreen() {
   };
 
   const finalizarGuardado = async () => {
+    if (operation.current || completed.current) return;
     if (!nombreRutina.trim()) {
       return Alert.alert("Falta información", "Dale un nombre a tu rutina.");
     }
@@ -436,7 +412,7 @@ export default function CrearRutinaScreen() {
       idEjercicio: e.idEjercicio,
       series: Math.max(parseInt(e.series, 10) || 1, 1),
       repeticiones: Math.max(parseInt(e.reps, 10) || 1, 1),
-      peso: Number.isFinite(parseFloat(e.peso)) ? parseFloat(e.peso) : 0,
+      peso: Number.isFinite(pesoDecimal(e.peso)) ? pesoDecimal(e.peso) : 0,
       rpe: Math.max(parseInt(e.rpe, 10) || 0, 0),
       notas: e.notas || "",
       dias: 1
@@ -447,7 +423,7 @@ export default function CrearRutinaScreen() {
       idEjercicio: e.idEjercicio,
       series: Math.max(parseInt(e.series, 10) || 1, 1),
       repeticiones: Math.max(parseInt(e.reps, 10) || 1, 1),
-      peso: Number.isFinite(parseFloat(e.peso)) ? parseFloat(e.peso) : 0,
+      peso: Number.isFinite(pesoDecimal(e.peso)) ? pesoDecimal(e.peso) : 0,
       rpe: Math.max(parseInt(e.rpe, 10) || 0, 0),
       notas: e.notas || ""
     })).filter((e) => !!e.idEjercicio);
@@ -469,32 +445,29 @@ export default function CrearRutinaScreen() {
     };
 
     Object.keys(payload).forEach((key) => payload[key] === undefined && delete payload[key]);
+    const request = version.current;
+    operation.current = true; setSaving(true); setSaveError('');
 
     try {
       if (isEditing) {
         await actualizarRutina(rutinaInicial.id, payload);
+        if (request !== version.current) return;
+        completed.current = true; setSaved(true);
         Alert.alert("¡Actualizada!", "La rutina se ha modificado correctamente.", [
           { text: "OK", onPress: () => navigation.goBack() }
         ]);
       } else {
         await guardarRutinaManual(payload);
+        if (request !== version.current) return;
+        completed.current = true; setSaved(true);
         Alert.alert("¡Hecho!", "Rutina creada con éxito", [
           { text: "OK", onPress: () => navigation.goBack() }
         ]);
       }
-    } catch (error) {
-      console.error("Error al guardar rutina:", {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        payload
-      });
-      Alert.alert(
-        "Error al guardar",
-        typeof error.response?.data === "string"
-          ? error.response.data
-          : "Revisa los datos de la rutina e inténtalo de nuevo."
-      );
+    } catch {
+      if (request === version.current) setSaveError('No se pudo guardar la rutina. Tus cambios siguen aquí; puedes reintentar.');
+    } finally {
+      if (request === version.current) { operation.current = false; setSaving(false); }
     }
   };
 
@@ -547,6 +520,7 @@ export default function CrearRutinaScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity
+        accessibilityRole="button" accessibilityLabel={`Añadir ${item.nombreTraducido || item.nombre}`}
         style={[styles.libAddIcon, ultimoAñadidoId === item.id && styles.libAddIconDone]}
         onPress={() => agregarAlWorkout(item)}
       >
@@ -593,9 +567,10 @@ export default function CrearRutinaScreen() {
       <View style={styles.inputsGrid}>
         <View style={styles.inputWrap}>
           <Text style={styles.inputLabel}>SERIES</Text>
-          <TextInput
+          <TextInput editable={!saving && !saved}
             style={styles.gridInput}
             keyboardType="numeric"
+            accessibilityLabel={`Series de ${item.nombre}`}
             value={item.series}
             onChangeText={(v) => actualizarCampo(item.tempId, 'series', v)}
           />
@@ -603,9 +578,10 @@ export default function CrearRutinaScreen() {
 
         <View style={styles.inputWrap}>
           <Text style={styles.inputLabel}>REPS</Text>
-          <TextInput
+          <TextInput editable={!saving && !saved}
             style={styles.gridInput}
             keyboardType="numeric"
+            accessibilityLabel={`Repeticiones de ${item.nombre}`}
             value={item.reps}
             onChangeText={(v) => actualizarCampo(item.tempId, 'reps', v)}
           />
@@ -613,9 +589,10 @@ export default function CrearRutinaScreen() {
 
         <View style={styles.inputWrap}>
           <Text style={[styles.inputLabel, { color: '#FACC15' }]}>PESO</Text>
-          <TextInput
+          <TextInput editable={!saving && !saved}
             style={[styles.gridInput, { color: '#FACC15' }]}
             keyboardType="numeric"
+            accessibilityLabel={`Peso de ${item.nombre}`}
             value={item.peso}
             onChangeText={(v) => actualizarCampo(item.tempId, 'peso', v)}
           />
@@ -623,16 +600,17 @@ export default function CrearRutinaScreen() {
 
         <View style={styles.inputWrap}>
           <Text style={[styles.inputLabel, { color: '#60A5FA' }]}>RPE</Text>
-          <TextInput
+          <TextInput editable={!saving && !saved}
             style={[styles.gridInput, { color: '#60A5FA' }]}
             keyboardType="numeric"
+            accessibilityLabel={`Esfuerzo de ${item.nombre}`}
             value={item.rpe}
             onChangeText={(v) => actualizarCampo(item.tempId, 'rpe', v)}
           />
         </View>
       </View>
 
-      <TextInput
+      <TextInput editable={!saving && !saved}
         style={styles.notasInput}
         placeholder="Notas técnicas..."
         placeholderTextColor="#444"
@@ -644,14 +622,14 @@ export default function CrearRutinaScreen() {
 
   if (viewMode === 'selector' && !esEntrenador) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.topBarSimple}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
             <ChevronLeft color="white" size={28} />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.centerContent}>
+        <ScrollView contentContainerStyle={styles.centerContent}>
           <Text style={styles.mainTitle}>CREAR NUEVA RUTINA</Text>
           <Text style={styles.subTitle}>¿Cómo quieres empezar hoy?</Text>
 
@@ -670,14 +648,14 @@ export default function CrearRutinaScreen() {
             <Text style={styles.optionTitle}>DISEÑAR MANUAL</Text>
             <Text style={styles.optionDesc}>Crea tu rutina ejercicio a ejercicio desde cero.</Text>
           </TouchableOpacity>
-        </View>
-      </View>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
   if (viewMode === 'ia' && !esEntrenador) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.topBarSimple}>
           <TouchableOpacity onPress={() => setViewMode('selector')} style={styles.iconBtn}>
             <ChevronLeft color="white" size={28} />
@@ -822,7 +800,8 @@ export default function CrearRutinaScreen() {
         </ScrollView>
 
         <View style={styles.bottomFixed}>
-          <TouchableOpacity style={styles.btnGenerar} onPress={handleGenerarIA} disabled={loadingIA}>
+          <FormMessage>{saveError}</FormMessage>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Generar plan inteligente" style={styles.btnGenerar} onPress={handleGenerarIA} disabled={loadingIA || saved}>
             {loadingIA ? (
               <ActivityIndicator color="black" />
             ) : (
@@ -833,12 +812,12 @@ export default function CrearRutinaScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => {
@@ -856,17 +835,18 @@ export default function CrearRutinaScreen() {
         <Text style={styles.headerTitle}>{isTemplate ? "PLANTILLA" : "NUEVA RUTINA"}</Text>
 
         {!isMobile && (
-          <TouchableOpacity onPress={finalizarGuardado} style={styles.saveBtn}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Guardar rutina" disabled={saving || saved} onPress={finalizarGuardado} style={styles.saveBtn}>
             <Save color="#0A0A0A" size={20} />
           </TouchableOpacity>
         )}
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView pointerEvents={saving || saved ? 'none' : 'auto'} behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
-          <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.mainContent}>
+          <FormMessage>{saveError}</FormMessage>
+          <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.mainContent}>
             <View style={styles.cardInfo}>
-              <TextInput
+              <TextInput editable={!saving && !saved}
                 style={styles.inputNombre}
                 placeholder="Nombre del entrenamiento"
                 placeholderTextColor="#555"
@@ -874,7 +854,7 @@ export default function CrearRutinaScreen() {
                 onChangeText={setNombreRutina}
               />
 
-              <TextInput
+              <TextInput editable={!saving && !saved}
                 style={styles.inputDesc}
                 placeholder="Añade una descripción u objetivo..."
                 placeholderTextColor="#555"
@@ -919,10 +899,10 @@ export default function CrearRutinaScreen() {
 
           {isMobile && (
             <View style={styles.mobileBottomBar}>
-              <TouchableOpacity style={styles.mobileSaveBtn} onPress={finalizarGuardado}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Guardar rutina" accessibilityState={{ disabled: saving || saved, busy: saving }} disabled={saving || saved} style={styles.mobileSaveBtn} onPress={finalizarGuardado}>
                 <Save color="#0A0A0A" size={18} />
                 <Text style={styles.mobileSaveBtnText}>
-                  {rutinaInicial?.id ? 'ACTUALIZAR RUTINA' : 'GUARDAR RUTINA'}
+                  {saving ? 'GUARDANDO…' : saved ? 'GUARDADO' : rutinaInicial?.id ? 'ACTUALIZAR RUTINA' : 'GUARDAR RUTINA'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -930,7 +910,7 @@ export default function CrearRutinaScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      <Modal visible={bibliotecaAbierta} animationType="slide" presentationStyle="pageSheet">
+      <Modal visible={bibliotecaAbierta} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setBibliotecaAbierta(false)}>
         <View style={styles.libraryModal}>
           {toast.visible && (
             <View style={styles.toast}>
@@ -941,13 +921,13 @@ export default function CrearRutinaScreen() {
 
           <View style={styles.libraryModalHeader}>
             <Text style={styles.libraryModalTitle}>Agregar ejercicio</Text>
-            <TouchableOpacity onPress={() => setBibliotecaAbierta(false)} style={styles.modalCloseBtn}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cerrar biblioteca" onPress={() => setBibliotecaAbierta(false)} style={styles.modalCloseBtn}>
               <X color="#aaa" size={22} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.searchBoxInline}>
-            <TextInput
+            <TextInput editable={!saving && !saved}
               style={styles.searchInputInline}
               placeholder="Buscar ejercicio..."
               placeholderTextColor="#666"
@@ -972,13 +952,15 @@ export default function CrearRutinaScreen() {
           </View>
 
           <Text style={styles.resultsCount}>
-            {loadingEjercicios ? 'Cargando ejercicios...' : `${listaEjercicios.length} ejercicios`}
+            {loadingEjercicios ? 'Cargando ejercicios...' : exerciseError ? 'Biblioteca no disponible' : `${listaEjercicios.length} ejercicios`}
           </Text>
 
-          <ScrollView style={styles.libraryList} showsVerticalScrollIndicator={false}>
+          <FormMessage>{exerciseError}</FormMessage>
+          {exerciseError ? <GymButton variant="secondary" onPress={() => setLibraryRetry((value) => value + 1)}>Reintentar biblioteca</GymButton> : null}
+          <ScrollView style={styles.libraryList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
             {loadingEjercicios ? (
               <ActivityIndicator color="#FACC15" style={{ marginTop: 30 }} />
-            ) : listaEjercicios.length === 0 ? (
+            ) : exerciseError ? null : listaEjercicios.length === 0 ? (
               <View style={styles.emptyLibraryBox}>
                 <Text style={styles.emptyLibraryText}>No se encontraron ejercicios</Text>
               </View>
@@ -989,7 +971,7 @@ export default function CrearRutinaScreen() {
         </View>
       </Modal>
 
-      <Modal visible={!!infoEjercicio} transparent animationType="fade">
+      <Modal visible={!!infoEjercicio} transparent animationType="fade" onRequestClose={() => setInfoEjercicio(null)}>
         <View style={styles.modalOverlay}>
           <View style={styles.infoModalCard}>
             <TouchableOpacity style={styles.infoCloseBtn} onPress={() => setInfoEjercicio(null)}>
@@ -1029,7 +1011,7 @@ export default function CrearRutinaScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -1037,7 +1019,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#050505' },
 
   topBarSimple: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingTop: 16,
     paddingHorizontal: 20,
     paddingBottom: 10,
     backgroundColor: '#050505'
@@ -1047,7 +1029,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 14,
     backgroundColor: '#0a0a0a',
@@ -1055,16 +1037,16 @@ const styles = StyleSheet.create({
     borderBottomColor: '#1A1A1A'
   },
 
-  iconBtn: { padding: 5 },
-  headerTitle: { color: 'white', fontWeight: '800', fontSize: 16, letterSpacing: 0.5, flex: 1, textAlign: 'center', marginHorizontal: 8 },
-  saveBtn: { backgroundColor: '#FACC15', padding: 8, borderRadius: 20 },
+  iconBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', padding: 5 },
+  headerTitle: { flexShrink: 1, textAlign: 'center', color: 'white', fontWeight: '800', fontSize: 16, letterSpacing: 0.5, flex: 1, textAlign: 'center', marginHorizontal: 8 },
+  saveBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FACC15', padding: 8, borderRadius: 20 },
   scroll: { flex: 1 },
 
   mainContent: {
     paddingBottom: 120
   },
 
-  centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, marginTop: -50 },
+  centerContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   mainTitle: { color: 'white', fontSize: 24, fontWeight: '900', textTransform: 'uppercase', marginBottom: 5, letterSpacing: 1, textAlign: 'center' },
   subTitle: { color: '#888', fontSize: 16, marginBottom: 40, textAlign: 'center' },
 
@@ -1388,7 +1370,7 @@ const styles = StyleSheet.create({
 
   inputWrap: { flex: 1, alignItems: 'center' },
   inputLabel: { color: '#555', fontSize: 9, fontWeight: '800', marginBottom: 4 },
-  gridInput: { color: 'white', fontSize: 17, fontWeight: '800', textAlign: 'center', padding: 0, minWidth: 28 },
+  gridInput: { minHeight: 44, color: 'white', fontSize: 17, fontWeight: '800', textAlign: 'center', padding: 0, minWidth: 28 },
   notasInput: {
     color: '#888',
     fontSize: 14,
@@ -1502,7 +1484,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     zIndex: 20,
-    minHeight: 42,
+    minHeight: 44,
     borderRadius: 14,
     backgroundColor: '#FACC15',
     flexDirection: 'row',

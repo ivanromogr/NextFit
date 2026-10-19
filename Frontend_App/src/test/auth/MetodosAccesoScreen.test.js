@@ -31,7 +31,10 @@ let platform = 'ios';
 const renderScreen = async identities => {
   endpoints.getAuthIdentities.mockResolvedValue({ data: identities });
   const screen = render(<MetodosAccesoScreen />);
-  await waitFor(() => expect(endpoints.getAuthIdentities).toHaveBeenCalled());
+  await waitFor(() => {
+    expect(endpoints.getAuthIdentities).toHaveBeenCalled();
+    expect(screen.queryByLabelText('Cargando métodos de acceso')).toBeNull();
+  });
   return screen;
 };
 

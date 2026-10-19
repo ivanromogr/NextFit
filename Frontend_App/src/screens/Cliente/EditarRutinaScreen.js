@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, 
   Image, Modal, ActivityIndicator, Platform, FlatList, Alert, KeyboardAvoidingView 
 } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenLoadError from '../../components/ui/ScreenLoadError';
+import { FormMessage } from '../../components/ui/AccountFormScreen';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { 
   Search, Trash2, Plus, X, ChevronLeft, Save, 
@@ -12,6 +15,8 @@ import {
 
 import { obtenerRutinasCliente, obtenerEjercicios, actualizarRutina } from '../../api/endpoints';
 import { useAuth } from '../../components/context/AuthContext';
+
+const pesoDecimal = (value) => parseFloat(String(value).replace(',', '.'));
 
 const MUSCULOS = ["Todos", "Pecho", "Espalda", "Piernas", "Hombros", "Brazos", "Abdominales", "Cardio"];
 
@@ -57,6 +62,14 @@ export default function EditarRutinaScreen() {
   const { rutinaId, clienteId } = route.params || {};
 
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [retry, setRetry] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const operation = useRef(false);
+  const completed = useRef(false);
+  const version = useRef(0);
   const [rutinaData, setRutinaData] = useState({ nombre: "", objetivo: "", nivel: "", descripcion: "" });
   const [detalles, setDetalles] = useState([]); 
 
@@ -69,17 +82,22 @@ export default function EditarRutinaScreen() {
 
   // --- CARGA INICIAL DE DATOS ---
   useEffect(() => {
+    const request = ++version.current;
+    setLoading(true); setLoadError(''); setSaveError(''); setSaving(false); setSaved(false);
+    operation.current = false; completed.current = false;
     const loadData = async () => {
       // Si somos entrenador y nos pasan clienteId, usamos ese, sino usamos nuestro userId
       const idOwner = clienteId || userId;
       
       try {
+        if (!rutinaId || !idOwner) throw new Error('MISSING_ROUTINE');
         const [rutinas, ejercicios] = await Promise.all([
-          obtenerRutinasCliente(idOwner),
+          obtenerRutinasCliente(idOwner, { throwOnError: true }),
           obtenerEjercicios()
         ]);
 
-        const rutinaEncontrada = rutinas.find(r => r.id === rutinaId);
+        if (request !== version.current) return;
+        const rutinaEncontrada = rutinas.find(r => String(r.id) === String(rutinaId));
         
         if (rutinaEncontrada) {
           setRutinaData({
@@ -108,26 +126,25 @@ export default function EditarRutinaScreen() {
           });
           setDetalles(detallesExpandidos);
         } else {
-            Alert.alert("Error", "No se encontró la rutina.");
-            navigation.goBack();
+            setLoadError('Esta rutina ya no está disponible. Vuelve a tu lista de rutinas.');
         }
         
         setAllExercises(ejercicios || []);
       } catch (error) {
-        console.error("Error cargando datos:", error);
-        Alert.alert("Error", "Hubo un problema al cargar la rutina.");
+        if (request === version.current) setLoadError('No se pudo cargar la rutina o su biblioteca de ejercicios. Comprueba la conexión e inténtalo de nuevo.');
       } finally {
-        setLoading(false);
+        if (request === version.current) setLoading(false);
       }
     };
-    if (rutinaId) loadData();
-  }, [rutinaId]);
+    loadData();
+    return () => { version.current += 1; };
+  }, [rutinaId, clienteId, userId, retry]);
 
-  // --- LÓGICA DE SERIES INDIVIDUALES ---
-  const handleSetChange = (exerciseIndex, setIndex, field, value) => {
-    const newDetalles = [...detalles];
-    newDetalles[exerciseIndex].sets[setIndex][field] = value;
-    setDetalles(newDetalles);
+  // --- PAUTA COMÚN DEL EJERCICIO Y NÚMERO DE SERIES ---
+  const handleSetChange = (exerciseIndex, _setIndex, field, value) => {
+    setDetalles((current) => current.map((detail, index) => index === exerciseIndex
+      ? { ...detail, sets: detail.sets.map((set) => ({ ...set, [field]: value })) }
+      : detail));
   };
 
   const addSetToExercise = (exerciseIndex) => {
@@ -188,9 +205,12 @@ export default function EditarRutinaScreen() {
 
   // --- GUARDADO AL SERVIDOR ---
   const saveChanges = async () => {
+    if (operation.current || completed.current) return;
     if (!rutinaData.nombre.trim()) return Alert.alert("Falta información", "El nombre es obligatorio.");
     if (detalles.length === 0) return Alert.alert("Rutina vacía", "Añade al menos un ejercicio.");
 
+    const request = version.current;
+    operation.current = true; setSaving(true); setSaveError('');
     try {
       const listaProcesada = detalles.map(d => {
         const totalSets = d.sets.length;
@@ -201,7 +221,7 @@ export default function EditarRutinaScreen() {
           idEjercicio: d.ejercicio?.id, 
           series: totalSets,
           repeticiones: parseInt(firstSet.reps) || 0,
-          peso: parseFloat(firstSet.peso) || 0,
+          peso: pesoDecimal(firstSet.peso) || 0,
           rpe: parseInt(firstSet.rpe) || 0,
           notas: d.notas || "",
           dias: 1
@@ -209,26 +229,30 @@ export default function EditarRutinaScreen() {
       });
 
       const payload = { 
-        ...rutinaData, 
+        ...rutinaData, nombre: rutinaData.nombre.trim(),
         id: rutinaId,
         detalles: listaProcesada, 
         ejercicios: listaProcesada
       };
       
       await actualizarRutina(rutinaId, payload);
+      if (request !== version.current) return;
+      completed.current = true; setSaved(true);
       
       Alert.alert("¡Hecho!", "Rutina actualizada correctamente.", [
         { text: "OK", onPress: () => navigation.goBack() }
       ]);
     } catch (error) {
-      Alert.alert("Error", "No se pudo actualizar la rutina.");
+      if (request === version.current) setSaveError('No se pudo actualizar la rutina. Tus cambios siguen aquí; puedes reintentar.');
+    } finally {
+      if (request === version.current) { operation.current = false; setSaving(false); }
     }
   };
 
   // Filtro Modal
   const filteredExercises = allExercises.filter(ex => {
-    const matchesText = ex.nombre.toLowerCase().includes(busqueda.toLowerCase());
-    const matchesMuscle = filtroMusculo === "Todos" || (ex.grupoMuscular && ex.grupoMuscular.toUpperCase() === filtroMusculo.toUpperCase());
+    const matchesText = `${ex.nombre || ''} ${ex.nombreTraducido || ''}`.toLocaleLowerCase().includes(busqueda.trim().toLocaleLowerCase());
+    const matchesMuscle = filtroMusculo === "Todos" || [ex.grupoMuscular, ex.grupoMuscularTraducido].some((value) => value?.toUpperCase() === filtroMusculo.toUpperCase());
     return matchesText && matchesMuscle;
   });
 
@@ -240,35 +264,38 @@ export default function EditarRutinaScreen() {
     );
   }
 
+  if (loadError) return <ScreenLoadError title="Editar rutina" message={loadError} onRetry={() => setRetry((value) => value + 1)} onBack={() => navigation.goBack()} />;
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* HEADER PRINCIPAL */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Volver" disabled={saving} onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <ChevronLeft color="white" size={28} />
         </TouchableOpacity>
-        <View style={{alignItems: 'center'}}>
+        <View style={{alignItems: 'center', flex: 1, paddingHorizontal: 8}}>
            <Text style={styles.headerSubtitle}>MODO EDICIÓN</Text>
            <Text style={styles.headerTitle}>ACTUALIZAR RUTINA</Text>
         </View>
-        <TouchableOpacity onPress={saveChanges} style={styles.saveBtn}>
-          <Save color="#0A0A0A" size={20} />
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Guardar cambios" accessibilityState={{ disabled: saving || saved, busy: saving }} disabled={saving || saved} onPress={saveChanges} style={styles.saveBtn}>
+          {saving ? <ActivityIndicator color="#0A0A0A" /> : <Save color="#0A0A0A" size={20} />}
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : null} style={{flex: 1}}>
-        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <FormMessage>{saveError}</FormMessage>
+      <KeyboardAvoidingView pointerEvents={saving || saved ? 'none' : 'auto'} behavior={Platform.OS === "ios" ? "padding" : "height"} style={{flex: 1}}>
+        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           
           {/* SECCIÓN DE DATOS DE LA RUTINA */}
           <View style={styles.cardInfo}>
-            <TextInput 
+            <TextInput editable={!saving && !saved}
               style={styles.inputNombre} 
               placeholder="Nombre del entrenamiento" 
               placeholderTextColor="#555"
               value={rutinaData.nombre}
               onChangeText={(text) => setRutinaData({...rutinaData, nombre: text})}
             />
-            <TextInput 
+            <TextInput editable={!saving && !saved}
               style={styles.inputDesc} 
               placeholder="Escribe aquí el objetivo del plan..." 
               placeholderTextColor="#555"
@@ -314,6 +341,7 @@ export default function EditarRutinaScreen() {
                     </TouchableOpacity>
                   </View>
 
+                  <Text style={{ color: '#a1a1aa', lineHeight: 21, marginBottom: 12 }}>Las series comparten peso, repeticiones y esfuerzo. Puedes ajustar cada serie al entrenar.</Text>
                   {/* CABECERA TABLA DE SERIES */}
                   <View style={styles.tableHeader}>
                     <Text style={[styles.thText, {width: 30}]}>SET</Text>
@@ -329,27 +357,30 @@ export default function EditarRutinaScreen() {
                       <Text style={styles.tdIndex}>{setIndex + 1}</Text>
                       
                       <View style={{flex: 1, paddingHorizontal: 4}}>
-                        <TextInput 
+                        <TextInput editable={!saving && !saved}
                           style={[styles.gridInput, {color: '#FACC15'}]} 
                           keyboardType="numeric"
+                          accessibilityLabel={`Peso de la serie ${setIndex + 1} de ${detalle.ejercicio.nombreTraducido || detalle.ejercicio.nombre}`}
                           value={set.peso}
                           onChangeText={(v) => handleSetChange(exIndex, setIndex, 'peso', v)}
                         />
                       </View>
                       
                       <View style={{flex: 1, paddingHorizontal: 4}}>
-                         <TextInput 
+                         <TextInput editable={!saving && !saved}
                           style={styles.gridInput} 
                           keyboardType="numeric"
+                          accessibilityLabel={`Repeticiones de la serie ${setIndex + 1} de ${detalle.ejercicio.nombreTraducido || detalle.ejercicio.nombre}`}
                           value={set.reps}
                           onChangeText={(v) => handleSetChange(exIndex, setIndex, 'reps', v)}
                         />
                       </View>
 
                       <View style={{flex: 1, paddingHorizontal: 4}}>
-                         <TextInput 
+                         <TextInput editable={!saving && !saved}
                           style={[styles.gridInput, {color: '#60A5FA'}]} 
                           keyboardType="numeric"
+                          accessibilityLabel={`Esfuerzo de la serie ${setIndex + 1} de ${detalle.ejercicio.nombreTraducido || detalle.ejercicio.nombre}`}
                           value={set.rpe}
                           onChangeText={(v) => handleSetChange(exIndex, setIndex, 'rpe', v)}
                         />
@@ -366,7 +397,7 @@ export default function EditarRutinaScreen() {
                     <Text style={styles.addSetBtnText}>AÑADIR SERIE</Text>
                   </TouchableOpacity>
 
-                  <TextInput 
+                  <TextInput editable={!saving && !saved}
                     style={styles.notasInput} 
                     placeholder="Instrucciones o notas técnicas..." 
                     placeholderTextColor="#444"
@@ -380,7 +411,7 @@ export default function EditarRutinaScreen() {
       </KeyboardAvoidingView>
 
       {/* --- MODAL BIBLIOTECA (Estilo iOS) --- */}
-      <Modal visible={isBibliotecaOpen} animationType="slide" presentationStyle="pageSheet">
+      <Modal visible={isBibliotecaOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsBibliotecaOpen(false)}>
         <View style={styles.modalBody}>
           
           <View style={styles.modalHeader}>
@@ -392,8 +423,9 @@ export default function EditarRutinaScreen() {
 
           <View style={styles.searchBox}>
             <Search color="#666" size={18} />
-            <TextInput 
+            <TextInput editable={!saving && !saved}
               style={styles.searchInput} 
+              accessibilityLabel="Buscar ejercicio"
               placeholder="Buscar ejercicio..." 
               placeholderTextColor="#666"
               value={busqueda}
@@ -421,11 +453,13 @@ export default function EditarRutinaScreen() {
             <ActivityIndicator color="#FACC15" style={{marginTop: 50}} />
           ) : (
             <FlatList 
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               data={filteredExercises}
               keyExtractor={item => item.id.toString()}
               contentContainerStyle={{paddingBottom: 40}}
               renderItem={({item}) => (
-                <TouchableOpacity style={styles.libItem} onPress={() => addExerciseToRoutine(item)}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Añadir ${item.nombreTraducido || item.nombre}`} style={styles.libItem} onPress={() => addExerciseToRoutine(item)}>
                   <ExerciseMediaThumb
                     imageUrl={item.imagenUrl}
                     videoUrl={item.videoUrl}
@@ -433,8 +467,8 @@ export default function EditarRutinaScreen() {
                     placeholder={<View style={styles.libImgPlaceholder} />}
                   />
                   <View style={styles.libTextWrap}>
-                    <Text style={styles.libName}>{item.nombre}</Text>
-                    <Text style={styles.libMuscle}>{item.grupoMuscular}</Text>
+                    <Text style={styles.libName}>{item.nombreTraducido || item.nombre}</Text>
+                    <Text style={styles.libMuscle}>{item.grupoMuscularTraducido || item.grupoMuscular}</Text>
                   </View>
                   <View style={styles.libAddIcon}>
                     <Plus color="#FACC15" size={20} />
@@ -445,7 +479,7 @@ export default function EditarRutinaScreen() {
           )}
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -456,13 +490,13 @@ const styles = StyleSheet.create({
   // HEADER
   header: { 
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
-    paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingHorizontal: 20, paddingBottom: 15,
+    paddingTop: 16, paddingHorizontal: 20, paddingBottom: 15,
     backgroundColor: '#0a0a0a', borderBottomWidth: 1, borderBottomColor: '#1A1A1A'
   },
   headerSubtitle: { color: '#FACC15', fontSize: 10, fontWeight: '800', letterSpacing: 1, marginBottom: 2 },
   headerTitle: { color: 'white', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
-  saveBtn: { backgroundColor: '#FACC15', padding: 8, borderRadius: 20 },
-  iconBtn: { padding: 5 },
+  saveBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FACC15', padding: 8, borderRadius: 20 },
+  iconBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', padding: 5 },
   
   scroll: { flex: 1 },
   
@@ -493,7 +527,7 @@ const styles = StyleSheet.create({
   thText: { color: '#666', fontSize: 10, fontWeight: '800', textAlign: 'center' },
   tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   tdIndex: { width: 30, color: '#555', fontWeight: '900', fontSize: 14, textAlign: 'center' },
-  gridInput: { backgroundColor: '#111', color: 'white', borderRadius: 8, textAlign: 'center', fontWeight: '800', fontSize: 15, paddingVertical: 8 },
+  gridInput: { minHeight: 44, backgroundColor: '#111', color: 'white', borderRadius: 8, textAlign: 'center', fontWeight: '800', fontSize: 15, paddingVertical: 8 },
   delSetBtn: { width: 30, alignItems: 'center', justifyContent: 'center' },
   
   addSetBtnRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, marginTop: 10, borderTopWidth: 1, borderTopColor: '#1A1A1A' },
