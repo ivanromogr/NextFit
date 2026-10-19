@@ -62,3 +62,33 @@ integridad del esquema, copias de seguridad ni recuperación de archivos.
 Antes de dar este bloque por terminado debe existir evidencia de persistencia
 tras reinicio, restauración ensayada, migraciones repetibles y comprobaciones
 de salud y autenticación del despliegue final.
+
+## Implementación preparada, pendiente de verificación externa
+
+- Almacenamiento Cloudinary autenticado para nuevas imágenes y adjuntos, con
+  lectura a través de los permisos actuales de la API. Las URLs firmadas del
+  proveedor no salen al navegador. Se mantienen las claves locales antiguas
+  para instalaciones con disco persistente; esto no recupera archivos perdidos.
+- Fallo de configuración o caída del proveedor: sin fallback al disco temporal;
+  error HTTP 503 sin detalles de credenciales. Descargas con límites de tamaño,
+  tiempos de conexión/lectura y sin redirecciones automáticas.
+- SQL detallado desactivado en el perfil Render del código preparado.
+- Flyway y esquema inicial de 28 tablas verificados con PostgreSQL 16.15, pero
+  desactivados por defecto para no adoptar automáticamente la base existente.
+- Scripts de copia cifrada, restauración e inventario de solo lectura. El ensayo
+  con datos ficticios pasa; falta una copia real recuperable y un destino externo.
+
+Procedimiento y comprobaciones: [Operación de base de datos](database-operations.md).
+
+Estos cambios no están activados en el servicio actual. El entorno sigue sin
+acceso a `api.cloudinary.com` y no resuelve el host externo de PostgreSQL; además,
+la consulta de bases a la API de Render devuelve 403. La configuración de red de
+Cloudinary está guardada como borrador pendiente de publicación. No hay evidencia
+todavía para afirmar persistencia, backup o migraciones de la base de producción.
+
+Validación del código preparado: 349 pruebas del backend y 3 pruebas adicionales
+de selección/configuración del proveedor, todas sin fallos ni omisiones; JAR
+compilado. Ensayos PostgreSQL: cuatro escenarios de migración correctos, copia
+cifrada restaurada, destino no vacío rechazado, ciphertext alterado rechazado y
+dump fallido sin archivo publicado. Son ensayos aislados, no operaciones sobre
+la base de producción.

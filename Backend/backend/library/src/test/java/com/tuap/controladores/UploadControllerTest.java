@@ -55,7 +55,8 @@ class UploadControllerTest {
         chatAttachmentAccessService = Mockito.mock(com.tuap.backend.servicios.ChatAttachmentAccessService.class);
         controller = new UploadController(storage, dao, chatAttachmentAccessService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
-                .setControllerAdvice(new com.tuap.backend.controladores.UploadExceptionHandler())
+                .setControllerAdvice(new com.tuap.backend.controladores.UploadExceptionHandler(),
+                        new com.tuap.backend.controladores.StorageExceptionHandler())
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
     }
@@ -100,6 +101,14 @@ class UploadControllerTest {
         assertThrows(UploadController.UploadPersistenceException.class,
                 () -> controller.uploadFile(file(), UploadPurpose.PROFILE_IMAGE, principal()));
         verify(storage).delete("rollback.png");
+    }
+
+    @Test void providerFailureReturns503WithoutCreatingMetadata() throws Exception {
+        when(storage.store(any(), any())).thenThrow(new com.tuap.backend.servicios.storage.StorageUnavailableException());
+        mockMvc.perform(multipart("/api/upload").file(file()).param("purpose", "CHAT_ATTACHMENT"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("code").value("STORAGE_UNAVAILABLE"));
+        Mockito.verifyNoInteractions(dao);
     }
 
     @Test void publicFile_AllowsAnonymousAndAuthenticatedReaders() throws Exception {

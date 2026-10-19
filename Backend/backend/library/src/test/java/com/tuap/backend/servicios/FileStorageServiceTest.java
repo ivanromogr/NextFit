@@ -20,6 +20,11 @@ import com.tuap.backend.servicios.storage.InvalidFileException;
 import com.tuap.backend.servicios.storage.StoredFile;
 import com.tuap.backend.servicios.storage.StoredFileNotFoundException;
 import com.tuap.backend.servicios.storage.UnsupportedFileTypeException;
+import com.tuap.backend.servicios.storage.CloudinaryFileStorage;
+import com.tuap.backend.servicios.storage.StorageUnavailableException;
+import org.springframework.beans.factory.ObjectProvider;
+import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
 
 class FileStorageServiceTest {
     private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0x01};
@@ -106,6 +111,38 @@ class FileStorageServiceTest {
         assertThrows(InvalidFileException.class,
                 () -> collidingStorage.store(file("photo.jpg", "image/jpeg", JPEG), UploadPurpose.PROFILE_IMAGE));
         assertEquals("original", Files.readString(existing));
+    }
+
+    @Test @SuppressWarnings("unchecked") void remoteStorageNeverFallsBackToLocalOnFailure() {
+        UploadProperties properties = new UploadProperties();
+        properties.setProvider("cloudinary");
+        properties.setStorageDirectory(tempDir.resolve("remote").toString());
+        CloudinaryFileStorage remote = mock(CloudinaryFileStorage.class);
+        ObjectProvider<CloudinaryFileStorage> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(remote);
+        FileStorageService service = new FileStorageService(properties, provider);
+        StoredFile result = service.store(file("photo.png", "image/png", PNG), UploadPurpose.CHAT_ATTACHMENT);
+        assertTrue(result.storageKey().startsWith("cld_"));
+        verify(remote).store(result.storageKey(), PNG);
+        assertFalse(Files.exists(tempDir.resolve("remote").resolve(result.storageKey())));
+        service.load(result.storageKey());
+        service.delete(result.storageKey());
+        verify(remote).load(result.storageKey());
+        verify(remote).delete(result.storageKey());
+        doThrow(new StorageUnavailableException()).when(remote).store(anyString(), any());
+        assertThrows(StorageUnavailableException.class,
+                () -> service.store(file("photo.png", "image/png", PNG), UploadPurpose.CHAT_ATTACHMENT));
+        assertEquals(0, tempDir.resolve("remote").toFile().list().length);
+    }
+
+    @Test void failsClosedForMissingOrUnknownProvider() {
+        UploadProperties properties = new UploadProperties();
+        properties.setProvider("cloudinary");
+        assertThrows(IllegalStateException.class, () -> new FileStorageService(properties));
+        properties.setProvider("typo");
+        assertThrows(IllegalStateException.class, () -> new FileStorageService(properties));
+        assertThrows(StorageUnavailableException.class,
+                () -> storage.load("cld_11111111-1111-4111-8111-111111111111.png"));
     }
 
     private MockMultipartFile file(String name, String contentType, byte[] content) {

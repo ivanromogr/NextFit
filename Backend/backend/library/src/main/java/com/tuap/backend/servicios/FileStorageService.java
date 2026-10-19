@@ -12,6 +12,8 @@ import java.util.UUID;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.tuap.backend.config.UploadProperties;
@@ -22,15 +24,39 @@ import com.tuap.backend.servicios.storage.InvalidFileException;
 import com.tuap.backend.servicios.storage.StoredFile;
 import com.tuap.backend.servicios.storage.StoredFileNotFoundException;
 import com.tuap.backend.servicios.storage.UnsupportedFileTypeException;
+import com.tuap.backend.servicios.storage.CloudinaryFileStorage;
+import com.tuap.backend.servicios.storage.StorageUnavailableException;
 
 @Service
 public class FileStorageService {
     private static final int MAX_FILENAME_LENGTH = 255;
     private final UploadProperties properties;
     private final Path baseDirectory;
+    private final CloudinaryFileStorage remote;
 
     public FileStorageService(UploadProperties properties) {
+        this(properties, (CloudinaryFileStorage) null);
+    }
+
+    @Autowired
+    public FileStorageService(UploadProperties properties, ObjectProvider<CloudinaryFileStorage> remote) {
+        this(properties, remote.getIfAvailable());
+    }
+
+    private FileStorageService(UploadProperties properties, CloudinaryFileStorage remote) {
+        if (!"local".equals(properties.getProvider()) && !"cloudinary".equals(properties.getProvider())) {
+            throw new IllegalStateException("Proveedor de almacenamiento no soportado");
+        }
+        if ("cloudinary".equals(properties.getProvider()) && remote == null) {
+            throw new IllegalStateException("El almacenamiento remoto no está configurado");
+        }
+        if (properties.getProfileImageMaxBytes() <= 0 || properties.getChatAttachmentMaxBytes() <= 0
+                || properties.getProfileImageMaxBytes() >= Integer.MAX_VALUE
+                || properties.getChatAttachmentMaxBytes() >= Integer.MAX_VALUE) {
+            throw new IllegalStateException("Límites de almacenamiento no válidos");
+        }
         this.properties = properties;
+        this.remote = remote;
         try {
             this.baseDirectory = Path.of(properties.getStorageDirectory()).toAbsolutePath().normalize();
             Files.createDirectories(baseDirectory);
@@ -46,6 +72,12 @@ public class FileStorageService {
         validateDeclaredMimeType(file.getContentType(), type);
 
         String storageKey = generateStorageKey(type);
+        if (remote != null) {
+            storageKey = "cld_" + storageKey;
+            remote.store(storageKey, content);
+            return new StoredFile(storageKey, type.getMimeType(), type.getExtension(), content.length,
+                    sanitizeOriginalFilename(file.getOriginalFilename()));
+        }
         Path destination = resolveStorageKey(storageKey);
         try {
             Files.write(destination, content, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
@@ -57,6 +89,7 @@ public class FileStorageService {
     }
 
     public Resource load(String storageKey) {
+        if (CloudinaryFileStorage.isRemoteKey(storageKey)) return requireRemote().load(storageKey);
         Path file = resolveStorageKey(storageKey);
         if (!Files.exists(file, LinkOption.NOFOLLOW_LINKS) || !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)
                 || Files.isSymbolicLink(file)) {
@@ -70,6 +103,10 @@ public class FileStorageService {
     }
 
     public void delete(String storageKey) {
+        if (CloudinaryFileStorage.isRemoteKey(storageKey)) {
+            requireRemote().delete(storageKey);
+            return;
+        }
         Path file = resolveStorageKey(storageKey);
         try {
             if (Files.exists(file, LinkOption.NOFOLLOW_LINKS) && !Files.isSymbolicLink(file)) {
@@ -109,7 +146,9 @@ public class FileStorageService {
 
     private byte[] readContent(MultipartFile file, UploadPurpose purpose) {
         try (InputStream input = file.getInputStream()) {
-            byte[] content = input.readAllBytes();
+            long maximum = purpose == UploadPurpose.PROFILE_IMAGE
+                    ? properties.getProfileImageMaxBytes() : properties.getChatAttachmentMaxBytes();
+            byte[] content = input.readNBytes(Math.toIntExact(maximum + 1));
             if (content.length == 0) throw new InvalidFileException("El archivo no contiene datos");
             validateSize(content.length, purpose);
             return content;
@@ -143,12 +182,17 @@ public class FileStorageService {
     }
 
     private Path resolveStorageKey(String storageKey) {
-        if (storageKey == null || storageKey.isBlank()) throw new InvalidFileException("Storage key inválida");
+        if (storageKey == null || storageKey.isBlank() || storageKey.contains("\\")) throw new InvalidFileException("Storage key inválida");
         Path destination = baseDirectory.resolve(storageKey).normalize();
         if (!destination.startsWith(baseDirectory) || destination.getParent() == null
                 || !destination.getParent().equals(baseDirectory)) {
             throw new InvalidFileException("Storage key fuera del directorio permitido");
         }
         return destination;
+    }
+
+    private CloudinaryFileStorage requireRemote() {
+        if (remote == null) throw new StorageUnavailableException();
+        return remote;
     }
 }

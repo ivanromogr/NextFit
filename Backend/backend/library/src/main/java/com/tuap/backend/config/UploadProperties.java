@@ -6,11 +6,14 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "upload")
 public class UploadProperties {
+    private String provider = "local";
     private String storageDirectory = "uploads";
     private long profileImageMaxBytes = 5L * 1024 * 1024;
     private long chatAttachmentMaxBytes = 10L * 1024 * 1024;
 
     public String getStorageDirectory() { return storageDirectory; }
+    public String getProvider() { return provider; }
+    public void setProvider(String provider) { this.provider = provider; }
     public void setStorageDirectory(String storageDirectory) { this.storageDirectory = storageDirectory; }
     public long getProfileImageMaxBytes() { return profileImageMaxBytes; }
     public void setProfileImageMaxBytes(long profileImageMaxBytes) { this.profileImageMaxBytes = profileImageMaxBytes; }
