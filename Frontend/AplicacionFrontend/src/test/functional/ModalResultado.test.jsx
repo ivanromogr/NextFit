@@ -61,7 +61,7 @@ describe('Componente ModalResultados', () => {
     });
 
     expect(screen.getByText('60 min')).toBeInTheDocument();
-    expect(screen.getByText(/2\.?400 kg/i)).toBeInTheDocument();
+    expect(screen.getByText(/2[.,\u00a0\u202f]?400 kg/i)).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument(); 
     expect(screen.getByText(/"¡Entreno brutal!"/i)).toBeInTheDocument();
     expect(screen.getByText('Sentadilla')).toBeInTheDocument();

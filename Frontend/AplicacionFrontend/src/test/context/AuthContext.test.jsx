@@ -1,7 +1,11 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
 import { AuthProvider, useAuth } from "../../context/AuthContext";
+
+import { refreshWebSession, logoutSession } from "../../api/endpoints";
+import { clearAuthSession, getAccessToken } from "../../utils/authSession";
+vi.mock("../../api/endpoints", () => ({ refreshWebSession: vi.fn(), logoutSession: vi.fn() }));
 
 describe("AuthContext (AuthProvider & useAuth)", () => {
   // Mock manual de sessionStorage
@@ -18,27 +22,35 @@ describe("AuthContext (AuthProvider & useAuth)", () => {
   beforeEach(() => {
     vi.stubGlobal("sessionStorage", sessionStorageMock);
     sessionStorageMock.clear();
+    clearAuthSession();
     vi.clearAllMocks();
+    refreshWebSession.mockRejectedValue(new Error("No refresh session"));
+    logoutSession.mockResolvedValue({ status: 204 });
   });
 
   // Helper para renderizar el hook dentro del provider
   const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
 
-  it("debe inicializarse con valores nulos y loading en false", () => {
+  it("termina la comprobación inicial sin autenticar cuando no hay cookie válida", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
+    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.user).toBeNull();
     expect(result.current.role).toBeNull();
     expect(result.current.loading).toBe(false);
   });
 
-  it("debe recuperar la sesión de sessionStorage al cargar", () => {
+  it("confirma los metadatos persistidos mediante refresh y conserva el token solo en memoria", async () => {
     const mockSession = { id: "123", email: "cliente@nextfit.test", role: "CLIENTE", accessToken: "token", expiresAt: Date.now() + 60_000 };
     sessionStorageMock.setItem("auth_session", JSON.stringify(mockSession));
+    refreshWebSession.mockResolvedValue({ data: { accessToken: "fresh-token", user: { id: "123", email: "cliente@nextfit.test", role: "CLIENTE" } } });
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
+    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.user).toEqual(expect.objectContaining({ id: "123", role: "CLIENTE" }));
+    expect(getAccessToken()).toBe("fresh-token");
+    expect(JSON.parse(sessionStorageMock.getItem("auth_session"))).not.toHaveProperty("accessToken");
     expect(result.current.role).toBe("CLIENTE");
   });
 
@@ -52,9 +64,10 @@ describe("AuthContext (AuthProvider & useAuth)", () => {
     consoleSpy.mockRestore();
   });
 
-  it("la función login debe guardar datos en sessionStorage y actualizar el estado", () => {
+  it("la función login guarda metadatos y actualiza el estado", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
+    await waitFor(() => expect(result.current.loading).toBe(false));
     act(() => {
       result.current.login({ accessToken: "token", expiresIn: 60, user: { id: "user-1", email: "coach@nextfit.test", role: "ENTRENADOR" } });
     });
@@ -67,29 +80,33 @@ describe("AuthContext (AuthProvider & useAuth)", () => {
     );
   });
 
-  it("la función logout debe limpiar el estado y sessionStorage", () => {
+  it("la función logout revoca la sesión y limpia los metadatos", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
+    await waitFor(() => expect(result.current.loading).toBe(false));
     // Primero logueamos
+    await waitFor(() => expect(result.current.loading).toBe(false));
     act(() => {
       result.current.login({ accessToken: "token", expiresIn: 60, user: { id: "user-1", email: "cliente@nextfit.test", role: "CLIENTE" } });
     });
 
     // Luego deslogueamos
-    act(() => {
-      result.current.logout();
+    await act(async () => {
+      await result.current.logout();
     });
+    expect(logoutSession).toHaveBeenCalledTimes(1);
 
     expect(result.current.user).toBeNull();
     expect(result.current.role).toBeNull();
     expect(sessionStorageMock.removeItem).toHaveBeenCalledWith("auth_session");
   });
 
-  it("isAuthenticated debe devolver true si hay usuario y false si no", () => {
+  it("isAuthenticated debe devolver true si hay usuario y false si no", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     expect(result.current.isAuthenticated()).toBe(false);
 
+    await waitFor(() => expect(result.current.loading).toBe(false));
     act(() => {
       result.current.login({ accessToken: "token", expiresIn: 60, user: { id: "1", email: "cliente@nextfit.test", role: "CLIENTE" } });
     });
@@ -105,9 +122,10 @@ describe("AuthContext (AuthProvider & useAuth)", () => {
     expect(result.current.isAuthenticated()).toBe(false);
   });
 
-  it("descarta una sesión expirada", () => {
+  it("descarta metadatos antiguos cuando el servidor rechaza el refresh", async () => {
     sessionStorageMock.setItem("auth_session", JSON.stringify({ id: "1", email: "x@nextfit.test", role: "CLIENTE", accessToken: "token", expiresAt: Date.now() - 1 }));
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.isAuthenticated()).toBe(false);
     expect(sessionStorageMock.removeItem).toHaveBeenCalledWith("auth_session");
   });

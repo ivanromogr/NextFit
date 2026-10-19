@@ -9,6 +9,7 @@ describe('Componente ImageUpload', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    mockOnUploadSuccess.mockClear();
     // Forzamos a que siempre empiecen con timers reales
     vi.useRealTimers();
     
@@ -52,9 +53,10 @@ describe('Componente ImageUpload', () => {
 
   it('sube la imagen con éxito y llama a la función de éxito', async () => {
    
-    fetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ url: 'http://fitness.com/avatar.jpg' }),
+    fetch.mockResolvedValueOnce({
+      ok: true, json: async () => ({ id: 'file-123', url: '/api/upload/files/file-123' }),
+    }).mockResolvedValueOnce({
+      ok: true, json: async () => ({ fotoPerfil: 'http://fitness.com/avatar.jpg' }),
     });
 
     render(<ImageUpload onUploadSuccess={mockOnUploadSuccess} label="Subir Foto" />);
@@ -68,6 +70,7 @@ describe('Componente ImageUpload', () => {
     expect(successMsg).toBeInTheDocument();
     
     expect(mockOnUploadSuccess).toHaveBeenCalledWith('http://fitness.com/avatar.jpg');
+    expect(fetch).toHaveBeenNthCalledWith(2, expect.stringContaining('/api/auth/profile-image'), expect.objectContaining({ method: 'PUT', body: JSON.stringify({ fileId: 'file-123' }) }));
   });
 
   it('muestra error si el servidor falla', async () => {

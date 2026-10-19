@@ -3,12 +3,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
 import App from "../App";
 import '@testing-library/jest-dom';
+import { refreshWebSession } from '../api/endpoints';
 
 // 1. MOCK GLOBAL DE LA API (Para evitar Network Error)
 vi.mock("../api/endpoints", () => ({
+  refreshWebSession: vi.fn(),
+  logoutSession: vi.fn().mockResolvedValue({}),
   obtenerResumenDashboard: vi.fn(() => Promise.resolve({ data: {} })),
   // Añade aquí cualquier otro endpoint que el Dashboard llame al cargar
 }));
+
+vi.mock("../pages/cliente/DashboardCliente", () => ({ default: () => <h1>Dashboard de prueba</h1> }));
 
 describe("Integración de Rutas en App.jsx", () => {
   const sessionStorageMock = (() => {
@@ -25,6 +30,7 @@ describe("Integración de Rutas en App.jsx", () => {
     vi.stubGlobal("sessionStorage", sessionStorageMock);
     sessionStorageMock.clear();
     vi.clearAllMocks();
+    refreshWebSession.mockRejectedValue(new Error("No refresh session"));
     window.history.pushState({}, "Home", "/");
   });
 
@@ -60,13 +66,13 @@ describe("Integración de Rutas en App.jsx", () => {
   it("permite acceso al dashboard de cliente con una sesión JWT válida", async () => {
     const sessionData = JSON.stringify({ id: "1", email: "cliente@nextfit.test", role: "CLIENTE", accessToken: "token", expiresAt: Date.now() + 60_000 });
     sessionStorageMock.setItem("auth_session", sessionData);
+    refreshWebSession.mockResolvedValue({ data: { accessToken: "fresh-token", user: { id: "1", email: "cliente@nextfit.test", role: "CLIENTE" } } });
     
     window.history.pushState({}, "Dashboard", "/cliente/dashboard");
     render(<App />);
 
-    await waitFor(() => {
-      expect(window.location.pathname).toBe("/cliente/dashboard");
-    });
+    expect(await screen.findByRole("heading", { name: "Dashboard de prueba" })).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/cliente/dashboard");
   });
 
   it("redirecciona a login ante una ruta inexistente", async () => {
