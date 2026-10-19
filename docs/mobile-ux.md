@@ -278,3 +278,33 @@ grande, teclado, navegación, acceso social y entrenamiento/chat. Las exportacio
 JavaScript y las pruebas de componentes no sustituyen esas comprobaciones.
 No se declara cerrado el paso 6 y no se comienza el paso 7. El propietario debe
 recibir el aviso de cierre antes de continuar al testing general.
+
+
+## Candidato Android del paso 6
+
+La compilación interna de EAS `c533ef66-79c6-4453-96d2-063edb8204aa`
+se solicita desde el commit `dfc0e8d4f76457ccdadbb35e0876fbdf556a7ba8`,
+perfil `preview`, entorno `preview`, directorio `/Frontend_App`.
+Su página de seguimiento es:
+https://expo.dev/accounts/iviromo/projects/Frontend_App/builds/c533ef66-79c6-4453-96d2-063edb8204aa
+
+Una solicitud aceptada no demuestra que haya un APK disponible. Hay que
+comprobar el estado final de EAS antes de distribuir el enlace de instalación.
+La compilación anterior a esta rama no contiene el rediseño del paso 6.
+
+Para la comprobación en Android, abrir el enlace de instalación desde el propio
+móvil y descargar el APK cuando EAS termine. Android puede pedir permitir la
+instalación desde ese navegador. No es una instalación mediante Expo Go ni
+una publicación en Google Play. No desinstalar una versión existente para
+resolver un error sin registrar antes el mensaje y conservar sus datos.
+
+Comprobar con cuentas de prueba de cliente y entrenador:
+
+- Acceso, recuperación de contraseña y ajustes, sin recortes con texto grande.
+- Navegación y formularios con el teclado abierto, botón Atrás y áreas seguras.
+- Creación/edición de rutina, coma decimal y recuperación del borrador al fallar.
+- Entrenamiento y chat: carga, error y reintento, sin envíos o guardados duplicados.
+- Acceso de Google con la firma existente; Apple/iOS real sigue pendiente.
+
+La compilación y las comprobaciones del APK forman parte del cierre del paso 6.
+El paso 7 no se inicia hasta avisar al propietario de ese cierre.
