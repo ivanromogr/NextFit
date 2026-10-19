@@ -1,37 +1,34 @@
 import React from 'react';
+import useTabBarLayout from './useTabBarLayout';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
     LayoutGrid,
     Calendar,
     Search,
     MessageSquare,
-    User,
-    Settings
+    User
 } from 'lucide-react-native';
 
 import DashboardClienteScreen from '../screens/DashboardScreen';
 import CalendarioClienteScreen from '../screens/Cliente/CalendarioClienteScreen';
 import PerfilScreen from '../screens/Cliente/EditarPerfilCliente';
-import ProgresoClienteScreen from '../screens/Cliente/ProgresoClienteScreen';
 import ChatClienteScreen from '../screens/Cliente/ChatClienteScreen';
-import AgendaEntrenadorScreen from '../screens/Entrenador/AgendaEntrenadorScreen';
-// 🔥 LA CLAVE ESTÁ AQUÍ: Hemos cambiado 'Cliente' por 'Entrenador' porque ahí es donde lo moviste
 
 import ExplorarEntrenadores from '../screens/Cliente/ExplorarEntrenadores';
 
 const Tab = createBottomTabNavigator();
 
 export default function ClienteTabNavigator() {
+    const tabBarLayout = useTabBarLayout();
     return (
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
+                tabBarHideOnKeyboard: true,
                 tabBarStyle: {
                     backgroundColor: '#0c0c0e',
                     borderTopColor: '#1f1f22',
-                    height: 65,
-                    paddingBottom: 10,
-                    paddingTop: 8,
+                    ...tabBarLayout,
                 },
                 tabBarActiveTintColor: '#FACC15',
                 tabBarInactiveTintColor: '#a1a1aa',

@@ -1,23 +1,17 @@
 import React from 'react';
+import useTabBarLayout from './useTabBarLayout';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Platform, View, StyleSheet } from 'react-native';
-import { Users, Calendar, Dumbbell, MessageCircle, User } from 'lucide-react-native';
+import { View, StyleSheet } from 'react-native';
+import { Users, Calendar, MessageCircle, User } from 'lucide-react-native';
 
-// 👇 PANTALLAS REALES (Ya creadas)
 import DashboardEntrenadorScreen from '../screens/Entrenador/DashboardEntrenadorScreen';
 import EntrenadorPerfilScreen from '../screens/Entrenador/EntrenadorPerfilScreen';
 import ChatsEntrenadorScreen from '../screens/Entrenador/ChatsEntrenadorScreen';
 import AgendaEntrenadorScreen from '../screens/Entrenador/AgendaEntrenadorScreen';
-// 🚧 PANTALLAS PENDIENTES (Se cambiarán según las vayas creando)
-// import AgendaEntrenadorScreen from '../screens/Entrenador/AgendaEntrenadorScreen';
-// import PlantillasEntrenadorScreen from '../screens/Entrenador/PlantillasEntrenadorScreen';
-// import ChatListaScreen from '../screens/Entrenador/ChatListaScreen';
-
-const DummyScreen = () => <View style={{ flex: 1, backgroundColor: '#050505' }} />;
-
 const Tab = createBottomTabNavigator();
 
 export default function EntrenadorTabNavigator() {
+    const tabBarLayout = useTabBarLayout();
     return (
         <Tab.Navigator
             screenOptions={{
@@ -25,7 +19,7 @@ export default function EntrenadorTabNavigator() {
                 tabBarShowLabel: true,
                 tabBarActiveTintColor: '#FACC15', 
                 tabBarInactiveTintColor: '#71717a', 
-                tabBarStyle: styles.tabBar,
+                tabBarStyle: [styles.tabBar, tabBarLayout],
                 tabBarLabelStyle: styles.tabBarLabel,
                 tabBarHideOnKeyboard: true, 
             }}
@@ -92,9 +86,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#0a0a0a', 
         borderTopWidth: 1,
         borderTopColor: '#1f1f22', 
-        height: Platform.OS === 'ios' ? 85 : 65,
-        paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-        paddingTop: 10,
         elevation: 0, 
         shadowOpacity: 0, 
     },

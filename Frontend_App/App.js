@@ -1,4 +1,5 @@
 import React from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -111,11 +112,13 @@ function RootNavigation() {
 export default function App() {
   const linking = { prefixes: ['nextfit://'], config: { screens: { ResetPassword: 'reset-password', ConfirmEmailChange: 'confirm-email-change' } } };
   return (
-    <AuthProvider>
-      <NavigationContainer linking={linking}>
-        <RootNavigation />
-      </NavigationContainer>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <NavigationContainer linking={linking}>
+          <RootNavigation />
+        </NavigationContainer>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 

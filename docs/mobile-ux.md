@@ -24,7 +24,7 @@ consentimiento opcional de comunicaciones.
 
 ## Validación
 
-Desde `Frontend_App`, `npm test -- --runInBand`: 18 suites, 81 pruebas correctas.
+Desde `Frontend_App`, `npm test -- --runInBand`: 19 suites, 84 pruebas correctas.
 Incluye recuperación, consentimientos, Google/Apple, chat y las pruebas nuevas
 para visibilidad, eventos del campo y bloqueo de peticiones concurrentes.
 
@@ -36,3 +36,17 @@ del propietario. No se da por terminado el bloque completo de UX móvil.
 
 La copia recuperable de la base de datos real y la adopción de migraciones
 siguen pendientes como se indica en `production-readiness.md`.
+
+## Navegación inferior
+
+Las barras de cliente y entrenador comparten el cálculo del área segura:
+reservan como mínimo el margen inferior del sistema y mantienen 52 puntos
+útiles para icono/etiqueta (además de ese margen y del relleno superior).
+También respetan los márgenes laterales. La raíz proporciona `SafeAreaProvider`
+y ambas barras se ocultan cuando aparece el teclado.
+
+Tres pruebas comprueban la separación respecto al indicador de inicio, el
+espacio táctil cuando no hay margen inferior y la actualización del diseño al
+cambiar los márgenes del sistema. La comprobación visual y con teclado real en
+un teléfono sigue pendiente; las pruebas de componentes y exportaciones no la
+sustituyen.
