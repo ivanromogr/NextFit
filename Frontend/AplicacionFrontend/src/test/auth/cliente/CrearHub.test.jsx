@@ -37,6 +37,16 @@ describe('Página CrearHub', () => {
     expect(screen.getByText('Diseñar Manual')).toBeInTheDocument();
   });
 
+  it('ofrece un botón enfocable para abrir el creador manual', async () => {
+    renderComponent();
+    const manual = screen.getByRole('button', { name: /Diseñar Manual/i });
+    expect(manual.tagName).toBe('BUTTON');
+    manual.focus();
+    expect(manual).toHaveFocus();
+    fireEvent.click(manual);
+    expect(mockNavigate).toHaveBeenCalledWith('/cliente/crear-rutina');
+  });
+
   it('navega a la página de Generar IA al hacer clic en su tarjeta', () => {
     renderComponent();
 

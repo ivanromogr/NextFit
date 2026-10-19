@@ -14,7 +14,7 @@ export default function CrearHub() {
         gridActions: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', maxWidth:'800px', margin:'0 auto' },
         
         actionBtnCard: {
-            background: '#121214', border: '1px solid #27272a', borderRadius: '24px', padding: '40px',
+            font: 'inherit', width: '100%', background: '#121214', border: '1px solid #27272a', borderRadius: '24px', padding: '40px',
             display: 'flex', flexDirection:'column', alignItems: 'center', textAlign:'center', gap: '20px',
             cursor: 'pointer', transition: 'all 0.3s ease', position:'relative', overflow:'hidden'
         },
@@ -35,7 +35,7 @@ export default function CrearHub() {
             </header>
 
             <div style={styles.gridActions}>
-                <div
+                <button type="button"
                     data-testid="crear-hub-ia-card"
                     style={styles.actionBtnCard}
                     onClick={() => navigate("/cliente/generar-ia")}
@@ -60,10 +60,10 @@ export default function CrearHub() {
                         <p style={styles.cardSub}>Genera rutinas según tu objetivo y los días de entrenamiento.</p>
                     </div>
                     <ArrowRight className="arrow-icon" style={styles.arrow} size={24} />
-                </div>
+                </button>
 
                 {/* OPCIÓN 2: MANUAL */}
-                <div
+                <button type="button"
                     data-testid="crear-hub-manual-card"
                     style={styles.actionBtnCard}
                     onClick={() => navigate("/cliente/crear-rutina")} // Esto lleva al creador manual antiguo
@@ -88,7 +88,7 @@ export default function CrearHub() {
                         <p style={styles.cardSub}>Crea tu rutina ejercicio a ejercicio desde cero.</p>
                     </div>
                     <ArrowRight className="arrow-icon" style={styles.arrow} size={24} />
-                </div>
+                </button>
             </div>
         </div>
     );

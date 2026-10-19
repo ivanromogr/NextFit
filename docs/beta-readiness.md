@@ -68,6 +68,7 @@ con una ejecución nueva.
 | PostgreSQL | Obtener copia cifrada real y restaurarla en una base aislada; ensayos con datos sintéticos no acreditan recuperación de producción |
 | Migraciones | Revisar esquema/baseline de la base existente antes de activar Flyway o sustituir `update`; no hacerlo para silenciar fallos |
 | Archivos | Cloudinary privado se verificó con un objeto sintético tras recrear instancia; archivos locales antiguos perdidos no se recuperaron |
+| Catálogo de ejercicios | Integrar la API de pago al final, antes de publicar el conjunto. Proveedor y plan pendientes de elección; no contratar ni conectar todavía. Verificar cobertura, traducciones, permisos de uso de medios, límites y respuesta ante fallos antes del despliegue |
 | Legal/publicación | Revisar textos, contacto de soporte, política de privacidad, datos declarados en tiendas y derechos de medios del catálogo |
 | Recorridos de beta | Cuentas ficticias de ambos perfiles: acceso, asignación, calendario, sesión, progreso, chat, bloqueo/denuncia y privacidad; no usar cuentas reales ajenas |
 
@@ -151,3 +152,11 @@ Validación: 4 pruebas del generador web y 9 de edición/generación móvil; com
 La pantalla bloquea envíos simultáneos y otra creación tras una respuesta satisfactoria. Conserva las opciones después de fallar, muestra un aviso dentro de la pantalla y no navega si la respuesta llega después de salir. Ante un fallo de red pide revisar las rutinas antes de reintentar: el bloqueo del cliente no garantiza idempotencia del servidor entre intentos independientes.
 
 Validación: las 6 pruebas del generador web incluyen fallo/reintento con opciones conservadas, bloqueo durante el envío y después de guardar, y salida antes de recibir la respuesta. Compilación web de producción completada.
+
+### Catálogo de pago y controles de creación
+
+Por indicación del propietario, la integración con la API de ejercicios de pago queda para el último tramo, antes de publicar todo. No hay proveedor contratado ni se cambian las fuentes del catálogo actual en esta revisión. Tampoco se habilita AI Coach.
+
+Las tarjetas de creación y las opciones del generador web usan botones nativos enfocables. Las opciones anuncian su estado seleccionado y se bloquean mientras se guarda o tras finalizar, para evitar cambiar lo que aparece seleccionado durante el envío.
+
+Validación de estos controles: 14 pruebas web de creación/generación correctas y compilación de producción completada. Una primera ejecución superó el límite de 5 segundos en un caso de enfoque; la repetición con límite de 15 segundos completó los 14 casos sin cambios de comportamiento. Las pruebas comprueban controles nativos, foco, selección y bloqueo; no sustituyen una revisión con lector de pantalla ni Safari real.

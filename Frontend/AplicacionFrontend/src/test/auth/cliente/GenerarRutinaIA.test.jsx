@@ -47,6 +47,22 @@ describe('Página GenerarRutinaIA', () => {
         expect(screen.getByText(/Selecciona tu Objetivo Principal/i)).toBeInTheDocument();
     });
 
+    it('ofrece botones enfocables y anuncia la opción seleccionada', async () => {
+        renderComponent();
+        const fuerza = screen.getByRole('button', { name: 'FUERZA' });
+        fuerza.focus();
+        expect(fuerza.tagName).toBe('BUTTON');
+        expect(fuerza).toHaveFocus();
+        fireEvent.click(fuerza);
+        expect(fuerza).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: 'HIPERTROFIA' })).toHaveAttribute('aria-pressed', 'false');
+        const avanzado = screen.getByRole('button', { name: 'Avanzado' });
+        avanzado.focus();
+        expect(avanzado.tagName).toBe('BUTTON');
+        fireEvent.click(avanzado);
+        expect(avanzado).toHaveAttribute('aria-pressed', 'true');
+    });
+
     it('redirecciona al login si no hay ID de usuario en localStorage', () => {
         localStorage.getItem.mockReturnValue(null);
         renderComponent();
@@ -100,6 +116,7 @@ describe('Página GenerarRutinaIA', () => {
         fireEvent.click(button);
         expect(generarRutinaAuto).toHaveBeenCalledTimes(1);
         expect(button).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'FUERZA' })).toBeDisabled();
         await act(async () => reject(new Error('private server details')));
         expect(screen.getByRole('alert')).toHaveTextContent('Revisa tus rutinas');
         expect(screen.getByRole('alert')).not.toHaveTextContent('private server details');

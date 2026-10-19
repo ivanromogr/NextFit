@@ -31,7 +31,7 @@ const FRECUENCIAS = [
 ];
 
 // --- COMPONENTE TARJETA DE SELECCIÓN (Estilo Web App) ---
-const SelectionCard = ({ selected, onClick, title, subtitle, icon, variant = "default" }) => {
+const SelectionCard = ({ selected, onClick, title, subtitle, icon, variant = "default", disabled = false }) => {
     // Estilos dinámicos según si es una tarjeta grande (objetivo) o pequeña (nivel/frecuencia)
     const isBig = variant === "big";
     
@@ -50,11 +50,16 @@ const SelectionCard = ({ selected, onClick, title, subtitle, icon, variant = "de
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         transform: selected ? 'translateY(-2px)' : 'translateY(0)',
         boxShadow: selected ? '0 10px 30px -10px rgba(250, 204, 21, 0.2)' : 'none',
-        height: '100%' // Para igualar alturas en grid
+        height: '100%', width: '100%', font: 'inherit',
+        opacity: disabled ? 0.6 : 1 // Para igualar alturas en grid
     };
 
     return (
-        <div 
+        <button
+            type="button"
+            aria-pressed={selected}
+            aria-label={title}
+            disabled={disabled}
             style={containerStyle} 
             onClick={onClick}
             onMouseEnter={e => { if(!selected) { e.currentTarget.style.borderColor = '#666'; e.currentTarget.style.background = '#222'; }}}
@@ -62,36 +67,36 @@ const SelectionCard = ({ selected, onClick, title, subtitle, icon, variant = "de
         >
             {/* Icono */}
             {icon && (
-                <div style={{
+                <span style={{
                     color: selected ? '#000' : '#666',
                     background: selected ? '#FACC15' : 'rgba(255,255,255,0.05)',
                     padding: '10px', borderRadius: '12px',
                     transition: 'all 0.2s'
                 }}>
                     {icon}
-                </div>
+                </span>
             )}
 
             {/* Texto */}
-            <div style={{flex: 1}}>
-                <div style={{
-                    fontWeight: '800', 
+            <span style={{flex: 1, display: 'block'}}>
+                <span style={{
+                    display: 'block', fontWeight: '800',
                     fontSize: isBig ? '1.1rem' : '0.95rem', 
                     color: selected ? '#FACC15' : 'white',
                     textTransform: 'uppercase', letterSpacing: '0.5px'
                 }}>
                     {title}
-                </div>
+                </span>
                 {subtitle && (
-                    <div style={{fontSize: '0.75rem', color: '#777', marginTop: '4px', fontWeight: '500'}}>
+                    <span style={{display: 'block', fontSize: '0.75rem', color: '#777', marginTop: '4px', fontWeight: '500'}}>
                         {subtitle}
-                    </div>
+                    </span>
                 )}
-            </div>
+            </span>
 
             {/* Check para tarjetas pequeñas */}
             {!isBig && selected && <CheckCircle2 size={18} color="#FACC15" />}
-        </div>
+        </button>
     );
 };
 
@@ -238,7 +243,8 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
                         <div style={styles.sectionLabel}><Target size={18}/> 1. Selecciona tu Objetivo Principal</div>
                         <div style={styles.objectivesGrid}>
                             {OBJETIVOS.map(opt => (
-                                <SelectionCard 
+                                <SelectionCard
+                                    disabled={loading || saved}
                                     key={opt.id}
                                     variant="big"
                                     title={opt.label}
@@ -259,7 +265,8 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
                             <div style={styles.sectionLabel}><Signal size={18}/> 2. Tu Experiencia</div>
                             <div style={styles.listGrid}>
                                 {NIVELES.map(opt => (
-                                    <SelectionCard 
+                                    <SelectionCard
+                                    disabled={loading || saved}
                                         key={opt.id}
                                         title={opt.label}
                                         subtitle={opt.desc}
@@ -275,7 +282,8 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
                             <div style={styles.sectionLabel}><CalendarDays size={18}/> 3. Disponibilidad Semanal</div>
                             <div style={styles.freqGrid}>
                                 {FRECUENCIAS.map(opt => (
-                                    <SelectionCard 
+                                    <SelectionCard
+                                    disabled={loading || saved}
                                         key={opt.id}
                                         title={opt.label}
                                         subtitle={opt.desc}
