@@ -192,3 +192,11 @@ Validación: 13 pruebas del creador correctas, incluidas conversión de 35,5 a 3
 El contrato actual de rutinas guarda número de series y una pauta de peso/repeticiones/RPE por ejercicio. El editor web permitía aparentar pautas distintas por fila, pero solo guardaba la primera. Ahora cualquier cambio se refleja en todas las series y una explicación visible indica la pauta común. Los registros reales de series del entrenamiento no se modifican. El editor reutiliza la conversión decimal del creador manual, valida cantidades antes de enviar y conserva RPE 0 al cargar. No se añade un contrato de prescripción individual por serie ni una migración de datos.
 
 Validación: 23 pruebas del editor y creador manual correctas. Incluyen editar desde la segunda fila, reflejarlo en la primera, guardar peso 32,5 como 32.5, rechazar RPE inválido y corregirlo sin perder la rutina. Compilación web completada; API simulada, sin cambios en producción.
+
+### Registro web de entrenamientos: guardado recuperable
+
+Finalizar bloquea peticiones simultáneas y ofrece un aviso dentro del resumen si no se confirma el guardado, conservando las series y notas en la pantalla. No se vuelcan respuestas internas del servidor al usuario. Las cantidades se validan antes de enviar; el peso admite coma decimal y el volumen usa la misma conversión. La carga de la rutina deja de depender de la identidad del objeto de avisos, evitando reinicializaciones por cambios de ese contexto. Una respuesta de guardado recibida tras salir no navega a otra pantalla. No hay borrador persistente después de recargar/cerrar; tampoco se garantiza idempotencia entre peticiones independientes, por lo que el aviso pide revisar el historial antes de reintentar.
+
+Validación: 7 pruebas de la sesión web correctas, incluidas fallo/reintento con 42,5 kg conservados y enviados como 42.5, bloqueo simultáneo, ausencia de recarga al editar y corrección de RPE inválido. API simulada, sin registrar entrenamientos reales.
+
+Compilación web de producción de esta revisión completada correctamente; cambios sin desplegar.

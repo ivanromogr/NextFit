@@ -162,4 +162,43 @@ describe('Página SesionEntrenamiento', () => {
             expect(guardarSesionRealizada).toHaveBeenCalled();
         });
     });
+    it('conserva las series tras un fallo y bloquea guardados repetidos', async () => {
+        obtenerRutinasCliente.mockResolvedValue([mockRutina]);
+        obtenerUltimaSesionRutina.mockResolvedValue(null);
+        let reject;
+        guardarSesionRealizada.mockImplementationOnce(() => new Promise((resolve, fail) => { reject = fail; }));
+        guardarSesionRealizada.mockResolvedValueOnce({});
+        renderComponent();
+        const weight = await screen.findByLabelText('Peso de la serie 1 de Press Militar');
+        fireEvent.change(weight, { target: { value: '42,5' } });
+        fireEvent.click(screen.getByText(/TERMINAR/i));
+        const save = screen.getByRole('button', { name: /^GUARDAR$/i });
+        fireEvent.click(save); fireEvent.click(save);
+        expect(guardarSesionRealizada).toHaveBeenCalledTimes(1);
+        expect(save).toBeDisabled();
+        await act(async () => reject(new Error('private server details')));
+        expect(screen.getByRole('alert')).toHaveTextContent('Tus series se conservan');
+        expect(screen.getByRole('alert')).not.toHaveTextContent('private server details');
+        expect(weight).toHaveValue('42,5');
+        expect(obtenerRutinasCliente).toHaveBeenCalledTimes(1);
+        await act(async () => fireEvent.click(save));
+        expect(guardarSesionRealizada).toHaveBeenCalledTimes(2);
+        expect(guardarSesionRealizada).toHaveBeenLastCalledWith(expect.objectContaining({ series: [expect.objectContaining({ peso: 42.5 })] }));
+    });
+
+    it('permite corregir una serie inválida sin perder el entrenamiento', async () => {
+        obtenerRutinasCliente.mockResolvedValue([mockRutina]);
+        obtenerUltimaSesionRutina.mockResolvedValue(null);
+        renderComponent();
+        const rpe = await screen.findByLabelText('RPE de la serie 1 de Press Militar');
+        fireEvent.change(rpe, { target: { value: '11' } });
+        fireEvent.click(screen.getByText(/TERMINAR/i));
+        fireEvent.click(screen.getByRole('button', { name: /^GUARDAR$/i }));
+        expect(guardarSesionRealizada).not.toHaveBeenCalled();
+        expect(screen.getByRole('alert')).toHaveTextContent('Revisa las series');
+        fireEvent.click(screen.getByRole('button', { name: 'SEGUIR' }));
+        fireEvent.change(rpe, { target: { value: '8' } });
+        expect(screen.getByLabelText('Peso de la serie 1 de Press Militar')).toHaveValue('40');
+    });
+
 });

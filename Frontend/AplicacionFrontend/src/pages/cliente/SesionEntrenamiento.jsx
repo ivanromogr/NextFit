@@ -6,6 +6,7 @@ import {
     obtenerUltimaSesionRutina,
     obtenerRutinasAsignadasPorEntrenador 
 } from '../../api/endpoints';
+import { routineNumber } from '../../utils/routineNumbers';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -86,6 +87,8 @@ export default function SesionEntrenamiento() {
     const navigate = useNavigate();
     const location = useLocation();
     const toast = useToast();
+    const toastRef = useRef(toast);
+    toastRef.current = toast;
     const { userId } = useAuth();
 
     const eventoIdCalendario = location.state?.eventoId;
@@ -97,6 +100,14 @@ export default function SesionEntrenamiento() {
     // --- ESTADOS ---
     const [rutina, setRutina] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState('');
+    const saveLock = useRef(false);
+    const mounted = useRef(true);
+    useEffect(() => {
+        mounted.current = true;
+        return () => { mounted.current = false; };
+    }, []);
 
     const [datosSesion, setDatosSesion] = useState({});
     const [notasSesion, setNotasSesion] = useState({});
@@ -151,19 +162,19 @@ export default function SesionEntrenamiento() {
                     inicializarSesion(actual.detalles || [], mapaHistorial, isReadOnly);
 
                 } else {
-                    toast.error("Rutina no encontrada.");
+                    toastRef.current.error("Rutina no encontrada.");
                     navigate(-1);
                 }
             } catch (e) {
                 console.error(e);
-                toast.error("Error al cargar la rutina");
+                toastRef.current.error("Error al cargar la rutina");
                 navigate(-1);
             } finally {
                 setLoading(false);
             }
         };
         cargar();
-    }, [rutinaId, navigate, targetUserId, isReadOnly, userId, toast]);
+    }, [rutinaId, navigate, targetUserId, isReadOnly, userId]);
 
     const generarMapaHistorial = (seriesPasadas) => {
         const mapa = {};
@@ -265,7 +276,7 @@ export default function SesionEntrenamiento() {
         let volumen = 0;
         Object.values(datosSesion).forEach(sets => {
             sets.forEach(s => { 
-                if (isReadOnly || s.hecho) volumen += (parseFloat(s.peso) || 0) * (parseFloat(s.reps) || 0); 
+                if (isReadOnly || s.hecho) volumen += (routineNumber(s.peso) || 0) * (routineNumber(s.reps) || 0);
             });
         });
         return volumen;
@@ -278,10 +289,27 @@ export default function SesionEntrenamiento() {
     };
 
    const confirmFinish = async () => {
+        if (saveLock.current || isReadOnly) return;
         if (!targetUserId) {
             toast.error("Error: Sesión caducada.");
             return;
         }
+
+        const invalid = Object.values(datosSesion).flat().some(set => {
+            const peso = routineNumber(set.peso);
+            const reps = routineNumber(set.reps);
+            const rpe = routineNumber(set.rpe);
+            return !Number.isFinite(Math.fround(peso)) || peso < 0
+                || !Number.isInteger(reps) || reps < 0 || reps > 2147483647
+                || !Number.isInteger(rpe) || rpe < 0 || rpe > 10;
+        });
+        if (invalid) {
+            setSaveError('Revisa las series: peso no negativo, repeticiones enteras y RPE entero entre 0 y 10. Pulsa SEGUIR para corregirlas.');
+            return;
+        }
+        saveLock.current = true;
+        setSaving(true);
+        setSaveError('');
 
         try {
             const notasUnificadas = Object.entries(notasSesion)
@@ -292,13 +320,13 @@ export default function SesionEntrenamiento() {
             const seriesLimpias = [];
             Object.entries(datosSesion).forEach(([ejercicioId, sets]) => {
                 sets.forEach((set, index) => {
-                    if (set.hecho || parseFloat(set.peso) > 0 || parseInt(set.reps) > 0) {
+                    if (set.hecho || routineNumber(set.peso) > 0 || routineNumber(set.reps) > 0) {
                         seriesLimpias.push({
                             ejercicioId: ejercicioId,
                             setIndex: index,
-                            peso: parseFloat(set.peso) || 0.0,
-                            reps: parseInt(set.reps, 10) || 0,
-                            rpe: parseInt(set.rpe, 10) || 0,
+                            peso: routineNumber(set.peso),
+                            reps: routineNumber(set.reps),
+                            rpe: routineNumber(set.rpe),
                             hecho: set.hecho === true
                         });
                     }
@@ -316,6 +344,7 @@ export default function SesionEntrenamiento() {
 
             await guardarSesionRealizada(payload); 
 
+            if (!mounted.current) return;
             toast.success("¡Entrenamiento guardado! 🔥");
 
             if (eventoIdCalendario) {
@@ -324,15 +353,18 @@ export default function SesionEntrenamiento() {
                 navigate("/cliente/dashboard");
             }
 
-        } catch (error) {
-            console.error("Error al guardar sesión:", error);
-            const detalleError = error?.response?.data || error?.message;
-            toast.error(detalleError ? `Error al guardar: ${detalleError}` : "Hubo un error al guardar la sesión.");
-            setTimerActivo(true);
+        } catch {
+            saveLock.current = false;
+            if (mounted.current) {
+                setSaving(false);
+                setSaveError('No se ha podido confirmar el guardado. Tus series se conservan; revisa el historial antes de reintentar.');
+            }
         }
     };
 
     const cancelFinish = () => {
+        if (saveLock.current) return;
+        setSaveError('');
         setShowFinishModal(false);
         setTimerActivo(true);
     };
@@ -693,7 +725,8 @@ export default function SesionEntrenamiento() {
 
                                         <div style={{ padding: '0 4px' }}>
                                             <input
-                                                type="number"
+                                                type="text" inputMode="decimal"
+                                                aria-label={`Peso de la serie ${i + 1} de ${ej.ejercicio.nombreTraducido || ej.ejercicio.nombre}`}
                                                 style={styles.input}
                                                 value={set.peso}
                                                 onChange={(e) => updateSet(exerciseId, i, 'peso', e.target.value)}
@@ -704,6 +737,8 @@ export default function SesionEntrenamiento() {
                                             <input 
                                                 type="number" 
                                                 style={styles.input} 
+                                                aria-label={`Repeticiones de la serie ${i + 1} de ${ej.ejercicio.nombreTraducido || ej.ejercicio.nombre}`}
+                                                min="0" step="1"
                                                 value={set.reps} 
                                                 onChange={(e) => updateSet(exerciseId, i, 'reps', e.target.value)} 
                                                 disabled={isReadOnly} 
@@ -713,6 +748,8 @@ export default function SesionEntrenamiento() {
                                             <input 
                                                 type="number" 
                                                 style={{ ...styles.input, color: '#71717a' }} 
+                                                aria-label={`RPE de la serie ${i + 1} de ${ej.ejercicio.nombreTraducido || ej.ejercicio.nombre}`}
+                                                min="0" max="10" step="1"
                                                 value={set.rpe} 
                                                 onChange={(e) => updateSet(exerciseId, i, 'rpe', e.target.value)} 
                                                 disabled={isReadOnly} 
@@ -778,10 +815,11 @@ export default function SesionEntrenamiento() {
                             <div style={styles.statItem}><span style={styles.statItemLabel}>Volumen</span><span style={styles.statItemValue}>{calcularVolumenTotal()}kg</span></div>
                             <div style={styles.statItem}><span style={styles.statItemLabel}>Series</span><span style={styles.statItemValue}>{Object.values(datosSesion).flat().filter(s => s.hecho).length}</span></div>
                         </div>
+                        {saveError && <p role="alert" style={{ color: '#fca5a5' }}>{saveError}</p>}
                         <div style={styles.modalActions}>
-                            <button style={styles.btnCancel} onClick={cancelFinish}>SEGUIR</button>
-                            <button style={styles.btnConfirm} onClick={confirmFinish}>
-                                <Save size={16} style={{ marginRight: 6 }} /> GUARDAR
+                            <button disabled={saving} style={styles.btnCancel} onClick={cancelFinish}>SEGUIR</button>
+                            <button disabled={saving} aria-busy={saving} style={styles.btnConfirm} onClick={confirmFinish}>
+                                <Save size={16} style={{ marginRight: 6 }} /> {saving ? "GUARDANDO..." : "GUARDAR"}
                             </button>
                         </div>
                     </div>
