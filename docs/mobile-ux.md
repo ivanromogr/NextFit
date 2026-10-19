@@ -24,7 +24,7 @@ consentimiento opcional de comunicaciones.
 
 ## Validación
 
-Desde `Frontend_App`, `npm test -- --runInBand`: 20 suites, 98 pruebas correctas.
+Desde `Frontend_App`, `npm test -- --runInBand`: 21 suites, 106 pruebas correctas.
 Incluye recuperación, consentimientos, Google/Apple, chat y las pruebas nuevas
 para visibilidad, eventos del campo y bloqueo de peticiones concurrentes.
 
@@ -91,3 +91,33 @@ Cancelar conserva la cuenta y permite volver a abrir la confirmación.
 
 Las pruebas usan respuestas simuladas: no se han eliminado cuentas ni revocado
 sesiones reales. La revisión visual en un teléfono sigue pendiente.
+
+## Cambio de correo y exportación
+
+Cambiar correo usa el contenedor común, valida campos antes de enviar, normaliza
+el correo y conserva la contraseña sin modificarla. Bloquea solicitudes
+simultáneas y muestra la confirmación de envío sin conservar la contraseña en el
+formulario. El correo actual sigue vigente hasta confirmar el enlace.
+
+Confirmar correo distingue enlace inválido, correo ocupado, fallo de conexión y
+fallo de guardado de la sesión local. Un cambio de identidad de la función
+`login` ya no repite la petición de un solo uso. Los intentos comparten su
+promesa y los resultados de una pantalla desmontada se ignoran. Solo un fallo
+de petición permite reintentar; si la confirmación fue correcta pero falló la
+sesión local, se ofrece iniciar sesión con el nuevo correo.
+
+Exportar datos incorpora área segura, navegación de vuelta, error visible y
+bloqueo de operaciones simultáneas. Conserva el servicio existente que comparte
+JSON desde la caché y elimina el temporal al terminar. No afirma que el usuario
+haya guardado una copia: cerrar o cancelar el selector depende del sistema.
+
+Las pruebas adicionales cubren normalización, validación, peticiones duplicadas,
+reintentos, fallo de sesión y cambios de la función de autenticación. No se han
+cambiado correos ni exportado datos personales reales para estas pruebas.
+
+## Pendientes de UX móvil
+
+Queda revisar las pantallas de perfil y el flujo de métodos de acceso, además
+de los recorridos principales de atleta y entrenador, las pantallas pequeñas,
+el texto ampliado y el teclado en dispositivos reales. Los cambios de esta rama
+no equivalen a un APK nuevo distribuido ni completan el bloque 6.
