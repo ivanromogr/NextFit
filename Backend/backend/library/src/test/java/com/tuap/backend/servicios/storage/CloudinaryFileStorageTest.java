@@ -91,6 +91,19 @@ class CloudinaryFileStorageTest {
         verify(uploader, times(2)).destroy(ID, Map.of("resource_type", "image", "type", "authenticated", "invalidate", true, "timeout", 30000));
     }
 
+    @Test void unsignedDeliveryMustBeDeniedAndNoRedirectIsFollowed() throws Exception {
+        CloudinaryFileStorage check = new CloudinaryFileStorage(new Cloudinary(Map.of("cloud_name", "fixture")), connections, 16);
+        response(200, new byte[] {1});
+        assertThrows(StorageUnavailableException.class, () -> check.verifyUnsignedAccessDenied(KEY));
+        response(302, new byte[] {1});
+        assertThrows(StorageUnavailableException.class, () -> check.verifyUnsignedAccessDenied(KEY));
+        response(401, new byte[] {1});
+        check.verifyUnsignedAccessDenied(KEY);
+        verify(connection).setInstanceFollowRedirects(false);
+        verify(connection).disconnect();
+        verify(connection, never()).setRequestProperty(anyString(), anyString());
+    }
+
     private void response(int status, byte[] bytes) throws Exception {
         connection = mock(HttpURLConnection.class);
         when(connection.getResponseCode()).thenReturn(status);

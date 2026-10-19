@@ -22,7 +22,7 @@ import com.tuap.backend.config.UploadProperties;
 @Component
 @ConditionalOnProperty(name = "upload.provider", havingValue = "cloudinary")
 public class CloudinaryFileStorage {
-    private static final Pattern KEY = Pattern.compile("cld_[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\\.(jpg|png|webp)");
+    private static final Pattern KEY = Pattern.compile("cld_(?:probe_)?[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\\.(jpg|png|webp)");
     private static final String FOLDER = "nextfit/private-uploads/";
     private final Cloudinary cloudinary;
     @FunctionalInterface interface ConnectionFactory { HttpURLConnection open(URI uri) throws IOException; }
@@ -116,6 +116,27 @@ public class CloudinaryFileStorage {
             }
         } catch (Exception exception) {
             throw new StorageUnavailableException();
+        }
+    }
+
+    /** Deployment check only: no credential, signature or user content is sent. */
+    public void verifyUnsignedAccessDenied(String key) {
+        String id = publicId(key);
+        HttpURLConnection connection = null;
+        try {
+            String name = cloudinary.config.cloudName;
+            if (name == null || !name.matches("[a-z0-9-]+")) throw new StorageUnavailableException();
+            URI uri = URI.create("https://res.cloudinary.com/" + name + "/image/authenticated/" + id + ".png");
+            connection = connections.open(uri);
+            connection.setInstanceFollowRedirects(false);
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(30000);
+            int status = connection.getResponseCode();
+            if (status != 401 && status != 403 && status != 404) throw new StorageUnavailableException();
+        } catch (Exception exception) {
+            throw new StorageUnavailableException();
+        } finally {
+            if (connection != null) connection.disconnect();
         }
     }
 }
