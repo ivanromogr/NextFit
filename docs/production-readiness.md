@@ -63,7 +63,7 @@ Antes de dar este bloque por terminado debe existir evidencia de persistencia
 tras reinicio, restauración ensayada, migraciones repetibles y comprobaciones
 de salud y autenticación del despliegue final.
 
-## Implementación preparada, pendiente de verificación externa
+## Almacenamiento privado verificado en Render
 
 - Almacenamiento Cloudinary autenticado para nuevas imágenes y adjuntos, con
   lectura a través de los permisos actuales de la API. Las URLs firmadas del
@@ -72,7 +72,7 @@ de salud y autenticación del despliegue final.
 - Fallo de configuración o caída del proveedor: sin fallback al disco temporal;
   error HTTP 503 sin detalles de credenciales. Descargas con límites de tamaño,
   tiempos de conexión/lectura y sin redirecciones automáticas.
-- SQL detallado desactivado en el perfil Render del código preparado.
+- SQL detallado desactivado en el perfil Render.
 - Flyway y esquema inicial de 28 tablas verificados con PostgreSQL 16.15, pero
   desactivados por defecto para no adoptar automáticamente la base existente.
 - Scripts de copia cifrada, restauración e inventario de solo lectura. El ensayo
@@ -80,14 +80,33 @@ de salud y autenticación del despliegue final.
 
 Procedimiento y comprobaciones: [Operación de base de datos](database-operations.md).
 
-Estos cambios no están activados en el servicio actual. El entorno sigue sin
-acceso a `api.cloudinary.com` y no resuelve el host externo de PostgreSQL; además,
-la consulta de bases a la API de Render devuelve 403. La configuración de red de
-Cloudinary está guardada como borrador pendiente de publicación. No hay evidencia
-todavía para afirmar persistencia, backup o migraciones de la base de producción.
+La configuración de red de Cloudinary está publicada. Como el proxy de la sesión
+sigue rechazando sus conexiones, la verificación funcional se ejecutó dentro de
+una instancia temporal gratuita de Render, con H2 ficticio y sin credenciales de
+PostgreSQL de producción. Dos despliegues de `d3b366b` pasaron un health check
+condicionado al éxito de estas operaciones:
 
-Validación del código preparado: 349 pruebas del backend y 3 pruebas adicionales
-de selección/configuración del proveedor, todas sin fallos ni omisiones; JAR
+1. `dep-dbavaqvbtjjs738ojt00`: subir una imagen sintética de 70 bytes, recuperar
+   exactamente el original y comprobar que la entrega sin firma es rechazada.
+2. `dep-dbavd9qjnfac739a10b0`: leer la misma imagen después de sustituir la
+   instancia, **sin volver a subirla**, comprobar su privacidad y borrarla.
+
+La instancia temporal `srv-dbavaqnbtjjs738ojrm0` fue eliminada después del ensayo.
+No se crearon cuentas ni se escribieron metadatos de usuario en esa prueba.
+
+El servicio real NextFit está desplegado con `d3b366b`, despliegue
+`dep-dbb1ke0m7kps73an5q0g`, estado LIVE, `UPLOAD_PROVIDER=cloudinary` y sin activar
+la prueba temporal. Sus checks HTTP pasan: salud UP, moderación y chat protegidos
+sin sesión, CORS exacto y rechazo de credenciales Google inválidas. Los archivos
+locales antiguos no se migraron ni pueden recuperarse solo desde sus metadatos.
+
+Continúa pendiente la **copia recuperable de la base real** y la adopción revisada
+de migraciones. La consulta de PostgreSQL/exportaciones/recuperación a la API de
+Render devuelve 403 y la sesión no resuelve su host externo. El propietario ha
+pospuesto contratar un plan; no se ha contratado ningún servicio de pago. No se
+ha activado Flyway ni cambiado el esquema existente para silenciar este bloqueo.
+
+Validación del código desplegado: 359 pruebas del backend, todas sin fallos ni omisiones; JAR
 compilado. Ensayos PostgreSQL: cuatro escenarios de migración correctos, copia
 cifrada restaurada, destino no vacío rechazado, ciphertext alterado rechazado y
 dump fallido sin archivo publicado. Son ensayos aislados, no operaciones sobre
