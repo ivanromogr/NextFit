@@ -145,3 +145,9 @@ sigue pendiente: la API de producción anterior solo admite contraseña para baj
 El generador existente se presenta como generación automática de rutinas, basada en reglas, objetivo y días de entrenamiento. Se retiraron las referencias a IA y análisis de biodatos de sus pantallas web y móvil, sin cambiar las rutas ni el contrato del servidor. AI Coach sigue aplazado. Se eliminaron además los registros del formulario y la respuesta completa de error en la consola web.
 
 Validación: 4 pruebas del generador web y 9 de edición/generación móvil; compilación web de producción. Esta revisión no incorpora un proveedor de IA ni demuestra personalización clínica o adaptación a lesiones.
+
+### Generación web: protección del envío
+
+La pantalla bloquea envíos simultáneos y otra creación tras una respuesta satisfactoria. Conserva las opciones después de fallar, muestra un aviso dentro de la pantalla y no navega si la respuesta llega después de salir. Ante un fallo de red pide revisar las rutinas antes de reintentar: el bloqueo del cliente no garantiza idempotencia del servidor entre intentos independientes.
+
+Validación: las 6 pruebas del generador web incluyen fallo/reintento con opciones conservadas, bloqueo durante el envío y después de guardar, y salida antes de recibir la respuesta. Compilación web de producción completada.

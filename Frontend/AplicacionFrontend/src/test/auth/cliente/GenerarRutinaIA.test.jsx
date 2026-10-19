@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import GenerarRutinaIA from '../../../pages/cliente/GenerarRutinaIA';
@@ -89,17 +89,45 @@ describe('Página GenerarRutinaIA', () => {
         }, { timeout: 2000 }); // Damos margen de sobra por si el PC va lento
     });
 
-    it('muestra un alert si la IA falla', async () => {
-        generarRutinaAuto.mockRejectedValue({
-            response: { data: { message: "Error IA" } }
-        });
-
+    it('conserva las opciones tras un fallo y evita peticiones duplicadas', async () => {
+        let reject;
+        generarRutinaAuto.mockImplementationOnce(() => new Promise((resolve, fail) => { reject = fail; }));
+        generarRutinaAuto.mockResolvedValueOnce({});
         renderComponent();
-        
-        fireEvent.click(screen.getByText(/GENERAR PLAN PERSONALIZADO/i));
+        fireEvent.click(screen.getByText('FUERZA'));
+        const button = screen.getByRole('button', { name: /GENERAR PLAN PERSONALIZADO/i });
+        fireEvent.click(button);
+        fireEvent.click(button);
+        expect(generarRutinaAuto).toHaveBeenCalledTimes(1);
+        expect(button).toBeDisabled();
+        await act(async () => reject(new Error('private server details')));
+        expect(screen.getByRole('alert')).toHaveTextContent('Revisa tus rutinas');
+        expect(screen.getByRole('alert')).not.toHaveTextContent('private server details');
+        fireEvent.click(button);
+        await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/cliente/dashboard'));
+        expect(generarRutinaAuto).toHaveBeenCalledTimes(2);
+        expect(generarRutinaAuto).toHaveBeenLastCalledWith(expect.objectContaining({ objetivo: 'FUERZA' }));
+    });
 
-        await waitFor(() => {
-            expect(window.alert).toHaveBeenCalledWith(expect.stringContaining("Error IA"));
-        });
+    it('bloquea otra creación después de guardar', async () => {
+        generarRutinaAuto.mockResolvedValue({});
+        const onSuccess = vi.fn();
+        renderComponent({ onSuccess });
+        const button = screen.getByRole('button', { name: /GENERAR PLAN PERSONALIZADO/i });
+        fireEvent.click(button);
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+        fireEvent.click(button);
+        expect(generarRutinaAuto).toHaveBeenCalledTimes(1);
+        expect(button).toBeDisabled();
+    });
+
+    it('no navega después de salir de la pantalla', async () => {
+        let resolve;
+        generarRutinaAuto.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+        const view = render(<BrowserRouter><GenerarRutinaIA /></BrowserRouter>);
+        fireEvent.click(screen.getByRole('button', { name: /GENERAR PLAN PERSONALIZADO/i }));
+        view.unmount();
+        await act(async () => resolve({}));
+        expect(mockNavigate).not.toHaveBeenCalled();
     });
 });

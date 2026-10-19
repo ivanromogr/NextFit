@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generarRutinaAuto } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
@@ -101,6 +101,14 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
     const { userId: authUserId } = useAuth();
     const [loading, setLoading] = useState(false);
     const [userId, setUserId] = useState(null);
+    const [error, setError] = useState('');
+    const [saved, setSaved] = useState(false);
+    const operation = useRef(false);
+    const mounted = useRef(true);
+    useEffect(() => {
+        mounted.current = true;
+        return () => { mounted.current = false; };
+    }, []);
 
     const [formData, setFormData] = useState({
         objetivo: "GANAR_MASA",
@@ -125,39 +133,36 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
     const handleGenerar = async (e) => {
         if (e) e.preventDefault();
         
+        if (operation.current) return;
         if (!userId) {
-            alert("Falta el ID del usuario");
+            setError('Inicia sesión de nuevo para generar tu plan.');
             return;
         }
-        
+        operation.current = true;
+        setError('');
         setLoading(true);
         try {
-            const payload = {
+            await generarRutinaAuto({
                 idCliente: userId,
                 clienteId: userId,
                 objetivo: formData.objetivo,
                 nivel: formData.nivel,
-                diasPorSemana: parseInt(formData.diasPorSemana),
+                diasPorSemana: parseInt(formData.diasPorSemana, 10),
                 lugar: "GIMNASIO"
-            };
-
-
-            
-            await generarRutinaAuto(payload);
-            
-
-            
-            if (onSuccess) onSuccess();
-            else setTimeout(() => navigate("/cliente/dashboard"), 500);
-
-        } catch (error) {
-
-            
-            const mensajeError = error.response?.data?.message || error.response?.data?.error || error.message;
-            alert("No se ha podido generar el plan: " + mensajeError);
-        } finally {
-            setLoading(false);
+            });
+        } catch {
+            operation.current = false;
+            if (mounted.current) {
+                setError('No se ha podido confirmar la creación del plan. Revisa tus rutinas antes de volver a intentarlo.');
+                setLoading(false);
+            }
+            return;
         }
+        if (!mounted.current) return;
+        setSaved(true);
+        setLoading(false);
+        if (onSuccess) onSuccess();
+        else navigate("/cliente/dashboard");
     };
 
     // --- ESTILOS DE LA PÁGINA ---
@@ -282,11 +287,14 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
                         </div>
                     </div>
 
+                    {error && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
+                    {saved && <p role="status">Tu plan se ha guardado.</p>}
                     {/* BOTÓN GENERAR */}
                     <button 
                         style={styles.btnAction} 
+                        aria-busy={loading}
                         onClick={handleGenerar} 
-                        disabled={loading}
+                        disabled={loading || saved}
                         onMouseEnter={e => !loading && (e.currentTarget.style.transform = 'translateY(-3px)')}
                         onMouseLeave={e => !loading && (e.currentTarget.style.transform = 'translateY(0)')}
                     >
