@@ -178,4 +178,36 @@ describe('Página EditarRutina', () => {
         expect(actualizarRutina).toHaveBeenLastCalledWith('rutina-123', expect.objectContaining({ nombre: 'Edición pendiente' }));
     });
 
+    it('aplica la pauta común desde cualquier serie y guarda la coma decimal sin perder datos', async () => {
+        obtenerRutinasCliente.mockResolvedValue(mockRutinas);
+        obtenerEjercicios.mockResolvedValue(mockEjercicios);
+        actualizarRutina.mockResolvedValue({});
+        renderComponent();
+        const second = await screen.findByLabelText('Peso de la serie 2 de Sentadilla');
+        fireEvent.change(second, { target: { value: '32,5' } });
+        expect(screen.getByLabelText('Peso de la serie 1 de Sentadilla')).toHaveValue('32,5');
+        fireEvent.change(screen.getByLabelText('Repeticiones de la serie 2 de Sentadilla'), { target: { value: '12' } });
+        expect(screen.getByLabelText('Repeticiones de la serie 1 de Sentadilla')).toHaveValue(12);
+        await act(async () => fireEvent.click(screen.getByRole('button', { name: /GUARDAR/i })));
+        expect(actualizarRutina).toHaveBeenCalledWith('rutina-123', expect.objectContaining({
+            ejercicios: [expect.objectContaining({ series: 2, peso: 32.5, repeticiones: 12 })]
+        }));
+    });
+
+    it('rechaza cantidades inválidas conservando la edición y permite corregirlas', async () => {
+        obtenerRutinasCliente.mockResolvedValue(mockRutinas);
+        obtenerEjercicios.mockResolvedValue(mockEjercicios);
+        actualizarRutina.mockResolvedValue({});
+        renderComponent();
+        const rpe = await screen.findByLabelText('RPE de la serie 2 de Sentadilla');
+        fireEvent.change(rpe, { target: { value: '11' } });
+        fireEvent.click(screen.getByRole('button', { name: /GUARDAR/i }));
+        expect(actualizarRutina).not.toHaveBeenCalled();
+        expect(screen.getByText(/Revisa las series:/)).toBeInTheDocument();
+        expect(screen.getByDisplayValue('Mi Rutina Pro')).toBeInTheDocument();
+        fireEvent.change(rpe, { target: { value: '8' } });
+        await act(async () => fireEvent.click(screen.getByRole('button', { name: /GUARDAR/i })));
+        expect(actualizarRutina).toHaveBeenCalledTimes(1);
+    });
+
 });

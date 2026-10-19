@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { obtenerEjercicios, guardarRutinaManual, actualizarRutina } from '../../api/endpoints';
+import { routineNumber, positiveInt } from '../../utils/routineNumbers';
 import { useAuth } from '../../context/AuthContext';
 
 // --- ICONOS SVG ---
@@ -15,12 +16,6 @@ const IconImageOff = () => <svg width="24" height="24" viewBox="0 0 24 24" fill=
 const IconChevronLeft = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>;
 const IconCheckCircle = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
 const IconAlertCircle = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
-
-const routineNumber = (value) => {
-  const text = String(value ?? '').trim().replace(',', '.');
-  return /^\d+(?:\.\d+)?$/.test(text) ? Number(text) : NaN;
-};
-const positiveInt = value => Number.isInteger(value) && value >= 1 && value <= 2147483647;
 
 const normalizarTexto = (texto = "") =>
   texto

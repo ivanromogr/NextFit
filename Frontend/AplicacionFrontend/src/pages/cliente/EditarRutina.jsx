@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { obtenerRutinasCliente, obtenerEjercicios, actualizarRutina } from '../../api/endpoints';
+import { routineNumber, positiveInt } from '../../utils/routineNumbers';
 import { useAuth } from '../../context/AuthContext';
 import { getExerciseImageCandidates } from '../../utils/media';
 import { 
@@ -233,7 +234,7 @@ const EditarRutina = () => {
                         const setsArray = Array.from({ length: numSeries }, () => ({
                             reps: d.repeticiones || 10,
                             peso: d.peso || 0,
-                            rpe: d.rpe || 8
+                            rpe: d.rpe ?? 8
                         }));
 
                         return {
@@ -282,9 +283,10 @@ const EditarRutina = () => {
     
     // Cambiar valor de un set específico (Set 1, Set 2...)
     const handleSetChange = (exerciseIndex, setIndex, field, value) => {
-        const newDetalles = [...detalles];
-        newDetalles[exerciseIndex].sets[setIndex][field] = value;
-        setDetalles(newDetalles);
+        // El contrato actual almacena una pauta por ejercicio, común a sus series.
+        setDetalles(current => current.map((detail, index) => index !== exerciseIndex ? detail : {
+            ...detail, sets: detail.sets.map(set => ({ ...set, [field]: value }))
+        }));
     };
 
     // Añadir una nueva serie al ejercicio
@@ -347,6 +349,18 @@ const EditarRutina = () => {
             return;
         }
 
+        const invalid = detalles.some(detail => detail.sets.length === 0 || detail.sets.some(set => {
+            const reps = routineNumber(set.reps);
+            const peso = routineNumber(set.peso);
+            const rpe = routineNumber(set.rpe);
+            return !positiveInt(reps) || !Number.isFinite(Math.fround(peso)) || peso < 0
+                || !Number.isInteger(rpe) || rpe < 0 || rpe > 10;
+        }));
+        if (invalid) {
+            showNotification('Revisa las series: repeticiones enteras positivas, peso no negativo y RPE entero entre 0 y 10.', 'error');
+            return;
+        }
+
         saveLock.current = true;
         setSaving(true);
         try {
@@ -359,9 +373,9 @@ const EditarRutina = () => {
                     ejercicio: { id: d.ejercicio.id }, 
                     idEjercicio: d.ejercicio.id, 
                     series: totalSets,
-                    repeticiones: parseInt(firstSet.reps),
-                    peso: parseFloat(firstSet.peso),
-                    rpe: parseInt(firstSet.rpe),
+                    repeticiones: routineNumber(firstSet.reps),
+                    peso: routineNumber(firstSet.peso),
+                    rpe: routineNumber(firstSet.rpe),
                     notas: d.notas
                 };
             });
@@ -526,6 +540,10 @@ const EditarRutina = () => {
                             <div style={styles.exName}>{detalle.ejercicio?.nombreTraducido || detalle.ejercicio?.nombre}</div>
                             <div style={styles.exMuscle}>{detalle.ejercicio?.grupoMuscularTraducido || detalle.ejercicio?.grupoMuscular || "General"}</div>
                             
+                            <p style={{ color: '#a3a3a3', fontSize: '0.85rem' }}>
+                                Peso, repeticiones y RPE se aplican a todas las series de este ejercicio.
+                                Registra los valores reales de cada serie al entrenar.
+                            </p>
                             {/* TABLA DE SERIES */}
                             <div style={styles.tableContainer}>
                                 <div style={styles.tableHeader}>
@@ -539,9 +557,9 @@ const EditarRutina = () => {
                                 {detalle.sets.map((set, setIndex) => (
                                     <div key={setIndex} style={styles.tableRow}>
                                         <div style={{textAlign:'center', fontWeight:'bold', color:'#333'}}>{setIndex + 1}</div>
-                                        <input type="number" style={{...styles.tableInput, color: '#FACC15'}} value={set.peso} onChange={(e) => handleSetChange(exIndex, setIndex, 'peso', e.target.value)} onFocus={(e) => {e.target.select(); e.target.style.background='#1a1a1a'}} onBlur={(e) => e.target.style.background='transparent'}/>
-                                        <input type="number" style={styles.tableInput} value={set.reps} onChange={(e) => handleSetChange(exIndex, setIndex, 'reps', e.target.value)} onFocus={(e) => {e.target.select(); e.target.style.background='#1a1a1a'}} onBlur={(e) => e.target.style.background='transparent'}/>
-                                        <input type="number" style={{...styles.tableInput, color: '#777'}} value={set.rpe} onChange={(e) => handleSetChange(exIndex, setIndex, 'rpe', e.target.value)} onFocus={(e) => {e.target.select(); e.target.style.background='#1a1a1a'}} onBlur={(e) => e.target.style.background='transparent'}/>
+                                        <input type="text" inputMode="decimal" aria-label={`Peso de la serie ${setIndex + 1} de ${detalle.ejercicio?.nombreTraducido || detalle.ejercicio?.nombre}`} style={{...styles.tableInput, color: '#FACC15'}} value={set.peso} onChange={(e) => handleSetChange(exIndex, setIndex, 'peso', e.target.value)} onFocus={(e) => {e.target.select(); e.target.style.background='#1a1a1a'}} onBlur={(e) => e.target.style.background='transparent'}/>
+                                        <input type="number" min="1" step="1" aria-label={`Repeticiones de la serie ${setIndex + 1} de ${detalle.ejercicio?.nombreTraducido || detalle.ejercicio?.nombre}`} style={styles.tableInput} value={set.reps} onChange={(e) => handleSetChange(exIndex, setIndex, 'reps', e.target.value)} onFocus={(e) => {e.target.select(); e.target.style.background='#1a1a1a'}} onBlur={(e) => e.target.style.background='transparent'}/>
+                                        <input type="number" min="0" max="10" step="1" aria-label={`RPE de la serie ${setIndex + 1} de ${detalle.ejercicio?.nombreTraducido || detalle.ejercicio?.nombre}`} style={{...styles.tableInput, color: '#777'}} value={set.rpe} onChange={(e) => handleSetChange(exIndex, setIndex, 'rpe', e.target.value)} onFocus={(e) => {e.target.select(); e.target.style.background='#1a1a1a'}} onBlur={(e) => e.target.style.background='transparent'}/>
                                         <button style={styles.rowActionBtn} onClick={() => removeSetFromExercise(exIndex, setIndex)} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#333'}><Trash2 size={16}/></button>
                                     </div>
                                 ))}

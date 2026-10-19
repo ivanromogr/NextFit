@@ -186,3 +186,9 @@ La compilación web de producción de esta revisión también se completó corre
 El creador manual acepta coma o punto decimal en el peso, sin usar conversiones parciales que trunquen el valor. Antes de enviar valida series/repeticiones enteras positivas compatibles con el contrato Java, peso no negativo representable como Float y RPE entero entre 0 y 10 (0 conserva el valor sin objetivo previo). Los campos vacíos o mal formados detienen el envío y conservan el borrador. Cada campo tiene una etiqueta accesible por ejercicio. Es validación de formulario: no sustituye controles del servidor ni impone límites clínicos personalizados.
 
 Validación: 13 pruebas del creador correctas, incluidas conversión de 35,5 a 35.5 y siete casos de cantidades inválidas sin llamada de guardado; compilación web completada. La revisión afecta al creador manual, no corrige todavía las series individuales del editor antiguo.
+
+### Pauta común en el editor web
+
+El contrato actual de rutinas guarda número de series y una pauta de peso/repeticiones/RPE por ejercicio. El editor web permitía aparentar pautas distintas por fila, pero solo guardaba la primera. Ahora cualquier cambio se refleja en todas las series y una explicación visible indica la pauta común. Los registros reales de series del entrenamiento no se modifican. El editor reutiliza la conversión decimal del creador manual, valida cantidades antes de enviar y conserva RPE 0 al cargar. No se añade un contrato de prescripción individual por serie ni una migración de datos.
+
+Validación: 23 pruebas del editor y creador manual correctas. Incluyen editar desde la segunda fila, reflejarlo en la primera, guardar peso 32,5 como 32.5, rechazar RPE inválido y corregirlo sin perder la rutina. Compilación web completada; API simulada, sin cambios en producción.
