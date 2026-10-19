@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -6,8 +6,9 @@ import {
   StyleSheet, 
   Alert, 
   TouchableOpacity, 
+  KeyboardAvoidingView,
   ScrollView,
-  Dimensions,
+  useWindowDimensions,
   Platform
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -24,13 +25,14 @@ import AppleSignInButton from '../components/auth/AppleSignInButton';
 // Logo
 import logoNextFit from '../../assets/logo-nextfit.png';
 
-const { width } = Dimensions.get('window');
 
 // 1. Componente interno para las tarjetas de rol (Atleta/Coach)
 const GymCard = ({ title, icon: Icon, selected, onPress }) => (
   <TouchableOpacity 
     style={[styles.gymCard, selected ? styles.gymCardSelected : null]} 
     onPress={onPress}
+    accessibilityRole="button"
+    accessibilityState={{ selected }}
     activeOpacity={0.8}
   >
     <Icon size={32} color={selected ? "#0A0A0A" : "#FACC15"} style={styles.cardIcon} />
@@ -42,6 +44,12 @@ const GymCard = ({ title, icon: Icon, selected, onPress }) => (
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
+  const passwordRef = useRef(null);
+  const emailRef = useRef(null);
+  const surnameRef = useRef(null);
+  const submitting = useRef(false);
+  const { width, fontScale } = useWindowDimensions();
+  const compact = width < 400 || fontScale > 1.2;
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,10 +62,11 @@ export default function RegisterScreen() {
     rol: "CLIENTE", acceptTerms: false, acceptPrivacy: false, marketingConsent: false
   });
 
-  const handleChange = (field, value) => setForm({ ...form, [field]: value });
+  const handleChange = (field, value) => setForm((previous) => ({ ...previous, [field]: value }));
 
   const handleRegister = async () => {
-    if (!form.nombre || !form.apellido || !form.email || !form.contrasena) {
+    if (submitting.current) return;
+    if (!form.nombre.trim() || !form.apellido.trim() || !form.email.trim() || !form.contrasena) {
       setError("Por favor, rellena todos los campos.");
       return;
     }
@@ -70,11 +79,12 @@ export default function RegisterScreen() {
       return;
     }
 
+    submitting.current = true;
     setLoading(true);
     setError("");
 
     try {
-      const resp = await api.post('/register', form);
+      const resp = await api.post('/register', { ...form, nombre: form.nombre.trim(), apellido: form.apellido.trim(), email: form.email.trim().toLowerCase() });
 
       if (resp.status >= 200 && resp.status < 300) {
         
@@ -86,26 +96,26 @@ export default function RegisterScreen() {
         }
       }
     } catch (err) {
-      console.error("Error en registro:", err);
       if (err.response?.data) {
         setError(typeof err.response.data === "string" ? err.response.data : (err.response.data.message || "Error al registrar."));
       } else {
         setError("Error de conexión con el servidor.");
       }
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         
         <View style={styles.card}>
           
           {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerTextContainer}>
+          <View style={[styles.header, compact && { flexDirection: 'column', alignItems: 'flex-start' }]}>
+            <View style={[styles.headerTextContainer, compact && styles.compactInput]}>
               <Text style={styles.headerTitle}>ÚNETE AL</Text>
               <Text style={styles.headerTitleHighlight}>TEAM.</Text>
               <Text style={styles.headerSubtitle}>Empieza tu transformación hoy.</Text>
@@ -135,17 +145,30 @@ export default function RegisterScreen() {
           {/* Formulario de Datos */}
           <View style={styles.form}>
             {/* Fila para Nombre y Apellido */}
-            <View style={styles.row}>
-              <View style={styles.halfInput}>
+            <View style={[styles.row, compact && { flexDirection: 'column', gap: 0 }]}>
+              <View style={[styles.halfInput, compact && styles.compactInput]}>
                 <GymInput
+                  autoCapitalize="words"
+                  autoComplete="given-name"
+                  returnKeyType="next"
+                  submitBehavior="submit"
+                  onSubmitEditing={() => surnameRef.current?.focus()}
+                  editable={!loading}
                   label="Nombre"
                   placeholder="Juan"
                   value={form.nombre}
                   onChangeText={(val) => handleChange("nombre", val)}
                 />
               </View>
-              <View style={styles.halfInput}>
+              <View style={[styles.halfInput, compact && styles.compactInput]}>
                 <GymInput
+                  autoCapitalize="words"
+                  autoComplete="family-name"
+                  ref={surnameRef}
+                  returnKeyType="next"
+                  submitBehavior="submit"
+                  onSubmitEditing={() => emailRef.current?.focus()}
+                  editable={!loading}
                   label="Apellido"
                   placeholder="Pérez"
                   value={form.apellido}
@@ -160,25 +183,37 @@ export default function RegisterScreen() {
               placeholder="juan@nextfit.com"
               value={form.email}
               onChangeText={(val) => handleChange("email", val)}
+              ref={emailRef}
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              editable={!loading}
               keyboardType="email-address"
+              autoCorrect={false}
+              autoComplete="email"
               autoCapitalize="none"
             />
-            <TouchableOpacity onPress={() => handleChange('acceptTerms', !form.acceptTerms)}><Text style={styles.footerText}>{form.acceptTerms ? '☑' : '☐'} Acepto los Términos de uso</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: form.acceptTerms }} style={styles.legalTouch} onPress={() => handleChange('acceptTerms', !form.acceptTerms)}><Text style={styles.footerText}>{form.acceptTerms ? '☑' : '☐'} Acepto los Términos de uso</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Terms')}><Text style={styles.legalLink}>Ver Términos de uso</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => handleChange('acceptPrivacy', !form.acceptPrivacy)}><Text style={styles.footerText}>{form.acceptPrivacy ? '☑' : '☐'} Acepto la Política de privacidad</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: form.acceptPrivacy }} style={styles.legalTouch} onPress={() => handleChange('acceptPrivacy', !form.acceptPrivacy)}><Text style={styles.footerText}>{form.acceptPrivacy ? '☑' : '☐'} Acepto la Política de privacidad</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Privacy')}><Text style={styles.legalLink}>Ver Política de privacidad</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => handleChange('marketingConsent', !form.marketingConsent)}><Text style={styles.footerText}>{form.marketingConsent ? '☑' : '☐'} Comunicaciones de NextFit (opcional)</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: form.marketingConsent }} style={styles.legalTouch} onPress={() => handleChange('marketingConsent', !form.marketingConsent)}><Text style={styles.footerText}>{form.marketingConsent ? '☑' : '☐'} Comunicaciones de NextFit (opcional)</Text></TouchableOpacity>
 
             <GymInput
+              ref={passwordRef}
+              returnKeyType="go"
+              onSubmitEditing={handleRegister}
+              editable={!loading}
               label="Contraseña"
               icon={Lock}
               placeholder="Mínimo 6 caracteres"
               value={form.contrasena}
               onChangeText={(val) => handleChange("contrasena", val)}
               secureTextEntry={true}
+              autoComplete="new-password"
             />
 
-            {error ? <Text style={styles.errorText}>⚠️ {error}</Text> : null}
+            {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.errorText}>⚠️ {error}</Text> : null}
 
             <GymButton 
               loading={loading} 
@@ -215,7 +250,7 @@ export default function RegisterScreen() {
           
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -268,6 +303,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   logo: {
+    maxWidth: '100%',
     width: 180, 
     height: 100,
   },
@@ -326,6 +362,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
+  compactInput: { flex: 0, width: '100%' },
   halfInput: {
     flex: 1,
   },
@@ -340,6 +377,7 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
   footer: {
+    flexWrap: 'wrap',
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
@@ -348,8 +386,11 @@ const styles = StyleSheet.create({
     color: '#a1a1aa',
     fontSize: 15,
   },
+  legalTouch: { minHeight: 44, justifyContent: 'center', paddingVertical: 8 },
   legalLink: { color: '#FACC15', marginBottom: 8, fontSize: 14 },
   loginLinkButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     marginLeft: 6,
   },
   loginLinkText: {

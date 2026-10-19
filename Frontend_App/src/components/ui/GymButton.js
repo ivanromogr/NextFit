@@ -36,6 +36,8 @@ export default function GymButton({
     <TouchableOpacity
       onPress={isDisabled ? null : onPress}
       disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: isLoading }}
       activeOpacity={0.8}
       style={[
         styles.baseButton,
@@ -60,6 +62,7 @@ export default function GymButton({
 
 const styles = StyleSheet.create({
   baseButton: {
+    minHeight: 52,
     paddingVertical: 16,
     paddingHorizontal: 18,
     borderRadius: 14,
@@ -70,7 +73,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
     marginVertical: 8,
   },
-  baseText: { fontSize: 16, fontWeight: '800', letterSpacing: 0.7 },
+  baseText: { textAlign: 'center', flexShrink: 1, fontSize: 16, fontWeight: '800', letterSpacing: 0.7 },
   loadingText: { marginLeft: 10 },
   primaryButton: { backgroundColor: '#FACC15' },
   primaryText: { color: '#0A0A0A' },

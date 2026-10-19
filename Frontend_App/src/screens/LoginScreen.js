@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, 
   Text, 
   Image, 
   StyleSheet, 
-  Alert, 
+  Alert,
+  Platform,
   TouchableOpacity, 
+  KeyboardAvoidingView,
   ScrollView 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -24,6 +26,9 @@ import logoNextFit from '../../assets/logo-nextfit.png';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
+  const passwordRef = useRef(null);
+  const emailRef = useRef(null);
+  const submitting = useRef(false);
   const { login } = useAuth();
   
   const [email, setEmail] = useState('');
@@ -31,11 +36,13 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Faltan datos', 'Por favor, introduce tu correo y contrasena.');
+    if (submitting.current) return;
+    if (!email.trim() || !password) {
+      Alert.alert('Faltan datos', 'Por favor, introduce tu correo y contraseña.');
       return;
     }
 
+    submitting.current = true;
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -49,21 +56,22 @@ export default function LoginScreen() {
       if (err.response?.status === 404 || err.response?.status === 401) {
         Alert.alert(
           'Acceso denegado', 
-          'Correo o contrasena incorrectos. Comprueba que no haya espacios al final.'
+          'Correo o contraseña incorrectos. Comprueba que no haya espacios al final.'
         );
       } else {
         Alert.alert('Error', 'No se pudo conectar con el servidor.');
       }
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView 
         contentContainerStyle={styles.scrollContainer} 
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
       >
         <View style={styles.card}>
           
@@ -83,23 +91,35 @@ export default function LoginScreen() {
               placeholder="ejemplo@nextfit.com"
               value={email}
               onChangeText={setEmail}
+              ref={emailRef}
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              editable={!loading}
               keyboardType="email-address"
+              autoCorrect={false}
+              autoComplete="email"
             />
 
             <GymInput
+              ref={passwordRef}
+              returnKeyType="go"
+              onSubmitEditing={handleLogin}
+              editable={!loading}
               label="CONTRASEÑA"
               icon={Lock}
               placeholder="••••••••"
               value={password}
               onChangeText={setPassword}
               secureTextEntry={true}
+              autoComplete="current-password"
             />
 
             <TouchableOpacity
               onPress={() => navigation.navigate('ForgotPassword')}
               style={styles.forgotPasswordContainer}
             >
-              <Text style={styles.forgotPasswordText}>¿Olvidaste tu contrasena?</Text>
+              <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
             </TouchableOpacity>
 
             <GymButton 
@@ -137,7 +157,7 @@ export default function LoginScreen() {
           
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -168,6 +188,7 @@ const styles = StyleSheet.create({
     marginBottom: 35,
   },
   logo: {
+    maxWidth: '100%',
     width: 220, 
     height: 60,
     marginBottom: 10,
@@ -176,6 +197,7 @@ const styles = StyleSheet.create({
     color: '#a1a1aa',
     fontSize: 12,
     fontWeight: '700',
+    textAlign: 'center',
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -183,6 +205,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   forgotPasswordContainer: {
+    minHeight: 44,
+    justifyContent: 'center',
     alignSelf: 'flex-end',
     marginBottom: 25,
     marginTop: -5,
@@ -207,6 +231,7 @@ const styles = StyleSheet.create({
   createAccountButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 44,
     padding: 5,
   },
   createAccountText: {

@@ -19,7 +19,7 @@ describe('recuperación de contraseña móvil', () => {
     expect(view.getByText(/Si existe una cuenta asociada/i)).toBeTruthy();
   });
   it('navega desde Login a solicitar recuperación', () => {
-    const view = render(<LoginScreen />); fireEvent.press(view.getByText(/Olvidaste tu contrasena/i));
+    const view = render(<LoginScreen />); fireEvent.press(view.getByText(/Olvidaste tu contraseña/i));
     expect(mockNavigation.navigate).toHaveBeenCalledWith('ForgotPassword');
   });
   it('valida, resetea con token de navegación y vuelve al login', async () => {
