@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenLoadError from '../components/ui/ScreenLoadError';
 import { 
   View, 
   Text, 
@@ -20,7 +22,6 @@ import {
 import { getCliente, getImageUrl, obtenerResumenDashboard } from '../api/endpoints'; 
 import { useAuth } from '../components/context/AuthContext';
 
-const { width } = Dimensions.get('window');
 
 export default function DashboardClienteScreen() {
   const navigation = useNavigation();
@@ -29,6 +30,8 @@ export default function DashboardClienteScreen() {
   const [resumen, setResumen] = useState(null);
   const [perfil, setPerfil] = useState({ nombre: 'Atleta', fotoPerfil: '' });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
   
   // Estados para las Notificaciones Reales
   const [showNotis, setShowNotis] = useState(false);
@@ -36,12 +39,18 @@ export default function DashboardClienteScreen() {
 
   useEffect(() => {
     const cargarDatos = async () => {
-      if (!userId) return;
+      if (!userId) { setLoading(false); setError('No se pudo identificar tu cuenta. Vuelve a iniciar sesión.'); return; }
+      setLoading(true);
+      setError('');
       try {
         const [resumenResult, clienteResult] = await Promise.allSettled([
-          obtenerResumenDashboard(userId),
+          obtenerResumenDashboard(userId, { throwOnError: true }),
           getCliente(userId),
         ]);
+        if (resumenResult.status === 'rejected' || clienteResult.status === 'rejected') {
+          setError('No se pudo cargar tu inicio. Comprueba la conexión e inténtalo de nuevo.');
+          return;
+        }
         const resumenData = resumenResult.status === 'fulfilled' ? resumenResult.value : null;
         const clienteData = clienteResult.status === 'fulfilled' ? clienteResult.value : null;
 
@@ -57,13 +66,13 @@ export default function DashboardClienteScreen() {
           });
         }
       } catch (error) {
-        console.error("Error cargando datos del dashboard:", error);
+        setError('No se pudo cargar tu inicio. Comprueba la conexión e inténtalo de nuevo.');
       } finally {
         setLoading(false);
       }
     };
     cargarDatos();
-  }, [userId]);
+  }, [userId, retry]);
 
   // ==========================================
   // ==========================================
@@ -145,8 +154,10 @@ export default function DashboardClienteScreen() {
     );
   }
 
+  if (error) return <ScreenLoadError title="Inicio" message={error} onRetry={() => setRetry((value) => value + 1)} />;
+
   return (
-    <View style={styles.mainWrapper}>
+    <SafeAreaView style={styles.mainWrapper}>
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* 1. HEADER */}
@@ -157,13 +168,13 @@ export default function DashboardClienteScreen() {
           </View>
           
           <View style={styles.profileSection}>
-            <TouchableOpacity style={styles.bellBox} onPress={abrirNotificaciones}>
+            <TouchableOpacity style={styles.bellBox} accessibilityRole="button" accessibilityLabel="Notificaciones" onPress={abrirNotificaciones}>
               <Bell size={20} color="white" />
               {/* EL PUNTO ROJO SOLO SALE SI HAY NOTIS SIN LEER */}
               {hayNotificacionesSinLeer && <View style={styles.notificationDot} />}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigation.navigate('Perfil')} style={styles.avatarWrapper}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Mi perfil" onPress={() => navigation.navigate('Perfil')} style={styles.avatarWrapper}>
               {perfil.fotoPerfil ? (
                 <Image source={{ uri: perfil.fotoPerfil }} style={styles.avatarImg} />
               ) : (
@@ -327,14 +338,14 @@ export default function DashboardClienteScreen() {
         </View>
       </Modal>
 
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   mainWrapper: { flex: 1, backgroundColor: '#050505' },
   container: { flex: 1, backgroundColor: '#050505' },
-  scrollContent: { padding: 20, paddingBottom: 50, paddingTop: Platform.OS === 'ios' ? 60 : 40 },
+  scrollContent: { padding: 20, paddingBottom: 50, paddingTop: 20 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#050505' },
   
   // HEADER

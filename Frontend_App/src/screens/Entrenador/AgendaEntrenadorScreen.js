@@ -1,8 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { 
     View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, 
-    ActivityIndicator, SafeAreaView, StatusBar, Modal, FlatList, Alert 
+    ActivityIndicator, StatusBar, Modal, FlatList, Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenLoadError from '../../components/ui/ScreenLoadError';
+import { localDateKey } from '../../utils/calendarDate';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { 
     Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, 
@@ -25,6 +28,8 @@ export default function AgendaEntrenadorScreen() {
     const [eventos, setEventos] = useState([]);
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const requestId = useRef(0);
     
     const [fechaActual, setFechaActual] = useState(new Date());
     const [fechaSeleccionada, setFechaSeleccionada] = useState(new Date());
@@ -39,47 +44,50 @@ export default function AgendaEntrenadorScreen() {
     );
 
     const cargarAgenda = async () => {
+        const request = ++requestId.current;
         setLoading(true);
+        setError('');
         try {
             const dataPerfil = await getEntrenador(entrenadorId).catch(() => null);
-            if (dataPerfil) {
+            if (dataPerfil && request === requestId.current) {
                 const info = dataPerfil.entrenador || dataPerfil;
                 setPerfil({ nombre: info.nombre || 'Coach', fotoPerfil: info.fotoPerfil || '' });
             }
 
-            const dataClientes = await obtenerClientesEntrenador(entrenadorId).catch(() => []);
+            const dataClientes = await obtenerClientesEntrenador(entrenadorId, { throwOnError: true });
+            if (request !== requestId.current) return;
             setClientes(dataClientes.map(c => c.cliente || c));
             
-            const primerDia = new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1).toISOString().split('T')[0];
-            const ultimoDia = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + 1, 0).toISOString().split('T')[0];
+            const primerDia = localDateKey(new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1));
+            const ultimoDia = localDateKey(new Date(fechaActual.getFullYear(), fechaActual.getMonth() + 1, 0));
 
             let todosLosEventos = [];
             const promesas = dataClientes.map(async (item) => {
                 const cInfo = item.cliente || item;
                 if (!cInfo.id) return;
-                try {
-                    const evs = await obtenerEventosCalendario(cInfo.id, primerDia, ultimoDia);
+                {
+                    const evs = await obtenerEventosCalendario(cInfo.id, primerDia, ultimoDia, entrenadorId);
                     todosLosEventos = [...todosLosEventos, ...evs.map(ev => ({
                         ...ev,
                         clienteNombre: `${cInfo.nombre} ${cInfo.apellido}`,
                         clienteFoto: cInfo.fotoPerfil,
                         clienteId: cInfo.id 
                     }))];
-                } catch (e) { console.log("Error fetch ev"); }
+                }
             });
 
             await Promise.all(promesas);
-            setEventos(todosLosEventos);
+            if (request === requestId.current) setEventos(todosLosEventos);
         } catch (error) {
-            console.error(error);
+            if (request === requestId.current) setError('No se pudo cargar la agenda completa. Comprueba la conexión e inténtalo de nuevo.');
         } finally {
-            setLoading(false);
+            if (request === requestId.current) setLoading(false);
         }
     };
 
     // --- Lógica Visual de Días ---
     const getDayInfo = (dia) => {
-        const evs = eventos.filter(ev => new Date(ev.fecha).toDateString() === dia.toDateString());
+        const evs = eventos.filter(ev => ev.fecha === localDateKey(dia));
         if (evs.length === 0) return { hasEvents: false };
 
         const completados = evs.filter(ev => ev.estado === 'COMPLETADO').length;
@@ -102,8 +110,7 @@ export default function AgendaEntrenadorScreen() {
     };
 
     const eventosDelDia = eventos.filter(ev => {
-        const d = new Date(ev.fecha);
-        return d.getDate() === fechaSeleccionada.getDate() && d.getMonth() === fechaSeleccionada.getMonth();
+        return ev.fecha === localDateKey(fechaSeleccionada);
     });
 
     const handleAddTraining = (atleta) => {
@@ -118,6 +125,8 @@ export default function AgendaEntrenadorScreen() {
     if (loading) return (
         <View style={styles.center}><ActivityIndicator size="large" color="#FACC15" /></View>
     );
+
+    if (error) return <ScreenLoadError title="Agenda" message={error} onRetry={cargarAgenda} />;
 
     return (
         <SafeAreaView style={styles.container}>

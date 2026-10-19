@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -7,10 +7,12 @@ import {
   Modal, 
   ScrollView,
   Alert,
-  SafeAreaView,
   ActivityIndicator,
   Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenLoadError from '../../components/ui/ScreenLoadError';
+import { localDateFromKey } from '../../utils/calendarDate';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -56,6 +58,8 @@ export default function CalendarioClienteScreen({ route }) {
   const [eventos, setEventos] = useState([]);
   const [rutinas, setRutinas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const requestId = useRef(0);
   
   const [showModalAdd, setShowModalAdd] = useState(false);
 
@@ -65,7 +69,9 @@ export default function CalendarioClienteScreen({ route }) {
   }, [currentMonth, clienteId]);
 
   const cargarTodo = async (dateStr) => {
+    const request = ++requestId.current;
     setLoading(true);
+    setError('');
     try {
       const [year, month] = dateStr.split('-');
       const ultimoDia = new Date(year, month, 0).getDate(); 
@@ -78,15 +84,16 @@ export default function CalendarioClienteScreen({ route }) {
       
       // 2. Si es entrenador, solo carga SUS rutinas creadas. Si es cliente, carga todas.
       const dataRutinas = isCoachMode 
-        ? await obtenerRutinasAsignadasPorEntrenador(clienteId)
-        : await obtenerRutinasCliente(clienteId);
+        ? await obtenerRutinasAsignadasPorEntrenador(clienteId, userId, { throwOnError: true })
+        : await obtenerRutinasCliente(clienteId, { throwOnError: true });
       
+      if (request !== requestId.current) return;
       setEventos(dataEventos || []);
       setRutinas(dataRutinas || []);
     } catch (error) {
-      console.error("Error cargando calendario", error);
+      if (request === requestId.current) setError('No se pudo cargar tu calendario. Comprueba la conexión e inténtalo de nuevo.');
     } finally {
-      setLoading(false);
+      if (request === requestId.current) setLoading(false);
     }
   };
 
@@ -158,7 +165,7 @@ export default function CalendarioClienteScreen({ route }) {
 
   const handleRutinaRapida = async (rutinaId) => {
     try {
-      const fechaFormateada = format(new Date(selectedDate), 'yyyy-MM-dd');
+      const fechaFormateada = format(localDateFromKey(selectedDate), 'yyyy-MM-dd');
       
       const idEntrenador = isCoachMode ? userId : undefined;
       
@@ -229,6 +236,8 @@ export default function CalendarioClienteScreen({ route }) {
 
   const eventosDelDia = eventos.filter(e => e.fecha === selectedDate);
 
+  if (error && !loading) return <ScreenLoadError title="Calendario" message={error} onRetry={() => cargarTodo(currentMonth)} onBack={isCoachMode ? () => navigation.goBack() : undefined} />;
+
   return (
     <SafeAreaView style={styles.root}>
       
@@ -255,7 +264,7 @@ export default function CalendarioClienteScreen({ route }) {
         <View style={styles.calendarCard}>
           <Calendar
             current={currentMonth}
-            onMonthChange={(month) => setCurrentMonth(month.dateString)}
+            onMonthChange={(month) => { setCurrentMonth(month.dateString); setSelectedDate(month.dateString); }}
             onDayPress={handleDayPress}
             markingType={'custom'}
             markedDates={getMarkedDates()}
@@ -281,11 +290,11 @@ export default function CalendarioClienteScreen({ route }) {
         <View style={styles.agendaSection}>
           <View style={styles.agendaHeader}>
             <Text style={styles.agendaDateText}>
-              {selectedDate && format(new Date(selectedDate), "EEEE, d 'de' MMMM", { locale: es }).toUpperCase()}
+              {selectedDate && format(localDateFromKey(selectedDate), "EEEE, d 'de' MMMM", { locale: es }).toUpperCase()}
             </Text>
           </View>
 
-          {eventosDelDia.length > 0 ? (
+          {loading ? null : eventosDelDia.length > 0 ? (
             <View style={styles.eventList}>
               {eventosDelDia.map(ev => {
                 const isCompletado = ev.estado === 'COMPLETADO';
@@ -339,6 +348,7 @@ export default function CalendarioClienteScreen({ route }) {
           )}
 
           <TouchableOpacity 
+            disabled={loading}
             style={styles.inlineAddBtn} 
             activeOpacity={0.8}
             onPress={() => setShowModalAdd(true)}
@@ -364,7 +374,7 @@ export default function CalendarioClienteScreen({ route }) {
             </View>
 
             <Text style={styles.modalSubtitle}>
-              Selecciona qué rutina programar para el {selectedDate && format(new Date(selectedDate), 'd de MMMM', { locale: es })}.
+              Selecciona qué rutina programar para el {selectedDate && format(localDateFromKey(selectedDate), 'd de MMMM', { locale: es })}.
             </Text>
 
             <ScrollView style={{maxHeight: 450}} showsVerticalScrollIndicator={false}>

@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenLoadError from '../../components/ui/ScreenLoadError';
 import { 
     View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, 
-    ActivityIndicator, SafeAreaView, StatusBar, Modal, TextInput, Platform, Alert 
+    ActivityIndicator, StatusBar, Modal, TextInput, Platform, Alert
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { 
@@ -23,6 +25,7 @@ export default function DashboardEntrenadorScreen() {
     const [feed, setFeed] = useState([]); 
     const [stats, setStats] = useState({ hoy: 0, riesgo: 0, records: 0 });
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [newClientEmail, setNewClientEmail] = useState("");
@@ -34,10 +37,11 @@ export default function DashboardEntrenadorScreen() {
     const cargarDatos = async () => {
         try {
             setLoading(true);
+            setError('');
             const [dataClientes, dataDash, dataPerfil] = await Promise.all([
-                obtenerClientesEntrenador(entrenadorId).catch(() => []),
-                typeof obtenerDashboardResumen === 'function' ? obtenerDashboardResumen(entrenadorId).catch(() => null) : null,
-                getEntrenador(entrenadorId).catch(() => null)
+                obtenerClientesEntrenador(entrenadorId, { throwOnError: true }),
+                typeof obtenerDashboardResumen === 'function' ? obtenerDashboardResumen(entrenadorId, { throwOnError: true }) : null,
+                getEntrenador(entrenadorId)
             ]);
 
             if (dataPerfil) {
@@ -56,7 +60,7 @@ export default function DashboardEntrenadorScreen() {
                 });
             }
         } catch (error) {
-            console.error("Error cargando dashboard:", error);
+            setError('No se pudo cargar el resumen de tu equipo. Comprueba la conexión e inténtalo de nuevo.');
         } finally {
             setLoading(false);
         }
@@ -197,6 +201,8 @@ export default function DashboardEntrenadorScreen() {
             </View>
         );
     }
+
+    if (error) return <ScreenLoadError title="Inicio del entrenador" message={error} onRetry={cargarDatos} />;
 
     return (
         <SafeAreaView style={styles.safeArea}>

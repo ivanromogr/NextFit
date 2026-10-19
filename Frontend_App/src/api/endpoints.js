@@ -153,11 +153,12 @@ export const obtenerEjerciciosConHistorial = async (clienteId, entrenadorId = nu
   }
 };
 
-export const obtenerRutinasCliente = async (idCliente) => {
+export const obtenerRutinasCliente = async (idCliente, { throwOnError = false } = {}) => {
   try {
     const response = await api.get(`/rutinas/cliente/${idCliente}`, { silentError: true });
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
+    if (throwOnError) throw error;
     console.warn('[obtenerRutinasCliente] No se pudieron cargar rutinas:', error.response?.status || error.message);
     return []; 
   }
@@ -168,7 +169,7 @@ export const guardarRutinaManual = (payload) => api.post("/rutinas/manual", payl
 export const eliminarRutina = (id) => api.delete(`/rutinas/${id}`);
 export const actualizarRutina = (id, payload) => api.put(`/rutinas/${id}`, payload);
 
-export const obtenerRutinasAsignadasPorEntrenador = async (idCliente, entrenadorId) => {
+export const obtenerRutinasAsignadasPorEntrenador = async (idCliente, entrenadorId, { throwOnError = false } = {}) => {
   try {
       const response = await api.get(`/rutinas/cliente/${idCliente}/entrenador`, {
           params: { entrenadorId }, // Pasamos el ID del coach logueado
@@ -176,6 +177,7 @@ export const obtenerRutinasAsignadasPorEntrenador = async (idCliente, entrenador
       });
       return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
+    if (throwOnError) throw error;
       console.warn("No se pudieron cargar rutinas asignadas:", error.response?.status || error.message);
       return []; 
   }
@@ -262,11 +264,12 @@ export const obtenerPRs = async (clienteId, entrenadorId = null) => {
   }
 };
 
-export const obtenerResumenDashboard = async (clienteId) => {
+export const obtenerResumenDashboard = async (clienteId, { throwOnError = false } = {}) => {
     try {
         const response = await api.get(`/dashboard/resumen/${clienteId}`);
         return response.data;
     } catch (error) {
+    if (throwOnError) throw error;
         return null;
     }
 };
@@ -314,21 +317,23 @@ export const subirArchivoAdjunto = async (formData, purpose = 'PROFILE_IMAGE') =
 // ==========================================
 // 9. PANEL ENTRENADOR (DASHBOARD Y GESTIÓN)
 // ==========================================
-export const obtenerClientesEntrenador = async (entrenadorId) => {
+export const obtenerClientesEntrenador = async (entrenadorId, { throwOnError = false } = {}) => {
   try {
     const response = await api.get(`/entrenador/${entrenadorId}/clientes`);
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
+    if (throwOnError) throw error;
     console.error("Error en obtenerClientesEntrenador:", error);
     return [];
   }
 };
 
-export const obtenerDashboardResumen = async (entrenadorId) => {
+export const obtenerDashboardResumen = async (entrenadorId, { throwOnError = false } = {}) => {
   try {
     const response = await api.get(`/entrenador/${entrenadorId}/dashboard-resumen`);
     return response.data;
   } catch (error) {
+    if (throwOnError) throw error;
     console.error("Error en obtenerDashboardResumen:", error);
     return null;
   }

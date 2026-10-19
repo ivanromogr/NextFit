@@ -24,7 +24,7 @@ consentimiento opcional de comunicaciones.
 
 ## Validación
 
-Desde `Frontend_App`, `npm test -- --runInBand`: 23 suites, 117 pruebas correctas.
+Desde `Frontend_App`, `npm test -- --runInBand`: 26 suites, 131 pruebas correctas.
 Incluye recuperación, consentimientos, Google/Apple, chat y las pruebas nuevas
 para visibilidad, eventos del campo y bloqueo de peticiones concurrentes.
 
@@ -147,3 +147,31 @@ las pruebas previas de reautenticación social y protección del último método
 El propietario ha solicitado un aviso al cerrar el paso 6 antes de comenzar el
 7. El paso 6 sigue abierto mientras falten sus recorridos y la validación en
 dispositivo; no se ha empezado el bloque general de testing.
+
+## Inicio, calendario y agenda
+
+Los inicios de atleta/entrenador y los calendarios ofrecen error visible y
+reintento cuando falla una carga necesaria. Un fallo ya no se presenta como
+estadísticas vacías, un equipo sin atletas o un día libre. Estos recorridos
+solicitan propagación de errores a los helpers existentes, conservando su
+comportamiento por defecto para los demás consumidores.
+
+Calendario oculta eventos antiguos durante la carga y descarta respuestas de
+una petición anterior cuando el usuario cambia de mes. El día seleccionado
+acompaña al nuevo mes. Agenda también evita reemplazar eventos recientes con
+una respuesta anterior; si falla el calendario de un atleta no muestra una
+agenda global aparentemente completa. Las peticiones de la vista de entrenador
+incluyen su identificador en el filtro de sesiones y rutinas.
+
+Los límites de mes y las fechas de calendario se tratan como días locales, sin
+convertirlos a UTC para obtener su clave. Se verifican también en procesos con
+`TZ=Pacific/Kiritimati` y `TZ=America/Los_Angeles` (dos pruebas en cada zona),
+además de la suite móvil. Los inicios usan el área segura del dispositivo.
+
+Las pruebas adicionales montan las cuatro pantallas y verifican fallos,
+reintentos, destinos de inicio, filtros del entrenador y respuestas que llegan
+fuera de orden. Son pruebas de componentes con datos sintéticos, no una revisión
+visual ni una sesión real contra producción.
+
+Sigue pendiente revisar la experiencia del chat y completar los recorridos en
+un dispositivo real. No se declara terminado el paso 6 ni se inicia el paso 7.
