@@ -160,4 +160,30 @@ describe('Componente CrearEntrenamiento', () => {
     expect(save).toBeDisabled();
   });
 
+  it('guarda el peso con coma decimal sin truncarlo', async () => {
+    obtenerEjercicios.mockResolvedValue([{ id: 1, nombre: 'Press Banca' }]);
+    guardarRutinaManual.mockResolvedValue({});
+    renderComponent();
+    fireEvent.change(screen.getByPlaceholderText(/NOMBRE DE TU RUTINA/i), { target: { value: 'Plan decimal' } });
+    fireEvent.click(await screen.findByText('Press Banca'));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Peso en kg de Press Banca' }), { target: { value: '35,5' } });
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: /^GUARDAR$/i })));
+    expect(guardarRutinaManual).toHaveBeenCalledWith(expect.objectContaining({ ejercicios: [expect.objectContaining({ peso: 35.5 })] }));
+  });
+
+  it.each([
+    ['Series', '0'], ['Series', '2.5'], ['Repeticiones', ''],
+    ['Peso en kg', '-2'], ['Peso en kg', '35,5,1'], ['RPE', '11'], ['RPE', '8.5']
+  ])('rechaza %s inválido (%s) sin enviar el plan', async (field, value) => {
+    obtenerEjercicios.mockResolvedValue([{ id: 1, nombre: 'Press Banca' }]);
+    renderComponent();
+    fireEvent.change(screen.getByPlaceholderText(/NOMBRE DE TU RUTINA/i), { target: { value: 'Plan pendiente' } });
+    fireEvent.click(await screen.findByText('Press Banca'));
+    fireEvent.change(screen.getByLabelText(`${field} de Press Banca`), { target: { value } });
+    fireEvent.click(screen.getByRole('button', { name: /^GUARDAR$/i }));
+    expect(guardarRutinaManual).not.toHaveBeenCalled();
+    expect(screen.getByText(/Revisa los ejercicios:/i)).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Plan pendiente')).toBeInTheDocument();
+  });
+
 });

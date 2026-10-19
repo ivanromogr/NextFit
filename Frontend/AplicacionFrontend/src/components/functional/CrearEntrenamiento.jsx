@@ -16,6 +16,12 @@ const IconChevronLeft = () => <svg width="24" height="24" viewBox="0 0 24 24" fi
 const IconCheckCircle = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
 const IconAlertCircle = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
 
+const routineNumber = (value) => {
+  const text = String(value ?? '').trim().replace(',', '.');
+  return /^\d+(?:\.\d+)?$/.test(text) ? Number(text) : NaN;
+};
+const positiveInt = value => Number.isInteger(value) && value >= 1 && value <= 2147483647;
+
 const normalizarTexto = (texto = "") =>
   texto
     .toString()
@@ -311,6 +317,18 @@ const CrearEntrenamiento = ({
       return;
     }
 
+    const numericExercises = ejerciciosSeleccionados.map(e => ({
+      ...e,
+      series: routineNumber(e.series), reps: routineNumber(e.reps),
+      peso: routineNumber(e.peso), rpe: routineNumber(e.rpe)
+    }));
+    if (numericExercises.some(e => !positiveInt(e.series) || !positiveInt(e.reps)
+      || !Number.isFinite(Math.fround(e.peso)) || e.peso < 0
+      || !Number.isInteger(e.rpe) || e.rpe < 0 || e.rpe > 10)) {
+      showToast('Revisa los ejercicios: series y repeticiones deben ser enteros positivos, el peso no puede ser negativo y el RPE debe ser un entero entre 0 y 10.', 'error');
+      return;
+    }
+
     const esEntrenador = isTemplate || window.location.pathname.includes("/entrenador");
     const clienteObjetivoId = localStorage.getItem("clienteObjetivoId") || clienteIdProp;
 
@@ -322,12 +340,12 @@ const CrearEntrenamiento = ({
       esPlantilla: isTemplate,
       entrenadorId: esEntrenador ? currentUserId : undefined,
       idCliente: !isTemplate ? (esEntrenador ? clienteObjetivoId : currentUserId) : undefined,
-      ejercicios: ejerciciosSeleccionados.map(e => ({
+      ejercicios: numericExercises.map(e => ({
         idEjercicio: e.idEjercicio,
-        series: parseInt(e.series),
-        repeticiones: parseInt(e.reps),
-        peso: parseFloat(e.peso),
-        rpe: parseInt(e.rpe),
+        series: e.series,
+        repeticiones: e.reps,
+        peso: e.peso,
+        rpe: e.rpe,
         notas: e.notas,
         dias: 1
       }))
@@ -625,19 +643,19 @@ const CrearEntrenamiento = ({
                   <div style={styles.controlPanel}>
                     <div style={styles.controlItem}>
                       <label style={styles.controlLabel}>Series</label>
-                      <input type="number" style={styles.controlInput} value={ej.series} onChange={e => actualizar(ej.tempId, 'series', e.target.value)} />
+                      <input type="number" min="1" step="1" aria-label={`Series de ${ej.nombre}`} style={styles.controlInput} value={ej.series} onChange={e => actualizar(ej.tempId, 'series', e.target.value)} />
                     </div>
                     <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}>
                       <label style={styles.controlLabel}>Reps</label>
-                      <input type="number" style={styles.controlInput} value={ej.reps} onChange={e => actualizar(ej.tempId, 'reps', e.target.value)} />
+                      <input type="number" min="1" step="1" aria-label={`Repeticiones de ${ej.nombre}`} style={styles.controlInput} value={ej.reps} onChange={e => actualizar(ej.tempId, 'reps', e.target.value)} />
                     </div>
                     <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}>
                       <label style={{...styles.controlLabel, color: isTemplate ? '#60A5FA' : '#FACC15'}}>Peso (Kg)</label>
-                      <input type="number" style={{...styles.controlInput, color: isTemplate ? '#60A5FA' : '#FACC15'}} value={ej.peso} onChange={e => actualizar(ej.tempId, 'peso', e.target.value)} />
+                      <input type="text" inputMode="decimal" aria-label={`Peso en kg de ${ej.nombre}`} style={{...styles.controlInput, color: isTemplate ? '#60A5FA' : '#FACC15'}} value={ej.peso} onChange={e => actualizar(ej.tempId, 'peso', e.target.value)} />
                     </div>
                     <div style={{...styles.controlItem, borderLeft: '1px solid #222'}}>
                       <label style={{...styles.controlLabel, color: '#60A5FA'}}>RPE</label>
-                      <input type="number" style={{...styles.controlInput, color: '#60A5FA'}} value={ej.rpe} onChange={e => actualizar(ej.tempId, 'rpe', e.target.value)} />
+                      <input type="number" min="0" max="10" step="1" aria-label={`RPE de ${ej.nombre}`} style={{...styles.controlInput, color: '#60A5FA'}} value={ej.rpe} onChange={e => actualizar(ej.tempId, 'rpe', e.target.value)} />
                     </div>
                   </div>
 

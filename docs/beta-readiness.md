@@ -180,3 +180,9 @@ El creador manual distingue un fallo del catálogo de una búsqueda vacía y per
 Validación: 5 pruebas del creador manual correctas, incluidas recuperación del catálogo con nombre/búsqueda conservados y fallo/reintento de guardado con ejercicios conservados. API simulada, sin modificar planes reales. La API de ejercicios de pago sigue aplazada.
 
 La compilación web de producción de esta revisión también se completó correctamente.
+
+### Cantidades en la creación manual web
+
+El creador manual acepta coma o punto decimal en el peso, sin usar conversiones parciales que trunquen el valor. Antes de enviar valida series/repeticiones enteras positivas compatibles con el contrato Java, peso no negativo representable como Float y RPE entero entre 0 y 10 (0 conserva el valor sin objetivo previo). Los campos vacíos o mal formados detienen el envío y conservan el borrador. Cada campo tiene una etiqueta accesible por ejercicio. Es validación de formulario: no sustituye controles del servidor ni impone límites clínicos personalizados.
+
+Validación: 13 pruebas del creador correctas, incluidas conversión de 35,5 a 35.5 y siete casos de cantidades inválidas sin llamada de guardado; compilación web completada. La revisión afecta al creador manual, no corrige todavía las series individuales del editor antiguo.
