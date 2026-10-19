@@ -2,6 +2,7 @@ package com.tuap.backend.auth;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -35,6 +36,7 @@ class TrainingOwnershipIntegrationTest {
     @Autowired RutinaDAO rutinas;
     @Autowired EventoCalendarioDAO eventos;
     @Autowired SesionEntrenamientoDAO sesiones;
+    @Autowired EjercicioDAO ejercicios;
     Cliente a, b;
     Entrenador entrenador;
     Rutina rutinaA, rutinaB;
@@ -109,6 +111,59 @@ class TrainingOwnershipIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.nombre").value("Entrenamiento Libre"));
         assertEquals(antes + 1, sesiones.count()); assertFalse(eventoA.isCompletado());
     }
+    @Test void exportaRutinaSeriesRealesYEventosFuturosSinDatosDeOtroCliente() throws Exception {
+        Ejercicio ejercicio = new Ejercicio(); ejercicio.setNombre("Ejercicio de prueba");
+        ejercicio.setGrupoMuscular("Pecho"); ejercicio.setEquipamiento("Peso corporal");
+        ejercicio = ejercicios.saveAndFlush(ejercicio);
+        DetalleRutina detalle = new DetalleRutina(); detalle.setRutina(rutinaA); detalle.setEjercicio(ejercicio);
+        detalle.setSeries(3); detalle.setRepeticiones(8); detalle.setPeso(12.5f); detalle.setNotas("Nota de mi pauta");
+        rutinaA.getDetalles().add(detalle); rutinas.saveAndFlush(rutinaA);
+        eventoA.setFecha(LocalDate.now().plusDays(30)); eventos.saveAndFlush(eventoA);
+        SesionEntrenamiento propia = previa(a, rutinaA, eventoA);
+        SerieRealizada serie = new SerieRealizada(); serie.setSesion(propia); serie.setEjercicio(ejercicio);
+        serie.setPeso(15.5); serie.setReps(8); serie.setHecho(true); serie.setVolumenSerie(124);
+        propia.getSeries().add(serie); propia.setNotasGenerales("Mi sesión registrada"); sesiones.saveAndFlush(propia);
+        SesionEntrenamiento privada = previa(b, rutinaB, eventoB);
+        privada.setNotasGenerales("NOTA-PRIVADA-OTRO-CLIENTE"); sesiones.saveAndFlush(privada);
+        var respuesta = mvc.perform(get("/api/auth/data-export").header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.trainingData.routines.length()").value(1))
+                .andExpect(jsonPath("$.trainingData.routines[0].exercises[0].weight").value(12.5))
+                .andExpect(jsonPath("$.trainingData.sessions.length()").value(1))
+                .andExpect(jsonPath("$.trainingData.sessions[0].sets[0].weight").value(15.5))
+                .andExpect(jsonPath("$.trainingData.sessions[0].sets[0].done").value(true))
+                .andExpect(jsonPath("$.trainingData.calendarEvents[0].date").value(eventoA.getFecha().toString()))
+                .andReturn().getResponse().getContentAsString();
+        assertFalse(respuesta.contains("NOTA-PRIVADA-OTRO-CLIENTE"));
+        assertFalse(respuesta.contains(b.getEmail())); assertFalse(respuesta.contains(rutinaB.getId().toString()));
+        var tree = json.readTree(respuesta).path("trainingData");
+        assertFalse(tree.toString().contains("contrasena")); assertFalse(tree.toString().contains("storageKey"));
+    }
+
+    @Test void exportacionEntrenadorSoloIncluyeSusPlantillasNoHistoriasDeClientes() throws Exception {
+        Rutina plantilla = rutina(null); plantilla.setEsPlantilla(true); rutinas.saveAndFlush(plantilla);
+        Rutina ajena = rutina(null); ajena.setEsPlantilla(true); ajena.setEntrenadorId(UUID.randomUUID()); rutinas.saveAndFlush(ajena);
+        SesionEntrenamiento privada = previa(a, rutinaA, eventoA);
+        privada.setNotasGenerales("NOTA-CLIENTE-NO-EXPORTABLE"); sesiones.saveAndFlush(privada);
+        var respuesta = mvc.perform(get("/api/auth/data-export").header("Authorization", "Bearer " + tokenEntrenador))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.trainingData.routines.length()").value(1))
+                .andExpect(jsonPath("$.trainingData.routines[0].id").value(plantilla.getId().toString()))
+                .andExpect(jsonPath("$.trainingData.sessions").isEmpty())
+                .andExpect(jsonPath("$.trainingData.calendarEvents").isEmpty())
+                .andReturn().getResponse().getContentAsString();
+        assertFalse(respuesta.contains("NOTA-CLIENTE-NO-EXPORTABLE")); assertFalse(respuesta.contains(ajena.getId().toString()));
+    }
+
+    @Test void exportacionNoSigueReferenciasHistoricasInconsistentesHaciaOtraCuenta() throws Exception {
+        rutinaB.setNombre("NOMBRE-PRIVADO-OTRA-CUENTA"); rutinas.saveAndFlush(rutinaB);
+        eventoA.setRutina(rutinaB); eventos.saveAndFlush(eventoA);
+        previa(a, rutinaB, eventoB);
+        var respuesta = mvc.perform(get("/api/auth/data-export").header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertFalse(respuesta.contains("NOMBRE-PRIVADO-OTRA-CUENTA"));
+        assertFalse(respuesta.contains(rutinaB.getId().toString())); assertFalse(respuesta.contains(eventoB.getId().toString()));
+    }
+
     private void rechazar(UUID rutinaId, UUID eventoId) throws Exception {
         long antes = sesiones.count(); guardar(payload(rutinaId, eventoId))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.id").doesNotExist())

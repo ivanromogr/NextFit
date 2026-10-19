@@ -123,7 +123,7 @@ class AuthControllerTest {
     void exportacionDatos_DeclaraDescargaJsonSinCacheYSinEmailEnNombre() {
         AuthenticatedUser user = new AuthenticatedUser(UUID.randomUUID(), "privado@nextfit.test", Role.CLIENTE);
         UserDataExportResponse export = new UserDataExportResponse(java.time.Instant.now(), "CLIENTE", java.util.Map.of(),
-                java.util.Map.of(), java.util.List.of(), java.util.List.of(), java.util.List.of(), java.util.List.of());
+                java.util.Map.of(), java.util.List.of(), java.util.List.of(), java.util.List.of(), java.util.List.of(), java.util.Map.of());
         when(userDataExportService.exportFor(user)).thenReturn(export);
 
         ResponseEntity<UserDataExportResponse> response = controller.dataExport(user);

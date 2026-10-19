@@ -26,15 +26,17 @@ public class UserDataExportService {
     private final MensajeDAO mensajes;
     private final ResenaDAO resenas;
     private final UploadedFileDAO uploads;
+    private final TrainingDataExportService training;
     @org.springframework.beans.factory.annotation.Autowired(required = false) private UserConsentDAO consents;
 
     public UserDataExportService(ClienteDAO clientes, EntrenadorDAO entrenadores, MensajeDAO mensajes,
-            ResenaDAO resenas, UploadedFileDAO uploads) {
+            ResenaDAO resenas, UploadedFileDAO uploads, TrainingDataExportService training) {
         this.clientes = clientes;
         this.entrenadores = entrenadores;
         this.mensajes = mensajes;
         this.resenas = resenas;
         this.uploads = uploads;
+        this.training = training;
     }
 
     public UserDataExportResponse exportFor(AuthenticatedUser principal) {
@@ -71,7 +73,7 @@ public class UserDataExportService {
         List<?> consentExport = consents == null ? List.of() : consents.findByUserIdAndRole(principal.userId(), principal.role()).stream()
                 .map(c -> Map.of("type", c.getType().name(), "version", c.getVersion(), "accepted", c.isAccepted(), "acceptedAt", c.getAcceptedAt() == null ? "" : c.getAcceptedAt().toString(), "withdrawnAt", c.getWithdrawnAt() == null ? "" : c.getWithdrawnAt().toString())).toList();
         return new UserDataExportResponse(Instant.now(), principal.role().name(), profile, relationships, messageExport,
-                reviews, uploadExport, consentExport);
+                reviews, uploadExport, consentExport, training.exportFor(principal));
     }
 
     private Map<String, Object> clienteProfile(Cliente cliente) {

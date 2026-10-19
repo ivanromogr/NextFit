@@ -99,7 +99,7 @@ class UserDataExportServiceTest {
     }
 
     private UserDataExportService service(ClienteDAO c, MensajeDAO m, ResenaDAO r, UploadedFileDAO u) { return service(c, mock(EntrenadorDAO.class), m, r, u); }
-    private UserDataExportService service(ClienteDAO c, EntrenadorDAO e, MensajeDAO m, ResenaDAO r, UploadedFileDAO u) { return new UserDataExportService(c, e, m, r, u); }
+    private UserDataExportService service(ClienteDAO c, EntrenadorDAO e, MensajeDAO m, ResenaDAO r, UploadedFileDAO u) { return new UserDataExportService(c, e, m, r, u, mock(TrainingDataExportService.class)); }
     private AuthenticatedUser user(UUID id, Role role) { return new AuthenticatedUser(id, "owner@nextfit.test", role); }
     private Cliente cliente(UUID id, String nombre, String apellido, String email) { Cliente c = new Cliente(); c.setId(id); c.setNombre(nombre); c.setApellido(apellido); c.setEmail(email); c.setRol("CLIENTE"); c.setGenero("NO_DECIR"); return c; }
     private Entrenador entrenador(UUID id) { Entrenador e = new Entrenador(); e.setId(id); e.setNombre("Toni"); e.setApellido("Propio"); e.setEmail("toni@nextfit.test"); e.setRol("ENTRENADOR"); return e; }

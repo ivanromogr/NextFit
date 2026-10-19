@@ -100,3 +100,21 @@ Ensayo reproducible si el entorno tiene Python Playwright y Chromium instalados:
 
 El script usa exclusivamente la preview local y bloquea conexiones externas.
 No publicar ese servidor local como enlace para el usuario.
+
+## Privacidad: preparación de textos y exportación
+
+El propietario confirma España y deja pendiente crear el correo de soporte y
+privacidad; falta la identidad del responsable. Los textos públicos siguen
+provisionales. El inventario y las diferencias que deben resolverse antes de
+publicar se registran en [Privacidad para la beta](privacy-data-inventory.md).
+
+La exportación incorpora `trainingData`: rutinas, sesiones/series y calendario
+pasado/futuro propios del cliente; para el entrenador, sus plantillas sin cliente.
+No amplía su acceso a historiales privados de clientes. Se mantiene JWT, el
+formato de descarga y las cabeceras sin caché. No se hacen migraciones ni cambios
+de consentimientos o producción. Validación de esta ampliación: `mvnw verify` termina con BUILD SUCCESS y
+**373 pruebas sin fallos, errores ni omisiones**, JAR compilado. Son tres pruebas
+adicionales de exportación sobre las 370 anteriores: pauta y series reales con
+calendario futuro, separación del entrenador y referencias inconsistentes hacia
+otra cuenta. Las suites web/móvil no se han repetido en esta ejecución porque
+no se ha cambiado su código. La ampliación permanece en la rama, sin desplegar.

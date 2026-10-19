@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import com.tuap.backend.dominio.entidades.EventoCalendario;
 
 public interface EventoCalendarioDAO extends JpaRepository<EventoCalendario, UUID> {
+    List<EventoCalendario> findByClienteIdOrderByFechaAsc(UUID clienteId);
     
     // Obtener eventos para pintar el calendario
     List<EventoCalendario> findByClienteIdAndFechaBetween(UUID clienteId, LocalDate inicio, LocalDate fin);
