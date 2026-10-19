@@ -1,0 +1,75 @@
+# Preparación de la beta de NextFit
+
+Actualizado el 19 de octubre de 2026.
+
+## Alcance acordado
+
+El propietario ha aprobado priorizar una beta de la aplicación base y aplazar
+NextFit AI Coach. Su auditoría queda como propuesta: no se ha implementado IA,
+habilitado consumo de modelos o contratado servicios.
+
+Las mejoras móviles están en `codex/mobile-ux`. El paso 6 sigue pendiente de
+validación en teléfono; no se presenta como terminado. Tras acordar el camino
+hacia la beta, se retoman las comprobaciones generales del paso 7 sin ocultar
+esa dependencia pendiente. No se autoriza un gasto por el mero hecho de preparar
+la beta.
+
+## Correcciones de aislamiento para la beta
+
+- Programar una rutina exige que pertenezca al cliente del calendario. Tener
+  acceso a dos clientes como entrenador no permite mezclar sus recursos.
+- Las plantillas sin cliente deben clonarse antes de programarlas, mediante el
+  flujo existente de asignación.
+- Guardar una sesión valida cliente, rutina y evento antes de consultar una
+  sesión previa o escribir. Un evento inexistente, ajeno o de otra rutina no
+  puede marcarse completado ni devolver los datos de otra sesión.
+- La sesión previa debe corresponder también al cliente y rutina autorizados;
+  una asociación inconsistente no se usa como respuesta idempotente.
+- Los rechazos de permisos se devuelven como 403, sin transformarlos en errores
+  genéricos de guardado. El entrenamiento libre sin evento permanece disponible.
+
+Las pruebas de integración usan JWT reales del perfil de test, controladores,
+servicios y H2 aislado, con cuentas ficticias y rollback. Incluyen autorización
+positiva y negativa, trainer con dos clientes, plantilla, evento inexistente,
+asociaciones inconsistentes y reintento de una sesión válida. La prueba del
+reintento secuencial no demuestra idempotencia concurrente de sesiones libres.
+
+## Evidencia de validación
+
+Ejecución del 19 de octubre de 2026 sobre el código corregido:
+
+- Backend: `mvnw verify` termina con BUILD SUCCESS; **370 pruebas**, sin fallos,
+  errores ni omisiones, y JAR compilado. Incluye las **11 pruebas nuevas** de
+  `TrainingOwnershipIntegrationTest`.
+- Web: **284 pruebas en 59 archivos**, todas correctas; `npm run build` termina
+  correctamente. Se mantiene el aviso de tamaño del bundle; no es un fallo de build.
+- Móvil: **168 pruebas en 31 suites**, todas correctas. No se ha generado ni
+  instalado una compilación nativa nueva en esta ejecución.
+- `scripts/check-production.py`: salud UP, protección de chat/moderación, CORS
+  exacto y rechazo de una credencial Google deliberadamente inválida.
+- `git diff --check`: sin errores de espacios.
+
+Los checks de producción corresponden al despliegue existente: **las nuevas
+correcciones de aislamiento todavía no se han desplegado**. Las pruebas no
+crean usuarios reales, no escriben entrenamientos reales ni verifican una
+sesión social real. No confundir los recuentos históricos de otros documentos
+con una ejecución nueva.
+
+## Condiciones pendientes antes de distribuir la beta
+
+| Área | Situación y siguiente evidencia necesaria |
+|---|---|
+| Código entregado | Subir cambios revisados; comprobar el commit de cada despliegue. La rama no actualiza automáticamente producción |
+| iPhone | Apple Developer/TestFlight y firma iOS aplazados; Expo no tiene credenciales iOS. Falta compilación y recorrido real con teclado, texto grande y ambos perfiles |
+| Android | La solicitud de APK de esta rama se canceló al confirmar que el propietario usa iPhone; no hay un APK nuevo de estas mejoras |
+| Login social | La respuesta a credenciales inválidas no valida login real. Google Android/iOS y Apple reales necesitan sus builds, configuración y dispositivo |
+| PostgreSQL | Obtener copia cifrada real y restaurarla en una base aislada; ensayos con datos sintéticos no acreditan recuperación de producción |
+| Migraciones | Revisar esquema/baseline de la base existente antes de activar Flyway o sustituir `update`; no hacerlo para silenciar fallos |
+| Archivos | Cloudinary privado se verificó con un objeto sintético tras recrear instancia; archivos locales antiguos perdidos no se recuperaron |
+| Legal/publicación | Revisar textos, contacto de soporte, política de privacidad, datos declarados en tiendas y derechos de medios del catálogo |
+| Recorridos de beta | Cuentas ficticias de ambos perfiles: acceso, asignación, calendario, sesión, progreso, chat, bloqueo/denuncia y privacidad; no usar cuentas reales ajenas |
+
+No publicar como aplicación lista para tiendas mientras falten estas condiciones.
+Consultar también `production-readiness.md`, `database-operations.md` y
+`mobile-ux.md`. La preparación técnica y las verificaciones automatizadas no
+sustituyen una prueba real ni una decisión de contratar infraestructura.

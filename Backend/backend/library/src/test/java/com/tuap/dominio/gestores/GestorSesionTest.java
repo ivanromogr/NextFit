@@ -62,6 +62,7 @@ class GestorSesionTest {
         rutinaMock = new Rutina();
         rutinaMock.setId(rutinaId);
         rutinaMock.setNombre("Rutina de Fuerza");
+        rutinaMock.setCliente(clienteMock);
 
         ejercicioMock = new Ejercicio();
         ejercicioMock.setId(ejercicioId);

@@ -75,6 +75,7 @@ class CalendarioControllerTest {
         eventoPendiente.setEntrenadorId(entrenadorId);
         Cliente cliente = new Cliente();
         cliente.setId(clienteId);
+        rutinaFake.setCliente(cliente);
         eventoPendiente.setCliente(cliente);
 
         // Evento 2: Del pasado (SALTADO)

@@ -116,6 +116,9 @@ public class CalendarioController {
 
         if (cliente == null || rutina == null) return ResponseEntity.badRequest().body("Error datos");
         ownershipService.requireRoutineAccess(rutina, principal);
+        if (rutina.getCliente() == null || !clienteId.equals(rutina.getCliente().getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
+        }
         validarFiltroEntrenador(payload.get(ENTRENADOR_ID_PARAM), principal);
 
         EventoCalendario evento = new EventoCalendario(fecha, rutina, cliente);

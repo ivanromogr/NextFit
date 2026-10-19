@@ -39,9 +39,14 @@ public class GestorSesion {
         Cliente cliente = clienteDAO.findById(req.getClienteId())
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
+        validarReferencias(req);
         if (req.getEventoCalendarioId() != null) {
             SesionEntrenamiento existente = sesionDAO.findByEventoCalendario_Id(req.getEventoCalendarioId());
             if (existente != null) {
+                if (existente.getCliente() == null || !req.getClienteId().equals(existente.getCliente().getId())
+                        || existente.getRutina() == null || !req.getRutinaId().equals(existente.getRutina().getId())) {
+                    throw accesoDenegado();
+                }
                 return existente;
             }
         }
@@ -66,6 +71,28 @@ public class GestorSesion {
         }
 
         return guardada;
+    }
+
+    /** Validate the complete relationship before returning a prior session or writing anything. */
+    private void validarReferencias(GuardarSesionRequest req) {
+        if (req.getRutinaId() != null) {
+            Rutina rutina = rutinaDAO.findById(req.getRutinaId()).orElseThrow(this::accesoDenegado);
+            if (rutina.getCliente() == null || !req.getClienteId().equals(rutina.getCliente().getId())) {
+                throw accesoDenegado();
+            }
+        }
+        if (req.getEventoCalendarioId() != null) {
+            EventoCalendario evento = eventoDAO.findById(req.getEventoCalendarioId()).orElseThrow(this::accesoDenegado);
+            if (evento.getCliente() == null || !req.getClienteId().equals(evento.getCliente().getId())
+                    || req.getRutinaId() == null || evento.getRutina() == null
+                    || !req.getRutinaId().equals(evento.getRutina().getId())) {
+                throw accesoDenegado();
+            }
+        }
+    }
+
+    private org.springframework.security.access.AccessDeniedException accesoDenegado() {
+        return new org.springframework.security.access.AccessDeniedException("No tienes permisos para realizar esta acción");
     }
 
     private SesionEntrenamiento inicializarSesion(GuardarSesionRequest req, Cliente cliente) {

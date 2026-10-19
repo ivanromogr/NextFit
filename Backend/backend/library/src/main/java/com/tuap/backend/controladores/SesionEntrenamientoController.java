@@ -76,6 +76,8 @@ public class SesionEntrenamientoController {
             response.put("volumenTotal", guardada.getVolumenTotal());
             response.put("seriesGuardadas", guardada.getSeries() != null ? guardada.getSeries().size() : 0);
             return ResponseEntity.ok(response);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error al guardar sesión", e);
             return ResponseEntity.badRequest().body("Error al guardar sesión: " + e.getMessage());
