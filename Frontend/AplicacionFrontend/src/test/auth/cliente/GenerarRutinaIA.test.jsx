@@ -40,10 +40,10 @@ describe('Página GenerarRutinaIA', () => {
         );
     };
 
-    it('renderiza correctamente el Arquitecto IA', () => {
+    it('describe el generador automático', () => {
         renderComponent();
-        expect(screen.getByText(/Arquitecto/i)).toBeInTheDocument();
-        expect(screen.getByText(/^IA$/)).toBeInTheDocument(); 
+        expect(screen.getByText(/Generador de/i)).toBeInTheDocument();
+        expect(screen.queryByText(/^IA$/)).not.toBeInTheDocument();
         expect(screen.getByText(/Selecciona tu Objetivo Principal/i)).toBeInTheDocument();
     });
 

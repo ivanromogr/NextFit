@@ -141,22 +141,20 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
                 lugar: "GIMNASIO"
             };
 
-            console.log("🚀 Enviando petición a la IA...", payload);
+
             
             await generarRutinaAuto(payload);
             
-            console.log("✅ ¡La IA respondió perfectamente!");
+
             
             if (onSuccess) onSuccess();
             else setTimeout(() => navigate("/cliente/dashboard"), 500);
 
         } catch (error) {
-            // 🚨 AQUÍ CAZAMOS EL ERROR
-            console.error("❌ ERROR COMPLETO DE LA IA:", error);
-            console.error("❌ STATUS CODE:", error.response?.status);
+
             
             const mensajeError = error.response?.data?.message || error.response?.data?.error || error.message;
-            alert("Fallo en la IA (Mira la consola): " + mensajeError);
+            alert("No se ha podido generar el plan: " + mensajeError);
         } finally {
             setLoading(false);
         }
@@ -226,8 +224,8 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
                         <div style={{display:'inline-flex', alignItems:'center', justifyContent:'center', background:'rgba(250,204,21,0.1)', padding:'15px', borderRadius:'20px', marginBottom:'20px', border:'1px solid rgba(250,204,21,0.2)'}}>
                             <BrainCircuit size={40} color="#FACC15" />
                         </div>
-                        <h1 style={styles.title}>Arquitecto <span style={{color:'#FACC15'}}>IA</span></h1>
-                        <p style={styles.subtitle}>Diseña tu plan de entrenamiento inteligente en segundos.</p>
+                        <h1 style={styles.title}>Generador de <span style={{color:'#FACC15'}}>rutinas</span></h1>
+                        <p style={styles.subtitle}>Crea un plan automático según tu objetivo y los días de entrenamiento.</p>
                     </div>
 
                     {/* 1. OBJETIVOS (FILA DE TARJETAS GRANDES) */}
@@ -292,7 +290,7 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
                         onMouseEnter={e => !loading && (e.currentTarget.style.transform = 'translateY(-3px)')}
                         onMouseLeave={e => !loading && (e.currentTarget.style.transform = 'translateY(0)')}
                     >
-                        {loading ? "ANALIZANDO BIO-DATOS..." : "GENERAR PLAN PERSONALIZADO"}
+                        {loading ? "GENERANDO RUTINAS..." : "GENERAR PLAN PERSONALIZADO"}
                         {!loading && <Play size={24} fill="black"/>}
                     </button>
 

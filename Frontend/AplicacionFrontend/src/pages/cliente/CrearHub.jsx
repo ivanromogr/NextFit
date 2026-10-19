@@ -57,7 +57,7 @@ export default function CrearHub() {
                     </div>
                     <div>
                         <h2 style={styles.cardTitle}>Entrenamientos Predeterminados</h2>
-                        <p style={styles.cardSub}>Plan personalizado automático e inteligente.</p>
+                        <p style={styles.cardSub}>Genera rutinas según tu objetivo y los días de entrenamiento.</p>
                     </div>
                     <ArrowRight className="arrow-icon" style={styles.arrow} size={24} />
                 </div>

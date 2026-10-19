@@ -483,7 +483,7 @@ export default function DashboardCliente() {
             >
                 <div>
                     <h3 style={{fontSize:'1.5rem', fontWeight: 900, marginBottom:'5px', textTransform:'uppercase'}}>Tu Biblioteca</h3>
-                    <p style={{color:'#71717a', margin:0}}>Accede a todos tus planes de entrenamiento, rutinas IA y personalizadas.</p>
+                    <p style={{color:'#71717a', margin:0}}>Accede a todos tus planes de entrenamiento, rutinas automáticas y manuales.</p>
                 </div>
                 <div style={{background:'rgba(255,255,255,0.05)', padding:'15px', borderRadius:'50%'}}>
                     <ArrowRight size={24} color="#FACC15"/>

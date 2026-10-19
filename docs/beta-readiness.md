@@ -139,3 +139,9 @@ y 17 casos finales de formulario/HTTP correctos. Build web y exportaciones
 JavaScript Android/iOS del código final completados. No son pruebas con
 proveedores reales ni builds firmadas. El despliegue conjunto de API y clientes
 sigue pendiente: la API de producción anterior solo admite contraseña para baja.
+
+### Generador automático: textos de la beta
+
+El generador existente se presenta como generación automática de rutinas, basada en reglas, objetivo y días de entrenamiento. Se retiraron las referencias a IA y análisis de biodatos de sus pantallas web y móvil, sin cambiar las rutas ni el contrato del servidor. AI Coach sigue aplazado. Se eliminaron además los registros del formulario y la respuesta completa de error en la consola web.
+
+Validación: 4 pruebas del generador web y 9 de edición/generación móvil; compilación web de producción. Esta revisión no incorpora un proveedor de IA ni demuestra personalización clínica o adaptación a lesiones.

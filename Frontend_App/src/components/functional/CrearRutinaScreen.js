@@ -307,7 +307,7 @@ export default function CrearRutinaScreen() {
     if (!aiObjetivo || !aiNivel || !aiDias) {
       return Alert.alert(
         "Faltan datos",
-        "Por favor, selecciona todas las opciones para que la IA pueda diseñar tu plan."
+        "Selecciona todas las opciones para generar tu plan."
       );
     }
 
@@ -328,7 +328,7 @@ export default function CrearRutinaScreen() {
       if (request !== version.current) return;
       completed.current = true; setSaved(true);
 
-      Alert.alert("¡Plan Creado! 🧠", "La IA ha diseñado tu rutina con éxito.", [
+      Alert.alert("Plan creado", "Tu plan automático se ha guardado correctamente.", [
         { text: "Ver mis rutinas", onPress: () => navigation.navigate("Rutinas") }
       ]);
     } catch {
@@ -637,8 +637,8 @@ export default function CrearRutinaScreen() {
             <View style={[styles.iconWrap, { backgroundColor: 'rgba(250, 204, 21, 0.1)' }]}>
               <Sparkles size={32} color="#FACC15" />
             </View>
-            <Text style={styles.optionTitle}>GENERAR CON IA</Text>
-            <Text style={styles.optionDesc}>Plan personalizado automático e inteligente.</Text>
+            <Text style={styles.optionTitle}>GENERAR RUTINAS</Text>
+            <Text style={styles.optionDesc}>Rutinas según tu objetivo y los días de entrenamiento.</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.optionCard} onPress={() => setViewMode('manual')}>
@@ -668,9 +668,9 @@ export default function CrearRutinaScreen() {
               <Brain size={36} color="#FACC15" />
             </View>
             <Text style={styles.iaTitle}>
-              ARQUITECTO <Text style={{ color: '#FACC15' }}>IA</Text>
+              GENERADOR DE <Text style={{ color: '#FACC15' }}>RUTINAS</Text>
             </Text>
-            <Text style={styles.iaSub}>Diseña tu plan de entrenamiento inteligente en segundos.</Text>
+            <Text style={styles.iaSub}>Crea un plan automático según tu objetivo y los días de entrenamiento.</Text>
           </View>
 
           <View style={styles.section}>
@@ -801,7 +801,7 @@ export default function CrearRutinaScreen() {
 
         <View style={styles.bottomFixed}>
           <FormMessage>{saveError}</FormMessage>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Generar plan inteligente" style={styles.btnGenerar} onPress={handleGenerarIA} disabled={loadingIA || saved}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Generar plan automático" style={styles.btnGenerar} onPress={handleGenerarIA} disabled={loadingIA || saved}>
             {loadingIA ? (
               <ActivityIndicator color="black" />
             ) : (
