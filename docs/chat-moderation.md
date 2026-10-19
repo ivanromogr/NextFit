@@ -88,3 +88,11 @@ The owner designated their account in chat. An exact activation script was prepa
 - Blocks apply at server validation; an already accepted in-flight message may still arrive. Multi-instance concurrency and a strict block/send transaction ordering require additional validation.
 
 Panel validation on 2026-10-19: 42 focused backend checks and 40 web checks passed (82 total). The web build and ESLint for the new panel/entry components passed. Device testing and PostgreSQL deployment are separate outstanding checks.
+
+## Automated deployment bootstrap
+
+For the initial Render rollout, the backend bundles the two additive PostgreSQL schema scripts. `APP_MODERATION_SCHEMA_INIT_MODE=always` explicitly enables Spring SQL initialization before Hibernate. `APP_MODERATION_BOOTSTRAP_ENABLED=true` plus `APP_MODERATION_BOOTSTRAP_EMAIL` activates a deployment-only runner. It finds exactly one active account across both identity tables (normalized email), grants only that UUID/role and logs a completion marker without passwords/tokens. No HTTP grant endpoint exists. Missing/ambiguous targets fail startup without granting another account.
+
+While the runner is enabled, the aggregate `/actuator/health` also requires the persisted grant; it exposes no identity details. The existing Render health check points at this endpoint. After the initial healthy rollout, set schema initialization back to `never`, disable the runner and clear its email, then deploy again. This prevents later restarts from restoring a deliberately revoked grant.
+
+The complete sequence was tested on PostgreSQL 16: migrate a legacy report without version columns, preserve its category/status, grant only the fixture operator, deny a normal account, reapply migrations idempotently, then restart with both bootstrap switches disabled and confirm the persisted permission via the authenticated API. Four focused bootstrap tests also cover designation, idempotence, ambiguity, missing accounts and the disabled default. All fixture data remained outside production.
