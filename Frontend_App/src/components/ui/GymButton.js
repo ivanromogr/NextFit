@@ -19,16 +19,19 @@ export default function GymButton({
   const isLoading = Boolean(loading);
   const isDisabled = Boolean(disabled) || isLoading;
   const isSecondary = variant === 'secondary';
+  const isDanger = variant === 'danger';
 
   const getButtonStyle = () => {
     if (isDisabled) return styles.disabledButton;
     if (isSecondary) return styles.secondaryButton;
+    if (isDanger) return styles.dangerButton;
     return styles.primaryButton;
   };
 
   const getTextStyle = () => {
     if (isDisabled) return styles.disabledText;
     if (isSecondary) return styles.secondaryText;
+    if (isDanger) return styles.dangerText;
     return styles.primaryText;
   };
 
@@ -48,7 +51,7 @@ export default function GymButton({
     >
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color={isSecondary ? '#FACC15' : '#0A0A0A'} size="small" />
+          <ActivityIndicator color={isSecondary ? '#FACC15' : isDanger ? '#FFFFFF' : '#0A0A0A'} size="small" />
           <Text style={[getTextStyle(), styles.loadingText]}>PROCESANDO...</Text>
         </View>
       ) : (
@@ -75,6 +78,8 @@ const styles = StyleSheet.create({
   },
   baseText: { textAlign: 'center', flexShrink: 1, fontSize: 16, fontWeight: '800', letterSpacing: 0.7 },
   loadingText: { marginLeft: 10 },
+  dangerButton: { backgroundColor: '#B91C1C' },
+  dangerText: { color: '#FFFFFF' },
   primaryButton: { backgroundColor: '#FACC15' },
   primaryText: { color: '#0A0A0A' },
   secondaryButton: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.10)' },

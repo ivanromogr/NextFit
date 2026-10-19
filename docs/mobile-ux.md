@@ -24,7 +24,7 @@ consentimiento opcional de comunicaciones.
 
 ## Validación
 
-Desde `Frontend_App`, `npm test -- --runInBand`: 19 suites, 90 pruebas correctas.
+Desde `Frontend_App`, `npm test -- --runInBand`: 20 suites, 98 pruebas correctas.
 Incluye recuperación, consentimientos, Google/Apple, chat y las pruebas nuevas
 para visibilidad, eventos del campo y bloqueo de peticiones concurrentes.
 
@@ -71,3 +71,23 @@ local tras una respuesta correcta. Un error de contraseña actual no cierra la
 sesión. Las pruebas cubren estos estados, la confirmación, la petición duplicada
 por teclado y el reintento. No se ha enviado correo ni cambiado una contraseña
 real durante estas pruebas.
+
+## Sesiones, privacidad y eliminación de cuenta
+
+Sesiones activas presenta una lista virtualizada con tarjetas, carga, error,
+lista vacía y actualización manual. Revocar una sesión bloquea acciones
+simultáneas y actualiza la lista; cerrar todas conserva la confirmación explícita.
+Los identificadores internos siguen sin mostrarse.
+
+Privacidad ofrece reintentar una carga fallida y anuncia el estado de guardado.
+El interruptor conserva la preferencia guardada hasta recibir confirmación del
+servidor. Una petición fallida no activa marketing y permite reintentar. No se
+cambian los consentimientos de términos o privacidad.
+
+Eliminar cuenta usa el formulario compartido, un botón de acción destructiva y
+confirmación nativa. Valida la contraseña antes de confirmar, bloquea peticiones
+simultáneas y muestra el error sin cerrar la sesión cuando falla la contraseña.
+Cancelar conserva la cuenta y permite volver a abrir la confirmación.
+
+Las pruebas usan respuestas simuladas: no se han eliminado cuentas ni revocado
+sesiones reales. La revisión visual en un teléfono sigue pendiente.
