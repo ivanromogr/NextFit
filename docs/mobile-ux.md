@@ -24,7 +24,7 @@ consentimiento opcional de comunicaciones.
 
 ## Validación
 
-Desde `Frontend_App`, `npm test -- --runInBand`: 19 suites, 84 pruebas correctas.
+Desde `Frontend_App`, `npm test -- --runInBand`: 19 suites, 90 pruebas correctas.
 Incluye recuperación, consentimientos, Google/Apple, chat y las pruebas nuevas
 para visibilidad, eventos del campo y bloqueo de peticiones concurrentes.
 
@@ -50,3 +50,24 @@ espacio táctil cuando no hay margen inferior y la actualización del diseño al
 cambiar los márgenes del sistema. La comprobación visual y con teclado real en
 un teléfono sigue pendiente; las pruebas de componentes y exportaciones no la
 sustituyen.
+
+## Recuperación y cambio de contraseña
+
+Las pantallas de solicitar recuperación, restablecer contraseña y cambiar
+contraseña usan un contenedor común con área segura, desplazamiento y adaptación
+al teclado, tarjeta de ancho máximo y navegación de vuelta con zona táctil de
+44 puntos. Los errores se muestran junto al formulario y se anuncian mediante
+una región accesible. Los campos permiten autocompletado y avance desde el teclado.
+
+Cada envío queda bloqueado hasta terminar. La recuperación rechaza un correo
+vacío y conserva la respuesta neutral sobre si existe una cuenta. Un fallo de
+red permite reintentar. El restablecimiento ofrece solicitar un nuevo enlace
+cuando recibe `INVALID_RESET_TOKEN`; un rechazo explícito de política de
+contraseña permite corregirla conservando el token. Después de restablecer se
+limpian token y contraseñas del estado del formulario.
+
+El cambio de contraseña mantiene las validaciones existentes y borra la sesión
+local tras una respuesta correcta. Un error de contraseña actual no cierra la
+sesión. Las pruebas cubren estos estados, la confirmación, la petición duplicada
+por teclado y el reintento. No se ha enviado correo ni cambiado una contraseña
+real durante estas pruebas.
