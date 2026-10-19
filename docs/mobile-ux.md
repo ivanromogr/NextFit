@@ -24,7 +24,7 @@ consentimiento opcional de comunicaciones.
 
 ## Validación
 
-Desde `Frontend_App`, `npm test -- --runInBand`: 26 suites, 131 pruebas correctas.
+Desde `Frontend_App`, `npm test -- --runInBand`: 29 suites, 151 pruebas correctas.
 Incluye recuperación, consentimientos, Google/Apple, chat y las pruebas nuevas
 para visibilidad, eventos del campo y bloqueo de peticiones concurrentes.
 
@@ -173,5 +173,41 @@ reintentos, destinos de inicio, filtros del entrenador y respuestas que llegan
 fuera de orden. Son pruebas de componentes con datos sintéticos, no una revisión
 visual ni una sesión real contra producción.
 
-Sigue pendiente revisar la experiencia del chat y completar los recorridos en
+Sigue pendiente completar la revisión final de los recorridos y su validación en
 un dispositivo real. No se declara terminado el paso 6 ni se inicia el paso 7.
+
+## Conversaciones y búsqueda de contactos
+
+Atleta y entrenador comparten una lista virtualizada con búsqueda por nombre o
+apodo, carga, fallo con reintento y mensajes distintos para lista vacía y búsqueda
+sin coincidencias. Se conservan las claves de caché existentes; un fallo o JSON
+inválido en la caché no impide consultar el servidor. Los contactos se deduplican
+por identificador normalizado. Al cambiar de cuenta se vacía el estado y se
+impide guardar los contactos anteriores bajo la clave de la cuenta nueva.
+
+La búsqueda de nuevo contacto usa un modal con área segura, teclado y
+cancelación nativa. Valida y normaliza el correo, bloquea consultas duplicadas,
+rechaza la propia cuenta y distingue fallo de red de un 404. Una respuesta
+posterior al cierre se descarta. Los correos con `+` se codifican correctamente
+en la consulta. El apodo elegido se conserva al añadir o volver a abrir el chat.
+
+Ambos perfiles abren `PantallaChatIndividual`; la navegación de vuelta deja de
+depender de una conversación incrustada en la lista de atleta. Las cabeceras no
+muestran «En línea» sin un dato de presencia. El chat indica el estado real de
+su conexión, ofrece reintentar el historial y conserva mensajes recibidos en
+directo mientras se carga el historial. Los controles de adjunto y emoji tienen
+etiquetas accesibles y zonas táctiles mínimas de 44 puntos.
+
+Las notificaciones de ambos perfiles usan STOMP moderno con credencial actual
+antes de conectar y desactivación al salir. Se ignoran cargas inválidas y se
+consultan al servidor los contactos todavía desconocidos. No se marcan nuevos
+mensajes para una conversación que se acaba de abrir; al volver a la lista se
+limpia su indicador. El envío y los controles de bloqueo/denuncia conservan sus
+comprobaciones existentes.
+
+Las pruebas usan datos y sockets simulados. Cubren ambos perfiles, navegación,
+caché dañada y separación entre cuentas, apodos, duplicados, búsqueda cancelada,
+credencial de conexión, limpieza del socket, errores del historial y mensajes
+en directo durante su carga. No se han enviado mensajes reales para validar
+estos cambios. La revisión en teléfono y la revisión final del resto de los
+recorridos siguen pendientes dentro del paso 6; no se ha comenzado el 7.

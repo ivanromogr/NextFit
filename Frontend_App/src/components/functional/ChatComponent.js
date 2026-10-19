@@ -26,6 +26,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { obtenerHistorialChat, api, getImageUrl } from '../../api/endpoints';
 import { getAccessToken } from '../context/authSession';
 import ChatSafetyControls from './ChatSafetyControls';
+import GymButton from '../ui/GymButton';
+import { FormMessage } from '../ui/AccountFormScreen';
 import { WS_URL } from '../../config/environment';
 
 
@@ -50,6 +52,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const [safetyRevision, setSafetyRevision] = useState(0);
     const [reportMessageId, setReportMessageId] = useState(null);
     const [sendError, setSendError] = useState('');
+    const [historyError, setHistoryError] = useState('');
     const safetyRef = useRef(null);
     safetyRef.current = safety;
     const [mensajes, setMensajes] = useState([]);
@@ -110,7 +113,9 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 setConectado(true);
                 client.subscribe('/user/queue/mensajes', (payload) => {
                     if (version !== conversationVersion.current) return;
-                    const msgRecibido = JSON.parse(payload.body);
+                    let msgRecibido;
+                    try { msgRecibido = JSON.parse(payload.body); } catch { return; }
+                    if (!msgRecibido || typeof msgRecibido !== 'object') return;
                     if (msgRecibido.type === 'CHAT_ERROR') {
                         setSendError(msgRecibido.message || 'No se pudo enviar el mensaje.');
                         setSafetyRevision(value => value + 1);
@@ -220,10 +225,15 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const cargarHistorial = async (version) => {
         try {
             setLoading(true);
+            setHistoryError('');
             const dataMensajes = await obtenerHistorialChat(usuarioId, destinatarioId);
-            if (version === conversationVersion.current) setMensajes(dataMensajes);
+            if (version === conversationVersion.current) setMensajes((current) => {
+                const merged = new Map(dataMensajes.map((message) => [String(message.id), message]));
+                current.forEach((message) => merged.set(String(message.id), message));
+                return Array.from(merged.values());
+            });
         } catch (error) {
-            console.error("Error cargando historial:", error);
+            if (version === conversationVersion.current) setHistoryError('No se pudo cargar el historial. Comprueba la conexión e inténtalo de nuevo.');
         } finally {
             if (version === conversationVersion.current) setLoading(false);
         }
@@ -305,14 +315,17 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             style={styles.container}
             keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
         >
+            <Text accessibilityLiveRegion="polite" style={styles.connectionStatus}>{conectado ? 'Conectado al chat' : 'Conectando con el chat…'}</Text>
             <ChatSafetyControls key={destinatarioId} otherId={destinatarioId} onStateChange={setSafety}
                 reportMessageId={reportMessageId} onCloseReport={() => setReportMessageId(null)} revision={safetyRevision} />
             {!!sendError && <Text accessibilityRole="alert" style={{ color: '#fca5a5', padding: 12 }}>{sendError}</Text>}
+            {!!historyError && <View style={styles.historyError}><FormMessage>{historyError}</FormMessage><GymButton variant="secondary" onPress={() => cargarHistorial(conversationVersion.current)}>Reintentar historial</GymButton></View>}
             {loading ? (
                 <View style={styles.center}><ActivityIndicator color="#FACC15" /></View>
             ) : (
                 <FlatList
                     ref={flatListRef}
+                    ListEmptyComponent={!historyError ? <Text style={styles.emptyHistory}>Todavía no hay mensajes en esta conversación.</Text> : null}
                     data={mensajes}
                     renderItem={renderMensaje}
                     keyExtractor={(item, index) => item.id?.toString() || index.toString()}
@@ -328,19 +341,20 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                             {archivoAdjunto.type === 'video' ? <Film size={20} color="#3b82f6"/> : <ImageIcon size={20} color="#22c55e"/>}
                             <Image source={{ uri: archivoAdjunto.uri }} style={styles.previewThumb} />
                         </View>
-                        <TouchableOpacity style={styles.previewCancelBtn} onPress={cancelarAdjunto}>
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Quitar adjunto" style={styles.previewCancelBtn} onPress={cancelarAdjunto}>
                             <X size={16} color="#ef4444" />
                         </TouchableOpacity>
                     </View>
                 )}
 
                 <View style={styles.inputArea}>
-                    <TouchableOpacity style={styles.iconBtn} onPress={seleccionarArchivo} disabled={isUploading}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Adjuntar archivo" style={styles.iconBtn} onPress={seleccionarArchivo} disabled={isUploading}>
                         <Paperclip size={24} color="#71717a" />
                     </TouchableOpacity>
                     
                     <View style={styles.inputWrapper}>
                         <TextInput
+                            accessibilityLabel="Mensaje"
                             style={styles.input}
                             placeholder={archivoAdjunto ? "Añade un comentario..." : "Escribe un mensaje..."}
                             placeholderTextColor="#52525b"
@@ -350,10 +364,9 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                             editable={!!safety?.canSend && !isUploading}
                             multiline
                             onFocus={() => setIsEmojiPickerOpen(false)}
-                            disabled={isUploading}
                         />
                         
-                        <TouchableOpacity style={styles.emojiBtn} onPress={() => { Keyboard.dismiss(); setIsEmojiPickerOpen(true); }}>
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Elegir emoji" style={styles.emojiBtn} onPress={() => { Keyboard.dismiss(); setIsEmojiPickerOpen(true); }}>
                             <Smile size={24} color="#71717a" />
                         </TouchableOpacity>
                     </View>
@@ -361,6 +374,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     <TouchableOpacity 
                         style={[styles.sendBtn, (!nuevoMensaje.trim() && !archivoAdjunto) && styles.sendBtnDisabled]} 
                         onPress={enviarMensaje}
+                        accessibilityRole="button"
                         accessibilityLabel="Enviar mensaje"
                         disabled={(!nuevoMensaje.trim() && !archivoAdjunto) || isUploading || !safety?.canSend || !conectado}
                     >
@@ -409,6 +423,9 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
 }
 
 const styles = StyleSheet.create({
+    connectionStatus: { color: '#a1a1aa', fontSize: 12, paddingHorizontal: 16, paddingVertical: 8 },
+    historyError: { paddingHorizontal: 16 },
+    emptyHistory: { color: '#a1a1aa', fontSize: 15, lineHeight: 23, textAlign: 'center', paddingVertical: 24 },
     container: { flex: 1, backgroundColor: '#0c0c0e' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     listPadding: { paddingHorizontal: 16, paddingVertical: 20 },
@@ -442,8 +459,8 @@ const styles = StyleSheet.create({
     inputArea: { flexDirection: 'row', alignItems: 'flex-end', padding: 12 },
     inputWrapper: { flex: 1, backgroundColor: '#18181b', borderRadius: 24, paddingHorizontal: 12, paddingVertical: Platform.OS === 'ios' ? 10 : 0, marginHorizontal: 8, maxHeight: 120, flexDirection: 'row', alignItems: 'center' },
     input: { flex: 1, color: 'white', fontSize: 16, paddingRight: 8 },
-    emojiBtn: { padding: 4 },
-    iconBtn: { padding: 8, paddingBottom: 10 },
+    emojiBtn: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center', padding: 4 },
+    iconBtn: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center', padding: 8, paddingBottom: 10 },
     sendBtn: { backgroundColor: '#FACC15', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
     sendBtnDisabled: { backgroundColor: '#27272a', opacity: 0.6 },
 

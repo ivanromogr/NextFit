@@ -283,7 +283,7 @@ export const obtenerContactosChat = async () => {
 };
 
 export const buscarUsuarioPorEmail = async (email) => {
-    const response = await api.get(`/clientes/buscar?email=${email}`);
+    const response = await api.get(`/clientes/buscar?email=${encodeURIComponent(email)}`);
     return response.data;
 };
 

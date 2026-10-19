@@ -14,3 +14,10 @@ test('a successful empty team remains valid empty data', async () => {
   api.get.mockResolvedValueOnce({ data: [] });
   await expect(obtenerClientesEntrenador('fixture', { throwOnError: true })).resolves.toEqual([]);
 });
+
+test('contact search encodes plus-addressed emails without changing their identity', async () => {
+  const { buscarUsuarioPorEmail } = require('../api/endpoints');
+  api.get.mockResolvedValueOnce({ data: { id: 'fixture' } });
+  await buscarUsuarioPorEmail('person+gym@example.test');
+  expect(api.get).toHaveBeenCalledWith('/clientes/buscar?email=person%2Bgym%40example.test');
+});

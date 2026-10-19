@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import ChatComponent from '../components/functional/ChatComponent';
 import { obtenerHistorialChat } from '../api/endpoints';
 import { Client } from '@stomp/stompjs';
@@ -51,4 +51,27 @@ it('ignores an old conversation history response after switching contacts', asyn
     view.rerender(<ChatComponent usuarioId="me" destinatarioId="new-coach" />);
     await act(async () => resolveOld([{ id: 'old', remitenteId: 'old-coach', destinatarioId: 'me', contenido: 'Stale history', fechaHora: '2026-10-19T10:00:00', leido: true }]));
     expect(view.queryByText('Stale history')).toBeNull();
+});
+
+
+it('history failure is visible and retry restores messages without claiming an empty conversation', async () => {
+    obtenerHistorialChat.mockRejectedValueOnce(new Error('network fixture'));
+    obtenerHistorialChat.mockResolvedValueOnce([{ id: 'history', remitenteId: 'coach', destinatarioId: 'me', contenido: 'Mensaje recuperado', fechaHora: '2026-10-19T10:00:00', leido: true }]);
+    const view = render(<ChatComponent usuarioId="me" destinatarioId="coach" />);
+    await waitFor(() => view.getByText(/No se pudo cargar el historial/));
+    expect(view.queryByText('Todavía no hay mensajes en esta conversación.')).toBeNull();
+    fireEvent.press(view.getByText('REINTENTAR HISTORIAL'));
+    await waitFor(() => view.getByText('Mensaje recuperado'));
+    expect(view.queryByText(/No se pudo cargar el historial/)).toBeNull();
+});
+
+it('a message arriving during history loading survives the response', async () => {
+    let resolve;
+    obtenerHistorialChat.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    const view = render(<ChatComponent usuarioId="me" destinatarioId="coach" />);
+    await waitFor(() => expect(Client).toHaveBeenCalled());
+    act(() => receive({ body: JSON.stringify({ id: 'live', remitenteId: 'coach', destinatarioId: 'me', contenido: 'Mensaje nuevo en directo', fechaHora: '2026-10-19T10:01:00', leido: true }) }));
+    await act(async () => { resolve([{ id: 'old', remitenteId: 'coach', destinatarioId: 'me', contenido: 'Mensaje anterior', fechaHora: '2026-10-19T10:00:00', leido: true }]); });
+    expect(view.getByText('Mensaje anterior')).toBeTruthy();
+    expect(view.getByText('Mensaje nuevo en directo')).toBeTruthy();
 });
