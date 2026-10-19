@@ -27,7 +27,7 @@ Rejected STOMP sends/read receipts return a `CHAT_ERROR` object on the authentic
 
 ## Deployment
 
-Two additional tables are required: `chat_blocks` and `chat_reports`. The additive PostgreSQL script is [sql/2026-10-chat-safety.sql](sql/2026-10-chat-safety.sql). Test JPA creates them in isolated H2; PostgreSQL migration execution has not been verified. Existing Render production data/configuration is unchanged.
+Two additional tables are required: `chat_blocks` and `chat_reports`. The additive PostgreSQL script is [sql/2026-10-chat-safety.sql](sql/2026-10-chat-safety.sql). JPA checks use isolated H2. The deployment scripts were also verified against PostgreSQL 16 with a legacy report, then executed in the authorized Render rollout described below.
 
 Deploy the matching backend and schema before exposing this frontend in a shared environment. When the new safety endpoint is unavailable, clients disable sending and offer retry. A frontend-only preview against the existing production backend cannot validate this feature.
 
@@ -69,7 +69,7 @@ Apply the schema in order, through the intended environment's migration procedur
 3. Deploy the matching backend and web code.
 4. [2026-10-authorize-moderator.sql](sql/2026-10-authorize-moderator.sql): set the explicitly chosen email inside the transaction. The script aborts unless exactly one active account matches, derives the correct UUID/role, and changes no other grants or passwords.
 
-The owner designated their account in chat. An exact activation script was prepared outside the repository at `/workspace/nextfit-setup/authorize-nextfit-moderator.sql`; the committed template contains no personal email address. Production schema/grants have **not** been applied from this workspace. PostgreSQL execution remains unverified; tests use isolated H2. No real account was made a moderator or restricted during these checks.
+The owner designated their account in chat. The authorized Render rollout used the deployment-only bootstrap to grant that account; its readiness check verified the persisted grant. The committed manual template contains no personal email address and remains a fallback. Fixture tests used no real accounts, and the deployment did not restrict any production account.
 
 ### Panel validation
 
@@ -81,13 +81,13 @@ The owner designated their account in chat. An exact activation script was prepa
 
 ## Still required before calling moderation production-ready
 
-- Apply and verify the PostgreSQL migrations and the chosen operator grant, deploy both sides together, then validate a real session in that deployment.
+- Complete a signed-in browser check with the designated account after deployment. The bootstrap health gate verifies the persisted grant without requesting the account password.
 - Define the moderation policy, response ownership and contact/escalation path; communicate these to users.
 - Add the new personal-data records to data export and retention/deletion policy.
 - Validate real web/mobile sessions, reconnection and attachment rendering on devices. Configure and test message rate limits and bounded/paginated chat history for sustained load.
 - Blocks apply at server validation; an already accepted in-flight message may still arrive. Multi-instance concurrency and a strict block/send transaction ordering require additional validation.
 
-Panel validation on 2026-10-19: 42 focused backend checks and 40 web checks passed (82 total). The web build and ESLint for the new panel/entry components passed. Device testing and PostgreSQL deployment are separate outstanding checks.
+Panel validation on 2026-10-19: 42 focused backend checks and 40 web checks passed (82 total). The web build and ESLint for the new panel/entry components passed. Device testing is a separate outstanding check; PostgreSQL deployment verification is recorded below.
 
 ## Automated deployment bootstrap
 
@@ -96,3 +96,11 @@ For the initial Render rollout, the backend bundles the two additive PostgreSQL 
 While the runner is enabled, the aggregate `/actuator/health` also requires the persisted grant; it exposes no identity details. The existing Render health check points at this endpoint. After the initial healthy rollout, set schema initialization back to `never`, disable the runner and clear its email, then deploy again. This prevents later restarts from restoring a deliberately revoked grant.
 
 The complete sequence was tested on PostgreSQL 16: migrate a legacy report without version columns, preserve its category/status, grant only the fixture operator, deny a normal account, reapply migrations idempotently, then restart with both bootstrap switches disabled and confirm the persisted permission via the authenticated API. Four focused bootstrap tests also cover designation, idempotence, ambiguity, missing accounts and the disabled default. All fixture data remained outside production.
+
+## Authorized production rollout — 2026-10-19
+
+Backend source commit: `ab11b4299d67442f550134f6a959d48bce5270e8`. The initial Render deployment `dep-dbaucs3rjlhs73anrbgg` became live with the bootstrap health gate enabled, verifying both schema initialization and the persisted operator grant. Public API checks passed for health, required authentication on the moderation/chat endpoints, exact-origin production CORS and rejection of invalid Google credentials.
+
+All three temporary bootstrap environment variables were then removed. A normal-config deployment of the same backend source was requested as `dep-dbaufee1egvs73c6hd7g`; its outcome is tracked through Render. The web is published through the existing Vercel production project from `main`, after the matching backend became live. No Render service other than NextFit is part of this rollout.
+
+Production entry: `https://next-fit-q7uo.vercel.app/moderacion`. The user signs in using their existing NextFit account; no new password or separate moderator login is created.
