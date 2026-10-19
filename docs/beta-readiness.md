@@ -166,3 +166,9 @@ Validación de estos controles: 14 pruebas web de creación/generación correcta
 El catálogo distingue fallo de carga, catálogo vacío y búsqueda sin coincidencias. El fallo ofrece reintento sin perder la búsqueda y las respuestas posteriores a salir de la pantalla no actualizan su estado. Los resultados siguen mostrándose en bloques de 50, pero ahora se pueden abrir los siguientes con «Mostrar más ejercicios». Esta paginación es local: no modifica las consultas al proveedor ni integra la API de pago aplazada.
 
 Validación: 7 pruebas de exploración web correctas (carga, búsqueda, medios, error, reintento, estados vacíos y resultados posteriores a 50) y compilación web completada. No se ha consultado ni contratado una API externa de ejercicios.
+
+### Recuperación del editor web
+
+Un fallo de carga o una rutina inexistente ya no abre un editor vacío: ofrece reintentar o volver. Se ignoran respuestas de carga obsoletas al cambiar de rutina o salir. El guardado bloquea solicitudes simultáneas y conserva la edición tras un error. Los temporizadores de avisos y navegación se cancelan al salir. No se cambia el contrato ni el esquema de rutinas; la integración del catálogo de pago sigue aplazada.
+
+Validación: 8 pruebas del editor correctas, incluida recuperación de carga, rutina inexistente y guardado repetido/fallo/reintento con cambios conservados. Compilación web completada. Las pruebas usan API simulada y no modifican rutinas reales.

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import EditarRutina from '../../../pages/cliente/EditarRutina';
@@ -139,4 +139,43 @@ describe('Página EditarRutina', () => {
         expect(window.confirm).toHaveBeenCalled();
         expect(screen.queryByText('Sentadilla')).not.toBeInTheDocument();
     });
+    it('no muestra un editor vacío tras un fallo y permite recuperar la carga', async () => {
+        obtenerRutinasCliente.mockRejectedValueOnce(new Error('private details')).mockResolvedValueOnce(mockRutinas);
+        obtenerEjercicios.mockResolvedValue(mockEjercicios);
+        renderComponent();
+        expect(await screen.findByRole('alert')).toHaveTextContent('No se ha podido cargar');
+        expect(screen.queryByRole('button', { name: /GUARDAR/i })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+        expect(await screen.findByDisplayValue('Mi Rutina Pro')).toBeInTheDocument();
+    });
+
+    it('no permite editar una rutina inexistente', async () => {
+        obtenerRutinasCliente.mockResolvedValue([]);
+        obtenerEjercicios.mockResolvedValue(mockEjercicios);
+        renderComponent();
+        expect(await screen.findByRole('alert')).toHaveTextContent('No se encuentra esta rutina');
+        expect(screen.queryByRole('button', { name: /GUARDAR/i })).not.toBeInTheDocument();
+    });
+
+    it('evita guardados simultáneos y conserva la edición para reintentar', async () => {
+        obtenerRutinasCliente.mockResolvedValue(mockRutinas);
+        obtenerEjercicios.mockResolvedValue(mockEjercicios);
+        let reject;
+        actualizarRutina.mockImplementationOnce(() => new Promise((resolve, fail) => { reject = fail; }));
+        actualizarRutina.mockResolvedValueOnce({});
+        renderComponent();
+        fireEvent.change(await screen.findByDisplayValue('Mi Rutina Pro'), { target: { value: 'Edición pendiente' } });
+        const save = screen.getByRole('button', { name: /GUARDAR/i });
+        fireEvent.click(save);
+        fireEvent.click(save);
+        expect(actualizarRutina).toHaveBeenCalledTimes(1);
+        expect(save).toBeDisabled();
+        await act(async () => reject(new Error('Network error')));
+        expect(screen.getByDisplayValue('Edición pendiente')).toBeInTheDocument();
+        expect(save).toBeEnabled();
+        await act(async () => fireEvent.click(save));
+        expect(actualizarRutina).toHaveBeenCalledTimes(2);
+        expect(actualizarRutina).toHaveBeenLastCalledWith('rutina-123', expect.objectContaining({ nombre: 'Edición pendiente' }));
+    });
+
 });

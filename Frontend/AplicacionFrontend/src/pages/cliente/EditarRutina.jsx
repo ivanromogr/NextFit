@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { obtenerRutinasCliente, obtenerEjercicios, actualizarRutina } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
@@ -145,12 +145,33 @@ const ExerciseMedia = ({ exercise, style, fallbackIconSize = 28 }) => {
     );
 };
 
+const recoveryButtonStyle = {
+    background: '#FACC15', color: '#09090b', border: '1px solid #FACC15',
+    borderRadius: '10px', padding: '12px 20px', minHeight: '44px',
+    font: 'inherit', fontWeight: 700, cursor: 'pointer', margin: '8px'
+};
+
 const EditarRutina = () => {
     const { rutinaId, clienteId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const { userId } = useAuth();
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [attempt, setAttempt] = useState(0);
+    const [saving, setSaving] = useState(false);
+    const saveLock = useRef(false);
+    const mounted = useRef(true);
+    const toastTimer = useRef(null);
+    const backTimer = useRef(null);
+    useEffect(() => {
+        mounted.current = true;
+        return () => {
+            mounted.current = false;
+            clearTimeout(toastTimer.current);
+            clearTimeout(backTimer.current);
+        };
+    }, []);
     
     // --- ESTADOS ---
     const [rutinaData, setRutinaData] = useState({ nombre: "", objetivo: "", nivel: "", descripcion: "" });
@@ -166,6 +187,9 @@ const EditarRutina = () => {
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     useEffect(() => {
+        let active = true;
+        setLoading(true);
+        setLoadError('');
         const loadData = async () => {
             const idOwner = clienteId
                 || localStorage.getItem("clienteObjetivoId")
@@ -181,8 +205,14 @@ const EditarRutina = () => {
                     obtenerEjercicios()
                 ]);
 
+                if (!active) return;
+                if (!Array.isArray(rutinas) || !Array.isArray(ejercicios)) throw new Error('Invalid response');
                 const rutinaEncontrada = rutinas.find(r => r.id === rutinaId);
                 
+                if (!rutinaEncontrada) {
+                    setLoadError('No se encuentra esta rutina. Vuelve a tus rutinas para comprobar si sigue disponible.');
+                    return;
+                }
                 if (rutinaEncontrada) {
                     setRutinaData({
                         nombre: rutinaEncontrada.nombre,
@@ -217,20 +247,22 @@ const EditarRutina = () => {
                 }
                 
                 setAllExercises(ejercicios || []);
-            } catch (error) {
-                console.error("Error cargando datos:", error);
+            } catch {
+                if (active) setLoadError('No se ha podido cargar el editor. Puedes volver a intentarlo.');
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
         loadData();
-    }, [rutinaId, clienteId, userId, navigate]);
+        return () => { active = false; };
+    }, [rutinaId, clienteId, userId, navigate, attempt]);
 
     // --- FUNCIÓN PARA MOSTRAR NOTIFICACIÓN ---
     const showNotification = (message, type = 'success') => {
         setToast({ show: true, message, type });
         // Se oculta sola a los 3 segundos
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+        clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     };
 
     
@@ -305,6 +337,7 @@ const EditarRutina = () => {
 
     // --- 🚨 FUNCIÓN DE GUARDADO CON TOAST ---
     const saveChanges = async () => {
+        if (saveLock.current || loading || loadError) return;
         if (!rutinaData.nombre.trim()) {
             showNotification("El nombre es obligatorio", "error");
             return;
@@ -314,6 +347,8 @@ const EditarRutina = () => {
             return;
         }
 
+        saveLock.current = true;
+        setSaving(true);
         try {
             // Calculamos los totales a partir de las series individuales
             const listaProcesada = detalles.map(d => {
@@ -339,16 +374,20 @@ const EditarRutina = () => {
             
             await actualizarRutina(rutinaId, payload);
             
+            if (!mounted.current) return;
             showNotification("Rutina guardada correctamente", "success");
             
             // Esperamos un segundo antes de volver para que se vea el mensaje
-            setTimeout(() => {
+            backTimer.current = setTimeout(() => {
                 handleVolver(); 
             }, 1000);
 
-        } catch (error) {
-            console.error("Error al guardar:", error);
-            showNotification("Error al guardar cambios", "error");
+        } catch {
+            saveLock.current = false;
+            if (mounted.current) {
+                setSaving(false);
+                showNotification("No se han podido guardar los cambios. Tu edición se conserva; puedes reintentar.", "error");
+            }
         }
     };
 
@@ -358,7 +397,15 @@ const EditarRutina = () => {
         return matchesText && matchesMuscle;
     });
 
-    if (loading) return <div style={{background:'#09090b', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', color:'white'}}>Cargando editor...</div>;
+    if (loading) return <div role="status" style={{background:'#09090b', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', color:'white'}}>Cargando editor...</div>;
+
+    if (loadError) return (
+        <div role="alert" style={{ background: '#09090b', minHeight: '100vh', padding: '40px', color: 'white' }}>
+            <p>{loadError}</p>
+            <button type="button" style={recoveryButtonStyle} onClick={() => setAttempt(value => value + 1)}>Reintentar</button>
+            <button type="button" style={{ ...recoveryButtonStyle, background: 'transparent', color: 'white', borderColor: '#555' }} onClick={handleVolver}>Volver a mis rutinas</button>
+        </div>
+    );
 
     // --- ESTILOS "TITÁN" + TOAST ---
     const styles = {
@@ -446,7 +493,7 @@ const EditarRutina = () => {
                     <ChevronLeft size={18}/> SALIR
                 </button>
                 <div style={{color:'#666', fontWeight:'800', fontSize:'0.8rem', letterSpacing:'2px', textTransform:'uppercase'}}>MODO EDICIÓN</div>
-                <button style={styles.saveBtn} onClick={saveChanges}><Save size={20}/> GUARDAR</button>
+                <button style={styles.saveBtn} disabled={saving} aria-busy={saving} onClick={saveChanges}><Save size={20}/> {saving ? "GUARDANDO..." : "GUARDAR"}</button>
             </div>
 
             <div style={styles.content}>
