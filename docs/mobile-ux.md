@@ -285,7 +285,9 @@ recibir el aviso de cierre antes de continuar al testing general.
 La compilación interna de EAS `c533ef66-79c6-4453-96d2-063edb8204aa`
 se solicita desde el commit `dfc0e8d4f76457ccdadbb35e0876fbdf556a7ba8`,
 perfil `preview`, entorno `preview`, directorio `/Frontend_App`.
-Su página de seguimiento es:
+Estado final: **CANCELED**. El propietario confirmó que su móvil es iPhone;
+se canceló la solicitud antes de comenzar la compilación. No se generó un APK
+nuevo. La página conserva el registro de la solicitud:
 https://expo.dev/accounts/iviromo/projects/Frontend_App/builds/c533ef66-79c6-4453-96d2-063edb8204aa
 
 Una solicitud aceptada no demuestra que haya un APK disponible. Hay que
@@ -308,3 +310,21 @@ Comprobar con cuentas de prueba de cliente y entrenador:
 
 La compilación y las comprobaciones del APK forman parte del cierre del paso 6.
 El paso 7 no se inicia hasta avisar al propietario de ese cierre.
+
+
+## Dispositivo del propietario y bloqueo de instalación iOS
+
+El propietario confirmó que usa **iPhone**. Un APK de Android no se puede
+instalar en ese dispositivo. Al consultar el proyecto de Expo, la lista
+`iosAppCredentials` está vacía. La inscripción en Apple Developer se dejó
+pendiente anteriormente; no se ha contratado ningún servicio ni se ha
+intentado publicar en App Store.
+
+La distribución por TestFlight necesita inscripción activa en Apple Developer,
+configuración de la firma iOS y el registro en App Store Connect. La firma y
+el acceso de Google/Apple deben verificarse con esa aplicación nativa. Expo Go
+no sustituye esta prueba: el proyecto utiliza Google Sign-In nativo que exige
+una compilación propia.
+
+Hasta disponer de la distribución iOS y comprobar el teléfono, el paso 6 queda
+pendiente de validación física. No se inicia el paso 7.
