@@ -222,3 +222,9 @@ Compilación web de producción de esta revisión completada correctamente; camb
 La carga del entrenamiento ofrece reintento sin expulsar al usuario y descarta respuestas obsoletas al salir o cambiar de rutina. En modo lectura, un historial fallido, ausente o vacío no se sustituye por objetivos marcados como realizados. Ofrece reintento para consultar las series registradas. En una sesión editable nueva, la falta de historial previo sigue permitiendo entrenar con los objetivos de la rutina.
 
 Validación: 9 pruebas de sesión web correctas, incluyendo fallo/reintento de carga y fallo de historial en modo lectura seguido de recuperación de valores reales. Compilación web completada. No se han modificado entrenamientos reales ni desplegado producción.
+
+### Resultados del evento seleccionado
+
+El resumen web del calendario consultaba la última sesión de la rutina después de buscar el evento dentro del año actual; podía enseñar resultados de otro día y no encontraba eventos de otros años. Ahora usa directamente `/api/sesiones/evento/{eventoId}`, ya existente y protegido por permisos del servidor. Presenta fecha, notas, duración, volumen y ejercicios de esa respuesta, sin reconstruirlos con la última sesión. Diferencia registro inexistente (404) de fallo de consulta, ofrece reintento, ignora respuestas de eventos anteriores y restaura el estado previo del scroll al cerrar. No modifica el backend ni registros históricos.
+
+Validación: 21 pruebas correctas en cuatro archivos (resumen, sesión, calendario cliente y calendario entrenador), incluidas selección exacta, fallo/reintento, 404, respuestas fuera de orden y cierre. Compilación web completada; API simulada, sin consultar resultados reales ni desplegar producción.

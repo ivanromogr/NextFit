@@ -1,100 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { X, Clock, Activity, FileText, Dumbbell, Calendar } from 'lucide-react';
-import { obtenerEventosCalendario, obtenerUltimaSesionRutina } from '../../api/endpoints';
-import { useAuth } from '../../context/AuthContext';
-import { useParams } from 'react-router-dom';
+import { obtenerDetalleSesion } from '../../api/endpoints';
 
 export default function VisorSesion({ eventoId, onClose }) {
     const [sesion, setSesion] = useState(null);
     const [loading, setLoading] = useState(true);
-    const { userId } = useAuth();
-    const params = useParams();
-    
-    const idDeLaUrl = params.id || params.clienteId; 
-    const targetUserId = idDeLaUrl || userId;
+    const [error, setError] = useState('');
+    const [attempt, setAttempt] = useState(0);
 
     useEffect(() => {
+        let active = true;
+        setSesion(null);
+        setError('');
+        setLoading(true);
         const cargarData = async () => {
-            if (!eventoId || !targetUserId) return;
-            setLoading(true);
+            if (!eventoId) return;
             try {
-                // 1. Buscamos TODOS los eventos de este mes para el usuario, para pescar el nuestro
-                const fechaHoy = new Date();
-                const start = `${fechaHoy.getFullYear()}-01-01`; // Rango amplio
-                const end = `${fechaHoy.getFullYear()}-12-31`;
-                
-                const todosLosEventos = await obtenerEventosCalendario(targetUserId, start, end, userId);
-                const miEvento = todosLosEventos.find(e => e.id === eventoId);
-
-                if (!miEvento) {
-                    throw new Error("Evento no encontrado en el calendario");
-                }
-
-                // 2. Ahora que tenemos el evento y sabemos qué rutina es, pedimos el historial
-                // Nota: Tu backend debe tener un endpoint que devuelva la sesión exacta por su ID. 
-                // Por ahora usamos la última sesión como hicimos en la otra pantalla, asumiendo que es esa.
-                const lastSession = await obtenerUltimaSesionRutina(targetUserId, miEvento.rutinaId);
-                
-                if (!lastSession) {
-                     throw new Error("No hay registros de series para esta sesión");
-                }
-
-                // 3. Transformamos la respuesta "cruda" del backend al formato que espera este diseño
-                const sessionReformateada = {
-                    fecha: miEvento.fecha,
-                    duracion: lastSession.duracionSegundos || 0,
-                    volumenTotal: 0,
-                    notas: lastSession.notasGenerales || "",
-                    ejercicios: []
-                };
-
-                let volumenGlobal = 0;
-                const mapaEjercicios = {};
-
-                // Agrupamos las series sueltas por Ejercicio
-                if (lastSession.series && Array.isArray(lastSession.series)) {
-                     lastSession.series.forEach(s => {
-                         const ejName = s.ejercicioNombre || (s.ejercicio && s.ejercicio.nombre) || "Ejercicio Desconocido";
-                         
-                         if (!mapaEjercicios[ejName]) {
-                             mapaEjercicios[ejName] = [];
-                         }
-                         
-                         mapaEjercicios[ejName].push({
-                             kilos: parseFloat(s.peso) || 0,
-                             repes: parseInt(s.reps) || 0,
-                             rpe: parseInt(s.rpe) || 0
-                         });
-
-                         volumenGlobal += (parseFloat(s.peso) || 0) * (parseInt(s.reps) || 0);
-                     });
-                }
-
-                // Convertimos el mapa en un Array para que lo lea el .map del diseño
-                for (const [nombre, seriesArray] of Object.entries(mapaEjercicios)) {
-                     sessionReformateada.ejercicios.push({
-                         nombre: nombre,
-                         series: seriesArray
-                     });
-                }
-
-                sessionReformateada.volumenTotal = volumenGlobal;
-
-                setSesion(sessionReformateada);
-
-            } catch (error) {
-                console.error("Error reconstruyendo la sesión:", error);
+                const data = await obtenerDetalleSesion(eventoId);
+                if (!data || !Array.isArray(data.ejercicios)) throw new Error('Invalid session');
+                if (active) setSesion(data);
+            } catch (failure) {
+                if (active) setError(failure.response?.status === 404
+                    ? 'Este evento todavía no tiene una sesión registrada.'
+                    : 'No se ha podido cargar esta sesión. Puedes volver a intentarlo.');
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
-
         cargarData();
-        
-        // Bloquear scroll del body cuando está abierto
+        return () => { active = false; };
+    }, [eventoId, attempt]);
+
+    useEffect(() => {
+        if (!eventoId) return;
+        const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
-        return () => document.body.style.overflow = 'unset';
-    }, [eventoId, targetUserId, userId]);
+        return () => { document.body.style.overflow = previousOverflow; };
+    }, [eventoId]);
 
     const formatTiempo = (seg) => {
         if (!seg) return "0 min";
@@ -177,7 +119,7 @@ export default function VisorSesion({ eventoId, onClose }) {
                 }
             `}</style>
 
-            <div style={styles.drawer} onClick={e => e.stopPropagation()}>
+            <div role="dialog" aria-modal="true" aria-label="Resumen de la sesión" style={styles.drawer} onClick={e => e.stopPropagation()}>
                 
                 {/* 1. HEADER FIJO */}
                 <div style={styles.header}>
@@ -189,12 +131,17 @@ export default function VisorSesion({ eventoId, onClose }) {
                             Resumen Sesión
                         </h2>
                     </div>
-                    <button style={styles.closeBtn} onClick={onClose}><X size={20}/></button>
+                    <button aria-label="Cerrar resumen" style={styles.closeBtn} onClick={onClose}><X size={20}/></button>
                 </div>
 
                 {loading ? (
-                    <div style={{height:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'#555'}}>
+                    <div role="status" style={{height:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'#555'}}>
                         Cargando datos del atleta...
+                    </div>
+                ) : error ? (
+                    <div style={styles.content}>
+                        <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>
+                        <button type="button" style={{ background: '#FACC15', color: '#09090b', border: 0, borderRadius: '10px', minHeight: '44px', padding: '12px 20px', font: 'inherit', fontWeight: 700, cursor: 'pointer' }} onClick={() => setAttempt(value => value + 1)}>Reintentar</button>
                     </div>
                 ) : sesion ? (
                     <div style={styles.content}>
