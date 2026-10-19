@@ -41,8 +41,10 @@ Ejecución del 19 de octubre de 2026 sobre el código corregido:
 - Backend: `mvnw verify` termina con BUILD SUCCESS; **370 pruebas**, sin fallos,
   errores ni omisiones, y JAR compilado. Incluye las **11 pruebas nuevas** de
   `TrainingOwnershipIntegrationTest`.
-- Web: **284 pruebas en 59 archivos**, todas correctas; `npm run build` termina
-  correctamente. Se mantiene el aviso de tamaño del bundle; no es un fallo de build.
+- Web: **286 pruebas en 60 archivos**, todas correctas; `npm run build` termina
+  correctamente. Tras dividir la carga por pantalla, el archivo inicial pasa de 1.654,16 kB
+  a 333,37 kB (~80 % menos de JavaScript inicial); la compilación no avisa de
+  chunks superiores a 500 kB. El peso de imágenes no forma parte de esa reducción.
 - Móvil: **168 pruebas en 31 suites**, todas correctas. No se ha generado ni
   instalado una compilación nativa nueva en esta ejecución.
 - `scripts/check-production.py`: salud UP, protección de chat/moderación, CORS
@@ -73,3 +75,28 @@ No publicar como aplicación lista para tiendas mientras falten estas condicione
 Consultar también `production-readiness.md`, `database-operations.md` y
 `mobile-ux.md`. La preparación técnica y las verificaciones automatizadas no
 sustituyen una prueba real ni una decisión de contratar infraestructura.
+
+
+## Carga web por pantallas
+
+El login se incluye en la entrada inicial; las otras pantallas se descargan al
+abrirlas. Los permisos continúan en `ProtectedRoute`. Un estado accesible anuncia
+la carga y un fallo ofrece recargar o volver al inicio sin exponer el error interno.
+Se elimina el proxy obsoleto `/register` de Vite: el API real usa `/api/register`,
+y la ruta web debe poder abrirse o recargarse como una página de la aplicación.
+
+Validación: siete pruebas focalizadas de rutas/carga; suite web completa de
+286 pruebas; build con manifest; y Chromium sobre ese build a 390×844 y 1365×900.
+El ensayo de navegador verifica redirección sin sesión, ausencia de descarga de
+pantalla privada, registro bajo demanda sin desbordamiento horizontal y descarga
+fallida seguida de recuperación mediante recarga. La API se simula con 401 y no
+se crean cuentas. No es una prueba de Safari o de un iPhone físico.
+
+Ensayo reproducible si el entorno tiene Python Playwright y Chromium instalados:
+
+1. En `Frontend/AplicacionFrontend`: `npm run build -- --manifest`.
+2. Iniciar `npm run preview -- --host 127.0.0.1 --port 4181 --strictPort`.
+3. Desde la raíz: `python3 scripts/check-web-loading.py`.
+
+El script usa exclusivamente la preview local y bloquea conexiones externas.
+No publicar ese servidor local como enlace para el usuario.

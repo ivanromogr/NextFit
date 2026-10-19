@@ -1,4 +1,6 @@
-import ModerationPage from "./pages/moderation/ModerationPage";
+import { lazy } from "react";
+import PageBoundary from "./components/layout/PageBoundary";
+const ModerationPage = lazy(() => import("./pages/moderation/ModerationPage"));
 import AccountPage from "./components/account/AccountPage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -12,51 +14,51 @@ import EntrenadorLayout from "./components/layout/EntrenadorLayout";
 
 // --- IMPORTACIONES DE AUTENTICACIÓN Y ONBOARDING ---
 import Login from "./pages/auth/Login";
-import GoogleOnboarding from "./pages/auth/GoogleOnboarding";
-import AppleOnboarding from "./pages/auth/AppleOnboarding";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import ResetPassword from "./pages/auth/ResetPassword";
-import ConfirmEmailChange from "./pages/auth/ConfirmEmailChange";
-import Register from "./pages/auth/Register";
-import CambiarEmail from "./pages/auth/CambiarEmail";
-import CambiarPassword from "./pages/auth/CambiarPassword";
-import EliminarCuenta from "./pages/auth/EliminarCuenta";
-import SesionesActivas from "./pages/auth/SesionesActivas";
-import Terms from "./pages/auth/Terms";
-import Privacy from "./pages/auth/Privacy";
-import ExportarDatos from "./pages/auth/ExportarDatos";
-import PrivacidadComunicaciones from "./pages/auth/PrivacidadComunicaciones";
-import MetodosAcceso from "./pages/auth/MetodosAcceso";
-import ClienteOnboarding from "./pages/cliente/ClienteOnboarding";
-import EntrenadorOnboarding from "./pages/entrenador/EntrenadorOnboarding";
+const GoogleOnboarding = lazy(() => import("./pages/auth/GoogleOnboarding"));
+const AppleOnboarding = lazy(() => import("./pages/auth/AppleOnboarding"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
+const ConfirmEmailChange = lazy(() => import("./pages/auth/ConfirmEmailChange"));
+const Register = lazy(() => import("./pages/auth/Register"));
+const CambiarEmail = lazy(() => import("./pages/auth/CambiarEmail"));
+const CambiarPassword = lazy(() => import("./pages/auth/CambiarPassword"));
+const EliminarCuenta = lazy(() => import("./pages/auth/EliminarCuenta"));
+const SesionesActivas = lazy(() => import("./pages/auth/SesionesActivas"));
+const Terms = lazy(() => import("./pages/auth/Terms"));
+const Privacy = lazy(() => import("./pages/auth/Privacy"));
+const ExportarDatos = lazy(() => import("./pages/auth/ExportarDatos"));
+const PrivacidadComunicaciones = lazy(() => import("./pages/auth/PrivacidadComunicaciones"));
+const MetodosAcceso = lazy(() => import("./pages/auth/MetodosAcceso"));
+const ClienteOnboarding = lazy(() => import("./pages/cliente/ClienteOnboarding"));
+const EntrenadorOnboarding = lazy(() => import("./pages/entrenador/EntrenadorOnboarding"));
 
 // --- ZONA CLIENTE ---
-import DashboardCliente from "./pages/cliente/DashboardCliente"; 
-import MenuCliente from "./pages/cliente/MenuCliente";          
-import CrearHub from "./pages/cliente/CrearHub";                
-import ExplorarEjercicios from "./pages/cliente/ExplorarEjercicios";
-import CrearEntrenamiento from "./components/functional/CrearEntrenamiento";
-import GenerarRutinaIA from "./pages/cliente/GenerarRutinaIA";
-import SesionEntrenamiento from "./pages/cliente/SesionEntrenamiento";
-import EditarRutina from "./pages/cliente/EditarRutina";
-import EditarPerfil from "./pages/cliente/EditarPerfil";
-import ProgresoCliente from "./pages/cliente/ProgresoCliente";
-import CalendarioCliente from "./pages/cliente/CalendarioCliente"; 
-import ChatClientePage from "./pages/cliente/ChatClientePage";
-import ExplorarEntrenadores from "./pages/cliente/ExplorarEntrenadores";
-import PerfilPublicoEntrenador from "./pages/cliente/PerfilPublicoEntrenador";
+const DashboardCliente = lazy(() => import("./pages/cliente/DashboardCliente"));
+const MenuCliente = lazy(() => import("./pages/cliente/MenuCliente"));
+const CrearHub = lazy(() => import("./pages/cliente/CrearHub"));
+const ExplorarEjercicios = lazy(() => import("./pages/cliente/ExplorarEjercicios"));
+const CrearEntrenamiento = lazy(() => import("./components/functional/CrearEntrenamiento"));
+const GenerarRutinaIA = lazy(() => import("./pages/cliente/GenerarRutinaIA"));
+const SesionEntrenamiento = lazy(() => import("./pages/cliente/SesionEntrenamiento"));
+const EditarRutina = lazy(() => import("./pages/cliente/EditarRutina"));
+const EditarPerfil = lazy(() => import("./pages/cliente/EditarPerfil"));
+const ProgresoCliente = lazy(() => import("./pages/cliente/ProgresoCliente"));
+const CalendarioCliente = lazy(() => import("./pages/cliente/CalendarioCliente"));
+const ChatClientePage = lazy(() => import("./pages/cliente/ChatClientePage"));
+const ExplorarEntrenadores = lazy(() => import("./pages/cliente/ExplorarEntrenadores"));
+const PerfilPublicoEntrenador = lazy(() => import("./pages/cliente/PerfilPublicoEntrenador"));
 
 // --- ZONA ENTRENADOR ---
-import VistaCalendarioEntrenador from "./pages/entrenador/VistaCalendarioEntrenador";
-import MenuEntrenador from "./pages/entrenador/MenuEntrenador";
-import RutinasDeCliente from "./pages/entrenador/RutinasDeCliente";
-import EditarPerfilEntrenador from "./pages/entrenador/EditarPerfilEntrenador";
-import VistaProgresoEntrenador from "./pages/entrenador/VistaProgresoEntrenador";
-import GestionAtletas from "./pages/entrenador/GestionAtletas";
-import ChatPage from "./pages/entrenador/ChatPage"; 
+const VistaCalendarioEntrenador = lazy(() => import("./pages/entrenador/VistaCalendarioEntrenador"));
+const MenuEntrenador = lazy(() => import("./pages/entrenador/MenuEntrenador"));
+const RutinasDeCliente = lazy(() => import("./pages/entrenador/RutinasDeCliente"));
+const EditarPerfilEntrenador = lazy(() => import("./pages/entrenador/EditarPerfilEntrenador"));
+const VistaProgresoEntrenador = lazy(() => import("./pages/entrenador/VistaProgresoEntrenador"));
+const GestionAtletas = lazy(() => import("./pages/entrenador/GestionAtletas"));
+const ChatPage = lazy(() => import("./pages/entrenador/ChatPage"));
 // 👇 NUEVA IMPORTACIÓN DE LA AGENDA GLOBAL
-import AgendaEntrenador from "./pages/entrenador/AgendaEntrenador"; 
-import PlantillasEntrenador from "./pages/entrenador/PlantillasEntrenador";
+const AgendaEntrenador = lazy(() => import("./pages/entrenador/AgendaEntrenador"));
+const PlantillasEntrenador = lazy(() => import("./pages/entrenador/PlantillasEntrenador"));
 
 // Contextos
 import { ToastProvider } from "./context/ToastContext";
@@ -67,6 +69,7 @@ function App() {
     <AuthProvider>
       <ToastProvider>
         <BrowserRouter>
+          <PageBoundary>
           <Routes>
             {/* Redirección inicial */}
             <Route path="/" element={<Navigate to="/auth/login" replace />} />
@@ -160,6 +163,7 @@ function App() {
             {/* Fallback para rutas no encontradas */}
             <Route path="*" element={<Navigate to="/auth/login" replace />} />
           </Routes>
+          </PageBoundary>
         </BrowserRouter>
       </ToastProvider>
     </AuthProvider>

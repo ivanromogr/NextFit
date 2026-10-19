@@ -16,7 +16,6 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         '/api': backendUrl,
-        '/register': backendUrl,
         '/ws': {
           target: backendUrl,
           ws: true,
