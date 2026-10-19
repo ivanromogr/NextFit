@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { 
     View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, 
-    ActivityIndicator, TextInput, Switch, Modal, Platform, KeyboardAvoidingView
+    ActivityIndicator, TextInput, Switch, Modal, Platform, KeyboardAvoidingView, useWindowDimensions
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { 
     User, ChevronLeft, Camera, CheckCircle, AlertCircle, 
-    Briefcase, Mail, AlignLeft, Lock, Globe, ChevronDown, X
+    Briefcase, Mail, AlignLeft, Globe, ChevronDown, X
 } from 'lucide-react-native';
 
 // Tus endpoints y contexto
@@ -16,6 +16,7 @@ import { getEntrenador, actualizarEntrenador, subirArchivoAdjunto, assignProfile
 import { useAuth } from '../../components/context/AuthContext'; // Ajusta la ruta
 
 // Componentes UI de tu Design System
+import AccountSettingsSection from '../../components/ui/AccountSettingsSection';
 import GymButton from '../../components/ui/GymButton';
 import GymInput from '../../components/ui/GymInput';
 // Si tienes un componente ImageUpload para móvil, impórtalo. Si no, usaremos un placeholder temporal
@@ -46,6 +47,8 @@ const SelectionCard = ({ title, selected, onPress }) => (
 
 export default function EditarPerfilEntrenadorScreen() {
     const navigation = useNavigation();
+    const { width, fontScale } = useWindowDimensions();
+    const compact = width < 400 || fontScale > 1.2;
     const { userId } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -195,7 +198,7 @@ export default function EditarPerfilEntrenadorScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                 
                 {/* TOAST FLOTANTE */}
                 {toast.show && (
@@ -207,17 +210,17 @@ export default function EditarPerfilEntrenadorScreen() {
 
                 {/* HEADER FIJO */}
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Volver" style={styles.headerBtn} onPress={() => navigation.goBack()}>
                         <ChevronLeft size={24} color="white" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>EDITAR PERFIL</Text>
                     <View style={{ width: 44 }} /> 
                 </View>
 
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
                     
                     {/* FOTO DE PERFIL */}
-                    <View style={styles.photoSection}>
+                    <View style={[styles.photoSection, compact && { flexDirection: 'column', alignItems: 'flex-start' }]}>
                         <View style={styles.avatarBox}>
                             {form.fotoPerfil ? (
                                 <Image source={{ uri: form.fotoPerfil }} style={{ width: '100%', height: '100%' }} />
@@ -225,7 +228,7 @@ export default function EditarPerfilEntrenadorScreen() {
                                 <User size={40} color="rgba(255,255,255,0.35)" />
                             )}
                         </View>
-                        <View style={{ flex: 1 }}>
+                        <View style={{ flex: compact ? 0 : 1 }}>
                             <Text style={styles.photoTitle}>Foto de perfil</Text>
                             <Text style={styles.helper}>Sube una imagen profesional</Text>
                             {/* Aquí puedes poner tu componente ImageUpload nativo. Como placeholder ponemos un botón */}
@@ -242,15 +245,15 @@ export default function EditarPerfilEntrenadorScreen() {
                         <User size={18} color="#FACC15" />
                         <Text style={styles.sectionTitle}>Datos Personales</Text>
                     </View>
-                    <View style={styles.row}>
-                        <View style={{ flex: 1, marginRight: 10 }}>
-                            <GymInput label="Nombre" value={form.nombre} onChangeText={(val) => handleChange('nombre', val)} />
+                    <View style={[styles.row, compact && { flexDirection: 'column' }]}>
+                        <View style={{ flex: compact ? 0 : 1, marginRight: compact ? 0 : 10 }}>
+                            <GymInput label="Nombre" autoCapitalize="words" autoComplete="given-name" value={form.nombre} onChangeText={(val) => handleChange('nombre', val)} />
                         </View>
-                        <View style={{ flex: 1 }}>
-                            <GymInput label="Apellido" value={form.apellido} onChangeText={(val) => handleChange('apellido', val)} />
+                        <View style={{ flex: compact ? 0 : 1 }}>
+                            <GymInput label="Apellido" autoCapitalize="words" autoComplete="family-name" value={form.apellido} onChangeText={(val) => handleChange('apellido', val)} />
                         </View>
                     </View>
-                    <GymInput label="Correo electrónico" icon={Mail} value={form.email} onChangeText={(val) => handleChange('email', val)} keyboardType="email-address" />
+                    <GymInput label="Correo electrónico" icon={Mail} value={form.email} editable={false} accessibilityLabel="Correo electrónico actual" keyboardType="email-address" />
 
                     <View style={styles.divider} />
 
@@ -326,9 +329,9 @@ export default function EditarPerfilEntrenadorScreen() {
                         <ChevronDown size={20} color="#FACC15" />
                     </TouchableOpacity>
 
-                    <View style={styles.row}>
+                    <View style={[styles.row, compact && { flexDirection: 'column' }]}>
                         {/* Select Modalidad */}
-                        <View style={{ flex: 1, marginRight: 10 }}>
+                        <View style={{ flex: compact ? 0 : 1, marginRight: compact ? 0 : 10 }}>
                             <Text style={styles.fieldLabel}>Modalidad</Text>
                             <TouchableOpacity 
                                 style={styles.selectBtn} 
@@ -344,7 +347,7 @@ export default function EditarPerfilEntrenadorScreen() {
                         </View>
 
                         {/* Select Género */}
-                        <View style={{ flex: 1 }}>
+                        <View style={{ flex: compact ? 0 : 1 }}>
                             <Text style={styles.fieldLabel}>Género</Text>
                             <TouchableOpacity 
                                 style={styles.selectBtn} 
@@ -379,16 +382,7 @@ export default function EditarPerfilEntrenadorScreen() {
 
                     <View style={styles.divider} />
 
-                    {/* SEGURIDAD */}
-                    <View style={styles.sectionHeader}>
-                        <Lock size={18} color="#EF4444" />
-                        <Text style={styles.sectionTitle}>Seguridad</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('SesionesActivas')} style={styles.selectBtn}><Text style={styles.selectBtnText}>Gestionar sesiones activas</Text></TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('CambiarPassword')} style={styles.selectBtn}><Text style={styles.selectBtnText}>Cambiar contraseña</Text></TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('EliminarCuenta')} style={styles.selectBtn}><Text style={styles.selectBtnText}>Eliminar cuenta</Text></TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('ExportarDatos')} style={styles.selectBtn}><Text style={styles.selectBtnText}>Exportar mis datos</Text></TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('PrivacidadComunicaciones')} style={styles.selectBtn}><Text style={styles.selectBtnText}>Privacidad y comunicaciones</Text></TouchableOpacity>
-                    </View>
+                    <AccountSettingsSection navigation={navigation} />
                     {/* BOTÓN GUARDAR */}
                     <View style={{ marginTop: 40, marginBottom: 20 }}>
                         <GymButton fullWidth loading={saving} onPress={handleGuardar}>
@@ -443,7 +437,7 @@ const styles = StyleSheet.create({
     // Header
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
     headerBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
-    headerTitle: { color: 'white', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
+    headerTitle: { flexShrink: 1, textAlign: 'center', color: 'white', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
 
     scrollContent: { padding: 20 },
     row: { flexDirection: 'row' },
@@ -454,7 +448,7 @@ const styles = StyleSheet.create({
     avatarBox: { width: 80, height: 80, borderRadius: 16, backgroundColor: '#1a1a1a', justifyContent: 'center', alignItems: 'center', marginRight: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     photoTitle: { color: 'white', fontWeight: '900', fontSize: 16, marginBottom: 4 },
     helper: { color: '#a1a1aa', fontSize: 13, marginBottom: 15 },
-    uploadBtn: { backgroundColor: '#FACC15', alignSelf: 'flex-start', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    uploadBtn: { minHeight: 44, backgroundColor: '#FACC15', alignSelf: 'flex-start', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
     uploadBtnText: { color: '#000', fontWeight: '800', fontSize: 13 },
 
     // Secciones

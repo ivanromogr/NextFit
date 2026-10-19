@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AccountSettingsSection from '../../components/ui/AccountSettingsSection';
 import { 
   View, 
   Text, 
@@ -9,16 +11,18 @@ import {
   Image,
   ActivityIndicator,
   Alert,
-  Platform
+  Platform, KeyboardAvoidingView, useWindowDimensions
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { getCliente, actualizarCliente, subirArchivoAdjunto, getImageUrl, assignProfileImage, deleteProfileImage } from '../../api/endpoints';
 import { useAuth } from '../../components/context/AuthContext';
-import { User, Save, ChevronLeft, Camera, Mail, Lock, LogOut } from 'lucide-react-native';
+import { User, Save, ChevronLeft, Camera, Mail, LogOut } from 'lucide-react-native';
 
 export default function PerfilScreen() {
   const navigation = useNavigation();
+  const { width, fontScale } = useWindowDimensions();
+  const compact = width < 400 || fontScale > 1.2;
   const { userId, logout } = useAuth();
   
   const [loading, setLoading] = useState(true);
@@ -166,16 +170,17 @@ export default function PerfilScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Volver" style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft size={20} color="white" />
         </TouchableOpacity>
         
         <Text style={styles.headerTitle}>PERFIL ATLETA</Text>
         
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit} disabled={saving || uploadingImage}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Guardar perfil" style={styles.saveBtn} onPress={handleSubmit} disabled={saving || uploadingImage}>
           {saving ? (
             <ActivityIndicator size="small" color="#0A0A0A" />
           ) : (
@@ -187,10 +192,10 @@ export default function PerfilScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <View style={styles.mainCard}>
             
-          <View style={styles.photoSection}>
+          <View style={[styles.photoSection, compact && { flexDirection: 'column', alignItems: 'flex-start' }]}>
             <View style={styles.avatarBox}>
               {form.fotoPerfil ? (
                 // 👇 Usamos getImageUrl aquí también para cargar la foto correctamente al abrir la pantalla
@@ -229,12 +234,13 @@ export default function PerfilScreen() {
             <Text style={styles.sectionTitle}>Datos Personales</Text>
           </View>
           
-          <View style={styles.grid2}>
-            <View style={styles.inputGroup}>
+          <View style={[styles.grid2, compact && { flexDirection: 'column' }]}>
+            <View style={[styles.inputGroup, compact && { flex: 0 }]}>
               <Text style={styles.label}>Nombre</Text>
               <TextInput 
                 style={[styles.input, focusedInput === 'nombre' && styles.inputFocused]} 
-                placeholder="Tu nombre" 
+                placeholder="Tu nombre"
+                accessibilityLabel="Nombre" autoComplete="given-name" autoCapitalize="words"
                 placeholderTextColor="#666"
                 value={form.nombre} 
                 onChangeText={v => handleChange('nombre', v)}
@@ -242,11 +248,12 @@ export default function PerfilScreen() {
                 onBlur={() => setFocusedInput(null)}
               />
             </View>
-            <View style={styles.inputGroup}>
+            <View style={[styles.inputGroup, compact && { flex: 0 }]}>
               <Text style={styles.label}>Apellido</Text>
               <TextInput 
                 style={[styles.input, focusedInput === 'apellido' && styles.inputFocused]} 
-                placeholder="Tu apellido" 
+                placeholder="Tu apellido"
+                accessibilityLabel="Apellido" autoComplete="family-name" autoCapitalize="words"
                 placeholderTextColor="#666"
                 value={form.apellido} 
                 onChangeText={v => handleChange('apellido', v)}
@@ -265,7 +272,8 @@ export default function PerfilScreen() {
                 placeholder="email@ejemplo.com" 
                 placeholderTextColor="#666"
                 value={form.email} 
-                onChangeText={v => handleChange('email', v)}
+                editable={false}
+                accessibilityLabel="Correo electrónico actual"
                 onFocus={() => setFocusedInput('email')}
                 onBlur={() => setFocusedInput(null)}
                 keyboardType="email-address"
@@ -276,16 +284,7 @@ export default function PerfilScreen() {
 
           <View style={styles.divider} />
 
-          <View style={styles.sectionHeader}>
-            <Lock size={20} color="#ef4444" />
-            <Text style={[styles.sectionTitle, { color: '#ef4444' }]}>Seguridad</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('SesionesActivas')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Gestionar sesiones activas</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('MetodosAcceso')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Métodos de acceso</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('CambiarPassword')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Cambiar contraseña</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('EliminarCuenta')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Eliminar cuenta</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('ExportarDatos')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Exportar mis datos</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('PrivacidadComunicaciones')} style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Privacidad y comunicaciones</Text></TouchableOpacity>
-          </View>
+          <AccountSettingsSection navigation={navigation} />
           <View style={styles.divider} />
 
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
@@ -295,22 +294,23 @@ export default function PerfilScreen() {
 
         </View>
       </ScrollView>
-    </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, background: '#09090b', justifyContent: 'center', alignItems: 'center' },
+  loadingContainer: { flex: 1, backgroundColor: '#09090b', justifyContent: 'center', alignItems: 'center' },
   container: { flex: 1, backgroundColor: '#050505' },
   
   header: { 
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
-    paddingHorizontal: 20, paddingTop: 50, paddingBottom: 15, 
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 15,
     backgroundColor: 'rgba(5, 5, 5, 0.95)', borderBottomWidth: 1, borderBottomColor: '#1a1a1a', zIndex: 10
   },
-  backBtn: { padding: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, borderWidth: 1, borderColor: '#333' },
-  headerTitle: { color: '#666', fontWeight: '800', fontSize: 13, letterSpacing: 2, textTransform: 'uppercase' },
-  saveBtn: { flexDirection: 'row', backgroundColor: '#FACC15', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', gap: 6 },
+  backBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', padding: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, borderWidth: 1, borderColor: '#333' },
+  headerTitle: { flexShrink: 1, textAlign: 'center', color: '#666', fontWeight: '800', fontSize: 13, letterSpacing: 2, textTransform: 'uppercase' },
+  saveBtn: { minHeight: 44, flexDirection: 'row', backgroundColor: '#FACC15', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', gap: 6 },
   saveBtnText: { color: '#0A0A0A', fontWeight: '900', fontSize: 12, letterSpacing: 1 },
 
   content: { padding: 20, paddingBottom: 60 },
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   photoInfo: { flex: 1 },
   photoTitle: { color: 'white', fontSize: 16, fontWeight: '700', marginBottom: 2 },
   photoSub: { color: '#666', fontSize: 12, marginBottom: 10 },
-  uploadBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
+  uploadBtn: { minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
   uploadBtnText: { color: 'white', fontSize: 12, fontWeight: '600' },
 
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 15 },

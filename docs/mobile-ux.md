@@ -24,7 +24,7 @@ consentimiento opcional de comunicaciones.
 
 ## Validación
 
-Desde `Frontend_App`, `npm test -- --runInBand`: 21 suites, 106 pruebas correctas.
+Desde `Frontend_App`, `npm test -- --runInBand`: 23 suites, 117 pruebas correctas.
 Incluye recuperación, consentimientos, Google/Apple, chat y las pruebas nuevas
 para visibilidad, eventos del campo y bloqueo de peticiones concurrentes.
 
@@ -117,7 +117,33 @@ cambiado correos ni exportado datos personales reales para estas pruebas.
 
 ## Pendientes de UX móvil
 
-Queda revisar las pantallas de perfil y el flujo de métodos de acceso, además
-de los recorridos principales de atleta y entrenador, las pantallas pequeñas,
+Quedan por revisar los recorridos principales de atleta y entrenador, las pantallas pequeñas,
 el texto ampliado y el teclado en dispositivos reales. Los cambios de esta rama
 no equivalen a un APK nuevo distribuido ni completan el bloque 6.
+
+## Perfiles y métodos de acceso
+
+Los perfiles de atleta y entrenador comparten una lista vertical de acciones de
+cuenta con descripciones y controles que crecen con el texto. El correo actual
+se muestra en modo de lectura y su cambio se abre mediante el flujo verificado.
+Ambos perfiles ofrecen los mismos accesos, incluida la gestión de métodos.
+Cabecera, campos y foto se adaptan a anchos pequeños o texto ampliado; se revisan
+las áreas táctiles y el teclado. Se elimina una fila horizontal que contenía
+todos los botones de seguridad y podía desbordar la pantalla.
+
+Métodos de acceso utiliza el contenedor común y campos de contraseña con
+visibilidad y avance desde el teclado. Incluye carga, fallo de carga y reintento;
+no ofrece acciones basadas en una lista todavía desconocida. Los envíos se
+bloquean con una referencia inmediata, también cuando provienen del teclado.
+Se conservan las verificaciones existentes antes de desvincular y la prohibición
+de retirar el único método de acceso. No se vinculan proveedores automáticamente
+por abrir esta pantalla ni se obliga a configurarlos.
+
+Las pruebas montan ambos perfiles, comprueban el correo de solo lectura y el
+acceso al flujo verificado; verifican cada destino de ajustes, el reintento de
+carga y la creación de contraseña sin solicitudes duplicadas. La suite conserva
+las pruebas previas de reautenticación social y protección del último método.
+
+El propietario ha solicitado un aviso al cerrar el paso 6 antes de comenzar el
+7. El paso 6 sigue abierto mientras falten sus recorridos y la validación en
+dispositivo; no se ha empezado el bloque general de testing.

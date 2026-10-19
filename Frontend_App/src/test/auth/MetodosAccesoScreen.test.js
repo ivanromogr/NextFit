@@ -231,3 +231,47 @@ describe('MetodosAccesoScreen social reauthentication', () => {
     expect(clearLocalSession).not.toHaveBeenCalled();
   });
 });
+
+describe('estados móviles de métodos de acceso', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    platform = 'android';
+    useAuth.mockReturnValue({ clearLocalSession });
+    isAppleSignInAvailable.mockResolvedValue(false);
+    jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
+  });
+  afterEach(() => Alert.alert.mockRestore());
+
+  it('oculta acciones durante una carga fallida y permite reintentar', async () => {
+    endpoints.getAuthIdentities.mockRejectedValueOnce(new Error('fixture'));
+    endpoints.getAuthIdentities.mockResolvedValueOnce({ data: [LOCAL, GOOGLE] });
+    const screen = render(<MetodosAccesoScreen />);
+    await waitFor(() => screen.getByText('No se pudieron cargar los métodos de acceso.'));
+    expect(screen.queryByText('Vincular Google')).toBeNull();
+    expect(screen.queryByText('Crear contraseña')).toBeNull();
+    fireEvent.press(screen.getByText('Reintentar'));
+    await waitFor(() => screen.getByText(/Google.*Vinculado/));
+    expect(screen.queryByText('No se pudieron cargar los métodos de acceso.')).toBeNull();
+    expect(endpoints.linkGoogleIdentity).not.toHaveBeenCalled();
+  });
+
+  it('el teclado no duplica la creación de contraseña ni termina la sesión', async () => {
+    let resolve;
+    getGoogleIdToken.mockResolvedValueOnce('google-fixture');
+    endpoints.reauthCreateLocalWithGoogle.mockResolvedValueOnce({ data: { reauthToken: 'one-use-fixture' } });
+    endpoints.createLocalIdentity.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    const screen = await renderScreen([GOOGLE]);
+    await act(async () => { fireEvent.press(screen.getByText('Crear contraseña')); });
+    await act(async () => { fireEvent.press(screen.getByText('Continuar con Google')); });
+    fireEvent.changeText(screen.getByPlaceholderText('Nueva contraseña'), 'ValidPassword123');
+    const confirmation = screen.getByPlaceholderText('Confirmar contraseña');
+    fireEvent.changeText(confirmation, 'ValidPassword123');
+    fireEvent(confirmation, 'submitEditing');
+    fireEvent(confirmation, 'submitEditing');
+    expect(endpoints.createLocalIdentity).toHaveBeenCalledTimes(1);
+    expect(endpoints.createLocalIdentity).toHaveBeenCalledWith('one-use-fixture', 'ValidPassword123');
+    await act(async () => { resolve({}); });
+    expect(clearLocalSession).not.toHaveBeenCalled();
+    expect(mockReset).not.toHaveBeenCalled();
+  });
+});
