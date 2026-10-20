@@ -1210,3 +1210,20 @@ Vercel informa de cero entradas `automation-bypass` en el proyecto: disponer de
 una variable en el entorno no acredita que exista una clave válida en Vercel.
 El bloqueo actual observado es la protección SSO; no se declaran aprobadas las
 páginas del candidato y se mantiene la protección.
+
+
+### Preview pública validada tras corregir el proyecto de la clave
+
+El usuario añadió la clave de automatización a `next-fit-q7uo`, el proyecto de
+la preview; estaba inicialmente en otro proyecto llamado `next-fit`. El navegador
+terminó con salida 0 y doce comprobaciones correctas: login, registro,
+recuperación, términos y privacidad, más la redirección anónima de progreso,
+en 390x844 y 1365x900. Se comprobó ausencia de desbordamiento horizontal,
+errores no controlados y fallos de documentos, scripts y estilos propios.
+La comprobación de metadatos también terminó con salida 0 para el candidato
+`4ddbca71668f2c723f5adf2137c3413efdb01dd8` y su alias estable.
+
+Se conservaron TLS y SSO. Las llamadas API fueron interceptadas: este resultado
+cierra la comprobación de entrega y rutas públicas de esa preview, pero no
+acredita login real, proveedores sociales, correo externo ni aceptación del
+backend desplegado. No hubo cambios ni despliegues de producción.

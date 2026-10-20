@@ -13,16 +13,12 @@ rama de trabajo `codex/mobile-ux`. Los cambios están subidos; no se fusiona con
 
 ## Acceso al entorno
 
-La configuración ya está publicada (`draft_id: null`) y contiene el alias
-estable de la rama. Esta instancia continúa recibiendo `Tunnel connection
-failed: 403 Forbidden`, incluso al comprobar mediante la ejecución autorizada
-fuera de su restricción. No se pide publicar de nuevo el mismo borrador.
-
-Retomar desde una tarea nueva que utilice el entorno publicado y el checkout de
-esta rama permite comprobar la política aplicada a esa nueva instancia. Revisar
-primero `git status` y la rama existente; no crear worktrees ni sobrescribir
-archivos locales. No asumir que los procesos o conexiones sobreviven a la
-restauración. Las instrucciones de arranque están guardadas en el entorno.
+La preview ya es accesible desde esta sesión con el secreto de automatización
+restringido al hostname autorizado. El usuario añadió la clave al proyecto
+correcto `next-fit-q7uo`; inicialmente estaba en otro proyecto llamado `next-fit`.
+El recorrido público de navegador terminó correctamente con TLS y SSO conservados.
+Usar `/workspace/nextfit-setup/browser-venv/bin/python` y el Chromium del sistema;
+la ejecución requiere acceso al almacén de certificados del sistema.
 
 ## Candidato desplegado
 
@@ -36,8 +32,10 @@ La clave de automatización está disponible en esta sesión. El comprobador pú
 limita su encabezado al hostname HTTPS exacto del alias mediante `preview_access.py`;
 tres pruebas verifican la inclusión autorizada y la exclusión de otros orígenes,
 HTTP, credenciales en URL, puertos y encabezados heredados. La prueba de navegador
-con certificados del sistema sigue fallando con `ERR_TUNNEL_CONNECTION_FAILED`:
-la aceptación visual desplegada permanece pendiente. No se desactivaron TLS ni SSO.
+con certificados del sistema terminó con salida 0: doce comprobaciones públicas
+en 390x844 y 1365x900, incluyendo la redirección anónima de la ruta privada.
+No se desactivaron TLS ni SSO. La API se intercepta: el login real y el recorrido
+autenticado desplegado permanecen separados de esta validación.
 
 Comprobación de metadatos del candidato elegido:
 
