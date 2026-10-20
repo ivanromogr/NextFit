@@ -22,7 +22,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Auditoría npm móvil | Árbol instalado: 93 avisos (88 altos, 5 moderados); lockfile: 50 (45 altos, 5 moderados). Mismos tres avisos directos; cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
-| Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. Producción conserva su revisión anterior; el último commit funcional carece de preview por cuota Vercel |
+| Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. Producción conserva su revisión anterior; el candidato cab7e7d tiene preview READY; su aceptación sigue pendiente del acceso de red |
 | Enlaces válidos con entrega local | Contraseña y cambio de correo para ambos roles, tokens reales y cookie renovable; transporte de correo externo pendiente |
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
@@ -869,3 +869,37 @@ con avisos directos coinciden y siguen sin versión estable corregida. Se regist
 la diferencia de propagación sin silenciar avisos ni afirmar que la auditoría
 pase. No cambian dependencias ni código de producto: las suites previas de
 aplicación mantienen su alcance. Ver [Dependencias móviles](mobile-dependencies.md).
+
+## Candidato disponible y acceso del entorno (20 de octubre)
+
+La consulta de metadatos confirma una preview READY del commit exacto
+`cab7e7df50fc5c2edd90e7fce7092f4738da4ecc`:
+`dpl_DYzRadQeH1NZRv6UpAQGFm3V4fSa`, en
+https://next-fit-q7uo-j9c44xbga-ivanromo1708-6643s-projects.vercel.app.
+El bloqueo anterior de cuota describe intentos previos y ya no demuestra
+ausencia de este candidato. READY acredita compilación publicada, no aceptación
+funcional en navegador.
+
+La solicitud al dominio nuevo falla antes de llegar al servidor con
+`Tunnel connection failed: 403 Forbidden`. Se guardan en el borrador del entorno
+ese dominio y el alias estable de la rama, conservando los nueve destinos
+anteriores. La herramienta devuelve `requires_publish: true`; el guardado no
+acredita acceso aplicado. No se desactiva la protección Vercel ni se crea una
+clave de bypass.
+
+Se actualizan también las instrucciones reutilizables de arranque: retiran los
+fallos históricos ya corregidos y documentan el fixture H2/buzón local, las
+variables explícitas de Vite, la suite Maven completa y los límites pendientes.
+Los doce contratos aislados de los comprobadores de producción y candidato
+pasan, sin cambios en su código.
+
+La primera comprobación pública de esta pasada agota 30 segundos esperando
+`/actuator/health`; por ello no ejecuta los controles restantes. Render declara
+el servicio no suspendido y el despliegue `dep-dbb1ke0m7kps73an5q0g` como live,
+con código `d3b366b6ccb1873cbe2507badb1b8bf7e4ae5fac` del 19 de octubre.
+Eso no demuestra respuesta de la API ni que el backend candidato esté desplegado.
+
+La segunda pasada permite 60 segundos solo al primer healthcheck y mantiene
+30 segundos para los posteriores. También agota la espera inicial: los controles
+restantes no se ejecutan. No se atribuye el fallo a un arranque lento sin más
+evidencia y no se reinicia ni modifica producción.

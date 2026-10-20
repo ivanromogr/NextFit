@@ -320,3 +320,10 @@ conserva la respuesta neutral de recuperación si falta configuración. Las
 pruebas HTTP usan loopback y no envían correo externo. Backend completo: 380
 pruebas correctas; recepción externa pendiente de configurar remitente y
 proveedor. Detalle en [Pruebas generales](testing-general.md).
+
+Actualización de despliegue: la preview exacta de `cab7e7d` ya figura READY.
+Su acceso desde el entorno devuelve 403 del túnel; los dominios necesarios se
+guardan en el borrador y requieren publicación antes de comprobar navegador.
+La API de producción no responde en las dos esperas iniciales de 30 y 60 segundos
+de esta pasada, aunque Render indique live. La aceptación continúa pendiente;
+ver [Pruebas generales](testing-general.md).
