@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { requestPasswordReset } from "../../api/endpoints";
 import GymButton from "../../components/ui/GymButton";
@@ -13,16 +13,29 @@ export default function ForgotPassword() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
+  const request = useRef({ active: true, pending: false });
+  useEffect(() => {
+    const current = request.current;
+    current.active = true;
+    return () => { current.active = false; };
+  }, []);
+
   const submit = async (event) => {
     event.preventDefault();
+    if (!request.current.active || request.current.pending) return;
+    request.current.pending = true;
     setLoading(true);
     setError("");
     try {
       await requestPasswordReset(email.trim());
-      setSent(true);
+      if (request.current.active) setSent(true);
     } catch {
+      if (!request.current.active) return;
       setError("No se pudo procesar la solicitud. Inténtalo de nuevo más tarde.");
-    } finally { setLoading(false); }
+    } finally {
+      request.current.pending = false;
+      if (request.current.active) setLoading(false);
+    }
   };
 
   return <div className="auth-root"><div className="auth-card">

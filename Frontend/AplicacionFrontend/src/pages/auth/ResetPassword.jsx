@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { resetPassword } from "../../api/endpoints";
 import GymButton from "../../components/ui/GymButton";
@@ -9,7 +9,12 @@ const invalidMessage = "El enlace de recuperación no es válido o ha caducado."
 
 export default function ResetPassword() {
   const [params] = useSearchParams();
-  const [token, setToken] = useState(() => params.get("token") || "");
+  const initialToken = params.get("token") || "";
+  return <ResetForm key={initialToken} initialToken={initialToken} />;
+}
+
+function ResetForm({ initialToken }) {
+  const [token, setToken] = useState(initialToken);
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,18 +22,32 @@ export default function ResetPassword() {
   const [done, setDone] = useState(false);
   const hasToken = Boolean(token);
 
+  const request = useRef({ active: true, pending: false });
+  useEffect(() => {
+    const current = request.current;
+    current.active = true;
+    return () => { current.active = false; };
+  }, []);
+
   const submit = async (event) => {
     event.preventDefault();
+    if (!request.current.active || request.current.pending) return;
     if (password.length < 8 || password.length > 128) return setError("La contraseña debe tener entre 8 y 128 caracteres.");
     if (password !== confirmation) return setError("Las contraseñas no coinciden.");
+    request.current.pending = true;
     setLoading(true); setError("");
     try {
       await resetPassword(token, password);
+      if (!request.current.active) return;
       setToken(""); setPassword(""); setConfirmation(""); setDone(true);
     } catch (requestError) {
+      if (!request.current.active) return;
       if (requestError.response?.data?.code === "INVALID_RESET_TOKEN" || requestError.response?.status === 400) setError(invalidMessage);
       else setError("No se pudo restablecer la contraseña. Inténtalo de nuevo más tarde.");
-    } finally { setLoading(false); }
+    } finally {
+      request.current.pending = false;
+      if (request.current.active) setLoading(false);
+    }
   };
 
   if (!hasToken && !done) return <InvalidReset />;

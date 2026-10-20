@@ -293,3 +293,9 @@ La revisión de sesiones activas incorpora errores recuperables y bloqueo de
 protección frente a otra cuenta, cierre global, retirada de la cookie web y
 rechazo de renovaciones posteriores para ambos roles. No acredita invalidación
 instantánea de JWT de acceso ya emitidos; ver [Pruebas generales](testing-general.md).
+
+La recuperación de contraseña reinicia el formulario si cambia el enlace y
+descarta respuestas del anterior; ambos envíos bloquean peticiones simultáneas.
+Los reintentos, la respuesta neutral y los enlaces inválidos se comprueban con
+API local real. Sigue pendiente probar entrega de correo y restablecimiento
+con un enlace válido recibido; ver [Pruebas generales](testing-general.md).

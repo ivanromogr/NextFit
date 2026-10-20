@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 402 pruebas en 60 archivos, todas correctas |
+| Web, suite completa | 408 pruebas en 60 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -26,7 +26,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
 
-Las suites de backend, web y móvil suman **946 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **952 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -40,7 +40,8 @@ la de listas del entrenador eleva la suite a 361 casos correctos. La revisión
 del panel termina con 369 pruebas web correctas; la edición de perfiles eleva
 la suite a 381 casos correctos. El alta y la navegación al chat completan
 la suite con 394 casos correctos. La revisión de sesiones activas termina
-con 402 pruebas web correctas.
+con 402 pruebas web correctas; recuperación de contraseña eleva la suite a
+408 casos correctos.
 
 ## Errores corregidos durante la pasada completa
 
@@ -81,7 +82,9 @@ la API real y verifican los datos persistidos. El alta del entrenador añade
 un guardado fallido y un reintento real, con lectura posterior del perfil.
 Sesiones añade fallos controlados de listado y revocación, renovaciones
 rechazadas tras el cierre y eliminación real de la cookie web tras cierre global.
-Se bloquean conexiones a servicios externos.
+Recuperación añade errores controlados, respuesta neutral para un correo
+inexistente y rechazo real de enlaces inválidos, incluido el cambio de token
+sin recargar la página. Se bloquean conexiones a servicios externos.
 
 El arranque de prueba no hereda credenciales de proveedores ni configuración de
 despliegue. Usa H2 en memoria, almacenamiento local temporal y correo/proveedores
@@ -687,3 +690,36 @@ backend/web/móvil es **946**; backend y móvil conservan sus resultados anterio
 porque esta revisión solo cambia la web y el ensayo local. El candidato no se
 ha aceptado desplegado y el paso 7 continúa abierto por la cuota de preview,
 los avisos móviles y la aceptación de la versión definitiva.
+
+
+## Recuperación de contraseña y cambio de enlace (20 de octubre)
+
+Cada enlace de recuperación tiene su propia instancia del formulario. Cambiar
+el token por navegación reinicia los campos y evita enviar el token anterior;
+retirarlo bloquea el formulario. Una respuesta del enlace anterior se descarta
+y no presenta como completado el nuevo. Recuperación y restablecimiento bloquean
+envíos simultáneos y mantienen los campos para reintentar un fallo de red.
+
+Pasan once pruebas focalizadas, con seis regresiones nuevas: cambio de token,
+respuesta tardía, retirada del enlace, reintento del restablecimiento sin envíos
+duplicados, confirmación que no coincide y conservación del correo tras un fallo
+de solicitud. Se mantiene el mensaje neutral que no confirma si existe la cuenta.
+
+El navegador a 390 px fuerza un 503 de solicitud y uno de restablecimiento. Los
+reintentos consultan la API local real: correo ficticio inexistente responde 200
+con mensaje neutral y un token inválido devuelve 400. Cambiar de token mediante
+navegación sin recarga borra las contraseñas; la petición posterior lleva el
+nuevo token y también se rechaza. Sin token no se muestra botón de guardar.
+
+Este recorrido no verifica entrega SMTP ni un restablecimiento satisfactorio
+mediante un enlace recibido: el ensayo mantiene el correo desactivado y no
+obtiene ni inventa un token válido del servidor. La simulación unitaria de éxito
+y el rechazo real de enlaces inválidos no sustituyen ese recorrido pendiente.
+También pasa la regresión anterior completa, incluidas sesiones y alta.
+
+Validación final de recuperación: **408 pruebas web en 60 archivos**, compilación
+Vite correcta y lint con **cero errores y cero avisos**. El total vigente de
+backend/web/móvil es **952**; backend y móvil conservan sus comprobaciones
+anteriores porque esta revisión solo modifica la web y el ensayo local. El
+paso 7 sigue abierto para publicación; la entrega real de correo y el reset con
+un enlace válido no se dan por probados con este ensayo.

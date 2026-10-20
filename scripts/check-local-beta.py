@@ -501,4 +501,48 @@ with sync_playwright() as p:
   assert rejected.status==401
   print('PASS session management:',user['role'],'load/revoke failures recovered; private IDs hidden; foreign revocation denied; revoked mobile and global refresh rejected; web cookie removed')
  for context in chat_contexts: context.close()
+ recovery_context=browser.new_context(viewport={'width':390,'height':844})
+ recovery_context.route('**/*',lambda route:route.continue_() if route.request.url.startswith((WEB+'/',API+'/')) else route.abort())
+ recovery_page=recovery_context.new_page()
+ recovery_failures={'forgot':1,'reset':1}
+ def fail_recovery(route,_request):
+  kind=urlsplit(route.request.url).path.rsplit('/',1)[-1]
+  if recovery_failures.get(kind,0):
+   recovery_failures[kind]-=1
+   route.fulfill(status=503,json={'message':'Local beta injected recovery failure'})
+  else: route.continue_()
+ recovery_context.route(API+'/api/auth/password/*',fail_recovery)
+ recovery_page.goto(WEB+'/forgot-password')
+ missing_email='missing-reset-'+suffix+'@example.invalid'
+ recovery_page.get_by_label('Correo electrónico',exact=True).fill(missing_email)
+ recovery_page.get_by_role('button',name='ENVIAR INSTRUCCIONES',exact=True).click()
+ recovery_page.get_by_role('alert').wait_for()
+ expect(recovery_page.get_by_label('Correo electrónico',exact=True)).to_have_value(missing_email)
+ with recovery_page.expect_response(lambda response: response.url.endswith('/api/auth/password/forgot')) as forgot_response:
+  recovery_page.get_by_role('button',name='ENVIAR INSTRUCCIONES',exact=True).click()
+ assert forgot_response.value.status==200
+ expect(recovery_page.get_by_role('status')).to_contain_text('Si existe una cuenta')
+ recovery_page.goto(WEB+'/reset-password?token=local-invalid-first')
+ for label in ('Nueva contraseña','Confirmar contraseña'):
+  recovery_page.get_by_label(label,exact=True).fill('Fictitious-reset-123!')
+ recovery_page.get_by_role('button',name='RESTABLECER CONTRASEÑA',exact=True).click()
+ recovery_page.get_by_role('alert').wait_for()
+ expect(recovery_page.get_by_label('Nueva contraseña',exact=True)).to_have_value('Fictitious-reset-123!')
+ with recovery_page.expect_response(lambda response: response.url.endswith('/api/auth/password/reset')) as invalid_response:
+  recovery_page.get_by_role('button',name='RESTABLECER CONTRASEÑA',exact=True).click()
+ assert invalid_response.value.status==400
+ expect(recovery_page.get_by_role('alert')).to_contain_text('no es válido o ha caducado')
+ recovery_page.evaluate("""() => { const url = new URL(location.href); url.searchParams.set('token','local-invalid-second'); history.pushState({...history.state,key:'recovery-next'},'',url); window.dispatchEvent(new PopStateEvent('popstate')); }""")
+ expect(recovery_page.get_by_label('Nueva contraseña',exact=True)).to_have_value('')
+ for label in ('Nueva contraseña','Confirmar contraseña'):
+  recovery_page.get_by_label(label,exact=True).fill('Fictitious-reset-456!')
+ with recovery_page.expect_response(lambda response: response.url.endswith('/api/auth/password/reset')) as second_invalid:
+  recovery_page.get_by_role('button',name='RESTABLECER CONTRASEÑA',exact=True).click()
+ assert second_invalid.value.status==400
+ assert second_invalid.value.request.post_data_json['token']=='local-invalid-second'
+ recovery_page.goto(WEB+'/reset-password')
+ recovery_page.get_by_role('alert').wait_for()
+ expect(recovery_page.get_by_role('button',name='RESTABLECER CONTRASEÑA',exact=True)).to_have_count(0)
+ print('PASS password recovery: controlled failures retain drafts; real neutral unknown-email response; invalid reset rejected; token navigation clears passwords and submits current link; missing token blocks form. No email delivery or successful reset is asserted.')
+ recovery_context.close()
  browser.close()
