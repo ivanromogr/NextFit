@@ -1,9 +1,10 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ChatComponent from '../../components/functional/ChatComponent';
 import { api } from '../../api/endpoints';
+import { Client } from '@stomp/stompjs';
 
 // 1. MOCK DE LA API
 vi.mock('../../api/endpoints', () => ({
@@ -33,6 +34,11 @@ vi.mock('@stomp/stompjs', () => ({
 }));
 
 const mockHistory = data => api.get.mockImplementation(url => Promise.resolve({ data: url.includes('/safety/') ? { blockedByMe: false, canSend: true } : data }));
+const receive = message => act(() => mockSubscribe.mock.calls.at(-1)[1]({ body: JSON.stringify(message) }));
+const confirmLastSend = () => {
+  const sent = JSON.parse(mockPublish.mock.calls.filter(([frame]) => frame.destination === '/app/chat').at(-1)[0].body);
+  receive({ ...sent, id: 'confirmed-message', remitenteId: 1, fechaHora: new Date().toISOString(), leido: false });
+};
 
 // 3. MOCK DEL SCROLL (Vital para evitar que JSDOM colapse)
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
@@ -110,7 +116,12 @@ describe('Componente ChatComponent', () => {
       }));
     });
     
-    // El input debería limpiarse tras el envío
+    expect(input).toHaveValue('¡Listo para entrenar!');
+    expect(input).toBeDisabled();
+    receive({ id: 'incoming', remitenteId: 2, destinatarioId: 1, contenido: 'Otro mensaje', leido: true });
+    expect(input).toHaveValue('¡Listo para entrenar!');
+    confirmLastSend();
+    // Se limpia solo después del eco del servidor para este envío.
     expect(input.value).toBe('');
   });
   it('ejecuta el saludo automático (autoGreet) si está activado', async () => {
@@ -198,7 +209,67 @@ describe('Componente ChatComponent', () => {
     })));
     expect(api.post).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    confirmLastSend();
     expect(screen.getByPlaceholderText('Escribe un mensaje...')).toHaveValue('');
+  });
+
+  it('preserves a rejected draft and does not insert it into history', async () => {
+    render(<ChatComponent {...defaultProps} />);
+    const input = screen.getByPlaceholderText('Escribe un mensaje...');
+    await waitFor(() => expect(input).not.toBeDisabled());
+    fireEvent.change(input, { target: { value: 'Mensaje rechazado' } });
+    fireEvent.submit(input.closest('form'));
+    fireEvent.submit(input.closest('form'));
+    expect(mockPublish).toHaveBeenCalledTimes(1);
+    receive({ type: 'CHAT_ERROR', message: 'No se pueden enviar mensajes en esta conversación' });
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pueden enviar');
+    expect(input).toHaveValue('Mensaje rechazado');
+    expect(screen.getByText('Aún no hay mensajes.')).toBeInTheDocument();
+  });
+
+  it('preserves the draft and unlocks the composer if publish throws', async () => {
+    render(<ChatComponent {...defaultProps} />);
+    const input = screen.getByPlaceholderText('Escribe un mensaje...');
+    await waitFor(() => expect(input).not.toBeDisabled());
+    mockPublish.mockImplementationOnce(() => { throw new Error('socket closed'); });
+    fireEvent.change(input, { target: { value: 'Borrador sin confirmar' } });
+    fireEvent.submit(input.closest('form'));
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudo confirmar');
+    expect(input).toHaveValue('Borrador sin confirmar');
+    expect(input).not.toBeDisabled();
+  });
+
+  it('preserves an unconfirmed draft across a disconnect and reloads history without resending', async () => {
+    render(<ChatComponent {...defaultProps} />);
+    const input = screen.getByPlaceholderText('Escribe un mensaje...');
+    await waitFor(() => expect(input).not.toBeDisabled());
+    const config = Client.mock.calls.at(-1)[0];
+    fireEvent.change(input, { target: { value: 'Borrador con conexión perdida' } });
+    fireEvent.submit(input.closest('form'));
+    act(() => config.onWebSocketClose());
+    expect(input).toHaveValue('Borrador con conexión perdida');
+    expect(screen.getByRole('alert')).toHaveTextContent('podría haberse recibido');
+    mockHistory([{ id: 'missed', remitenteId: 2, destinatarioId: 1, contenido: 'Mensaje durante el corte', leido: true }]);
+    act(() => config.onConnect());
+    expect(await screen.findByText('Mensaje durante el corte')).toBeInTheDocument();
+    expect(input).toHaveValue('Borrador con conexión perdida');
+    expect(mockPublish.mock.calls.filter(([frame]) => frame.destination === '/app/chat')).toHaveLength(1);
+  });
+
+  it('unlocks after a missing confirmation without resending or discarding the draft', async () => {
+    render(<ChatComponent {...defaultProps} />);
+    const input = screen.getByPlaceholderText('Escribe un mensaje...');
+    await waitFor(() => expect(input).not.toBeDisabled());
+    vi.useFakeTimers();
+    try {
+      fireEvent.change(input, { target: { value: 'Confirmación pendiente' } });
+      fireEvent.submit(input.closest('form'));
+      act(() => vi.advanceTimersByTime(15000));
+      expect(screen.getByRole('alert')).toHaveTextContent('No se ha recibido confirmación');
+      expect(input).toHaveValue('Confirmación pendiente');
+      expect(input).not.toBeDisabled();
+      expect(mockPublish).toHaveBeenCalledTimes(1);
+    } finally { vi.useRealTimers(); }
   });
 
   it.each(['success', 'failure'])('ignores upload %s after switching to another conversation', async outcome => {

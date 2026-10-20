@@ -40,6 +40,8 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [archivoAdjunto, setArchivoAdjunto] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isSending, setIsSending] = useState(false);
+    const pendingSend = useRef(null);
 
     const stompClientRef = useRef(null);
     const messagesEndRef = useRef(null);
@@ -48,11 +50,23 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const conversationVersion = useRef(0);
 
     useEffect(() => {
+        if (!isSending) return;
+        const timeout = setTimeout(() => {
+            if (!pendingSend.current) return;
+            pendingSend.current = null;
+            setIsSending(false);
+            setSendError('No se ha recibido confirmación. Conservamos el borrador. Comprueba el historial antes de reenviar.');
+        }, 15000);
+        return () => clearTimeout(timeout);
+    }, [isSending]);
+
+    useEffect(() => {
         const version = ++conversationVersion.current;
         greeted.current = false; setHistoryReady(false);
         setMensajes([]);
         setSafety(null); setReportMessageId(null); setSendError('');
-        setNuevoMensaje(''); setArchivoAdjunto(null); setIsUploading(false); setConectado(false);
+        setNuevoMensaje(''); setArchivoAdjunto(null); setIsUploading(false); setIsSending(false); setConectado(false);
+        pendingSend.current = null;
         cargarHistorial(version);
 
         if (stompClientRef.current) {
@@ -139,7 +153,14 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const cargarHistorial = async (version) => {
         try {
             const response = await api.get(`/api/chat/historial?otroUsuarioId=${destinatarioId}`);
-            if (version === conversationVersion.current) { setMensajes(response.data || []); setHistoryReady(true); }
+            if (version === conversationVersion.current) {
+                setMensajes(current => {
+                    const merged = new Map((response.data || []).map(message => [message.id, message]));
+                    current.forEach(message => merged.set(message.id, message));
+                    return [...merged.values()].sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
+                });
+                setHistoryReady(true);
+            }
         } catch (error) {
             console.error(error);
         }
@@ -148,7 +169,17 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const conectarWebSocket = (version) => {
         if (isConnected.current) return;
         isConnected.current = true;
+        let wasConnected = false;
 
+        const connectionLost = () => {
+            if (version !== conversationVersion.current) return;
+            setConectado(false);
+            if (pendingSend.current) {
+                pendingSend.current = null;
+                setIsSending(false);
+                setSendError('Se ha perdido la conexión. Conservamos el borrador. Comprueba el historial antes de reenviar: el mensaje podría haberse recibido.');
+            }
+        };
         const client = new Client({
             brokerURL: undefined,
             webSocketFactory: () => new SockJS(SOCKJS_URL),
@@ -159,11 +190,18 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 if (version !== conversationVersion.current) { client.deactivate(); return; }
                 setConectado(true);
                 stompClientRef.current = client;
+                if (wasConnected) {
+                    cargarHistorial(version);
+                    setSafetyRevision(value => value + 1);
+                }
+                wasConnected = true;
 
                 client.subscribe('/user/queue/mensajes', (payload) => {
                     if (version !== conversationVersion.current) return;
                     const mensajeRecibido = JSON.parse(payload.body);
                     if (mensajeRecibido.type === 'CHAT_ERROR') {
+                        pendingSend.current = null;
+                        setIsSending(false);
                         setSendError(mensajeRecibido.message || 'No se pudo enviar el mensaje.');
                         setSafetyRevision(value => value + 1);
                         return;
@@ -173,6 +211,17 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                         (mensajeRecibido.remitenteId === destinatarioId && mensajeRecibido.destinatarioId === usuarioId) ||
                         (mensajeRecibido.remitenteId === usuarioId && mensajeRecibido.destinatarioId === destinatarioId)
                     ) {
+                        const pending = pendingSend.current;
+                        if (pending && mensajeRecibido.remitenteId === usuarioId
+                            && mensajeRecibido.destinatarioId === destinatarioId
+                            && (mensajeRecibido.contenido || '') === pending.contenido.trim()
+                            && (mensajeRecibido.attachmentId || null) === (pending.attachmentId || null)) {
+                            pendingSend.current = null;
+                            setIsSending(false);
+                            setNuevoMensaje('');
+                            cancelarAdjunto();
+                            setShowEmojiPicker(false);
+                        }
                         setMensajes((prev) => {
                             const index = prev.findIndex((m) => m.id === mensajeRecibido.id);
 
@@ -187,10 +236,10 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                     }
                 });
             },
-            onWebSocketClose: () => { if (version === conversationVersion.current) setConectado(false); },
+            onWebSocketClose: connectionLost,
             onDisconnect: () => {
                 if (version !== conversationVersion.current) return;
-                setConectado(false);
+                connectionLost();
                 isConnected.current = false;
             },
             onStompError: (frame) => {
@@ -222,7 +271,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const enviarMensaje = async (e) => {
         e.preventDefault();
         if (!nuevoMensaje.trim() && !archivoAdjunto) return;
-        if (!stompClientRef.current?.connected || !safety?.canSend || isUploading || nuevoMensaje.trim().length > 4000) return;
+        if (!stompClientRef.current?.connected || !safety?.canSend || isUploading || pendingSend.current || nuevoMensaje.trim().length > 4000) return;
         const sendingVersion = conversationVersion.current;
         setSendError('');
 
@@ -263,15 +312,20 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         };
 
         if (sendingVersion !== conversationVersion.current || !safetyRef.current?.canSend || !stompClientRef.current?.connected) return;
-        stompClientRef.current.publish({
-            destination: "/app/chat",
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(mensaje)
-        });
-
-        setNuevoMensaje("");
-        cancelarAdjunto();
+        pendingSend.current = mensaje;
+        setIsSending(true);
         setShowEmojiPicker(false);
+        try {
+            stompClientRef.current.publish({
+                destination: "/app/chat",
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(mensaje)
+            });
+        } catch {
+            pendingSend.current = null;
+            setIsSending(false);
+            setSendError('No se pudo confirmar el envío. Conservamos el borrador. Comprueba el historial antes de reenviar.');
+        }
     };
 
     const formatearFechaSeparador = (fechaString) => {
@@ -386,6 +440,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
             <ChatSafetyControls key={destinatarioId} otherId={destinatarioId} onStateChange={setSafety}
                 reportMessageId={reportMessageId} onCloseReport={() => setReportMessageId(null)} revision={safetyRevision} />
             {sendError && <p role="alert" style={{ color: '#fca5a5', padding: '0 20px' }}>{sendError}</p>}
+            {isSending && <p role="status" style={{ padding: '0 20px' }}>Esperando confirmación del mensaje…</p>}
             <div className="hide-scroll" style={styles.chatArea}>
                 {mensajes.length === 0 && (
                     <div style={{ textAlign: 'center', color: '#52525b', marginTop: 'auto', marginBottom: 'auto' }}>
@@ -476,7 +531,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                                 : <ImageIcon size={20} color="#22c55e" />}
                             <span>{archivoAdjunto.name}</span>
                         </div>
-                        <button style={styles.previewCancelBtn} onClick={cancelarAdjunto}>
+                        <button style={styles.previewCancelBtn} disabled={isUploading || isSending} onClick={cancelarAdjunto}>
                             <X size={16} />
                         </button>
                     </div>
@@ -489,9 +544,12 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                         onChange={handleFileSelect}
                         style={{ display: 'none' }}
                         accept="image/jpeg,image/png,image/webp"
+                        disabled={isUploading || isSending}
                     />
                     <button
                         type="button"
+                        disabled={isUploading || isSending}
+                        aria-label="Adjuntar imagen"
                         style={styles.actionBtn}
                         onClick={() => fileInputRef.current.click()}
                         onMouseEnter={(e) => (e.currentTarget.style.color = 'white')}
@@ -508,10 +566,11 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                             onChange={(e) => setNuevoMensaje(e.target.value)}
                             autoComplete="off"
                             maxLength={4000}
-                            disabled={!safety?.canSend || isUploading}
+                            disabled={!safety?.canSend || isUploading || isSending}
                         />
                         <button
                             type="button"
+                            disabled={isUploading || isSending}
                             style={{ background: 'none', border: 'none', display: 'flex', cursor: 'pointer', padding: 0 }}
                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         >
@@ -527,7 +586,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                         type="submit"
                         style={styles.sendBtn}
                         aria-label="Enviar mensaje"
-                        disabled={(!nuevoMensaje.trim() && !archivoAdjunto) || isUploading || !safety?.canSend || !conectado}
+                        disabled={(!nuevoMensaje.trim() && !archivoAdjunto) || isUploading || isSending || !safety?.canSend || !conectado}
                     >
                         <Send size={18} style={{ marginLeft: (nuevoMensaje || archivoAdjunto) ? '-2px' : '0' }} />
                     </button>

@@ -122,9 +122,16 @@ with sync_playwright() as p:
  # Two independent browser sessions exercise the actual SockJS/STOMP transport.
  chat_contexts=[]
  chat_pages=[]
+ chat_sockets=[]
  for user,width,contact in ((client,390,'Entrenador Beta'),(coach,1365,'Atleta Beta')):
   context=browser.new_context(viewport={'width':width,'height':900})
   chat_contexts.append(context)
+  sockets=[]
+  chat_sockets.append(sockets)
+  def connect_chat_socket(socket,routes=sockets):
+   socket.connect_to_server()
+   routes.append(socket)
+  context.route_web_socket(re.compile(r'^ws://127\.0\.0\.1:18080/ws/'),connect_chat_socket)
   context.route('**/*',lambda route:route.continue_() if route.request.url.startswith((WEB+'/',API+'/')) else route.abort())
   page=context.new_page()
   page.goto(WEB+'/auth/login')
@@ -176,6 +183,7 @@ with sync_playwright() as p:
  coach_chat.get_by_role('button',name='Enviar mensaje',exact=True).click()
  coach_chat.get_by_role('alert').filter(has_text='No se pueden enviar mensajes').wait_for()
  expect(coach_chat.get_by_placeholder('Escribe un mensaje...')).to_be_disabled()
+ expect(coach_chat.get_by_placeholder('Escribe un mensaje...')).to_have_value('Mensaje rechazado por bloqueo')
  blocked_history=call('GET',history_path,token=client['token'])
  assert len(blocked_history)==len(history)
  assert all(item['contenido']!='Mensaje rechazado por bloqueo' for item in blocked_history)
@@ -228,6 +236,21 @@ with sync_playwright() as p:
  call('GET',file_path,token=other['token'],expected=403)
  call('GET',file_path,expected=403)
  print('PASS private attachment: invalid file rejected with draft retained, valid retry, decoded image, exact downloads, unrelated/anonymous access denied')
+ # Close only this browser's live sockets; the server and trainer remain online.
+ expect(athlete_chat.get_by_placeholder('Escribe un mensaje...')).to_have_value('')
+ athlete_chat.get_by_placeholder('Escribe un mensaje...').fill('Borrador durante reconexión')
+ assert chat_sockets[0], 'Expected an actual browser WebSocket connection'
+ for socket in list(chat_sockets[0]): socket.close(code=1001,reason='Local beta disconnection check')
+ athlete_chat.get_by_text('Reconectando…',exact=True).wait_for()
+ send(coach_chat,'Mensaje durante el corte')
+ coach_chat.get_by_text('Mensaje durante el corte',exact=True).wait_for()
+ athlete_chat.get_by_text('Mensaje durante el corte',exact=True).wait_for()
+ expect(athlete_chat.get_by_placeholder('Escribe un mensaje...')).to_have_value('Borrador durante reconexión')
+ assert not any(item['contenido']=='Borrador durante reconexión' for item in call('GET',history_path,token=client['token']))
+ send(athlete_chat,'Borrador durante reconexión')
+ coach_chat.get_by_text('Borrador durante reconexión',exact=True).wait_for()
+ expect(athlete_chat.get_by_placeholder('Escribe un mensaje...')).to_have_value('')
+ print('PASS real WebSocket reconnection: missed message recovered, draft retained, no automatic resend and explicit confirmed retry')
  print('PASS real browser chat: bidirectional delivery, report, peer send rejected without persistence, unblock and stored history')
  for context in chat_contexts: context.close()
  browser.close()

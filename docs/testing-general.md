@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 327 pruebas en 60 archivos, todas correctas |
+| Web, suite completa | 331 pruebas en 60 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -24,12 +24,13 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
 | Producción actual | Render informa `live` para el despliegue existente; `/actuator/health` vuelve a agotar 45 segundos de espera. Disponibilidad HTTP sin confirmar; la rama candidata sigue sin desplegar |
 
-Las suites suman **871 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites suman **875 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
 La suite web se volvió a ejecutar completa el día 20 tras corregir los adjuntos:
-327 pruebas correctas en 60 archivos.
+327 pruebas correctas en 60 archivos; la revisión posterior de confirmación y
+reconexión vuelve a ejecutar la suite completa con 331 casos correctos.
 
 ## Errores corregidos durante la pasada completa
 
@@ -236,3 +237,48 @@ porque esta corrección solo cambia el cliente web y el ensayo. El total de las
 suites pasa a 871; el recorrido integrado sigue contabilizado por separado.
 Los servidores temporales se detuvieron y el PNG sintético se eliminó al terminar.
 No se despliega esta compilación local ni se modifica producción.
+
+## Confirmación de mensajes y reconexión
+
+La revisión siguiente detecta que el chat vaciaba el editor inmediatamente después
+de publicar al socket, antes de conocer el resultado del servidor. El borrador y
+el adjunto se conservan ahora mientras se espera el eco del mensaje. Durante esa
+espera se bloquea un segundo envío y la modificación del editor. Se muestra un
+estado accesible de espera; el mensaje solo aparece en el historial cuando llega
+desde el servidor.
+
+El eco se reconoce por remitente, destinatario, texto normalizado y adjunto. Al
+rechazarse el envío se desbloquea la espera y se conserva el borrador. Si falla la
+publicación local, se corta el socket o transcurren 15 segundos sin confirmación,
+el aviso explica que debe comprobarse el historial antes de reenviar. El cliente
+no reenvía automáticamente un mensaje de resultado incierto. Esto no implementa
+idempotencia del servidor ni una garantía de entrega exactamente una vez; tampoco
+persiste el borrador si se recarga o abandona la pantalla.
+
+La reconexión vuelve a consultar historial y permisos, combinando los mensajes
+por identificador y ordenándolos por fecha para recuperar lo recibido durante el
+corte sin sustituir mensajes recién llegados por una respuesta anterior.
+
+Las 23 pruebas focalizadas pasan: incluyen confirmación frente a un mensaje ajeno,
+rechazo conservando el borrador, excepción al publicar, desconexión/reconexión sin
+reenvío y espera agotada. El ensayo integrado conecta dos navegadores a la API
+real local. Playwright actúa como puente hacia el servidor WebSocket real y cierra
+solo los sockets del atleta; no fabrica mensajes ni respuestas STOMP. Mientras
+el atleta está desconectado, el entrenador envía un mensaje. Tras reconectar, el
+atleta recupera ese mensaje, conserva su borrador y confirma que no se ha enviado
+hasta pulsar el botón explícitamente. El eco real vacía entonces el editor.
+
+El recorrido previo completo de entrenamientos, calendario, bloqueo/denuncia y
+adjuntos privados también termina correctamente. El build web pasa con las
+variables explícitas de localhost. La API/preview temporales se detienen y se
+elimina el PNG ficticio al terminar. No se valida una interrupción física de red
+en iPhone, suspensión de la aplicación, firma nativa ni el despliegue candidato.
+
+Validación final de confirmación/reconexión: **331 pruebas web en 60 archivos**,
+todas correctas; build final correcto y lint con cero errores y los ocho avisos
+previos. El selector de emojis se cierra al empezar la espera para evitar cambios
+en el borrador pendiente. Las verificaciones anteriores de backend (374) y móvil
+(170) conservan su alcance; no se vuelven a ejecutar porque solo cambia la web.
+El total de las suites es 875, además de los ensayos de navegador y la prueba de
+herramientas iOS contabilizados por separado. La aceptación de la versión
+final desplegada, la prueba física aplazada y los avisos móviles siguen pendientes.
