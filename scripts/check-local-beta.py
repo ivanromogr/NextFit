@@ -381,5 +381,42 @@ with sync_playwright() as p:
  expect(athlete_chat.get_by_placeholder('Escribe un mensaje...')).to_have_value('')
  print('PASS real WebSocket reconnection: missed message recovered, draft retained, no automatic resend and explicit confirmed retry')
  print('PASS real browser chat: bidirectional delivery, report, peer send rejected without persistence, unblock and stored history')
+ for user,context,page in zip((client,coach),chat_contexts,chat_pages):
+  profile_path=f"/api/{'clientes' if user is client else 'entrenador'}/{user['id']}"
+  profile_failures={'load':True,'save':1}
+  def fail_profile(route,_request,failures=profile_failures):
+   if route.request.method=='GET' and failures['load']:
+    route.fulfill(status=503,json={'message':'Local beta injected profile load failure'})
+   elif route.request.method=='PUT' and failures['save']:
+    failures['save']-=1
+    route.fulfill(status=503,json={'message':'Local beta injected profile save failure'})
+   else: route.continue_()
+  context.route(API+profile_path,fail_profile)
+  page.wait_for_load_state('networkidle')
+  page.goto(WEB+'/'+user['role']+'/perfil')
+  page.get_by_role('button',name='Reintentar perfil',exact=True).wait_for()
+  save_pattern=re.compile('^GUARDAR$' if user is client else '^Guardar cambios$',re.I)
+  expect(page.get_by_role('button',name=save_pattern)).to_have_count(0)
+  profile_failures['load']=False
+  page.get_by_role('button',name='Reintentar perfil',exact=True).click()
+  name_field=page.get_by_placeholder('Tu nombre',exact=True)
+  expect(name_field).to_have_value('Atleta' if user is client else 'Entrenador')
+  name_field.fill('Perfil beta editado')
+  with page.expect_response(lambda response: profile_path in response.url and response.request.method=='PUT' and response.status==503):
+   page.get_by_role('button',name=save_pattern).click()
+  expect(name_field).to_have_value('Perfil beta editado')
+  expect(page.get_by_role('button',name=save_pattern)).to_be_enabled()
+  with page.expect_response(lambda response: profile_path in response.url and response.request.method=='PUT' and response.status==200) as saved:
+   page.get_by_role('button',name=save_pattern).click()
+  submitted=saved.value.request.post_data_json
+  assert submitted['nombre']=='Perfil beta editado'
+  assert not any(key in submitted for key in ('email','password','contrasena'))
+  verified=call('GET',profile_path,token=user['token'])
+  if user is coach: verified=verified.get('entrenador',verified)
+  assert verified['nombre']=='Perfil beta editado'
+  assert verified['email']==user['email']
+  page.wait_for_url(re.compile('/'+user['role']+'/dashboard$'))
+  page.wait_for_load_state('networkidle')
+  print('PASS profile recovery:',user['role'],'failed load blocks editing; actual retry; save failure retains edits; actual save persists name without changing email')
  for context in chat_contexts: context.close()
  browser.close()

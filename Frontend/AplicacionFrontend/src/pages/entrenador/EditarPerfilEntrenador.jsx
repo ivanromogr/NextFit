@@ -1,5 +1,5 @@
 import AccountSecurityMenu from "../../components/account/AccountSecurityMenu";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useReducer } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { deleteProfileImage, getEntrenador, actualizarEntrenador } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
@@ -22,10 +22,32 @@ import GymInput from '../../components/ui/GymInput';
 import GymSelectionCard from '../../components/ui/GymSelectionCard';
 import ImageUpload from '../../components/ui/ImageUpload';
 
+const LISTA_ESPECIALIDADES = [
+    "Fuerza", "Hipertrofia", "Pérdida de Peso", "CrossFit",
+    "Cardio", "Movilidad", "Rehabilitación", "Funcional", "Calistenia"
+  ];
+
+
 const EditarPerfilEntrenador = () => {
-  const navigate = useNavigate();
   const { userId } = useAuth();
+  return <ProfileForm key={userId || 'anonymous'} userId={userId} />;
+};
+
+const ProfileForm = ({ userId }) => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [revision, retry] = useReducer(value => value + 1, 0);
+  const lifecycle = useRef({ active: true, saving: false, toast: null, navigation: null });
+  useEffect(() => {
+    const current = lifecycle.current;
+    current.active = true;
+    return () => {
+      current.active = false;
+      clearTimeout(current.toast);
+      clearTimeout(current.navigation);
+    };
+  }, []);
   const removePhoto = async () => { try { await deleteProfileImage(); handleChange('fotoPerfil', ''); } catch { showToast('No se pudo eliminar la foto', 'error'); } };
 
   const [form, setForm] = useState({
@@ -43,7 +65,6 @@ const EditarPerfilEntrenador = () => {
     tarifaMensual: ''
   });
 
-  const [, setOriginalForm] = useState(null);
   const [saving, setSaving] = useState(false);
 
   
@@ -64,14 +85,10 @@ const EditarPerfilEntrenador = () => {
     "Otro"
   ];
 
-  const LISTA_ESPECIALIDADES = [
-    "Fuerza", "Hipertrofia", "Pérdida de Peso", "CrossFit",
-    "Cardio", "Movilidad", "Rehabilitación", "Funcional", "Calistenia"
-  ];
-
   const [visibleEspecialidades, setVisibleEspecialidades] = useState(LISTA_ESPECIALIDADES);
 
   useEffect(() => {
+    let active = true;
     const fetch = async () => {
       // Si no hay userId, vuelve al login
       if (!userId) {
@@ -80,9 +97,9 @@ const EditarPerfilEntrenador = () => {
       }
 
       try {
-        console.log('Fetching entrenador con ID:', userId);
         const data = await getEntrenador(userId);
-        console.log(' Datos recibidos:', data);
+        if (!active) return;
+        if (typeof data?.nombre !== 'string' || typeof data?.email !== 'string') throw new Error('Invalid profile');
 
         const normalized = {
           nombre: data.nombre || '',
@@ -143,19 +160,18 @@ const EditarPerfilEntrenador = () => {
           tarifaMensual: data.tarifaMensual != null ? String(data.tarifaMensual) : ''
         };
 
-        console.log(' Form normalizado:', normalized);
         setForm(normalized);
-        setOriginalForm(normalized);
         setLoading(false);
-      } catch (e) {
-        console.error('❌ Error al cargar datos:', e);
+      } catch {
+        if (!active) return;
+        setLoadError(true);
         setLoading(false);
-        showToast('Error al cargar datos del perfil', 'error');
       }
     };
 
     fetch();
-  }, [userId]);
+    return () => { active = false; };
+  }, [userId, navigate, revision]);
 
   const handleChange = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
@@ -169,12 +185,16 @@ const EditarPerfilEntrenador = () => {
   };
 
   const showToast = (message, type = 'success') => {
+    if (!lifecycle.current.active) return;
+    clearTimeout(lifecycle.current.toast);
     setToast({ show: true, message, type });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
+    lifecycle.current.toast = setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!lifecycle.current.active || lifecycle.current.saving || loading || loadError) return;
+    lifecycle.current.saving = true;
     setSaving(true);
 
     try {
@@ -194,25 +214,32 @@ const EditarPerfilEntrenador = () => {
         tarifaMensual: (form.tarifaMensual === '' || form.tarifaMensual === null) ? null : Number(form.tarifaMensual)
       };
 
-      console.log('📤 Enviando payload:', payload);
 
       await actualizarEntrenador(userId, payload);
+      if (!lifecycle.current.active) return;
       showToast('Perfil actualizado correctamente', 'success');
 
       // Actualizar el form original después de guardar exitosamente
-      setOriginalForm(form);
 
-      setTimeout(() => navigate('/entrenador/dashboard'), 1500);
+      lifecycle.current.navigation = setTimeout(() => navigate('/entrenador/dashboard'), 1500);
     } catch (err) {
-      console.error('❌ Error actualizando perfil:', err);
       const serverMsg = err.response && (err.response.data || err.response.statusText) 
         ? (typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data)) 
         : err.message;
       showToast(`Error al actualizar el perfil: ${serverMsg}`, 'error');
     } finally {
-      setSaving(false);
+      lifecycle.current.saving = false;
+      if (lifecycle.current.active) setSaving(false);
     }
   };
+
+  if (loadError) return <div style={{ minHeight: '100vh', background: '#09090b', color: 'white', padding: '32px' }}>
+    <div role="alert"><h1>No se pudo cargar tu perfil</h1><p>Reintenta la carga para editar tus datos.</p></div>
+    <button type="button" onClick={() => { setLoading(true); setLoadError(false); retry(); }}
+      style={{ background: '#FACC15', color: '#09090b', padding: '12px 18px', border: 0, borderRadius: '12px', font: 'inherit', cursor: 'pointer' }}>Reintentar perfil</button>
+    <button type="button" onClick={() => navigate('/entrenador/dashboard')}
+      style={{ background: 'transparent', color: 'white', padding: '12px 18px', border: 0, font: 'inherit', cursor: 'pointer' }}>Volver a mi cuenta</button>
+  </div>;
 
   if (loading) {
     return (
@@ -430,7 +457,7 @@ const EditarPerfilEntrenador = () => {
               <GymInput label="Apellido" placeholder="Tu apellido" value={form.apellido} onChange={(e) => handleChange('apellido', e.target.value)} />
             </div>
             <div style={{ marginTop: 14 }}>
-              <GymInput label="Correo electrónico" placeholder="email@ejemplo.com" icon={Mail} value={form.email} onChange={(e) => handleChange('email', e.target.value)} />
+              <GymInput label="Correo electrónico" placeholder="email@ejemplo.com" icon={Mail} value={form.email} readOnly />
             </div>
 
             <div style={styles.divider} />

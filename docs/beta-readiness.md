@@ -269,3 +269,9 @@ El resumen del entrenador diferencia fallos de datos vacíos, evita actualizacio
 simultáneas y señala cuándo conserva datos antiguos por un fallo de refresco.
 Se verifica contra la API local real, junto a la regresión anterior. El candidato
 sigue sin desplegar; consultar los recuentos en [Pruebas generales](testing-general.md).
+
+La edición de ambos perfiles bloquea formularios cuando falla la carga, permite
+recuperar los datos y conserva cambios si falla el guardado. La persistencia del
+nombre y la conservación del correo están verificadas con API local real; el
+correo se cambia desde su operación de Seguridad. El candidato sigue sin
+desplegar; consultar [Pruebas generales](testing-general.md).

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import EditarPerfilEntrenador from '../../../pages/entrenador/EditarPerfilEntrenador';
@@ -24,9 +24,8 @@ vi.mock('react-router-dom', async () => {
 });
 
 // 3. MOCK DEL CONTEXTO DE AUTENTICACIÓN
-vi.mock('../../../context/AuthContext', () => ({
-    useAuth: () => ({ userId: 'entrenador-boss-123' })
-}));
+const auth = vi.hoisted(() => ({ userId: 'entrenador-boss-123' }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
 
 // 4. MOCK DE ICONOS LUCIDE (Para evitar ruido visual y warnings)
 // 4. MOCK DE ICONOS LUCIDE (Asegúrate de incluir 'Check')
@@ -78,10 +77,13 @@ describe('Página EditarPerfilEntrenador', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        auth.userId = 'entrenador-boss-123';
+        endpoints.getEntrenador.mockReset();
+        endpoints.actualizarEntrenador.mockReset();
     });
 
     const renderComponent = () => {
-        render(<BrowserRouter><EditarPerfilEntrenador /></BrowserRouter>);
+        return render(<BrowserRouter><EditarPerfilEntrenador /></BrowserRouter>);
     };
 
     it('carga y muestra los datos iniciales del entrenador correctamente', async () => {
@@ -95,6 +97,7 @@ describe('Página EditarPerfilEntrenador', () => {
         expect(await screen.findByDisplayValue('Carlos')).toBeInTheDocument();
         expect(screen.getByDisplayValue('Fit')).toBeInTheDocument();
         expect(screen.getByDisplayValue('carlos@gym.com')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('email@ejemplo.com')).toHaveAttribute('readonly');
         expect(screen.getByDisplayValue('5')).toBeInTheDocument(); // Años de experiencia
         
         // Verificamos que las especialidades se han parseado correctamente
@@ -197,4 +200,74 @@ describe('Página EditarPerfilEntrenador', () => {
             expect(screen.getByText(/Error al actualizar el perfil/i)).toBeInTheDocument();
         });
     });
+
+  it('blocks editing after a failed load and recovers the real fields on retry', async () => {
+    endpoints.getEntrenador.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(mockEntrenadorData);
+    renderComponent();
+    await screen.findByRole('alert');
+    expect(screen.queryByRole('button', { name: /Guardar cambios/i })).not.toBeInTheDocument();
+    expect(endpoints.actualizarEntrenador).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar perfil' }));
+    expect(await screen.findByDisplayValue('Carlos')).toBeInTheDocument();
+  });
+  it('rejects an invalid profile instead of allowing a blank replacement', async () => {
+    endpoints.getEntrenador.mockResolvedValue({ error: 'unavailable' });
+    renderComponent();
+    await screen.findByRole('alert');
+    expect(screen.queryByRole('button', { name: /Guardar cambios/i })).not.toBeInTheDocument();
+  });
+  it('ignores a delayed profile response from another account', async () => {
+    let finishOld;
+    endpoints.getEntrenador.mockImplementation(id => id === 'entrenador-boss-123'
+      ? new Promise(resolve => { finishOld = resolve; }) : Promise.resolve({ ...mockEntrenadorData, nombre: 'Laura' }));
+    const view = renderComponent();
+    await waitFor(() => expect(endpoints.getEntrenador).toHaveBeenCalledWith('entrenador-boss-123'));
+    auth.userId = 'another-account';
+    view.rerender(<BrowserRouter><EditarPerfilEntrenador /></BrowserRouter>);
+    await screen.findByDisplayValue('Laura');
+    await act(async () => finishOld(mockEntrenadorData));
+    expect(screen.queryByDisplayValue('Carlos')).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue('Laura')).toBeInTheDocument();
+  });
+  it('hides the previous loaded profile immediately when the account changes', async () => {
+    endpoints.getEntrenador.mockResolvedValueOnce(mockEntrenadorData).mockReturnValue(new Promise(() => {}));
+    const view = renderComponent();
+    await screen.findByDisplayValue('Carlos');
+    auth.userId = 'another-account';
+    view.rerender(<BrowserRouter><EditarPerfilEntrenador /></BrowserRouter>);
+    expect(screen.queryByDisplayValue('Carlos')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Guardar cambios/i })).not.toBeInTheDocument();
+  });
+  it('preserves edits after a failed save and sends only one concurrent retry', async () => {
+    endpoints.getEntrenador.mockResolvedValue(mockEntrenadorData);
+    let finishSave;
+    endpoints.actualizarEntrenador.mockRejectedValueOnce(new Error('offline')).mockReturnValue(new Promise(resolve => { finishSave = resolve; }));
+    renderComponent();
+    const name = await screen.findByDisplayValue('Carlos');
+    fireEvent.change(name, { target: { value: 'Nombre editado' } });
+    fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Guardar cambios/i })).not.toBeDisabled());
+    expect(name).toHaveValue('Nombre editado');
+    const retry = screen.getByRole('button', { name: /Guardar cambios/i });
+    fireEvent.click(retry);
+    fireEvent.click(retry);
+    expect(endpoints.actualizarEntrenador).toHaveBeenCalledTimes(2);
+    expect(endpoints.actualizarEntrenador).toHaveBeenLastCalledWith('entrenador-boss-123', expect.objectContaining({ nombre: 'Nombre editado' }));
+    await act(async () => finishSave({}));
+  });
+  it('does not navigate when a save completes after leaving the profile', async () => {
+    endpoints.getEntrenador.mockResolvedValue(mockEntrenadorData);
+    let finishSave;
+    endpoints.actualizarEntrenador.mockReturnValue(new Promise(resolve => { finishSave = resolve; }));
+    const view = renderComponent();
+    await screen.findByDisplayValue('Carlos');
+    fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
+    view.unmount();
+    vi.useFakeTimers();
+    try {
+      await act(async () => { finishSave({}); });
+      await act(async () => { vi.advanceTimersByTime(2000); });
+      expect(mockNavigate).not.toHaveBeenCalled();
+    } finally { vi.useRealTimers(); }
+  });
 });

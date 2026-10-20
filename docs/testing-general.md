@@ -12,12 +12,12 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 369 pruebas en 60 archivos, todas correctas |
+| Web, suite completa | 381 pruebas en 60 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
 | Exportaciones móviles | Android/iOS Hermes correctas con Babel SDK 54; no son builds firmadas |
-| Lint web | Cero errores, cuatro avisos de dependencias de hooks pendientes |
+| Lint web | Cero errores, dos avisos de dependencias de hooks pendientes |
 | Auditoría npm web | Cero avisos después de actualizaciones compatibles |
 | Auditoría npm móvil | 50 avisos: 45 altos, 5 moderados, cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
@@ -25,7 +25,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. La rama candidata sigue sin desplegar |
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 
-Las suites de backend, web y móvil suman **913 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **925 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -36,7 +36,8 @@ recuperación posterior de historial e imágenes la eleva a 336 casos correctos;
 la revisión de las listas de conversaciones termina con 346 casos correctos.
 La revisión posterior de progreso termina con 353 pruebas web correctas;
 la de listas del entrenador eleva la suite a 361 casos correctos. La revisión
-del panel termina con 369 pruebas web correctas.
+del panel termina con 369 pruebas web correctas; la edición de perfiles eleva
+la suite a 381 casos correctos.
 
 ## Errores corregidos durante la pasada completa
 
@@ -72,7 +73,8 @@ sus cuatro secciones para ambos perfiles; todos esos reintentos vuelven a la API
 real. Las listas de atletas y plantillas añaden también un 503 inicial por
 pantalla y recuperación contra la API real. El panel añade fallos iniciales
 de atletas y resumen, un refresco fallido y recuperación al volver a enfocarlo.
-Se bloquean conexiones a servicios externos.
+Los perfiles añaden fallos controlados de carga y guardado; sus reintentos usan
+la API real y verifican los datos persistidos. Se bloquean conexiones a servicios externos.
 
 El arranque de prueba no hereda credenciales de proveedores ni configuración de
 despliegue. Usa H2 en memoria, almacenamiento local temporal y correo/proveedores
@@ -518,3 +520,39 @@ correcta y lint con cero errores y **cuatro avisos**, uno menos que antes. El to
 vigente de backend/web/móvil es **913**; backend y móvil conservan sus resultados
 anteriores porque esta revisión cambia solo la web y el ensayo local. Cambios
 guardados en la rama candidata; sin despliegue ni cierre del paso 7 para publicación.
+
+
+## Edición segura y recuperación de perfiles (20 de octubre)
+
+Cliente y entrenador bloquean el formulario si falla la carga o si la respuesta
+no contiene un perfil válido. Se ofrece «Reintentar perfil» y vuelta a la cuenta;
+no se permite guardar un formulario vacío a causa de un fallo de red. El
+formulario se reinicia al cambiar de cuenta y se ignoran las respuestas tardías
+de la anterior.
+
+Un guardado fallido conserva los cambios para reintentarlo. Se bloquean envíos
+simultáneos y se cancelan los temporizadores de avisos y navegación al abandonar
+el perfil; una respuesta de guardado posterior a la salida no redirige. El
+correo se muestra de solo lectura y queda fuera del payload, igual que las
+contraseñas: su cambio mantiene la operación dedicada de Seguridad. Se retiran
+los registros de consola que imprimían perfiles y payloads con datos personales.
+
+Pasan 22 pruebas focalizadas, con doce regresiones nuevas: carga fallida y
+reintento, respuesta inválida, respuesta tardía de otra cuenta, ocultación inmediata
+del perfil anterior, conservación de cambios y bloqueo de envíos simultáneos,
+y finalización de un guardado después de abandonar la pantalla, en ambos roles.
+Las pruebas existentes verifican además el correo de solo lectura.
+
+El navegador con API real local fuerza errores de carga y guardado en ambos
+perfiles. Verifica que no hay botón de guardar tras el fallo de carga, recupera
+los campos, conserva el nombre editado tras el fallo de guardado y lo guarda
+mediante una petición real. Una nueva lectura HTTP confirma el nombre y que el
+correo no cambia. Los payloads no incluyen correo ni contraseña. También pasa
+la regresión completa anterior de entrenamiento, calendario, progreso, panel,
+listas y chat. Todo se realiza sobre cuentas ficticias y H2 temporal.
+
+Validación final de perfiles: **381 pruebas web en 60 archivos**, compilación Vite
+correcta y lint con cero errores y **dos avisos**, dos menos que antes. El total
+vigente backend/web/móvil es **925**; backend y móvil conservan sus resultados
+anteriores porque esta revisión modifica solo la web y el ensayo local. Los
+cambios no están desplegados y no se declara cerrado el paso 7 para publicación.

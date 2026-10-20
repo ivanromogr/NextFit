@@ -10,6 +10,7 @@ export default function GymInput({
   suffix,
   id,
   autoComplete,
+  readOnly,
 }) {
   const inputId = id || (label ? `gym-input-${label.replace(/\s+/g, '-').toLowerCase()}` : undefined);
 
@@ -56,6 +57,7 @@ export default function GymInput({
           onChange={onChange}
           placeholder={placeholder}
           autoComplete={autoComplete}
+          readOnly={readOnly}
           style={{
             width: '100%',
             padding: '14px 14px',

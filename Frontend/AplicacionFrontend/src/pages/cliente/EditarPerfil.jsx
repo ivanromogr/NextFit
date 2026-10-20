@@ -1,5 +1,5 @@
 import AccountSecurityMenu from "../../components/account/AccountSecurityMenu";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useReducer } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { actualizarCliente, deleteProfileImage, getCliente } from '../../api/endpoints'; // Asegúrate de que esta importación es correcta
 import { useAuth } from '../../context/AuthContext';
@@ -7,9 +7,25 @@ import { User, Save, ChevronLeft, Camera, Mail, Lock, CheckCircle, AlertCircle }
 import ImageUpload from '../../components/ui/ImageUpload';
 
 const EditarPerfil = () => {
-  const navigate = useNavigate();
   const { userId } = useAuth();
+  return <ProfileForm key={userId || 'anonymous'} userId={userId} />;
+};
+
+const ProfileForm = ({ userId }) => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [revision, retry] = useReducer(value => value + 1, 0);
+  const lifecycle = useRef({ active: true, saving: false, toast: null, navigation: null });
+  useEffect(() => {
+    const current = lifecycle.current;
+    current.active = true;
+    return () => {
+      current.active = false;
+      clearTimeout(current.toast);
+      clearTimeout(current.navigation);
+    };
+  }, []);
   const [saving, setSaving] = useState(false);
   
   // Estado del formulario
@@ -25,6 +41,7 @@ const EditarPerfil = () => {
   const removePhoto = async () => { try { await deleteProfileImage(); handleChange('fotoPerfil', ''); } catch { setToast({ show: true, message: 'No se pudo eliminar la foto', type: 'error' }); } };
 
   useEffect(() => {
+    let active = true;
     const fetchData = async () => {
       if (!userId) {
         navigate('/auth/login');
@@ -32,9 +49,9 @@ const EditarPerfil = () => {
       }
 
       try {
-        console.log('📡 Fetching cliente con ID:', userId);
         const data = await getCliente(userId);
-        console.log('📦 Datos cliente recibidos:', data);
+        if (!active) return;
+        if (typeof data?.nombre !== 'string' || typeof data?.email !== 'string') throw new Error('Invalid profile');
 
         setForm({
           nombre: data.nombre || '',
@@ -42,26 +59,30 @@ const EditarPerfil = () => {
           email: data.email || '',
           fotoPerfil: data.fotoPerfil || ''
         });
-        console.log('✅ Form cliente actualizado');
-      } catch (e) { 
-        console.error('❌ Error al cargar cliente:', e);
-        showToast('Error al cargar datos del perfil', 'error');
+      } catch {
+        if (!active) return;
+        setLoadError(true);
       }
       setLoading(false);
     };
     fetchData();
-  }, [userId]);
+    return () => { active = false; };
+  }, [userId, navigate, revision]);
 
   const handleChange = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
   // --- HELPER TOAST ---
   const showToast = (message, type = 'success') => {
+    if (!lifecycle.current.active) return;
+    clearTimeout(lifecycle.current.toast);
     setToast({ show: true, message, type });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
+    lifecycle.current.toast = setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!lifecycle.current.active || lifecycle.current.saving || loading || loadError) return;
+    lifecycle.current.saving = true;
     setSaving(true);
     
     try {
@@ -72,19 +93,27 @@ const EditarPerfil = () => {
         fotoPerfil: form.fotoPerfil || ''
       };
 
-      console.log('📤 Enviando payload cliente:', payload);
 
       await actualizarCliente(userId, payload);
+      if (!lifecycle.current.active) return;
 
       showToast('Perfil actualizado correctamente', 'success');
-      setTimeout(() => navigate('/cliente/dashboard'), 1500);
+      lifecycle.current.navigation = setTimeout(() => navigate('/cliente/dashboard'), 1500);
     } catch (err) {
-      console.error('❌ Error actualizando perfil cliente:', err);
       showToast(`Error: ${err.message}`, 'error');
     } finally {
-      setSaving(false);
+      lifecycle.current.saving = false;
+      if (lifecycle.current.active) setSaving(false);
     }
   };
+
+  if (loadError) return <div style={{ minHeight: '100vh', background: '#09090b', color: 'white', padding: '32px' }}>
+    <div role="alert"><h1>No se pudo cargar tu perfil</h1><p>Reintenta la carga para editar tus datos.</p></div>
+    <button type="button" onClick={() => { setLoading(true); setLoadError(false); retry(); }}
+      style={{ background: '#FACC15', color: '#09090b', padding: '12px 18px', border: 0, borderRadius: '12px', font: 'inherit', cursor: 'pointer' }}>Reintentar perfil</button>
+    <button type="button" onClick={() => navigate('/cliente/dashboard')}
+      style={{ background: 'transparent', color: 'white', padding: '12px 18px', border: 0, font: 'inherit', cursor: 'pointer' }}>Volver a mi cuenta</button>
+  </div>;
 
   if (loading) return <div style={{height: '100vh', background: '#050505', display:'flex', justifyContent:'center', alignItems:'center', color:'#666'}}>Cargando datos...</div>;
 
@@ -197,7 +226,7 @@ const EditarPerfil = () => {
                         <label style={styles.label}>Correo Electrónico</label>
                         <div style={{position:'relative'}}>
                             <Mail size={18} color="#666" style={{position:'absolute', left:'14px', top:'14px'}}/>
-                            <input style={{...styles.input, paddingLeft:'45px'}} placeholder="email@ejemplo.com" value={form.email} onChange={e => handleChange('email', e.target.value)} onFocus={e => e.target.style.borderColor = '#FACC15'} onBlur={e => e.target.style.borderColor = '#333'}/>
+                            <input style={{...styles.input, paddingLeft:'45px'}} aria-label="Correo electrónico" placeholder="email@ejemplo.com" value={form.email} readOnly onFocus={e => e.target.style.borderColor = '#FACC15'} onBlur={e => e.target.style.borderColor = '#333'}/>
                         </div>
                     </div>
                 </div>
