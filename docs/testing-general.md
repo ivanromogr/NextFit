@@ -1317,3 +1317,28 @@ El código de aplicación está en `ce18e94`; un intento de despliegue recibió 
 La preview pública previamente validada sigue siendo `678f948`, que todavía no
 incluye esta corrección de cookies. No se declara completada la aceptación con
 sesión persistente del candidato nuevo. Correo real y avisos móviles siguen abiertos.
+
+
+### Pasada completa final con API en el mismo origen
+
+Se amplió `scripts/check-local-beta.py` con `--same-origin`; los únicos orígenes
+siguen siendo los puertos loopback fijos y el marcador H2 sigue siendo obligatorio.
+El selector cambia los puntos de inyección de fallos y observación del tráfico
+HTTP del navegador; las llamadas directas de preparación y las conexiones de
+chat siguen usando la API local real. No permite pruebas contra producción.
+
+La build con VITE_API_SAME_ORIGIN=true, VITE_API_URL y VITE_WS_URL hacia la API
+local, el proxy Vite y H2 completaron el recorrido con salida 0. Incluye ambos
+roles: login/recarga, rutinas y sesiones, calendario, progreso, panel y listas,
+chat bidireccional, denuncia/bloqueo, adjuntos privados, recuperación de fallos,
+perfiles, alta, sesiones/revocación, recuperación y cambio de correo con buzón de
+memoria, cambio de contraseña, consentimiento y baja. Las peticiones de recuperación
+posteriores a fallos controlados llegan a la API real local. No acredita entrega
+externa de correo ni el rewrite de Vercel. Los procesos y el marcador se retiraron
+tras finalizar; no quedan servidores de prueba escuchando.
+
+Las 18 pruebas de herramientas Python también pasan. Las suites de aplicación
+conservan los 992 casos verificados; esta pasada de navegador se contabiliza aparte.
+La lectura final de metadatos sigue indicando que no existe preview del nuevo
+candidato. No se repite el POST que recibió 402. Quedan pendientes la aceptación
+remota de la corrección y los avisos móviles; no se declara cerrado el paso 7.

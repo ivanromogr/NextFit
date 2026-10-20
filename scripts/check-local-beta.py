@@ -1,5 +1,5 @@
 """Isolated local HTTP + real browser check. Never accepts remote URLs."""
-import json, re, secrets, struct, zlib, sys, traceback
+import argparse, json, re, secrets, struct, zlib, sys, traceback
 from html import unescape
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError
@@ -10,6 +10,9 @@ from datetime import date as calendar_date, timedelta
 from playwright.sync_api import sync_playwright, expect
 API='http://127.0.0.1:18080'
 WEB='http://127.0.0.1:4181'
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--same-origin',action='store_true',help='Use the fixed localhost web proxy for browser API traffic.')
+BROWSER_API=WEB if parser.parse_args().same_origin else API
 assert (Path(tempfile.gettempdir())/'nextfit-beta-local'/'ready').read_text()=='isolated-h2-fixture'
 # Valid synthetic tokens stay in memory and are redacted from failure traces.
 fixture_secrets=[]
@@ -174,7 +177,7 @@ with sync_playwright() as p:
     failures[kind]-=1
     route.fulfill(status=503,json={'message':'Local beta injected progress failure'})
    else: route.continue_()
-  context.route(API+'/api/stats/**',fail_first_stats)
+  context.route(BROWSER_API+'/api/stats/**',fail_first_stats)
   progress_path='/cliente/progreso' if user is client else f"/entrenador/cliente/{client['id']}/progreso"
   page.goto(WEB+progress_path)
   page.get_by_role('button',name='Reintentar estadísticas',exact=True).wait_for()
@@ -200,7 +203,7 @@ with sync_playwright() as p:
       left[0]-=1
       route.fulfill(status=503,json={'message':'Local beta injected coach list failure'})
      else: route.continue_()
-    context.route(API+api_path,fail_first_list)
+    context.route(BROWSER_API+api_path,fail_first_list)
     page.wait_for_load_state('networkidle')
     page.goto(WEB+screen_path)
     retry=page.get_by_role('button',name=retry_label,exact=True)
@@ -219,8 +222,8 @@ with sync_playwright() as p:
      dashboard_failures[path]-=1
      route.fulfill(status=503,json={'message':'Local beta injected dashboard failure'})
     else: route.continue_()
-   context.route(API+summary_path,fail_dashboard)
-   context.route(API+f"/api/entrenador/{coach['id']}/clientes",fail_dashboard)
+   context.route(BROWSER_API+summary_path,fail_dashboard)
+   context.route(BROWSER_API+f"/api/entrenador/{coach['id']}/clientes",fail_dashboard)
    page.wait_for_load_state('networkidle')
    page.goto(WEB+'/entrenador/dashboard')
    page.get_by_role('button',name='Reintentar panel',exact=True).wait_for()
@@ -273,13 +276,13 @@ with sync_playwright() as p:
     failures['remaining']-=1
     route.fulfill(status=503,json={'message':'Local beta injected contact source failure'})
    else: route.continue_()
-  context.route(API+contact_source,fail_first_contact_source)
+  context.route(BROWSER_API+contact_source,fail_first_contact_source)
   page.goto(WEB+'/'+user['role']+'/chat')
   page.get_by_text(contact,exact=True).click()
   expect(page.get_by_placeholder('Escribe un mensaje...')).to_be_enabled()
   expect(page.get_by_role('alert')).to_contain_text('No se pudieron cargar todas las conversaciones')
   page.get_by_placeholder('Escribe un mensaje...').fill('Borrador durante recuperación de contactos')
-  with page.expect_response(lambda r:r.url==API+contact_source and r.request.method=='GET') as recovered_contacts:
+  with page.expect_response(lambda r:r.url==BROWSER_API+contact_source and r.request.method=='GET') as recovered_contacts:
    page.get_by_role('button',name='Reintentar conversaciones',exact=True).click()
   assert recovered_contacts.value.status==200
   expect(page.get_by_role('alert')).to_have_count(0)
@@ -344,7 +347,7 @@ with sync_playwright() as p:
    history_failures['remaining']-=1
    route.fulfill(status=503,json={'message':'Local beta injected history failure'})
   else: route.continue_()
- chat_contexts[1].route(API+'/api/chat/historial?*',fail_first_history)
+ chat_contexts[1].route(BROWSER_API+'/api/chat/historial?*',fail_first_history)
  coach_chat.reload()
  coach_chat.get_by_text('Atleta Beta',exact=True).click()
  expect(coach_chat.get_by_role('alert')).to_contain_text('No se pudo cargar el historial')
@@ -375,7 +378,7 @@ with sync_playwright() as p:
    image_failures['remaining']-=1
    route.fulfill(status=503,json={'message':'Local beta injected image failure'})
   else: route.continue_()
- chat_contexts[1].route(API+'/api/upload/files/*',fail_first_image)
+ chat_contexts[1].route(BROWSER_API+'/api/upload/files/*',fail_first_image)
  athlete_chat.locator('input[type=file]').set_input_files({'name':'beta-private.png','mimeType':'image/png','buffer':image})
  with athlete_chat.expect_response(lambda r:r.url.endswith('/api/upload') and r.request.method=='POST') as uploaded:
   athlete_chat.get_by_role('button',name='Enviar mensaje',exact=True).click()
@@ -425,7 +428,7 @@ with sync_playwright() as p:
     failures['save']-=1
     route.fulfill(status=503,json={'message':'Local beta injected profile save failure'})
    else: route.continue_()
-  context.route(API+profile_path,fail_profile)
+  context.route(BROWSER_API+profile_path,fail_profile)
   page.wait_for_load_state('networkidle')
   page.goto(WEB+'/'+user['role']+'/perfil')
   page.get_by_role('button',name='Reintentar perfil',exact=True).wait_for()
@@ -461,7 +464,7 @@ with sync_playwright() as p:
    onboarding_failures[0]-=1
    route.fulfill(status=503,json={'message':'Local beta injected onboarding failure'})
   else: route.continue_()
- coach_context.route(API+onboarding_path,fail_onboarding)
+ coach_context.route(BROWSER_API+onboarding_path,fail_onboarding)
  coach_page.goto(WEB+'/entrenador/onboarding')
  coach_page.get_by_role('button',name='Hombre',exact=True).click()
  coach_page.get_by_role('button',name='Selecciona una fecha',exact=True).click()
@@ -508,8 +511,8 @@ with sync_playwright() as p:
     left[kind]-=1
     route.fulfill(status=503,json={'message':'Local beta injected session failure'})
    else: route.continue_()
-  context.route(API+'/api/auth/sessions',fail_sessions)
-  context.route(API+'/api/auth/sessions/'+family,fail_sessions)
+  context.route(BROWSER_API+'/api/auth/sessions',fail_sessions)
+  context.route(BROWSER_API+'/api/auth/sessions/'+family,fail_sessions)
   page.wait_for_load_state('networkidle')
   page.goto(WEB+'/'+user['role']+'/seguridad/sesiones')
   page.get_by_role('button',name='Reintentar sesiones',exact=True).wait_for()
@@ -548,8 +551,8 @@ with sync_playwright() as p:
    email_failures[kind]-=1
    route.fulfill(status=503,json={'message':'Local beta injected email change failure'})
   else: route.continue_()
- email_context.route(API+'/api/auth/email',fail_email)
- email_context.route(API+'/api/auth/email/confirm',fail_email)
+ email_context.route(BROWSER_API+'/api/auth/email',fail_email)
+ email_context.route(BROWSER_API+'/api/auth/email/confirm',fail_email)
  email_page.goto(WEB+'/cliente/seguridad/email')
  email_page.get_by_label('Nuevo correo electrónico',exact=True).fill('unassigned-'+suffix+'@example.invalid')
  email_page.get_by_label('Contraseña actual',exact=True).fill('wrong-fixture-password')
@@ -583,7 +586,7 @@ with sync_playwright() as p:
    recovery_failures[kind]-=1
    route.fulfill(status=503,json={'message':'Local beta injected recovery failure'})
   else: route.continue_()
- recovery_context.route(API+'/api/auth/password/*',fail_recovery)
+ recovery_context.route(BROWSER_API+'/api/auth/password/*',fail_recovery)
  recovery_page.goto(WEB+'/forgot-password')
  missing_email='missing-reset-'+suffix+'@example.invalid'
  recovery_page.get_by_label('Correo electrónico',exact=True).fill(missing_email)

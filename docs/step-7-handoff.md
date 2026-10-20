@@ -1,98 +1,76 @@
-# Retomar el paso 7
+# Estado de cierre del paso 7
 
-Estado comprobado el 20 de octubre de 2026. Repositorio `ivanromogr/NextFit`,
-rama de trabajo `codex/mobile-ux`. Los cambios están subidos; no se fusiona con
-`main` ni se despliega producción. Preservar el `app.json` raíz sin seguimiento.
+Comprobado el 20 de octubre de 2026. Repositorio `ivanromogr/NextFit`, rama
+`codex/mobile-ux`. Preservar el `app.json` raíz sin seguimiento. No fusionar main
+ni contratar servicios. El paso 7 no está cerrado para publicación.
 
-## Evidencia vigente
+## Completado
 
 - Backend: 386 pruebas; web: 436 en 64 archivos; móvil: 170. Total: 992.
-- Compilación web, JAR, lint y recorrido completo local de ambos roles correctos.
-- Contratos de comprobadores: quince, contabilizados aparte.
-- Detalle y límites: [Pruebas generales](testing-general.md).
+  Backend y móvil conservan las ejecuciones anteriores; web se repitió tras el proxy.
+- Lint web, build con manifest y 18 contratos Python correctos.
+- Recorrido completo con ambos perfiles, API H2 y HTTP en el mismo origen:
+  `scripts/check-local-beta.py --same-origin`, salida 0. Incluye chat,
+  entrenamientos, privacidad, recuperación y baja. No acepta orígenes remotos.
+- Prueba específica `scripts/check-local-session-proxy.py`, salida 0 para ambos
+  roles: login, recarga, baja y rechazo posterior de login/JWT/refresh.
+- Producción Render conserva SHA `d3b366b6ccb1873cbe2507badb1b8bf7e4ae5fac`.
+  El usuario autorizó añadir el origen exacto de preview y redesplegar ese mismo
+  SHA: `dep-dbbsisg473hc73cd240g`, live. Salud, permisos, CORS y Google inválido pasan.
+- La preview `678f948dbc12b647b2d2c3ab1a1b0ca3124bf6bd`,
+  `dpl_A14ja8jXP7E2R5jCAh4PG2YEXKQT`, pasa doce verificaciones públicas
+  en móvil/escritorio y el rechazo de login ficticio contra Render.
 
-## Acceso al entorno
+## Corrección que falta validar en Vercel
 
-La preview ya es accesible desde esta sesión con el secreto de automatización
-restringido al hostname autorizado. El usuario añadió la clave al proyecto
-correcto `next-fit-q7uo`; inicialmente estaba en otro proyecto llamado `next-fit`.
-El recorrido público de navegador terminó correctamente con TLS y SSO conservados.
-Usar `/workspace/nextfit-setup/browser-venv/bin/python` y el Chromium del sistema;
-la ejecución requiere acceso al almacén de certificados del sistema.
+Las pruebas con cuentas ficticias reales detectaron que Chromium bloquea por
+`UserPreferences` la cookie de Render, ubicada en otro dominio. Login da 200,
+pero refresh devuelve 401. Las cuentas temporales se dieron de baja; se verificó
+revocación en las ejecuciones posteriores a corregir la lectura del charset.
+No se usaron cuentas personales ni se enviaron correos externos.
 
-## Candidato desplegado
+El código de aplicación `ce18e94` añade rewrite `/api/:path*` y
+`VITE_API_SAME_ORIGIN=true`. La opción se configuró exclusivamente para previews
+de `codex/mobile-ux`; producción web no cambia. WebSocket/SockJS conserva el
+backend de `VITE_WS_URL`. Los recorridos completos locales del proxy pasan.
 
-La preview del candidato `4ddbca71668f2c723f5adf2137c3413efdb01dd8` está
-READY: `dpl_BP5mcMf7uPZ8qhcK9B4WkHBpGpDo`. El alias estable se asignó a ese
-despliegue y el comprobador de metadatos confirmó SHA, proyecto y alias.
-Vercel aceptó esta creación; el bloqueo anterior de cuota ya no impidió este intento.
-No se desplegó producción.
+Vercel rechazó crear la nueva preview con 402 `api-deployments-free-per-day`.
+No existe preview del candidato nuevo en la última consulta. No repetir solicitudes
+en bucle ni comprar una ampliación. No confundir la preview anterior con la
+corrección de cookies. Tras recuperar cuota, desplegar el SHA actual elegido,
+verificar build con la opción de proxy activada y fijar el alias a ese despliegue.
 
-La clave de automatización está disponible en esta sesión. El comprobador público
-limita su encabezado al hostname HTTPS exacto del alias mediante `preview_access.py`;
-tres pruebas verifican la inclusión autorizada y la exclusión de otros orígenes,
-HTTP, credenciales en URL, puertos y encabezados heredados. La prueba de navegador
-con certificados del sistema terminó con salida 0: doce comprobaciones públicas
-en 390x844 y 1365x900, incluyendo la redirección anónima de la ruta privada.
-No se desactivaron TLS ni SSO. La API se intercepta: el login real y el recorrido
-autenticado desplegado permanecen separados de esta validación.
+## Acceso y comandos
 
-Comprobación de metadatos del candidato elegido:
+Alias estable:
+`https://next-fit-q7uo-git-codex-mobile-ux-ivanromo1708-6643s-projects.vercel.app`.
+La clave de automatización ya está en el proyecto correcto `next-fit-q7uo`.
+Conservar TLS, SSO y el encabezado limitado a ese hostname; no imprimir secretos.
+Usar `/workspace/nextfit-setup/browser-venv/bin/python` y Chromium del sistema.
+El acceso a los certificados del sistema requiere la ejecución autorizada.
 
 ```sh
 python3 scripts/check-vercel-candidate.py --stable-alias --commit SHA_COMPLETO
+/workspace/nextfit-setup/browser-venv/bin/python scripts/check-public-web.py --base-url https://next-fit-q7uo-git-codex-mobile-ux-ivanromo1708-6643s-projects.vercel.app
 ```
 
-Debe dar salida 0 y confirmar SHA, proyecto, READY y alias del mismo despliegue.
-Después, con el dominio accesible:
+Los controles públicos interceptan la API. Completar después login y recarga
+reales para cliente y entrenador sobre la nueva preview con cuentas temporales,
+verificando baja y revocación al terminar. No relajar el bloqueo de cookies de
+terceros para ocultar el fallo. Los ensayos remotos específicos de esta sesión
+están en `/tmp/nextfit-authenticated-preview-check.py`; contienen lógica de prueba,
+no credenciales guardadas. No ejecutar sin verificar primero origen y candidato.
 
-```sh
-python3 scripts/check-public-web.py --base-url https://next-fit-q7uo-git-codex-mobile-ux-ivanromo1708-6643s-projects.vercel.app
-```
+## Otros límites
 
-Este segundo ensayo intercepta la API y comprueba páginas públicas: no sustituye
-el login real ni el recorrido autenticado. Chromium requiere acceso a su almacén
-NSS; conservar TLS y las autoridades originales. Mantener la protección Vercel.
+Los avisos móviles de braces 3.0.3, node-forge 1.4.0 y sprintf-js hasta 1.1.3
+siguen sin versión estable corregida identificada. No forzar Expo/Jest ni
+silenciar avisos. El escáner dinámico de mapas acota el bundle JS, sin acreditar
+seguridad del proceso de firma ni de bibliotecas nativas.
 
-## Corrección posterior al candidato público
+Correo real aplazado por el propietario: no hay dominio/remitente ni credencial
+de proveedor; las pruebas de enlaces usan buzón local de memoria. iPhone físico,
+Google/Apple nativos y Apple Developer siguen aplazados. API de ejercicios de pago
+queda para el final. Mantener estos límites visibles al preparar la publicación.
 
-Se limita a 15 segundos la espera de login y refresh tras observar un login de
-preview sin respuesta y botón bloqueado durante 45 segundos. Doce pruebas dirigidas
-pasan, incluida una con servidor HTTP real sin respuesta; también lint y build.
-La nueva preview `678f948dbc12b647b2d2c3ab1a1b0ca3124bf6bd` está READY
-(`dpl_A14ja8jXP7E2R5jCAh4PG2YEXKQT`) y su alias y doce comprobaciones públicas
-pasan. El botón se libera tras el fallo de conexión en la prueba real. El propietario autorizó añadir el origen exacto a CORS y redesplegar el mismo
-backend `d3b366b6ccb1873cbe2507badb1b8bf7e4ae5fac`:
-`dep-dbbsisg473hc73cd240g`, live. Salud, controles públicos y preflight de preview
-pasan. El login ficticio desde la preview recibe 401 y muestra el error correcto.
-No se crearon cuentas: el acceso con una cuenta válida permanece pendiente.
-La suite completa web pasa con 434 pruebas en 63 archivos.
-
-## Nuevo candidato: cookies sin dependencia de terceros
-
-La prueba remota con cuentas ficticias confirmó login, pero Chromium bloquea la
-cookie cross-site de Render por `UserPreferences`; refresh devuelve 401. Las
-cuentas se dieron de baja. La corrección posterior `ce18e94` usa un rewrite HTTP
-`/api/:path*` y `VITE_API_SAME_ORIGIN=true`, configurado solo para las previews
-de `codex/mobile-ux`. WebSocket conserva `VITE_WS_URL` hacia Render.
-
-436 pruebas web en 64 archivos, lint y build pasan. El script
-`check-local-session-proxy.py` pasa con ambos roles, H2, proxy local, recarga y
-revocación tras baja. No acepta URLs remotas. El despliegue del candidato nuevo
-recibe 402 por cuota diaria; no repetir en bucle ni contratar. La preview
-`678f948` no contiene esta corrección; no sirve para aceptarla.
-
-## Otros bloqueos del cierre
-
-El correo de Render sigue desactivado; faltan remitente, clave del proveedor y
-URLs de enlaces. Las pruebas usan un buzón de memoria local, no recepción real.
-No inventar un remitente ni enviar correos externos sin autorización.
-
-Los avisos móviles siguen originados en braces 3.0.3, node-forge 1.4.0 y
-sprintf-js hasta 1.1.3, sin versión estable corregida identificada. No forzar un
-salto de Expo/Jest ni silenciar los avisos. iPhone físico, proveedores nativos y
-Apple Developer siguen aplazados; la API de ejercicios de pago queda para el final.
-
-El paso 7 permanece abierto para publicación hasta completar la aceptación del
-candidato y resolver los otros bloqueos. No confundir las verificaciones locales
-con el despliegue de las correcciones en el backend de producción.
+Detalle histórico: [Pruebas generales](testing-general.md).
