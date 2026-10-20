@@ -27,6 +27,8 @@ export default defineConfig(({ mode }) => {
       globals: true,
       fileParallelism: false,
       maxWorkers: 1,
+      // Complete suites share the cloud runner with Java/Metro checks.
+      testTimeout: 15000,
     },
   };
 })

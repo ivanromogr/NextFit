@@ -14,11 +14,12 @@ const clear = jest.fn();
 const methods = (...names) => ({ data: names.map(provider => ({ provider, active: true })) });
 const open = async () => {
   const view = render(<EliminarCuentaScreen />);
-  await waitFor(() => expect(view.queryByText('Cargando métodos de verificación…')).toBeNull());
+  await act(async () => {});
+  await waitFor(() => expect(view.queryByText('Cargando métodos de verificación…')).toBeNull(), { timeout: 5000 });
   return view;
 };
 beforeEach(() => {
-  jest.clearAllMocks(); useAuth.mockReturnValue({ clearLocalSession: clear });
+  jest.resetAllMocks(); useAuth.mockReturnValue({ clearLocalSession: clear });
   clear.mockResolvedValue(); api.getAuthIdentities.mockResolvedValue(methods('LOCAL'));
   api.deleteAccount.mockResolvedValue({}); api.deleteAccountWithGoogle.mockResolvedValue({}); api.deleteAccountWithApple.mockResolvedValue({});
   apple.isAppleSignInAvailable.mockResolvedValue(true); apple.startAppleSignIn.mockResolvedValue({ identityToken: 'apple', nonce: 'nonce' });

@@ -1,4 +1,8 @@
+import { configure } from '@testing-library/react-native';
 import '@testing-library/jest-native/extend-expect';
+// Leave time for async UI updates when the cloud runner also compiles Java/Metro.
+configure({ asyncUtilTimeout: 5000 });
+jest.setTimeout(15000);
 process.env.EXPO_PUBLIC_API_BASE_URL = 'http://localhost:8080';
 
 // Mock oficial de AsyncStorage

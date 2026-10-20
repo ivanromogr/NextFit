@@ -26,7 +26,7 @@ vi.mock('../../../api/endpoints', () => ({
 
 describe('Página EditarRutina', () => {
     const mockEjercicios = [
-        { id: 1, nombre: 'Sentadilla', grupoMuscular: 'PIERNA', imagenUrl: '' },
+        { id: 1, nombre: 'Sentadilla', grupoMuscular: 'PIERNA', imagenUrl: null, videoUrl: null },
         { id: 2, nombre: 'Press Banca', grupoMuscular: 'PECHO', imagenUrl: '' }
     ];
 

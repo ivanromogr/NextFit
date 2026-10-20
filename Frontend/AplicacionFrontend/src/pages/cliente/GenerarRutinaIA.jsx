@@ -105,7 +105,7 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
     const navigate = useNavigate();
     const { userId: authUserId } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [userId, setUserId] = useState(null);
+    const userId = clienteIdProp || authUserId || localStorage.getItem("clienteId");
     const [error, setError] = useState('');
     const [saved, setSaved] = useState(false);
     const operation = useRef(false);
@@ -122,13 +122,8 @@ const GenerarRutinaIA = ({ clienteIdProp = null, onSuccess = null, onCancel = nu
     });
 
     useEffect(() => {
-        const id = clienteIdProp || authUserId || localStorage.getItem("clienteId");
-        if (!id) {
-            if (!clienteIdProp) navigate("/auth/login");
-            return;
-        }
-        setUserId(id);
-    }, [clienteIdProp, authUserId, navigate]);
+        if (!userId) navigate("/auth/login");
+    }, [userId, navigate]);
 
     const handleBack = () => {
         if (onCancel) onCancel();

@@ -56,7 +56,7 @@ describe('Página SesionEntrenamiento', () => {
         nombre: 'Torso Explosivo',
         detalles: [
             { 
-                ejercicio: { id: 'ej-1', nombre: 'Press Militar', imagenUrl: '' },
+                ejercicio: { id: 'ej-1', nombre: 'Press Militar', imagenUrl: null, videoUrl: null },
                 series: 1, repeticiones: 10, peso: 40, rpe: 8 
             }
         ]

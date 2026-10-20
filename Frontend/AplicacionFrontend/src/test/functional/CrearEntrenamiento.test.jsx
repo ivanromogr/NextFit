@@ -52,7 +52,7 @@ describe('Componente CrearEntrenamiento', () => {
 
  it('permite buscar y añadir un ejercicio a la rutina', async () => {
     // 1. Preparamos el mock de datos
-    const mockEjercicios = [{ id: 1, nombre: 'Press Banca', grupoMuscular: 'Pecho' }];
+    const mockEjercicios = [{ id: 1, nombre: 'Press Banca', grupoMuscular: 'Pecho', videoUrl: null, imagenUrl: null }];
     obtenerEjercicios.mockResolvedValue(mockEjercicios);
 
     renderComponent();

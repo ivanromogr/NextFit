@@ -334,7 +334,8 @@ public class EntrenadorController {
             }
 
             Entrenador entrenador = entrenadorDAO.findById(id).orElseThrow(() -> new RuntimeException("Entrenador no encontrado."));
-            Cliente cliente = clienteDAO.findByEmail(email.trim()).orElseThrow(() -> new RuntimeException("No se encontró ningún atleta con el correo: " + email));
+            String normalizedEmail = email.trim().toLowerCase(java.util.Locale.ROOT);
+            Cliente cliente = clienteDAO.findByEmail(normalizedEmail).orElseThrow(() -> new RuntimeException("No se encontró ningún atleta con el correo: " + email));
 
             if (cliente.getEntrenador() != null && !cliente.getEntrenador().getId().equals(entrenador.getId())) {
                 return ResponseEntity.status(409).body(Map.of(

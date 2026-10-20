@@ -258,7 +258,7 @@ class EntrenadorControllerTest {
     void ficharCliente_AtletaLibre_LoVinculaAlEntrenador() {
         // --- PREPARACIÓN ---
         Map<String, String> payload = new HashMap<>();
-        payload.put("email", "paco@gym.com");
+        payload.put("email", "  Paco@Gym.COM  ");
 
         when(entrenadorDAO.findById(entrenadorId)).thenReturn(Optional.of(entrenadorMock));
         when(clienteDAO.findByEmail("paco@gym.com")).thenReturn(Optional.of(clienteMock)); // Paco no tiene entrenador (null)

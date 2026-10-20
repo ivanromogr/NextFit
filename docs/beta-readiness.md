@@ -1,6 +1,6 @@
 # Preparación de la beta de NextFit
 
-Actualizado el 19 de octubre de 2026.
+Actualizado el 20 de octubre de 2026.
 
 ## Alcance acordado
 
@@ -51,6 +51,8 @@ asociaciones inconsistentes y reintento de una sesión válida. La prueba del
 reintento secuencial no demuestra idempotencia concurrente de sesiones libres.
 
 ## Evidencia de validación
+
+La pasada completa más reciente y sus límites figuran en [Pruebas generales](testing-general.md). Los recuentos de los apartados siguientes son históricos.
 
 Ejecución del 19 de octubre de 2026 sobre el código corregido:
 
@@ -228,3 +230,7 @@ Validación: 9 pruebas de sesión web correctas, incluyendo fallo/reintento de c
 El resumen web del calendario consultaba la última sesión de la rutina después de buscar el evento dentro del año actual; podía enseñar resultados de otro día y no encontraba eventos de otros años. Ahora usa directamente `/api/sesiones/evento/{eventoId}`, ya existente y protegido por permisos del servidor. Presenta fecha, notas, duración, volumen y ejercicios de esa respuesta, sin reconstruirlos con la última sesión. Diferencia registro inexistente (404) de fallo de consulta, ofrece reintento, ignora respuestas de eventos anteriores y restaura el estado previo del scroll al cerrar. No modifica el backend ni registros históricos.
 
 Validación: 21 pruebas correctas en cuatro archivos (resumen, sesión, calendario cliente y calendario entrenador), incluidas selección exacta, fallo/reintento, 404, respuestas fuera de orden y cierre. Compilación web completada; API simulada, sin consultar resultados reales ni desplegar producción.
+
+## Pasada completa del paso 7
+
+Backend: 374 pruebas correctas; web: 321; móvil: 170 tras alinear Babel y dependencias con Expo 54. Recorrido real local de cliente y entrenador completado, sin mocks de API ni datos de producción. Auditoría web sin avisos; móvil mantiene 61 (48 altos, 13 moderados, cero críticos). El paso sigue pendiente de cierre de seguridad móvil y aceptación de la versión final desplegada. Detalle y reproducción: [Pruebas generales](testing-general.md).
