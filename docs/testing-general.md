@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 380 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 417 pruebas en 61 archivos, todas correctas |
+| Web, suite completa | 424 pruebas en 62 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -27,7 +27,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
 
-Las suites de backend, web y móvil suman **967 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **974 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -993,3 +993,37 @@ No se tocan usuarios ni registros de producción.
 No cambia código de producto: las suites previas conservan sus 967 pruebas;
 este ensayo de navegador se contabiliza aparte. Se detienen los servicios
 locales propios y se elimina el marcador del fixture al finalizar.
+
+## Privacidad recuperable y preferencias persistidas (20 de octubre)
+
+Se corrige una pantalla sin reintento cuando fallaba la carga de consentimientos.
+Ahora ofrece cargar de nuevo, mantiene desactivado el control hasta obtener
+datos válidos y no presenta registros legales inventados durante carga o error.
+Los consentimientos malformados se rechazan en lugar de convertir cadenas como
+`"false"` en un consentimiento afirmativo.
+
+La pantalla se aísla por cuenta autenticada: una carga o guardado tardío de la
+cuenta anterior no cambia la nueva pantalla ni le muestra un aviso de éxito.
+El guardado bloquea envíos repetidos y conserva el valor confirmado tras un
+fallo. El éxito confirma el booleano solicitado sin fabricar fechas locales de
+consentimiento o retirada.
+
+Siete pruebas nuevas cubren recuperación, datos inválidos, bloqueo de envíos,
+fallo de guardado, cambio de cuenta durante carga/guardado y ausencia de sesión.
+Las cuatro pruebas previas de registro y consentimiento siguen pasando.
+
+El recorrido completo de navegador pasa con las clases backend ya verificadas y
+la compilación web nueva. Para cliente y entrenador, inyecta un 503 al cargar y
+otro al guardar; los reintentos consultan la API local real. Activar y retirar
+marketing devuelve 204 y permanece tras recargar. La API confirma que términos
+y privacidad conservan sus registros, la retirada tiene fecha del servidor y
+la cuenta ajena conserva su preferencia. La consulta sin JWT devuelve 401.
+También pasan los recorridos anteriores, incluidas ambas bajas de cuenta.
+No se envían comunicaciones ni se modifica producción.
+
+Validación final: suite web completa repetida de forma aislada, **424 pruebas
+en 62 archivos, salida 0**, lint sin errores ni avisos y compilación con manifest
+correcta. La primera pasada produjo también el resumen de 424 casos correctos,
+pero devolvió señal 143 al terminar, por lo que no se usó como evidencia de
+salida normal. Backend (380) y móvil (170) conservan sus verificaciones previas
+porque no cambia su código: **974 pruebas de aplicación verificadas**.

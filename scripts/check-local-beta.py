@@ -687,6 +687,68 @@ with sync_playwright() as p:
   flow_context.close()
 
 
+ # Privacy consent is isolated per account and persisted in the real local API.
+ for role in ('cliente','entrenador'):
+  identity=account(role,'Privacy'+role)
+  before=call('GET','/api/auth/consents',token=identity['token'])
+  assert before['terms']['accepted'] and before['privacy']['accepted']
+  assert before['marketing']['accepted'] is False
+  privacy_context=browser.new_context(viewport={'width':390 if role=='cliente' else 1365,'height':900})
+  privacy_context.route('**/*',lambda route:route.continue_() if route.request.url.startswith((WEB+'/',API+'/')) else route.abort())
+  failures={'load':1,'save':1}
+  def fail_privacy(route,_request,left=failures):
+   key='load' if route.request.method=='GET' else 'save'
+   if left[key]:
+    left[key]-=1
+    route.fulfill(status=503,json={'message':'Local beta injected privacy failure'})
+   else:route.continue_()
+  privacy_context.route('**/api/auth/consents',fail_privacy)
+  privacy_context.route('**/api/auth/consents/marketing',fail_privacy)
+  flow=privacy_context.new_page()
+  flow.goto(WEB+'/auth/login')
+  flow.get_by_placeholder('usuario@email.com').fill(identity['email'])
+  flow.get_by_placeholder('••••••••').fill(password)
+  flow.get_by_role('button',name=re.compile('^INICIAR SESIÓN$',re.I)).click()
+  flow.wait_for_url(re.compile('/'+role+'/dashboard$'))
+  flow.wait_for_load_state('networkidle')
+  flow.goto(WEB+'/'+role+'/seguridad/privacidad')
+  expect(flow.get_by_role('alert')).to_contain_text('No se pudo cargar')
+  checkbox=flow.get_by_label('Comunicaciones de marketing',exact=True)
+  expect(checkbox).to_be_disabled()
+  expect(flow.locator('section[aria-labelledby="privacy-communications-title"] li')).to_have_count(0)
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/consents')) as loaded:
+   flow.get_by_role('button',name='Reintentar privacidad',exact=True).click()
+  assert loaded.value.status==200
+  expect(checkbox).to_be_enabled()
+  expect(checkbox).not_to_be_checked()
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/consents/marketing')) as failed:
+   checkbox.click()
+  assert failed.value.status==503
+  expect(flow.get_by_role('status')).to_contain_text('No se pudo actualizar')
+  expect(checkbox).not_to_be_checked()
+  assert call('GET','/api/auth/consents',token=identity['token'])['marketing']['accepted'] is False
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/consents/marketing')) as enabled:
+   checkbox.click()
+  assert enabled.value.status==204
+  expect(checkbox).to_be_checked()
+  flow.reload()
+  expect(flow.get_by_label('Comunicaciones de marketing',exact=True)).to_be_checked()
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/consents/marketing')) as disabled:
+   flow.get_by_label('Comunicaciones de marketing',exact=True).click()
+  assert disabled.value.status==204
+  expect(flow.get_by_label('Comunicaciones de marketing',exact=True)).not_to_be_checked()
+  flow.reload()
+  expect(flow.get_by_label('Comunicaciones de marketing',exact=True)).to_be_enabled()
+  expect(flow.get_by_label('Comunicaciones de marketing',exact=True)).not_to_be_checked()
+  after=call('GET','/api/auth/consents',token=identity['token'])
+  assert after['terms']==before['terms'] and after['privacy']==before['privacy']
+  assert after['marketing']['accepted'] is False and after['marketing']['withdrawnAt']
+  assert call('GET','/api/auth/consents',token=other['token'])['marketing']['accepted'] is False
+  call('GET','/api/auth/consents',expected=401)
+  assert flow.evaluate('document.documentElement.scrollWidth <= innerWidth')
+  print('PASS privacy preferences:',role,'load/save failures recovered, actual enable and withdrawal persisted after reload, legal records unchanged and unrelated account unaffected.')
+  privacy_context.close()
+
  # Destructive operations only on fresh synthetic accounts in the isolated JVM.
  for role in ('cliente','entrenador'):
   identity=account(role,'Delete'+role)

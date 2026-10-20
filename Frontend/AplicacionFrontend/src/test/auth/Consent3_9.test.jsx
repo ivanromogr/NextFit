@@ -8,7 +8,7 @@ import { getConsents, registerUser, updateMarketingConsent } from '../../api/end
 
 const navigate = vi.fn(); const login = vi.fn(() => ({ role: 'CLIENTE' }));
 vi.mock('../../api/endpoints', () => ({ registerUser: vi.fn(), getConsents: vi.fn(), updateMarketingConsent: vi.fn() }));
-vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ login }) }));
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ login, userId: "fixture-account" }) }));
 vi.mock('react-router-dom', async (importOriginal) => ({ ...(await importOriginal()), useNavigate: () => navigate }));
 const renderRegister = () => render(<MemoryRouter><Register /></MemoryRouter>);
 const consent = { terms: { accepted: true, version: '2.0', acceptedAt: '2026-01-02T10:00:00Z' }, privacy: { accepted: true, version: '3.0', acceptedAt: '2026-01-03T10:00:00Z' }, marketing: { accepted: false, version: '2.0' } };

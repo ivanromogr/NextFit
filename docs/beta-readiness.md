@@ -347,3 +347,9 @@ cliente y entrenador: cookies y credenciales anteriores dejan de servir, se
 rechazan enlaces pendientes y la baja del entrenador desvincula al atleta sin
 desactivarlo. Se usan cuentas ficticias en H2, sin producción ni login social
 real. Pasa el recorrido completo ampliado de `scripts/check-local-beta.py`.
+
+Privacidad y comunicaciones permite recuperar un fallo de carga y conserva la
+preferencia confirmada si falla el guardado. Cargas y guardados tardíos quedan
+aislados por cuenta. El navegador verifica activar y retirar marketing en ambos
+roles, persistencia tras recargar y registros legales sin cambios, usando H2
+local y cuentas ficticias. No se envían correos ni se altera producción.
