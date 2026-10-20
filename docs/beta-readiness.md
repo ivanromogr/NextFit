@@ -327,3 +327,10 @@ guardan en el borrador y requieren publicación antes de comprobar navegador.
 La API de producción no responde en las dos esperas iniciales de 30 y 60 segundos
 de esta pasada, aunque Render indique live. La aceptación continúa pendiente;
 ver [Pruebas generales](testing-general.md).
+
+La consulta posterior de dos rutas confirma respuesta del servidor; después
+pasa el comprobador público completo, con salud UP en 0,4 segundos. No se
+reinicia ni modifica Render y la causa de los timeouts previos queda sin
+confirmar. El acceso a la preview sigue bloqueado por el túnel del entorno;
+la versión publicada del backend continúa siendo anterior a las últimas
+correcciones locales.

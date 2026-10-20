@@ -903,3 +903,26 @@ La segunda pasada permite 60 segundos solo al primer healthcheck y mantiene
 30 segundos para los posteriores. También agota la espera inicial: los controles
 restantes no se ejecutan. No se atribuye el fallo a un arranque lento sin más
 evidencia y no se reinicia ni modifica producción.
+
+## Respuesta recuperada y límites de aceptación (20 de octubre)
+
+Una nueva consulta del dominio de preview sigue siendo rechazada por el túnel
+antes de llegar a Vercel (403); no se ha aplicado el acceso guardado.
+
+Para distinguir el estado del servidor del healthcheck, se consultan en paralelo
+`GET /api/moderation/access` y el preflight `OPTIONS /api/auth/google`: responden
+401 y 200 en 0,7 y 0,6 segundos. Tras observar esas respuestas se repite el
+comprobador público completo, que pasa: salud UP en 0,4 segundos, tres rutas
+anónimas rechazadas, CORS exacto con credenciales, origen ajeno rechazado y
+credencial Google inválida rechazada por el endpoint público.
+
+La recuperación se observa sin reiniciar, desplegar ni modificar Render. No se
+identifica la causa de los timeouts anteriores ni se afirma disponibilidad
+continua. Los diez eventos recientes disponibles por la API corresponden a
+compilaciones y despliegues del 19 de octubre; no aportan evidencia del motivo
+de las esperas del día 20.
+
+Sigue pendiente aceptar la preview mediante navegador. El backend de producción
+conserva la revisión d3b366b y no contiene necesariamente las correcciones locales
+posteriores: esta pasada pública no sustituye la validación de esas correcciones
+con el servidor local ni acredita un despliegue del backend candidato.
