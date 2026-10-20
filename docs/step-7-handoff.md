@@ -6,7 +6,7 @@ rama de trabajo `codex/mobile-ux`. Los cambios están subidos; no se fusiona con
 
 ## Evidencia vigente
 
-- Backend: 386 pruebas; web: 432 en 62 archivos; móvil: 170. Total: 988.
+- Backend: 386 pruebas; web: 434 en 63 archivos; móvil: 170. Total: 990.
 - Compilación web, JAR, lint y recorrido completo local de ambos roles correctos.
 - Contratos de comprobadores: quince, contabilizados aparte.
 - Detalle y límites: [Pruebas generales](testing-general.md).
@@ -61,10 +61,12 @@ preview sin respuesta y botón bloqueado durante 45 segundos. Doce pruebas dirig
 pasan, incluida una con servidor HTTP real sin respuesta; también lint y build.
 La nueva preview `678f948dbc12b647b2d2c3ab1a1b0ca3124bf6bd` está READY
 (`dpl_A14ja8jXP7E2R5jCAh4PG2YEXKQT`) y su alias y doce comprobaciones públicas
-pasan. El botón se libera tras el fallo de conexión en la prueba real. Un preflight
-real confirma 403: falta ese origen estable en la lista CORS de Render. Añadirlo
-y aplicar el cambio requiere una actualización del backend de producción; no se
-ha realizado ni se atribuye aceptación autenticada a estos resultados.
+pasan. El botón se libera tras el fallo de conexión en la prueba real. El propietario autorizó añadir el origen exacto a CORS y redesplegar el mismo
+backend `d3b366b6ccb1873cbe2507badb1b8bf7e4ae5fac`:
+`dep-dbbsisg473hc73cd240g`, live. Salud, controles públicos y preflight de preview
+pasan. El login ficticio desde la preview recibe 401 y muestra el error correcto.
+No se crearon cuentas: el acceso con una cuenta válida permanece pendiente.
+La suite completa web pasa con 434 pruebas en 63 archivos.
 
 ## Otros bloqueos del cierre
 

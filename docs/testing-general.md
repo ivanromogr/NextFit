@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 386 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 432 pruebas en 62 archivos, todas correctas |
+| Web, suite completa | 434 pruebas en 63 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -22,12 +22,12 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Auditoría npm móvil | Árbol instalado: 93 avisos (88 altos, 5 moderados); lockfile: 50 (45 altos, 5 moderados). Mismos tres avisos directos; cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
-| Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. Producción conserva su revisión anterior; una preview anterior 6d7edbd figura READY; la aceptación de la última versión sigue pendiente |
+| Producción actual | Mismo SHA del backend d3b366b redesplegado con el origen exacto de la preview autorizado: salud, protección anónima, CORS y Google inválido correctos. Login ficticio de preview rechazado con 401; acceso válido pendiente |
 | Enlaces válidos con entrega local | Contraseña y cambio de correo para ambos roles, tokens reales y cookie renovable; transporte de correo externo pendiente |
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
-| Identidad de preview Vercel | Nueve pruebas de contrato; SHA, READY y alias estable de una preview anterior verificados. No equivale a aceptación de la última versión |
+| Identidad de preview Vercel | Nueve pruebas de contrato; candidato 678f948 READY y alias estable verificados; doce comprobaciones públicas correctas. Recorrido autenticado válido pendiente |
 
-Las suites de backend, web y móvil suman **988 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **990 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -1259,3 +1259,26 @@ La conexión de esta preview requiere añadir exactamente ese origen conservando
 los existentes, y aplicar la configuración al backend. No se hizo ese cambio ni
 se redesplegó producción; la posible corrección debe conservar el SHA del backend
 actual, sin incorporar otros cambios pendientes a producción.
+
+
+### Aplicación autorizada de CORS y validación posterior
+
+Tras la autorización del propietario se añadió únicamente el origen HTTPS exacto
+del alias estable a `APP_CORS_ALLOWED_ORIGINS`, conservando todos los anteriores.
+Se verificó que las demás variables conservaban sus valores. Se redesplegó
+explícitamente el mismo SHA de backend `d3b366b6ccb1873cbe2507badb1b8bf7e4ae5fac`,
+sin incorporar código de la rama de trabajo. El despliegue
+`dep-dbbsisg473hc73cd240g` quedó live el 20 de octubre a las 22:09, hora de Madrid.
+
+La pasada pública posterior termina con salida 0: salud UP en 0,5 segundos,
+segunda petición de salud, acceso anónimo denegado, origen de producción permitido,
+origen no confiable rechazado y Google inválido rechazado. Un OPTIONS específico
+del login permite el origen de preview exacto con credenciales. El navegador
+contra API real también termina con salida 0: un login con correo ficticio recibe
+401, muestra «Credenciales incorrectas.» y mantiene el botón disponible; no se
+crean cuentas ni se usan datos personales. Esto valida la conexión y el rechazo,
+no el acceso autenticado con una cuenta válida.
+
+La suite web completa posterior a la corrección termina con salida 0: 434 pruebas
+en 63 archivos, 104,30 segundos. Backend 386 y móvil 170 conservan sus anteriores
+resultados; no se repitieron en esta continuación. Total de aplicación: 990.
