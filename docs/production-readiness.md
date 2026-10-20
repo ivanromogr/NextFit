@@ -18,7 +18,11 @@ posterior del día 20, después de varias esperas agotadas (incluida una de 220
 segundos), la API vuelve a responder sin cambios ni reinicio. El comprobador
 completo pasa: salud UP, protección sin sesión, CORS con credenciales y rechazo de
 Google inválido. No se confirma la causa de la espera ni estabilidad continua.
-La rama candidata sigue sin desplegar. Ver [Pruebas generales](testing-general.md).
+La rama candidata tiene previews anteriores en Vercel, pero no se ha publicado
+en producción ni se ha aceptado la última revisión. El intento de preview del
+último commit funcional del día 20 queda bloqueado por la cuota gratuita diaria
+de Vercel. Ver [Pruebas generales](testing-general.md) para la evidencia y el
+restablecimiento indicado por el proveedor.
 
 - API NextFit: `https://nextfit-pa8i.onrender.com`, servicio Render
   `srv-d772eof5r7bs73e4ffe0`, plan gratuito, sin disco persistente.

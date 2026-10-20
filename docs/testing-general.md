@@ -22,8 +22,9 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Auditoría npm móvil | 50 avisos: 45 altos, 5 moderados, cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
-| Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. La rama candidata sigue sin desplegar |
+| Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. Producción conserva su revisión anterior; el último commit funcional carece de preview por cuota Vercel |
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
+| Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
 
 Las suites de backend, web y móvil suman **938 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
@@ -601,3 +602,38 @@ suites backend/web/móvil es **938**; backend y móvil conservan sus resultados
 anteriores porque esta revisión solo modifica la web y el ensayo local. La rama
 candidata sigue sin desplegar y el paso 7 continúa abierto para publicación por
 los avisos móviles y la aceptación del candidato definitivo.
+
+
+## Preview del candidato bloqueada por cuota de Vercel (20 de octubre)
+
+La consulta de Vercel encuentra previews anteriores de `codex/mobile-ux`; por
+tanto, las referencias previas a «sin desplegar» deben entenderse como ausencia
+de despliegue en producción y aceptación del candidato definitivo, no como
+ausencia histórica de previews de la rama. La preview `dpl_Hbu6nChMTGY66jJAcW7cxgDs93af`
+corresponde al commit `070fdcd6ae7a23a8d496e7f1c45c5bcaa28de128` y figura READY.
+Su identidad se ha contrastado entre la lista y el detalle de Vercel; no se han
+validado aquí sus flujos de navegador ni se considera la versión definitiva.
+
+Para el commit funcional `4e63f6875f1f70c81904b962031cb1f4a4cdcb95` no existe
+preview. El intento de generarla en el mismo proyecto devuelve HTTP 402, código
+`payment_required`: `api-deployments-free-per-day`, 100 despliegues, cero
+restantes. Vercel indica restablecimiento el **21 de octubre de 2026 a las
+14:06:24, Europe/Madrid**. No se ha creado ningún despliegue con estas peticiones
+rechazadas ni se ha modificado el plan, la protección de acceso o producción.
+
+Se añade `python3 -B scripts/check-vercel-candidate.py`, que solo consulta
+metadatos, toma HEAD por defecto y exige proyecto, commit completo y preview
+READY correctos. Rechaza producción, estados pendientes, hosts inesperados y
+previews antiguas aunque aparezcan en una respuesta filtrada. La opción
+`--commit <SHA completo>` permite inspeccionar una revisión explícita. La salida
+aclara que la aceptación de navegador/API sigue pendiente. El token se obtiene
+de `VERCEL_TOKEN`, no se imprime, y el script no crea despliegues ni salta su
+protección. Sus **seis pruebas aisladas** pasan y se cuentan aparte de las 938
+pruebas de aplicación.
+
+La ejecución contra el candidato falla como corresponde por ausencia de
+preview; la ejecución explícita contra `070fdcd` valida únicamente sus
+metadatos. Tras restablecerse la cuota, queda generar una preview del commit
+elegido para release, verificar su identidad con este comprobador y después
+aceptar sus flujos en navegador contra la API correspondiente. No se sustituye
+esa validación por un estado READY de una revisión anterior.

@@ -281,3 +281,9 @@ el formulario si falla el guardado y valida experiencia sin truncarla. Se
 comprueba su persistencia con API local real. La navegación al chat descarta
 contactos tardíos y evita trasladar el saludo a otra conversación. Los recuentos
 vigentes están en [Pruebas generales](testing-general.md).
+
+La preview de la última revisión está bloqueada por la cuota gratuita diaria de
+Vercel (100 despliegues, cero restantes). El proveedor indica restablecimiento
+el 21 de octubre a las 14:06, hora de Madrid. Existen previews anteriores READY,
+pero no satisfacen la aceptación del candidato. El nuevo comprobador de identidad
+exige el commit y proyecto correctos; ver [Pruebas generales](testing-general.md).
