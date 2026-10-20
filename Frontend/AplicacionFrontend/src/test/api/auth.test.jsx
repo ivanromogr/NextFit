@@ -12,7 +12,7 @@ describe('cliente HTTP de autenticación', () => {
   it('envía el nuevo contrato JSON a /api/auth/login', async () => {
     const post = vi.spyOn(api, 'post').mockResolvedValue({ status: 200 });
     await loginForm({ email: 'cliente@nextfit.test', password: 'secret' });
-    expect(post).toHaveBeenCalledWith('/api/auth/login', { email: 'cliente@nextfit.test', password: 'secret' }, { withCredentials: true, headers: { 'X-Client-Type': 'WEB' } });
+    expect(post).toHaveBeenCalledWith('/api/auth/login', { email: 'cliente@nextfit.test', password: 'secret' }, { timeout: 15000, withCredentials: true, headers: { 'X-Client-Type': 'WEB' } });
     post.mockRestore();
   });
 

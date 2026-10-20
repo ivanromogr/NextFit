@@ -1227,3 +1227,21 @@ Se conservaron TLS y SSO. Las llamadas API fueron interceptadas: este resultado
 cierra la comprobación de entrega y rutas públicas de esa preview, pero no
 acredita login real, proveedores sociales, correo externo ni aceptación del
 backend desplegado. No hubo cambios ni despliegues de producción.
+
+
+### Límite de espera en login y restauración de sesión
+
+Una prueba de la preview contra la API real, con correo ficticio y sin crear
+cuentas, no obtuvo una respuesta de login en 45 segundos y mantuvo el botón en
+«Procesando…». No se contabiliza como login rechazado ni como acceso autenticado.
+Se añade un timeout de 15 segundos a login y refresh, sin reintento automático.
+La promesa compartida de refresh se libera también al agotar ese límite.
+
+Una prueba con servidor HTTP real en loopback que acepta conexiones sin responder
+comprueba el timeout efectivo de ambas operaciones, la deduplicación de refresh y
+un intento posterior que sí recibe respuesta. Otra prueba verifica que el formulario
+muestra el error y permite reintentar después de un timeout. Pasan 12 pruebas en
+tres archivos (dos pruebas nuevas), lint y compilación web con manifest. No se
+ha repetido la suite web completa; el último total completo sigue siendo 432.
+El timeout limita la espera del cliente; no cancela necesariamente el trabajo ya
+recibido por el servidor ni resuelve la disponibilidad de Render.

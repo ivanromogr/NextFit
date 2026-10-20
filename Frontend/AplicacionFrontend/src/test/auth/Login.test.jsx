@@ -97,4 +97,18 @@ describe('Página de Login', () => {
     renderLogin();
     expect(screen.getByRole('link', { name: /olvidaste tu contraseña/i })).toHaveAttribute('href', '/forgot-password');
   });
+
+  it('libera el botón tras un timeout y permite un nuevo intento', async () => {
+    api.loginForm.mockRejectedValueOnce({ code: 'ECONNABORTED' })
+      .mockRejectedValueOnce({ response: { status: 401 } });
+    renderLogin();
+    fireEvent.click(screen.getByRole('button', { name: /INICIAR SESIÓN/i }));
+    expect(await screen.findByText('Error de conexión con el servidor.')).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: /INICIAR SESIÓN/i });
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    expect(await screen.findByText('Credenciales incorrectas.')).toBeInTheDocument();
+    expect(api.loginForm).toHaveBeenCalledTimes(2);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 });

@@ -84,7 +84,7 @@ const normalizarRutina = (rutina) => {
 
 // --- 2. AUTENTICACIÓN (LOGIN) ---
 export const loginForm = async ({ email, password }) => {
-  return api.post("/api/auth/login", { email, password }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
+  return api.post("/api/auth/login", { email, password }, { timeout: 15000, withCredentials: true, headers: { "X-Client-Type": "WEB" } });
 };
 export const loginWithGoogle = (credential) => api.post("/api/auth/google", { credential }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
 export const completeGoogleOnboarding = (payload) => api.post("/api/auth/google/onboarding", payload, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
@@ -99,7 +99,7 @@ export const resetPassword = (token, newPassword) => api.post("/api/auth/passwor
 export const registerUser = async (payload) => api.post("/api/register", payload, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
 let refreshInFlight = null;
 export const refreshWebSession = () => {
-  if (!refreshInFlight) refreshInFlight = api.post("/api/auth/refresh", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } }).finally(() => { refreshInFlight = null; });
+  if (!refreshInFlight) refreshInFlight = api.post("/api/auth/refresh", null, { timeout: 15000, withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } }).finally(() => { refreshInFlight = null; });
   return refreshInFlight;
 };
 export const logoutSession = () => api.post("/api/auth/logout", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } });

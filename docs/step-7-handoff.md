@@ -54,6 +54,14 @@ Este segundo ensayo intercepta la API y comprueba páginas públicas: no sustitu
 el login real ni el recorrido autenticado. Chromium requiere acceso a su almacén
 NSS; conservar TLS y las autoridades originales. Mantener la protección Vercel.
 
+## Corrección posterior al candidato público
+
+Se limita a 15 segundos la espera de login y refresh tras observar un login de
+preview sin respuesta y botón bloqueado durante 45 segundos. Doce pruebas dirigidas
+pasan, incluida una con servidor HTTP real sin respuesta; también lint y build.
+La aceptación pública anterior corresponde a `4ddbca7`: validar el nuevo SHA
+cuando se despliegue antes de atribuirle esa evidencia.
+
 ## Otros bloqueos del cierre
 
 El correo de Render sigue desactivado; faltan remitente, clave del proveedor y
