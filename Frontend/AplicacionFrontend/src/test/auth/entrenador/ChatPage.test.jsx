@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import ChatPage from '../../../pages/entrenador/ChatPage'; // Ajusta la ruta si es necesario
@@ -37,6 +37,7 @@ vi.mock('../../../components/functional/ChatComponent', () => {
         default: ({ nombreDestinatario }) => (
             <div data-testid="mock-chat-component">
                 Chat abierto con: {nombreDestinatario}
+                <textarea aria-label="Borrador de prueba" />
             </div>
         )
     };
@@ -78,13 +79,57 @@ describe('Página ChatPage', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        endpoints.obtenerContactosChat.mockResolvedValue([]);
+        endpoints.obtenerClientesEntrenador.mockReset();
+        endpoints.obtenerContactosChat.mockReset().mockResolvedValue([]);
         mockStompSubscribeCallback = null;
     });
 
     const renderComponent = () => {
         render(<BrowserRouter><ChatPage /></BrowserRouter>);
     };
+
+    it('keeps available contacts and the selected draft when assigned clients fail and retry succeeds', async () => {
+        endpoints.obtenerClientesEntrenador.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(mockClientes);
+        endpoints.obtenerContactosChat.mockResolvedValue([mockClientes[0]]);
+        renderComponent();
+        fireEvent.click(await screen.findByText('Juan Pérez'));
+        fireEvent.change(screen.getByLabelText('Borrador de prueba'), { target: { value: 'No perder este mensaje' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar conversaciones' }));
+        expect(await screen.findByText('María Gómez')).toBeInTheDocument();
+        expect(screen.getByLabelText('Borrador de prueba')).toHaveValue('No perder este mensaje');
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('shows assigned clients when the contacts endpoint fails and preserves the search on retry', async () => {
+        endpoints.obtenerClientesEntrenador.mockResolvedValue(mockClientes);
+        endpoints.obtenerContactosChat.mockRejectedValueOnce(new Error('offline')).mockResolvedValue([]);
+        renderComponent();
+        expect(await screen.findByText('Juan Pérez')).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toHaveTextContent('No se pudieron cargar todas las conversaciones');
+        fireEvent.change(screen.getByPlaceholderText('Buscar conversación...'), { target: { value: 'Juan' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar conversaciones' }));
+        await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+        expect(screen.getByPlaceholderText('Buscar conversación...')).toHaveValue('Juan');
+        expect(screen.queryByText('María Gómez')).not.toBeInTheDocument();
+    });
+
+    it('offers retry after both contact sources fail', async () => {
+        endpoints.obtenerClientesEntrenador.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(mockClientes);
+        endpoints.obtenerContactosChat.mockRejectedValueOnce(new Error('offline')).mockResolvedValue([]);
+        renderComponent();
+        expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron cargar todas las conversaciones');
+        expect(screen.queryByText('Todavía no tienes conversaciones.')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar conversaciones' }));
+        expect(await screen.findByText('Juan Pérez')).toBeInTheDocument();
+    });
+
+    it('does not mark the currently open conversation as a new unread conversation', async () => {
+        endpoints.obtenerClientesEntrenador.mockResolvedValue(mockClientes);
+        renderComponent();
+        fireEvent.click(await screen.findByText('Juan Pérez'));
+        act(() => mockStompSubscribeCallback({ body: JSON.stringify({ remitenteId: '1', contenido: 'Chat abierto' }) }));
+        expect(screen.queryByText('Nuevo mensaje recibido')).not.toBeInTheDocument();
+    });
 
     it('carga la lista de clientes y muestra el estado vacío del chat', async () => {
         endpoints.obtenerClientesEntrenador.mockResolvedValue(mockClientes);

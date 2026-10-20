@@ -140,9 +140,26 @@ with sync_playwright() as p:
   page.get_by_role('button',name=re.compile('^INICIAR SESIÓN$',re.I)).click()
   page.wait_for_url(re.compile('/'+user['role']+'/dashboard'))
   page.wait_for_load_state('networkidle')
+  contact_source=f"/api/clientes/{user['id']}" if user is client else f"/api/entrenador/{user['id']}/clientes"
+  contact_failures={'remaining':1}
+  def fail_first_contact_source(route,_request,failures=contact_failures):
+   if failures['remaining']:
+    failures['remaining']-=1
+    route.fulfill(status=503,json={'message':'Local beta injected contact source failure'})
+   else: route.continue_()
+  context.route(API+contact_source,fail_first_contact_source)
   page.goto(WEB+'/'+user['role']+'/chat')
   page.get_by_text(contact,exact=True).click()
   expect(page.get_by_placeholder('Escribe un mensaje...')).to_be_enabled()
+  expect(page.get_by_role('alert')).to_contain_text('No se pudieron cargar todas las conversaciones')
+  page.get_by_placeholder('Escribe un mensaje...').fill('Borrador durante recuperación de contactos')
+  with page.expect_response(lambda r:r.url==API+contact_source and r.request.method=='GET') as recovered_contacts:
+   page.get_by_role('button',name='Reintentar conversaciones',exact=True).click()
+  assert recovered_contacts.value.status==200
+  expect(page.get_by_role('alert')).to_have_count(0)
+  expect(page.get_by_placeholder('Escribe un mensaje...')).to_have_value('Borrador durante recuperación de contactos')
+  page.get_by_placeholder('Escribe un mensaje...').fill('')
+  print('PASS contact recovery:',user['role'],'partial source failure, available conversation, actual retry and retained draft')
   chat_pages.append(page)
  athlete_chat,coach_chat=chat_pages
  def send(page,text):

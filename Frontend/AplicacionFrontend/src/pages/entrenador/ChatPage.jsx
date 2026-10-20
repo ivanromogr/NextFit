@@ -1,5 +1,5 @@
 import { getAccessToken } from '../../utils/authSession';
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { obtenerClientesEntrenador, getCliente, obtenerContactosChat } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 import { Search, MessageSquare, User, Edit } from "lucide-react";
@@ -14,18 +14,15 @@ export default function ChatPage() {
     const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
     const [busqueda, setBusqueda] = useState("");
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
+    const loadRequests = useRef(0);
+    const selectedContact = useRef(null);
+    useEffect(() => { selectedContact.current = clienteSeleccionado?.id; }, [clienteSeleccionado?.id]);
     const [unreadUsers, setUnreadUsers] = useState(new Set());
 
     const socketRef = useRef(null);
 
-    useEffect(() => {
-        if (!entrenadorId) return;
-        cargarClientes();
-        conectarSocketGlobal();
-        return () => { if (socketRef.current) socketRef.current.disconnect(); };
-    }, [entrenadorId]);
-
-   const conectarSocketGlobal = () => {
+   const conectarSocketGlobal = useCallback(() => {
     const socket = new SockJS(SOCKJS_URL);
     const client = Stomp.over(socket);
     client.debug = null;
@@ -57,7 +54,7 @@ export default function ChatPage() {
                             });
                     }
 
-                    if (clienteSeleccionado?.id !== msg.remitenteId) {
+                    if (selectedContact.current !== msg.remitenteId) {
                         setUnreadUsers((prevUnread) => new Set(prevUnread).add(msg.remitenteId));
                     }
 
@@ -66,27 +63,40 @@ export default function ChatPage() {
             }
         });
     });
-};
+}, [entrenadorId]);
 
-    const cargarClientes = async () => {
-        try {
-            setLoading(true);
-            const [data, contactosHistoricos] = await Promise.all([
-                obtenerClientesEntrenador(entrenadorId),
-                obtenerContactosChat(entrenadorId).catch(() => [])
-            ]);
-            const listaLimpia = data.map(item => item.cliente ? item.cliente : item);
-            const mapa = new Map();
-            (listaLimpia || []).forEach(cliente => mapa.set(String(cliente.id), cliente));
-            (contactosHistoricos || [])
-                .filter(contacto => String(contacto.id) !== String(entrenadorId))
-                .forEach(contacto => {
-                    if (!mapa.has(String(contacto.id))) mapa.set(String(contacto.id), contacto);
-                });
-            setClientes(Array.from(mapa.values()));
-        } catch (error) { console.error(error); } 
-        finally { setLoading(false); }
-    };
+    const cargarClientes = useCallback(() => {
+        const request = ++loadRequests.current;
+        return Promise.allSettled([
+            Promise.resolve().then(() => obtenerClientesEntrenador(entrenadorId)),
+            Promise.resolve().then(() => obtenerContactosChat(entrenadorId))
+        ]).then(([assigned, contacts]) => {
+            if (request !== loadRequests.current) return;
+            const assignedOk = assigned.status === 'fulfilled' && Array.isArray(assigned.value);
+            const contactsOk = contacts.status === 'fulfilled' && Array.isArray(contacts.value);
+            const complete = assignedOk && contactsOk;
+            setClientes(previous => {
+                const map = new Map();
+                const available = [
+                    ...(!complete ? previous : []),
+                    ...(assignedOk ? assigned.value.map(item => item?.cliente || item) : []),
+                    ...(contactsOk ? contacts.value : [])
+                ];
+                available.filter(contact => contact?.id && String(contact.id) !== String(entrenadorId))
+                    .forEach(contact => { if (!map.has(String(contact.id))) map.set(String(contact.id), contact); });
+                return [...map.values()];
+            });
+            setLoadError(!complete);
+            setLoading(false);
+        });
+    }, [entrenadorId]);
+
+    useEffect(() => {
+        if (!entrenadorId) return;
+        cargarClientes();
+        conectarSocketGlobal();
+        return () => { loadRequests.current += 1; if (socketRef.current) socketRef.current.disconnect(); };
+    }, [entrenadorId, cargarClientes, conectarSocketGlobal]);
 
     const handleSelectCliente = (cliente) => {
         setClienteSeleccionado(cliente);
@@ -188,8 +198,13 @@ export default function ChatPage() {
                     </div>
                     
                     <div className="hide-scroll" style={styles.lista}>
-                        {loading ? <p style={{padding:'20px', color:'#71717a', textAlign:'center', fontSize:'0.9rem'}}>Cargando...</p> : (
-                            clientesFiltrados.map((cliente) => {
+                        {loading && <p role="status" style={{padding:'20px', color:'#71717a', textAlign:'center', fontSize:'0.9rem'}}>Cargando...</p>}
+                        {loadError && <div role="alert" style={{padding: '12px', color: '#fca5a5'}}>
+                            <p>No se pudieron cargar todas las conversaciones.</p>
+                            <button type="button" onClick={() => { setLoading(true); setLoadError(false); cargarClientes(); }} style={{background: '#1f1f22', color: '#FACC15', border: '1px solid #3f3f46', borderRadius: '8px', padding: '8px 12px', font: 'inherit', cursor: 'pointer'}}>Reintentar conversaciones</button>
+                        </div>}
+                        {!loading && !loadError && clientes.length === 0 && <p>Todavía no tienes conversaciones.</p>}
+                        {clientesFiltrados.map((cliente) => {
                                 const tieneNotificacion = unreadUsers.has(cliente.id);
                                 return (
                                     <div key={cliente.id} style={styles.clienteItem(clienteSeleccionado?.id === cliente.id)} onClick={() => handleSelectCliente(cliente)}>
@@ -209,8 +224,7 @@ export default function ChatPage() {
                                         </div>
                                     </div>
                                 );
-                            })
-                        )}
+                            })}
                     </div>
                 </div>
 

@@ -13,15 +13,26 @@ export default function ChatClientePage() {
     const { userId: clienteId } = useAuth();
     const [entrenador, setEntrenador] = useState(null);
     
-    // Al cargar, leemos si ya teníamos amigos guardados en la memoria de la pestaña
     const [amigos, setAmigos] = useState(() => {
-        const guardados = sessionStorage.getItem(`contactos_chat_${clienteId}`);
-        return guardados ? JSON.parse(guardados) : [];
-    }); 
-    
+        try {
+            const contacts = JSON.parse(sessionStorage.getItem(`contactos_chat_${clienteId}`) || '[]');
+            return Array.isArray(contacts) ? contacts.filter(contact => contact && typeof contact.id === 'string'
+                && typeof contact.nombre === 'string' && typeof contact.apellido === 'string'
+                && (!contact.alias || typeof contact.alias === 'string')) : [];
+        } catch { return []; }
+    });
+
     const [contactoSeleccionado, setContactoSeleccionado] = useState(null);
     const [busqueda, setBusqueda] = useState("");
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
+    const loadRequests = useRef(0);
+    const selectedContact = useRef(null);
+    const assignedCoach = useRef(null);
+    useEffect(() => {
+        selectedContact.current = contactoSeleccionado?.id;
+        assignedCoach.current = entrenador?.id;
+    }, [contactoSeleccionado?.id, entrenador?.id]);
     const [unreadUsers, setUnreadUsers] = useState(new Set());
 
     const [showModal, setShowModal] = useState(false);
@@ -38,7 +49,7 @@ export default function ChatClientePage() {
     // Cada vez que la lista de amigos cambie, la guardamos a fuego en la memoria
     useEffect(() => {
         if (amigos.length > 0) {
-            sessionStorage.setItem(`contactos_chat_${clienteId}`, JSON.stringify(amigos));
+            try { sessionStorage.setItem(`contactos_chat_${clienteId}`, JSON.stringify(amigos)); } catch { /* Browser storage is optional. */ }
         }
     }, [amigos, clienteId]);
 
@@ -86,12 +97,12 @@ export default function ChatClientePage() {
             cargarContactosBase();
             conectarSocketGlobal();
         }
-        return () => { if (socketRef.current) socketRef.current.disconnect(); };
+        return () => { loadRequests.current += 1; if (socketRef.current) socketRef.current.disconnect(); };
         // eslint-disable-next-line
     }, [clienteId]);
 
     const comprobarSiEsNuevoContacto = (remitenteId) => {
-        if (entrenador && remitenteId === entrenador.id) return;
+        if (remitenteId === assignedCoach.current) return;
 
         setAmigos(prevAmigos => {
             if (prevAmigos.some(a => a.id === remitenteId)) return prevAmigos;
@@ -100,7 +111,7 @@ export default function ChatClientePage() {
                 .catch(() => api.get(`/api/entrenador/${remitenteId}`))
                 .then(res => {
                 const data = res.data?.entrenador || res.data;
-                if (data) {
+                if (data?.id && data.id !== assignedCoach.current && data.id !== clienteId) {
                     setAmigos(actuales => {
                         if (actuales.some(a => a.id === data.id)) return actuales;
                         return [...actuales, data];
@@ -125,7 +136,7 @@ export default function ChatClientePage() {
                     if (msg.type || !msg.remitenteId) return;
 
             if (msg.remitenteId !== clienteId) {
-                if (contactoSeleccionado?.id !== msg.remitenteId) {
+                if (selectedContact.current !== msg.remitenteId) {
                     setUnreadUsers(prev => new Set(prev).add(msg.remitenteId));
                 }
                 comprobarSiEsNuevoContacto(msg.remitenteId);
@@ -135,39 +146,27 @@ export default function ChatClientePage() {
 };
 
     const cargarContactosBase = async () => {
-        try {
-            setLoading(true);
-            const resCliente = await api.get(`/api/clientes/${clienteId}`); 
-            let idEntrenador = null;
-            if (resCliente.data && resCliente.data.entrenador) {
-                setEntrenador(resCliente.data.entrenador);
-                idEntrenador = resCliente.data.entrenador.id;
-            }
-
-            try {
-                const contactos = await obtenerContactosChat(clienteId);
-                if (contactos) {
-                    const nuevosDelBackend = contactos.filter(c => c.id !== idEntrenador && c.id !== clienteId);
-                    
-                    setAmigos(prev => {
-                        const mapa = new Map();
-                        // Metemos primero los que ya teníamos (para no perder sus apodos o los que no tienen mensajes)
-                        prev.forEach(a => mapa.set(a.id, a));
-                        nuevosDelBackend.forEach(a => {
-                            if (!mapa.has(a.id)) mapa.set(a.id, a);
-                        });
-                        return Array.from(mapa.values());
-                    });
-                }
-            } catch (errorContactos) {
-                console.warn("No se pudo cargar el historial del backend", errorContactos);
-            }
-
-        } catch (error) {
-            console.error("Error cargando perfil", error);
-        } finally {
-            setLoading(false);
-        }
+        const request = ++loadRequests.current;
+        const [profile, contacts] = await Promise.allSettled([
+            Promise.resolve().then(() => api.get(`/api/clientes/${clienteId}`)),
+            Promise.resolve().then(() => obtenerContactosChat(clienteId))
+        ]);
+        if (request !== loadRequests.current) return;
+        const profileOk = profile.status === 'fulfilled' && profile.value?.data
+            && typeof profile.value.data === 'object' && !Array.isArray(profile.value.data);
+        const contactsOk = contacts.status === 'fulfilled' && Array.isArray(contacts.value);
+        const coach = profileOk ? profile.value.data.entrenador : entrenador;
+        const coachId = coach?.id;
+        if (profileOk) setEntrenador(coach?.id ? coach : null);
+        setAmigos(previous => {
+            const map = new Map();
+            [...previous, ...(contactsOk ? contacts.value : [])]
+                .filter(contact => contact?.id && contact.id !== coachId && contact.id !== clienteId)
+                .forEach(contact => { if (!map.has(contact.id)) map.set(contact.id, contact); });
+            return [...map.values()];
+        });
+        setLoadError(!profileOk || !contactsOk);
+        setLoading(false);
     };
 
     const handleSelectContacto = (contacto) => {
@@ -335,8 +334,12 @@ export default function ChatClientePage() {
                 </div>
                 
                 <div className="hide-scroll" style={styles.lista}>
-                    {loading ? <p style={{padding:'20px', color:'#71717a', textAlign:'center', fontSize:'0.9rem'}}>Cargando...</p> : (
-                        <>
+                    {loading && <p role="status" style={{padding:'20px', color:'#71717a', textAlign:'center', fontSize:'0.9rem'}}>Cargando...</p>}
+                    {loadError && <div role="alert" style={{padding: '12px', color: '#fca5a5'}}>
+                        <p>No se pudieron cargar todas las conversaciones.</p>
+                        <button type="button" onClick={() => { setLoading(true); setLoadError(false); cargarContactosBase(); }} style={{background: '#1f1f22', color: '#FACC15', border: '1px solid #3f3f46', borderRadius: '8px', padding: '8px 12px', font: 'inherit', cursor: 'pointer'}}>Reintentar conversaciones</button>
+                    </div>}
+                    <>
                             {entrenador && (!busqueda || (entrenador.nombre + " " + entrenador.apellido).toLowerCase().includes(busqueda.toLowerCase())) && (
                                 <div style={styles.contactoItem(contactoSeleccionado?.id === entrenador.id)} onClick={() => handleSelectContacto(entrenador)}>
                                     <div style={styles.avatar}>
@@ -383,8 +386,7 @@ export default function ChatClientePage() {
                                     </div>
                                 );
                             })}
-                        </>
-                    )}
+                    </>
                 </div>
             </div>
 

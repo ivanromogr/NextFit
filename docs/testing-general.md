@@ -12,26 +12,27 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 336 pruebas en 60 archivos, todas correctas |
+| Web, suite completa | 346 pruebas en 60 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
 | Exportaciones móviles | Android/iOS Hermes correctas con Babel SDK 54; no son builds firmadas |
-| Lint web | Cero errores, ocho avisos de dependencias de hooks existentes |
+| Lint web | Cero errores, siete avisos de dependencias de hooks pendientes |
 | Auditoría npm web | Cero avisos después de actualizaciones compatibles |
 | Auditoría npm móvil | 50 avisos: 45 altos, 5 moderados, cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
 | Producción actual | Render informa `live` para el despliegue existente; `/actuator/health` vuelve a agotar 45 segundos de espera. Disponibilidad HTTP sin confirmar; la rama candidata sigue sin desplegar |
 
-Las suites suman **880 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites suman **890 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
 La suite web se volvió a ejecutar completa el día 20 tras corregir los adjuntos:
 327 pruebas correctas en 60 archivos; la revisión posterior de confirmación y
 reconexión vuelve a ejecutar la suite completa con 331 casos correctos. La
-recuperación posterior de historial e imágenes la eleva a 336 casos correctos.
+recuperación posterior de historial e imágenes la eleva a 336 casos correctos;
+la revisión de las listas de conversaciones termina con 346 casos correctos.
 
 ## Errores corregidos durante la pasada completa
 
@@ -61,8 +62,8 @@ navegador comprueba login y renovación de cookie después de recargar, creació
 manual con 35,5 kg, edición común de series con 37,5 kg, registro de entrenamiento,
 consulta de rutinas por el entrenador y resultados del primer evento sin mostrar
 los del segundo. Esos recorridos usan endpoints reales. La recuperación del chat
-añade dos respuestas 503 deliberadas en el navegador (historial e imagen); sus
-reintentos vuelven a la API real. Se bloquean conexiones a servicios externos.
+añade respuestas 503 deliberadas en el navegador para una fuente de contactos
+de cada perfil, el historial y una imagen; sus reintentos vuelven a la API real. Se bloquean conexiones a servicios externos.
 
 El arranque de prueba no hereda credenciales de proveedores ni configuración de
 despliegue. Usa H2 en memoria, almacenamiento local temporal y correo/proveedores
@@ -166,7 +167,7 @@ para el final, antes de publicar la aplicación.
 
 El ensayo `scripts/check-local-beta.py` abre dos contextos independientes de
 Chromium con las cuentas ficticias de cliente y entrenador. Usa el transporte
-SockJS/STOMP y la API reales del servidor H2 temporal. Los dos fallos HTTP
+SockJS/STOMP y la API reales del servidor H2 temporal. Los fallos HTTP
 controlados añadidos posteriormente se describen en el apartado de recuperación;
 los mensajes STOMP proceden del servidor real:
 
@@ -326,3 +327,48 @@ Las verificaciones previas de backend (374) y móvil (170) se mantienen porque e
 corrección solo cambia la web. El total de las suites es 880; ensayos de navegador
 y prueba de herramientas iOS se contabilizan por separado. Los avisos móviles y
 la aceptación del despliegue/dispositivo definitivo conservan sus pendientes.
+
+## Recuperación de las listas de conversaciones
+
+La revisión posterior añade diez regresiones sobre las dos páginas de chat. Las
+18 pruebas focalizadas pasan: cubren fallos parciales y totales de las fuentes,
+reintento conservando búsqueda/chat/borrador, JSON local dañado, lectura o escritura
+de caché no disponibles, deduplicación del entrenador y mensajes recibidos en la
+conversación ya seleccionada.
+
+Ambos perfiles consultan sus fuentes de forma independiente. Se conservan los
+contactos disponibles cuando falla otra fuente y se muestra un aviso con
+«Reintentar conversaciones». Durante el reintento no se desmonta el chat seleccionado
+ni se ocultan los contactos ya cargados. Una carga antigua que termine después de
+otra petición o del desmontaje no actualiza la lista. La lista vacía del entrenador
+solo se presenta como confirmada si ambas fuentes cargan correctamente.
+
+En cliente, la caché de contactos es opcional: se ignora JSON inválido o registros
+incompatibles y los errores de almacenamiento del navegador no impiden usar la
+API. Se mantienen los alias conocidos y se retira el entrenador de los contactos
+secundarios cuando se confirma su identidad. Los callbacks del socket consultan
+la selección y el entrenador actuales, evitando la marca de conversación nueva
+para el chat ya abierto y la duplicación del entrenador por un mensaje recibido.
+Esto no añade notificaciones en segundo plano ni prueba la suspensión de iOS.
+
+El recorrido integrado provoca una respuesta HTTP 503 de la fuente de perfil del
+cliente y otra de atletas asignados del entrenador. La fuente de contactos real
+permite abrir la conversación en ambos casos. El ensayo escribe un borrador,
+reintenta contra la API real y verifica que el editor conserva su contenido sin
+reenviarlo. Continúan pasando todos los pasos previos de entrenamientos,
+calendario, permisos, bloqueo/denuncia, imágenes y reconexión.
+
+El fallo inicial de este nuevo manejador de red en el ensayo se corrigió para
+aceptar los argumentos de Playwright; la pasada final completa termina correctamente.
+El build final pasa, el entorno temporal se detiene y la imagen ficticia se elimina.
+La corrección solo modifica la web y las comprobaciones locales; producción y
+los proveedores de pago conservan su estado anterior.
+
+Validación final de listas de conversaciones: **346 pruebas web en 60 archivos**,
+todas correctas; build Vite correcto y lint con cero errores y siete avisos. La
+carga del entrenador mantiene callbacks estables y actualiza React al resolverse
+las peticiones; no se desactivan reglas para obtener ese resultado. Backend (374)
+y móvil (170) conservan sus verificaciones anteriores porque solo cambia la web.
+El total de las suites es 890, además de los ensayos de navegador y la prueba de
+herramientas iOS contabilizados por separado. No se eliminan los pendientes de
+avisos móviles, dispositivo físico y aceptación del despliegue definitivo.

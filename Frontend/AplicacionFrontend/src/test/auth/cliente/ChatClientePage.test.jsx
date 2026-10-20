@@ -1,10 +1,11 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import ChatClientePage from '../../../pages/cliente/ChatClientePage'; // Ajusta la ruta si es necesario
 import { api } from '../../../api/endpoints';
+import Stomp from 'stompjs';
 
 const mockObtenerContactosChat = vi.hoisted(() => vi.fn());
 
@@ -34,6 +35,7 @@ vi.mock('../../../components/functional/ChatComponent', () => ({
   default: ({ nombreDestinatario }) => (
     <div data-testid="mock-chat-component">
       Chat activo con: {nombreDestinatario}
+      <textarea aria-label="Borrador de prueba" />
     </div>
   )
 }));
@@ -61,12 +63,13 @@ vi.mock('stompjs', () => ({
 describe('Página ChatClientePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    api.get.mockReset();
     // Limpiamos la caché simulada
     vi.stubGlobal('sessionStorage', {
       getItem: vi.fn().mockReturnValue(null),
       setItem: vi.fn()
     });
-    mockObtenerContactosChat.mockResolvedValue([]);
+    mockObtenerContactosChat.mockReset().mockResolvedValue([]);
     mockLocation.state = null; // Reseteamos la navegación
   });
 
@@ -77,6 +80,59 @@ describe('Página ChatClientePage', () => {
       </BrowserRouter>
     );
   };
+
+  const coach = { id: 'coach-1', nombre: 'Coach', apellido: 'Carlos' };
+  const friend = { id: 'friend-1', nombre: 'Gym', apellido: 'Amigo', alias: 'Compi' };
+
+  it('ignores malformed local contact JSON and loads the real profile', async () => {
+    sessionStorage.getItem.mockReturnValue('{broken');
+    api.get.mockResolvedValue({ data: { entrenador: coach } });
+    renderComponent();
+    expect(await screen.findByText('Coach Carlos')).toBeInTheDocument();
+  });
+
+  it.each(['read', 'write'])('continues when browser storage %s is unavailable', async operation => {
+    sessionStorage[operation === 'read' ? 'getItem' : 'setItem'].mockImplementation(() => { throw new Error('storage disabled'); });
+    api.get.mockResolvedValue({ data: { entrenador: coach } });
+    mockObtenerContactosChat.mockResolvedValue([friend]);
+    renderComponent();
+    expect(await screen.findByText('Compi')).toBeInTheDocument();
+    expect(screen.getByText('Coach Carlos')).toBeInTheDocument();
+  });
+
+  it('uses available backend contacts when the profile fails and deduplicates the trainer after retry', async () => {
+    api.get.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ data: { entrenador: coach } });
+    mockObtenerContactosChat.mockResolvedValue([coach, friend]);
+    renderComponent();
+    fireEvent.click(await screen.findByText('Coach Carlos'));
+    fireEvent.change(screen.getByLabelText('Borrador de prueba'), { target: { value: 'Borrador conservado' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar conversaciones' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(screen.getAllByText('Coach Carlos')).toHaveLength(1);
+    expect(screen.getByLabelText('Borrador de prueba')).toHaveValue('Borrador conservado');
+  });
+
+  it('keeps the trainer visible after contact-list failure and recovers contacts on retry', async () => {
+    api.get.mockResolvedValue({ data: { entrenador: coach } });
+    mockObtenerContactosChat.mockRejectedValueOnce(new Error('offline')).mockResolvedValue([friend]);
+    renderComponent();
+    expect(await screen.findByText('Coach Carlos')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudieron cargar todas las conversaciones');
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar conversaciones' }));
+    expect(await screen.findByText('Compi')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('does not mark the selected trainer as a new unread conversation', async () => {
+    api.get.mockResolvedValue({ data: { entrenador: coach } });
+    renderComponent();
+    fireEvent.click(await screen.findByText('Coach Carlos'));
+    const client = Stomp.over.mock.results.at(-1).value;
+    await act(async () => client.subscribe.mock.calls.at(-1)[1]({ body: JSON.stringify({ remitenteId: coach.id, contenido: 'Chat abierto' }) }));
+    expect(screen.queryByText('Nuevo mensaje recibido')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Coach Carlos')).toHaveLength(1);
+    expect(api.get).toHaveBeenCalledTimes(1);
+  });
 
   it('carga y muestra la lista de contactos inicial (Entrenador + Amigos)', async () => {
     // Simulamos la respuesta del perfil del cliente (para sacar a su entrenador)
