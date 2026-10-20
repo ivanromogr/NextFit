@@ -22,9 +22,10 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Auditoría npm móvil | 50 avisos: 45 altos, 5 moderados, cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
-| Producción actual | Render informa `live` para el despliegue existente; `/actuator/health` vuelve a agotar 45 segundos de espera. Disponibilidad HTTP sin confirmar; la rama candidata sigue sin desplegar |
+| Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. La rama candidata sigue sin desplegar |
+| Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 
-Las suites suman **890 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **890 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -372,3 +373,43 @@ y móvil (170) conservan sus verificaciones anteriores porque solo cambia la web
 El total de las suites es 890, además de los ensayos de navegador y la prueba de
 herramientas iOS contabilizados por separado. No se eliminan los pendientes de
 avisos móviles, dispositivo físico y aceptación del despliegue definitivo.
+
+## Diagnóstico y recuperación observada de producción
+
+La revisión posterior encuentra el mismo despliegue de NextFit marcado `live`,
+sin suspensión y con plan gratuito. La web devuelve HTTP 200. Las consultas
+iniciales a salud, `/api` y moderación agotan sus esperas; una consulta de salud
+con margen de 220 segundos también termina en timeout. Los registros de Render
+siguen devolviendo HTTP 403 a la sesión. La configuración guardada del entorno ya
+incluye los dominios necesarios; no se amplía la red ni se solicitan claves nuevas.
+
+Después, sin reiniciar, desplegar ni cambiar configuración, la API vuelve a
+responder. La consulta de salud por curl devuelve HTTP 200 y JSON `UP` en menos de
+un segundo. El comprobador completo termina correctamente y mide su salud en
+0,4 segundos. Esto confirma disponibilidad en esa pasada; no demuestra la causa
+de la espera anterior, estabilidad continua ni aceptación de la rama candidata.
+
+El comprobador `scripts/check-production.py` conserva el timeout normal de 45
+segundos y añade diagnóstico legible con salida distinta de cero al fallar, sin
+volcar cuerpos inesperados. Comprueba ahora además que CORS admite credenciales
+y `Authorization` para el origen exacto, y que un origen ajeno no recibe permiso.
+El login público de Google debe rechazar la credencial inválida con
+`INVALID_GOOGLE_TOKEN`, en lugar de exigir una sesión previa.
+
+Una opción `--startup-timeout` permite ampliar solo la primera consulta de salud;
+si se usa un valor diferente, exige otra consulta con el timeout normal antes de
+continuar. No convierte la lentitud en un resultado de disponibilidad continua.
+
+```sh
+python3 scripts/check-production.py
+# Solo para investigar un arranque: comprobar después la respuesta normal.
+python3 scripts/check-production.py --startup-timeout 220
+python3 -B -m unittest discover -s scripts/tests -p 'test_check_production.py' -v
+```
+
+Las seis pruebas aisladas del comprobador pasan: contrato correcto, CORS sin
+cookies, origen ajeno reflejado, Google que exige sesión, timeout al leer el cuerpo
+y separación entre tiempo inicial y tiempo normal. Se contabilizan aparte de las
+890 pruebas de la aplicación. La pasada HTTP real también pasa con salud UP,
+tres endpoints protegidos sin sesión, ambos controles de CORS y Google inválido.
+No crea usuarios ni modifica sus datos y no valida un login social real.

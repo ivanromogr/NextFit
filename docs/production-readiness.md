@@ -13,10 +13,12 @@ No añadir cuentas por dominio de correo ni abrir el panel a todos los usuarios.
 
 ## Estado comprobado históricamente
 
-Las respuestas HTTP de este apartado corresponden al 19 de octubre. En la
-comprobación del día 20, Render informa `live` y `not_suspended`, pero la consulta
-de salud agota su tiempo de espera. La web devuelve HTTP 200; disponibilidad
-actual de la API sin confirmar. Ver [Pruebas generales](testing-general.md).
+Las comprobaciones históricas del día 19 se conservan debajo. En la revisión
+posterior del día 20, después de varias esperas agotadas (incluida una de 220
+segundos), la API vuelve a responder sin cambios ni reinicio. El comprobador
+completo pasa: salud UP, protección sin sesión, CORS con credenciales y rechazo de
+Google inválido. No se confirma la causa de la espera ni estabilidad continua.
+La rama candidata sigue sin desplegar. Ver [Pruebas generales](testing-general.md).
 
 - API NextFit: `https://nextfit-pa8i.onrender.com`, servicio Render
   `srv-d772eof5r7bs73e4ffe0`, plan gratuito, sin disco persistente.
@@ -116,3 +118,13 @@ compilado. Ensayos PostgreSQL: cuatro escenarios de migración correctos, copia
 cifrada restaurada, destino no vacío rechazado, ciphertext alterado rechazado y
 dump fallido sin archivo publicado. Son ensayos aislados, no operaciones sobre
 la base de producción.
+
+## Diagnóstico del comprobador público
+
+El script informa el endpoint y la fase cuando se agota una espera y termina con
+error sin marcar como ejecutadas las comprobaciones restantes. Verifica también
+el rechazo de orígenes CORS ajenos y el permiso de credenciales del navegador.
+`--startup-timeout` amplía solo la primera consulta; después se exige la respuesta
+con el timeout normal. Seis pruebas de contrato aisladas pasan y la ejecución real
+posterior del día 20 pasa. No se reinicia el servicio ni se atribuye el timeout a
+un arranque gratuito sin evidencia adicional.
