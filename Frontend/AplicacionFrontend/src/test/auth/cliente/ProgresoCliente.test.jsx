@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import ProgresoCliente from '../../../pages/cliente/ProgresoCliente';
@@ -17,7 +17,7 @@ vi.mock('../../../context/AuthContext', () => ({
     useAuth: () => ({ userId: 'atleta-123' })
 }));
 
-vi.mock('../../../components/ui/ProgresoChart', () => ({ default: () => <div data-testid="chart-progreso" /> }));
+vi.mock('../../../components/ui/ProgresoChart', () => ({ default: ({data, pr}) => <div data-testid="chart-progreso">PR: {pr} {JSON.stringify(data)}</div> }));
 vi.mock('../../../components/ui/ConsistenciaChart', () => ({ default: () => <div data-testid="chart-consistencia" /> }));
 vi.mock('../../../components/ui/DistribucionMuscularChart', () => ({ default: () => <div data-testid="chart-radar" /> }));
 vi.mock('../../../components/ui/PersonalRecordsList', () => ({ default: () => <div data-testid="prs-list" /> }));
@@ -47,16 +47,102 @@ describe('Página ProgresoCliente', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        endpoints.obtenerEjerciciosConHistorial.mockResolvedValue([]);
+        endpoints.obtenerStatsGlobales.mockReset().mockResolvedValue(mockStats);
+        endpoints.obtenerPRs.mockReset().mockResolvedValue([]);
+        endpoints.obtenerEjerciciosConHistorial.mockReset().mockResolvedValue([]);
+        endpoints.obtenerEjercicios.mockReset().mockResolvedValue(mockEjercicios);
+        endpoints.obtenerProgresoEjercicio.mockReset().mockResolvedValue([]);
     });
 
     const renderComponent = (props = {}) => {
-        render(
+        return render(
             <BrowserRouter>
                 <ProgresoCliente {...props} />
             </BrowserRouter>
         );
     };
+
+    it('shows a global statistics failure without inventing zeros and retries independently', async () => {
+        endpoints.obtenerStatsGlobales.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(mockStats);
+        renderComponent();
+        expect(screen.queryByText('0')).not.toBeInTheDocument();
+        expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron cargar las estadísticas');
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar estadísticas' }));
+        expect(await screen.findByText('15')).toBeInTheDocument();
+        expect(endpoints.obtenerPRs).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the chosen exercise when retrying personal records', async () => {
+        endpoints.obtenerPRs.mockRejectedValueOnce(new Error('offline')).mockResolvedValue([]);
+        renderComponent();
+        const select = await screen.findByRole('combobox');
+        fireEvent.change(select, { target: { value: 'ex-2' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar récords' }));
+        await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+        expect(select).toHaveValue('ex-2');
+        expect(endpoints.obtenerStatsGlobales).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not replace failed exercise history with the library as if history were empty', async () => {
+        endpoints.obtenerEjerciciosConHistorial.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(mockEjercicios);
+        renderComponent();
+        expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron cargar los ejercicios');
+        expect(endpoints.obtenerEjercicios).not.toHaveBeenCalled();
+        expect(screen.queryByText('No hay datos de ejercicios.')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar ejercicios' }));
+        expect(await screen.findByRole('combobox')).toHaveValue('ex-1');
+    });
+
+    it('ignores a delayed chart from a previously selected exercise', async () => {
+        let finishOld;
+        endpoints.obtenerProgresoEjercicio.mockImplementation((_, exercise) => exercise === 'ex-1'
+            ? new Promise(resolve => { finishOld = resolve; })
+            : Promise.resolve({ grafica: [{ fecha: 'hoy', valor: 200 }], pr: 150 }));
+        renderComponent();
+        const select = await screen.findByRole('combobox');
+        await waitFor(() => expect(finishOld).toBeDefined());
+        fireEvent.change(select, { target: { value: 'ex-2' } });
+        expect(await screen.findByTestId('chart-progreso')).toHaveTextContent('PR: 150');
+        await act(async () => finishOld({ grafica: [{ fecha: 'ayer', valor: 99 }], pr: 99 }));
+        expect(screen.getByTestId('chart-progreso')).toHaveTextContent('PR: 150');
+        expect(screen.getByTestId('chart-progreso')).not.toHaveTextContent('ayer');
+    });
+
+    it('ignores late statistics from another athlete', async () => {
+        let finishOld;
+        endpoints.obtenerStatsGlobales.mockImplementation(id => id === 'first-athlete'
+            ? new Promise(resolve => { finishOld = resolve; })
+            : Promise.resolve({ ...mockStats, totalEntrenos: 42 }));
+        const { rerender } = renderComponent({ clienteIdProp: 'first-athlete', isCoachMode: true });
+        await waitFor(() => expect(finishOld).toBeDefined());
+        rerender(<BrowserRouter><ProgresoCliente clienteIdProp="second-athlete" isCoachMode /></BrowserRouter>);
+        expect(await screen.findByText('42')).toBeInTheDocument();
+        await act(async () => finishOld(mockStats));
+        expect(screen.queryByText('15')).not.toBeInTheDocument();
+        expect(screen.getByText('42')).toBeInTheDocument();
+    });
+
+    it('hides the old chart after a new exercise fails and offers its own retry', async () => {
+        endpoints.obtenerProgresoEjercicio.mockImplementation((_, exercise) => exercise === 'ex-1'
+            ? Promise.resolve({ grafica: [{ fecha: 'ayer', valor: 100 }], pr: 100 })
+            : Promise.reject(new Error('offline')));
+        renderComponent();
+        expect(await screen.findByTestId('chart-progreso')).toHaveTextContent('PR: 100');
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'ex-2' } });
+        expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar la gráfica');
+        expect(screen.queryByTestId('chart-progreso')).not.toBeInTheDocument();
+        endpoints.obtenerProgresoEjercicio.mockResolvedValue({ grafica: [], pr: 200 });
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar gráfica' }));
+        expect(await screen.findByTestId('chart-progreso')).toHaveTextContent('PR: 200');
+    });
+
+    it('renders the API tonnage suffix exactly once', async () => {
+        endpoints.obtenerStatsGlobales.mockResolvedValue({ ...mockStats, volumenTotal: '1t' });
+        renderComponent();
+        expect(await screen.findByText('15')).toBeInTheDocument();
+        expect(screen.queryByText('1t')).not.toBeInTheDocument();
+        expect(screen.getByText('1')).toBeInTheDocument();
+    });
 
     it('carga y muestra los KPIs principales correctamente', async () => {
         endpoints.obtenerStatsGlobales.mockResolvedValue(mockStats);

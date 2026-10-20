@@ -252,3 +252,10 @@ La revisión posterior de la herramienta iOS aplica UUID corregido únicamente a
 aparecen en los bundles Android/iOS examinados. Se mantienen 170 pruebas móviles
 correctas y una prueba adicional de herramientas. Los avisos y límites continúan
 registrados en [Dependencias móviles](mobile-dependencies.md).
+
+La revisión de progreso del 20 de octubre añade reintentos independientes para
+estadísticas, récords, ejercicios y gráfica, y evita que una respuesta tardía
+sustituya al atleta o ejercicio seleccionado. Se verifica con API local real
+y fallos de red controlados para cliente y entrenador, junto a la regresión de
+calendario y chat. El estado y los recuentos vigentes están en
+[Pruebas generales](testing-general.md). No implica un despliegue de la candidata.

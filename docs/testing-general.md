@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 346 pruebas en 60 archivos, todas correctas |
+| Web, suite completa | 353 pruebas en 60 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -20,12 +20,12 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Lint web | Cero errores, siete avisos de dependencias de hooks pendientes |
 | Auditoría npm web | Cero avisos después de actualizaciones compatibles |
 | Auditoría npm móvil | 50 avisos: 45 altos, 5 moderados, cero críticos |
-| Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario y chat entre dos sesiones independientes completados |
+| Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
 | Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. La rama candidata sigue sin desplegar |
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 
-Las suites de backend, web y móvil suman **890 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **897 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -34,6 +34,7 @@ La suite web se volvió a ejecutar completa el día 20 tras corregir los adjunto
 reconexión vuelve a ejecutar la suite completa con 331 casos correctos. La
 recuperación posterior de historial e imágenes la eleva a 336 casos correctos;
 la revisión de las listas de conversaciones termina con 346 casos correctos.
+La revisión posterior de progreso termina con 353 pruebas web correctas.
 
 ## Errores corregidos durante la pasada completa
 
@@ -64,7 +65,9 @@ manual con 35,5 kg, edición común de series con 37,5 kg, registro de entrenami
 consulta de rutinas por el entrenador y resultados del primer evento sin mostrar
 los del segundo. Esos recorridos usan endpoints reales. La recuperación del chat
 añade respuestas 503 deliberadas en el navegador para una fuente de contactos
-de cada perfil, el historial y una imagen; sus reintentos vuelven a la API real. Se bloquean conexiones a servicios externos.
+de cada perfil, el historial y una imagen. Progreso añade un 503 en cada una de
+sus cuatro secciones para ambos perfiles; todos esos reintentos vuelven a la API
+real. Se bloquean conexiones a servicios externos.
 
 El arranque de prueba no hereda credenciales de proveedores ni configuración de
 despliegue. Usa H2 en memoria, almacenamiento local temporal y correo/proveedores
@@ -413,3 +416,35 @@ y separación entre tiempo inicial y tiempo normal. Se contabilizan aparte de la
 890 pruebas de la aplicación. La pasada HTTP real también pasa con salud UP,
 tres endpoints protegidos sin sesión, ambos controles de CORS y Google inválido.
 No crea usuarios ni modifica sus datos y no valida un login social real.
+
+
+## Recuperación y coherencia de progreso (20 de octubre)
+
+Los errores de estadísticas, récords, ejercicios y gráfica ya no se convierten
+en ceros o listas vacías. Cada sección ofrece su propio reintento sin reiniciar
+las demás. La gráfica se asocia al atleta y ejercicio seleccionados; se ignoran
+respuestas tardías del anterior. El catálogo solo se consulta cuando el historial
+se ha obtenido correctamente y está vacío.
+
+Se corrige la unidad duplicada del volumen: el servidor entrega, por ejemplo,
+`1t` y ahora se representa una sola «t». Se conserva el redondeo del servidor
+a toneladas y horas enteras; esta revisión no aumenta su precisión.
+
+Siete regresiones nuevas fallaban antes de la corrección. Las doce pruebas
+focalizadas de progreso pasan después. El recorrido de navegador con API local
+real verifica tres sesiones guardadas para el cliente y dos bajo el entrenador,
+récord de 50,5 kg, volumen igual al de la API y ausencia de desbordamiento horizontal
+a 390 px. Una sesión guardada cuenta aunque no tenga series marcadas como
+realizadas; el volumen solo suma las series realizadas, según el contrato actual.
+
+Se fuerzan cuatro fallos HTTP 503 por perfil (totales, récords, ejercicios y gráfica)
+y se recuperan mediante reintentos contra la API real. Las cuatro rutas de
+estadísticas rechazan al tercer cliente con 403; los totales anónimos devuelven
+401. También vuelven a pasar los recorridos de calendario, sesiones y chat,
+incluidos adjuntos privados, bloqueo y reconexión WebSocket.
+
+Validación final de esta revisión: **353 pruebas web en 60 archivos**, compilación
+Vite y lint con cero errores y los siete avisos anteriores. El total vigente de
+las suites backend/web/móvil es **897**; backend y móvil conservan sus resultados
+anteriores porque esta revisión solo modifica la web y el ensayo local. No se
+ha desplegado esta candidata ni se ha dado por cerrado el paso 7 para publicación.

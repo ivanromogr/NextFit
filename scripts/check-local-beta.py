@@ -2,6 +2,7 @@
 import json, re, secrets, struct, zlib
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError
+from urllib.parse import urlsplit
 from pathlib import Path
 import tempfile
 from datetime import date as calendar_date, timedelta
@@ -50,6 +51,14 @@ assert first['ejercicios'][0]['series'][0]['kilos']==30.5
 call('GET',f"/api/sesiones/evento/{events[0]['id']}",token=other['token'],expected=403)
 call('GET',f"/api/sesiones/evento/{events[0]['id']}",expected=401)
 print('PASS real HTTP: registration, trainer relationship, routine, calendar, two distinct sessions and ownership')
+stats_paths=[f"/api/stats/global/{client['id']}",f"/api/stats/prs/{client['id']}",
+             f"/api/stats/ejercicios/{client['id']}",f"/api/stats/ejercicio/{client['id']}/{exercise}"]
+assert call('GET',stats_paths[0],token=client['token'])['totalEntrenos']==2
+assert call('GET',stats_paths[0]+f"?entrenadorId={coach['id']}",token=coach['token'])['totalEntrenos']==2
+assert call('GET',stats_paths[3],token=client['token'])['pr']==50.5
+for path in stats_paths: call('GET',path,token=other['token'],expected=403)
+call('GET',stats_paths[0],expected=401)
+print('PASS real HTTP statistics: saved-session totals and personal record; unrelated/anonymous access denied')
 
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
@@ -117,6 +126,33 @@ with sync_playwright() as p:
   page.wait_for_load_state('networkidle')
   page.reload()
   page.get_by_text('Plan beta local',exact=True).first.wait_for(state='attached')
+  page.wait_for_load_state('networkidle')
+  expected_stats=call('GET',stats_paths[0]+(f"?entrenadorId={coach['id']}" if user is coach else ''),token=user['token'])
+  assert expected_stats['totalEntrenos']==(3 if user is client else 2)
+  stats_failures={'global':1,'prs':1,'ejercicios':1,'ejercicio':1}
+  def fail_first_stats(route,_request,failures=stats_failures):
+   kind=urlsplit(route.request.url).path.split('/')[3]
+   if failures.get(kind,0):
+    failures[kind]-=1
+    route.fulfill(status=503,json={'message':'Local beta injected progress failure'})
+   else: route.continue_()
+  context.route(API+'/api/stats/**',fail_first_stats)
+  progress_path='/cliente/progreso' if user is client else f"/entrenador/cliente/{client['id']}/progreso"
+  page.goto(WEB+progress_path)
+  page.get_by_role('button',name='Reintentar estadísticas',exact=True).wait_for()
+  expect(page.get_by_text('Entrenos',exact=True)).to_have_count(0)
+  page.get_by_role('button',name='Reintentar estadísticas',exact=True).click()
+  expect(page.get_by_text('Entrenos',exact=True).locator('..')).to_contain_text(str(expected_stats['totalEntrenos']))
+  expected_volume=str(expected_stats['volumenTotal']).removesuffix('t')
+  expect(page.get_by_text('Volumen Total',exact=True).locator('..').locator(':scope > div').nth(2)).to_have_text(re.compile(re.escape(expected_volume)+r'\s*t'))
+  page.get_by_role('button',name='Reintentar récords',exact=True).click()
+  page.get_by_text('Salón de la Fama',exact=True).wait_for()
+  page.get_by_role('button',name='Reintentar ejercicios',exact=True).click()
+  expect(page.get_by_role('combobox',name='Ejercicio del progreso')).to_have_value(exercise)
+  page.get_by_role('button',name='Reintentar gráfica',exact=True).click()
+  page.get_by_text(re.compile(r'PR:\s*50\.5kg')).wait_for()
+  assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), 'Progress overflows the viewport'
+  print('PASS built browser statistics:',user['role'],width,'four injected failures recovered; totals match real API and personal record is 50.5 kg')
   print('PASS built browser:',user['role'],width,'login/cookie refresh + manual routine/workout' if user is client else 'assigned client/calendar + exact event results')
   context.close()
  # Two independent browser sessions exercise the actual SockJS/STOMP transport.

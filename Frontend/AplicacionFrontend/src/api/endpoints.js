@@ -285,39 +285,22 @@ export const obtenerUltimaSesionRutina = async (clienteId, rutinaId) => {
 
 // --- 9. ESTADÍSTICAS ---
 export const obtenerStatsGlobales = async (clienteId, entrenadorId = null) => {
-  try {
-    let url = `/api/stats/global/${clienteId}`;
-    if (entrenadorId) url += `?entrenadorId=${entrenadorId}`;
-    const response = await api.get(url);
-    return response.data;
-  } catch (error) {
-    console.error("Error cargando stats globales:", error);
-    return null;
-  }
+  let url = `/api/stats/global/${clienteId}`;
+  if (entrenadorId) url += `?entrenadorId=${entrenadorId}`;
+  return (await api.get(url)).data;
 };
 
 export const obtenerProgresoEjercicio = async (clienteId, ejercicioId, entrenadorId = null) => {
-  try {
-    let url = `/api/stats/ejercicio/${clienteId}/${ejercicioId}`;
-    if (entrenadorId) url += `?entrenadorId=${entrenadorId}`;
-    const response = await api.get(url);
-    return response.status === 204 ? null : response.data;
-  } catch (error) {
-    console.error("Error cargando progreso ejercicio:", error);
-    return null;
-  }
+  let url = `/api/stats/ejercicio/${clienteId}/${ejercicioId}`;
+  if (entrenadorId) url += `?entrenadorId=${entrenadorId}`;
+  const response = await api.get(url);
+  return response.status === 204 ? null : response.data;
 };
 
 export const obtenerPRs = async (clienteId, entrenadorId = null) => {
-  try {
-    let url = `/api/stats/prs/${clienteId}`;
-    if (entrenadorId) url += `?entrenadorId=${entrenadorId}`;
-    const response = await api.get(url);
-    return response.data;
-  } catch (error) {
-    console.error("Error cargando PRs:", error);
-    return [];
-  }
+  let url = `/api/stats/prs/${clienteId}`;
+  if (entrenadorId) url += `?entrenadorId=${entrenadorId}`;
+  return (await api.get(url)).data;
 };
 
 export const obtenerEventosCalendario = async (clienteId, inicio, fin, entrenadorId = null) => {
@@ -366,17 +349,12 @@ export const obtenerDetalleSesion = async (eventoId) => {
 };
 
 export const obtenerEjerciciosConHistorial = async (clienteId, entrenadorId = null) => {
-  try {
-    let url = `/api/stats/ejercicios/${clienteId}`;
-    if (entrenadorId) url += `?entrenadorId=${entrenadorId}`;
-    const response = await api.get(url);
-    return Array.isArray(response.data) ? response.data : [];
-  } catch (error) {
-    console.error("Error obteniendo ejercicios con historial:", error);
-    return [];
-  }
+  let url = `/api/stats/ejercicios/${clienteId}`;
+  if (entrenadorId) url += `?entrenadorId=${entrenadorId}`;
+  const response = await api.get(url);
+  if (!Array.isArray(response.data)) throw new Error('Invalid exercise history');
+  return response.data;
 };
-
 export const obtenerPlantillasEntrenador = async (entrenadorId) => {
   try {
     const response = await api.get(`/api/rutinas/plantillas/${entrenadorId}`);
