@@ -153,6 +153,19 @@ with sync_playwright() as p:
   report.get_by_role('button',name='Enviar denuncia',exact=True).click()
  assert response.value.status==202
  coach_chat.get_by_text(re.compile('Denuncia registrada')).wait_for()
+ history_path=f"/api/chat/historial?otroUsuarioId={coach['id']}"
+ history=call('GET',history_path,token=client['token'])
+ message=next(item for item in history if item['contenido']=='Mensaje beta de atleta')
+ call('GET',history_path,token=other['token'],expected=403)
+ call('GET',f"/api/chat/historial?usuario1={client['id']}&usuario2={coach['id']}",token=other['token'],expected=403)
+ for user in (client,other):
+  call('POST',f"/api/chat/messages/{message['id']}/reports",{'reason':'SPAM'},user['token'],expected=403)
+ call('PUT',f"/api/chat/blocks/{coach['id']}",token=other['token'],expected=403)
+ call('GET','/api/moderation/reports',token=coach['token'],expected=403)
+ print('PASS real HTTP chat isolation: unrelated history/report/block and non-operator moderation denied')
+ # The peer still has its earlier allowed state: the server must reject its send.
+ coach_chat.get_by_placeholder('Escribe un mensaje...').fill('Mensaje rechazado por bloqueo')
+ expect(coach_chat.get_by_role('button',name='Enviar mensaje',exact=True)).to_be_enabled()
  athlete_chat.get_by_role('button',name='Bloquear chat',exact=True).click()
  with athlete_chat.expect_response(lambda r:'/api/chat/blocks/' in r.url and r.request.method=='PUT') as response:
   athlete_chat.get_by_role('dialog',name='Bloquear chat').get_by_role('button',name='Confirmar',exact=True).click()
@@ -160,6 +173,13 @@ with sync_playwright() as p:
  expect(athlete_chat.get_by_placeholder('Escribe un mensaje...')).to_be_disabled()
  safety=call('GET',f"/api/chat/safety/{client['id']}",token=coach['token'])
  assert not safety['canSend']
+ coach_chat.get_by_role('button',name='Enviar mensaje',exact=True).click()
+ coach_chat.get_by_role('alert').filter(has_text='No se pueden enviar mensajes').wait_for()
+ expect(coach_chat.get_by_placeholder('Escribe un mensaje...')).to_be_disabled()
+ blocked_history=call('GET',history_path,token=client['token'])
+ assert len(blocked_history)==len(history)
+ assert all(item['contenido']!='Mensaje rechazado por bloqueo' for item in blocked_history)
+ expect(athlete_chat.get_by_text('Mensaje rechazado por bloqueo',exact=True)).to_have_count(0)
  athlete_chat.get_by_role('button',name='Desbloquear',exact=True).click()
  with athlete_chat.expect_response(lambda r:'/api/chat/blocks/' in r.url and r.request.method=='DELETE') as response:
   athlete_chat.get_by_role('dialog',name='Desbloquear chat').get_by_role('button',name='Confirmar',exact=True).click()
@@ -172,6 +192,6 @@ with sync_playwright() as p:
  coach_chat.get_by_text('Mensaje beta de atleta',exact=True).wait_for()
  coach_chat.get_by_text('Respuesta beta del entrenador',exact=True).wait_for()
  coach_chat.get_by_text('Mensaje beta tras desbloquear',exact=True).wait_for()
- print('PASS real browser chat: two sessions, delivery, report, block, unblock and persisted history')
+ print('PASS real browser chat: bidirectional delivery, report, peer send rejected without persistence, unblock and stored history')
  for context in chat_contexts: context.close()
  browser.close()

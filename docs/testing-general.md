@@ -174,3 +174,23 @@ Este recorrido amplía la comprobación anterior de entrenamientos y calendario.
 No añade casos al recuento de las suites unitarias ni acredita comportamiento
 físico en iPhone. No prueba archivos adjuntos o reconexión tras pérdida de red.
 Se ejecuta con cuentas `example.invalid` y no escribe en producción.
+
+### Bloqueo aplicado por el servidor y aislamiento de cuentas
+
+La ampliación del ensayo del 20 de octubre prepara un mensaje en el navegador del
+entrenador antes de que el atleta bloquee el chat. El envío posterior recibe el
+rechazo real del servidor por STOMP; el navegador muestra el error y deshabilita
+el editor. El historial consultado por HTTP conserva su número de mensajes y no
+contiene el texto rechazado; tampoco aparece en el navegador del atleta. Esto
+comprueba el bloqueo aunque el emisor conserve temporalmente un estado anterior.
+
+Con la tercera cuenta ficticia, sin relación con esa conversación, se verifican
+respuestas 403 al consultar el historial por ambos formatos de parámetros,
+denunciar el mensaje recibido por otra cuenta e intentar bloquear al entrenador.
+El remitente tampoco puede denunciar su propio mensaje. El entrenador recibe 403
+al consultar denuncias de moderación porque no es operador interno. No se
+conceden permisos ni se usa una cuenta real en este ensayo.
+
+El recorrido completo de entrenamientos, calendario y chat termina correctamente
+con estas comprobaciones adicionales; las suites anteriores conservan su recuento
+de 865 casos. El código de aplicación no necesitó cambios para estos escenarios.
