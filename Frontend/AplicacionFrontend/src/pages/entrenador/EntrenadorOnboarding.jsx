@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { completarOnboardingEntrenador } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 
@@ -35,11 +35,15 @@ const LISTA_TITULACIONES = [
 ];
 
 export default function EntrenadorOnboarding() {
-  const { userId: authenticatedUserId } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { userId: authenticatedUserId, loading: authLoading } = useAuth();
+  if (authLoading) return <p role="status">Comprobando tu sesión…</p>;
+  return <OnboardingForm key={authenticatedUserId || 'anonymous'} userId={authenticatedUserId} />;
+}
 
-  const [userId, setUserId] = useState(null);
+function OnboardingForm({ userId }) {
+  const navigate = useNavigate();
+  const request = useRef({ active: true, saving: false });
+  const [saveError, setSaveError] = useState('');
   const [loading, setLoading] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [animateKey, setAnimateKey] = useState(0);
@@ -55,12 +59,11 @@ export default function EntrenadorOnboarding() {
   });
 
   useEffect(() => {
-    let idRecuperado = authenticatedUserId || location.state?.userId
-      || sessionStorage.getItem("registration_userId")
-      || localStorage.getItem("registration_userId");
-    if (idRecuperado) setUserId(idRecuperado);
-    else console.warn("⚠️ Modo desarrollo: Sin ID de usuario.");
-  }, [location, navigate]);
+    const current = request.current;
+    current.active = true;
+    if (!userId) navigate('/auth/login', { replace: true });
+    return () => { current.active = false; };
+  }, [userId, navigate]);
 
   const currentStep = STEPS[stepIndex];
   const totalSteps = STEPS.length;
@@ -92,13 +95,19 @@ export default function EntrenadorOnboarding() {
 
   const isStepValid = () => {
     switch (currentStep) {
-      case "identidad":
-        return data.genero !== "" && data.fechaNacimiento !== "";
+      case "identidad": {
+        const birth = new Date(`${data.fechaNacimiento}T00:00:00Z`);
+        const today = new Date();
+        const adultCutoff = new Date(Date.UTC(today.getFullYear() - 18, today.getMonth(), today.getDate()));
+        return data.genero !== '' && Number.isFinite(birth.getTime())
+          && birth.toISOString().slice(0, 10) === data.fechaNacimiento && birth <= adultCutoff;
+      }
       case "especialidad":
         return data.especialidad.length > 0;
       case "experiencia": {
-        const anios = parseFloat(data.aniosExperiencia);
-        return !isNaN(anios) && anios >= 0 && data.modalidadTrabajo !== "";
+        const anios = Number(data.aniosExperiencia);
+        return data.aniosExperiencia.trim() !== "" && Number.isSafeInteger(anios) && anios >= 0
+          && anios <= 2147483647 && data.modalidadTrabajo !== "";
       }
       case "detalles":
         return data.formacion !== "" && data.descripcionPerfil.trim().length > 15;
@@ -108,13 +117,15 @@ export default function EntrenadorOnboarding() {
   };
 
   const handleNext = async () => {
+    if (!request.current.active || request.current.saving || !userId || !isStepValid()) return;
     if (stepIndex < totalSteps - 1) {
       setStepIndex(stepIndex + 1);
       setAnimateKey((k) => k + 1);
       return;
     }
 
-    if (!userId) { alert("Error crítico: Falta ID de usuario"); return; }
+    request.current.saving = true;
+    setSaveError('');
 
     try {
       setLoading(true);
@@ -130,7 +141,7 @@ export default function EntrenadorOnboarding() {
         genero: data.genero,
         edad: edadCalculada,
         especialidad: data.especialidad.join(", "),
-        aniosExperiencia: parseInt(data.aniosExperiencia),
+        aniosExperiencia: Number(data.aniosExperiencia),
         modalidadTrabajo: data.modalidadTrabajo,
         formacion: data.formacion,
         descripcionPerfil: data.descripcionPerfil,
@@ -139,12 +150,12 @@ export default function EntrenadorOnboarding() {
 
       await completarOnboardingEntrenador(payload);
 
-      navigate("/entrenador/dashboard");
-    } catch (error) {
-      console.error(error);
-      alert("Error al guardar: " + error.message);
+      if (request.current.active) navigate("/entrenador/dashboard");
+    } catch {
+      if (request.current.active) setSaveError('No se pudo guardar tu perfil. Reinténtalo.');
     } finally {
-      setLoading(false);
+      request.current.saving = false;
+      if (request.current.active) setLoading(false);
     }
   };
 
@@ -366,6 +377,8 @@ export default function EntrenadorOnboarding() {
     microRight: { fontSize: "0.8rem", color: "rgba(255,255,255,0.35)" },
   };
 
+  if (!userId) return <p role="status">Inicia sesión para completar tu perfil.</p>;
+
   return (
     <div style={styles.root}>
       <div style={styles.card}>
@@ -581,6 +594,7 @@ export default function EntrenadorOnboarding() {
           )}
         </div>
 
+        {saveError && <p role="alert" style={{ color: '#fca5a5' }}>{saveError}</p>}
         <GymButton fullWidth disabled={!isStepValid() || loading} onClick={handleNext}>
           {loading ? "GUARDANDO..." : (stepIndex === totalSteps - 1 ? "FINALIZAR ALTA" : "SIGUIENTE")}
           {!loading && <Check size={20} />}

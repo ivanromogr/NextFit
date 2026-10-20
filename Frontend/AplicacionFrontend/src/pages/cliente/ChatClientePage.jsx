@@ -1,6 +1,6 @@
 import { getAccessToken } from '../../utils/authSession';
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ChatComponent from "../../components/functional/ChatComponent";
 import { api, obtenerContactosChat } from "../../api/endpoints"; 
 import { Search, Edit, User, MessageSquare, Plus, X, Check } from "lucide-react";
@@ -11,6 +11,12 @@ import { SOCKJS_URL } from "../../api/config";
 
 export default function ChatClientePage() {
     const { userId: clienteId } = useAuth();
+    return <ChatClienteContent key={clienteId || 'anonymous'} clienteId={clienteId} />;
+}
+
+function ChatClienteContent({ clienteId }) {
+    const navigate = useNavigate();
+    const externalRequests = useRef(0);
     const [entrenador, setEntrenador] = useState(null);
     
     const [amigos, setAmigos] = useState(() => {
@@ -55,16 +61,22 @@ export default function ChatClientePage() {
 
     // Si venimos desde otra página pidiendo abrir un chat concreto, lo gestionamos
     const location = useLocation();
+    const openWith = location?.state?.openChatWith;
+    const wantsGreeting = location?.state?.autoGreet === true;
+    const greetingText = typeof location?.state?.greetingMessage === 'string'
+        ? location.state.greetingMessage : 'Hola, te acabo de contactar desde NextFit.';
     useEffect(() => {
-        const openWith = location?.state?.openChatWith;
-        if (!openWith) return;
+        if (!openWith || !clienteId) return;
+        let active = true;
+        const request = ++externalRequests.current;
 
         const abrirChatExterno = async () => {
             try {
                 // Intentamos obtener al usuario (entrenador) por id
                 const res = await api.get(`/api/entrenador/${openWith}`);
-                const fuente = res.data.entrenador || res.data;
-                if (!fuente) return;
+                if (!active || request !== externalRequests.current) return;
+                const fuente = res.data?.entrenador || res.data;
+                if (fuente?.id !== openWith || typeof fuente.nombre !== 'string' || typeof fuente.apellido !== 'string') return;
 
                 const contacto = {
                     id: fuente.id,
@@ -76,21 +88,17 @@ export default function ChatClientePage() {
                 setAmigos(prev => prev.some(a => a.id === contacto.id) ? prev : [...prev, contacto]);
                 setContactoSeleccionado(contacto);
 
-                // Si la navegación pedía enviar un saludo inicial, guardarlo para pasarlo al ChatComponent
-                if (location?.state?.autoGreet) {
-                    setAutoGreetNext(true);
-                    setGreetingMessageNext(location.state.greetingMessage || 'Hola, te acabo de contactar desde NextFit.');
-                }
-
-                // Limpiar state de la navegación para que no se reabra al recargar
-                try { window.history.replaceState({}, document.title, window.location.pathname + window.location.search); } catch { /* Navigation state cleanup is best-effort. */ }
+                setAutoGreetNext(wantsGreeting);
+                setGreetingMessageNext(wantsGreeting ? greetingText : '');
+                navigate((location.pathname || window.location.pathname) + (location.search || ''), { replace: true, state: null });
             } catch (err) {
                 console.error('Error abriendo chat con id externo', err);
             }
         };
 
         abrirChatExterno();
-    }, [location?.state?.openChatWith, clienteId]);
+        return () => { active = false; };
+    }, [openWith, wantsGreeting, greetingText, clienteId, navigate, location.pathname, location.search]);
 
     useEffect(() => {
         if(clienteId) {
@@ -170,6 +178,9 @@ export default function ChatClientePage() {
     };
 
     const handleSelectContacto = (contacto) => {
+        externalRequests.current += 1;
+        setAutoGreetNext(false);
+        setGreetingMessageNext('');
         setContactoSeleccionado(contacto);
         if (unreadUsers.has(contacto.id)) {
             const newSet = new Set(unreadUsers);

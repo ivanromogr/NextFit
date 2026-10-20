@@ -418,5 +418,47 @@ with sync_playwright() as p:
   page.wait_for_url(re.compile('/'+user['role']+'/dashboard$'))
   page.wait_for_load_state('networkidle')
   print('PASS profile recovery:',user['role'],'failed load blocks editing; actual retry; save failure retains edits; actual save persists name without changing email')
+ coach_context=chat_contexts[1]
+ coach_page=chat_pages[1]
+ onboarding_path='/api/entrenador/onboarding'
+ onboarding_failures=[1]
+ def fail_onboarding(route,_request):
+  if onboarding_failures[0]:
+   onboarding_failures[0]-=1
+   route.fulfill(status=503,json={'message':'Local beta injected onboarding failure'})
+  else: route.continue_()
+ coach_context.route(API+onboarding_path,fail_onboarding)
+ coach_page.goto(WEB+'/entrenador/onboarding')
+ coach_page.get_by_role('button',name='Hombre',exact=True).click()
+ coach_page.get_by_role('button',name='Selecciona una fecha',exact=True).click()
+ coach_page.get_by_role('combobox',name='Seleccionar año').select_option('1990')
+ coach_page.get_by_role('combobox',name='Seleccionar mes').select_option('4')
+ coach_page.locator('.react-datepicker__day--015:not(.react-datepicker__day--outside-month)').click()
+ coach_page.get_by_role('button',name=re.compile('SIGUIENTE',re.I)).click()
+ coach_page.get_by_role('button',name='Musculación',exact=True).click()
+ coach_page.get_by_role('button',name=re.compile('SIGUIENTE',re.I)).click()
+ experience=coach_page.get_by_placeholder('Ej: 5')
+ experience.fill('6.5')
+ coach_page.get_by_role('button',name='Presencial',exact=True).click()
+ expect(coach_page.get_by_role('button',name=re.compile('SIGUIENTE',re.I))).to_be_disabled()
+ experience.fill('6')
+ coach_page.get_by_role('button',name=re.compile('SIGUIENTE',re.I)).click()
+ coach_page.get_by_role('combobox').select_option('Grado en CAFD / INEF')
+ biography=coach_page.get_by_placeholder(re.compile('Hola, soy especialista en'))
+ biography.fill('Biografía beta local conservada después de un fallo.')
+ coach_page.get_by_role('button',name=re.compile('FINALIZAR ALTA',re.I)).click()
+ coach_page.get_by_role('alert').wait_for()
+ expect(biography).to_have_value('Biografía beta local conservada después de un fallo.')
+ with coach_page.expect_response(lambda response: onboarding_path in response.url and response.request.method=='POST') as onboarding_saved:
+  coach_page.get_by_role('button',name=re.compile('FINALIZAR ALTA',re.I)).click()
+ assert onboarding_saved.value.status==200
+ assert onboarding_saved.value.request.post_data_json['idEntrenador']==coach['id']
+ assert onboarding_saved.value.request.post_data_json['aniosExperiencia']==6
+ coach_page.wait_for_url(re.compile('/entrenador/dashboard$'))
+ persisted=call('GET',f"/api/entrenador/{coach['id']}",token=coach['token'])
+ persisted=persisted.get('entrenador',persisted)
+ assert persisted['aniosExperiencia']==6
+ assert persisted['descripcionPerfil']=='Biografía beta local conservada después de un fallo.'
+ print('PASS trainer onboarding: fractional experience blocked, failed save retains biography, real retry persists experience and biography for authenticated coach')
  for context in chat_contexts: context.close()
  browser.close()

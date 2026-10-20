@@ -12,12 +12,12 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 381 pruebas en 60 archivos, todas correctas |
+| Web, suite completa | 394 pruebas en 60 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
 | Exportaciones móviles | Android/iOS Hermes correctas con Babel SDK 54; no son builds firmadas |
-| Lint web | Cero errores, dos avisos de dependencias de hooks pendientes |
+| Lint web | Cero errores y cero avisos |
 | Auditoría npm web | Cero avisos después de actualizaciones compatibles |
 | Auditoría npm móvil | 50 avisos: 45 altos, 5 moderados, cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
@@ -25,7 +25,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. La rama candidata sigue sin desplegar |
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 
-Las suites de backend, web y móvil suman **925 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **938 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -37,7 +37,8 @@ la revisión de las listas de conversaciones termina con 346 casos correctos.
 La revisión posterior de progreso termina con 353 pruebas web correctas;
 la de listas del entrenador eleva la suite a 361 casos correctos. La revisión
 del panel termina con 369 pruebas web correctas; la edición de perfiles eleva
-la suite a 381 casos correctos.
+la suite a 381 casos correctos. El alta y la navegación al chat completan
+la suite con 394 casos correctos.
 
 ## Errores corregidos durante la pasada completa
 
@@ -74,7 +75,9 @@ real. Las listas de atletas y plantillas añaden también un 503 inicial por
 pantalla y recuperación contra la API real. El panel añade fallos iniciales
 de atletas y resumen, un refresco fallido y recuperación al volver a enfocarlo.
 Los perfiles añaden fallos controlados de carga y guardado; sus reintentos usan
-la API real y verifican los datos persistidos. Se bloquean conexiones a servicios externos.
+la API real y verifican los datos persistidos. El alta del entrenador añade
+un guardado fallido y un reintento real, con lectura posterior del perfil.
+Se bloquean conexiones a servicios externos.
 
 El arranque de prueba no hereda credenciales de proveedores ni configuración de
 despliegue. Usa H2 en memoria, almacenamiento local temporal y correo/proveedores
@@ -556,3 +559,45 @@ correcta y lint con cero errores y **dos avisos**, dos menos que antes. El total
 vigente backend/web/móvil es **925**; backend y móvil conservan sus resultados
 anteriores porque esta revisión modifica solo la web y el ensayo local. Los
 cambios no están desplegados y no se declara cerrado el paso 7 para publicación.
+
+
+## Alta del entrenador y navegación al chat (20 de octubre)
+
+El alta utiliza exclusivamente la cuenta autenticada. Espera la restauración de
+la sesión antes de exigir login; ya no recupera identificadores de la navegación
+ni de cachés de registro antiguas. Cambiar de cuenta reinicia el formulario y
+una respuesta del guardado anterior no redirige a la nueva. Un fallo al guardar
+se muestra dentro de la pantalla y conserva los datos para reintentar, con
+bloqueo de envíos simultáneos.
+
+La validación del cliente exige una fecha válida y la mayoría de edad que ya
+indica el selector. Los años de experiencia deben ser enteros no negativos
+dentro del rango Integer de la API; no se truncan valores fraccionarios ni
+se envían valores que desborden ese rango. No se ha cambiado la validación
+del servidor.
+
+El contacto solicitado desde otra pantalla descarta respuestas tardías si cambia
+la navegación o el usuario selecciona otra conversación. El saludo solicitado
+no se transfiere al contacto elegido manualmente. Se limpia el estado mediante
+el router y cada cuenta mantiene su propia instancia del chat y caché; no se
+copian contactos de la cuenta anterior a la nueva.
+
+Se añaden trece regresiones: nueve de alta (incluida la espera de sesión) y cuatro
+de navegación, saludo y cambio de cuenta del chat. La ejecución focalizada
+previa pasó 24 casos; después se añadieron dos casos de mayoría de edad y
+restauración de sesión incluidos en la suite completa.
+
+El navegador completa el alta con selector de fecha real, bloquea experiencia
+fraccionaria, fuerza un 503 de guardado y confirma que la biografía se conserva.
+El reintento real guarda seis años de experiencia y la biografía en la cuenta
+autenticada; una lectura posterior del perfil verifica la persistencia. También
+pasa la regresión anterior de perfiles, entrenamientos, calendario, estadísticas,
+panel, listas y chat. El ensayo usa cuentas ficticias sobre H2 temporal y no
+contacta con servicios de pago ni valida un dispositivo iPhone.
+
+Validación final de esta revisión: **394 pruebas web en 60 archivos**, compilación
+Vite correcta y lint con **cero errores y cero avisos**. El total vigente de las
+suites backend/web/móvil es **938**; backend y móvil conservan sus resultados
+anteriores porque esta revisión solo modifica la web y el ensayo local. La rama
+candidata sigue sin desplegar y el paso 7 continúa abierto para publicación por
+los avisos móviles y la aceptación del candidato definitivo.

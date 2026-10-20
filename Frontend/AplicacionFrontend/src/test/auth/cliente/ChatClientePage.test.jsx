@@ -10,9 +10,8 @@ import Stomp from 'stompjs';
 const mockObtenerContactosChat = vi.hoisted(() => vi.fn());
 
 // 1. MOCK DE AUTH CONTEXT
-vi.mock('../../../context/AuthContext', () => ({
-  useAuth: () => ({ userId: 'cliente-123' })
-}));
+const auth = vi.hoisted(() => ({ userId: 'cliente-123' }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
 
 // 2. MOCK DE ROUTER (useLocation para simular que venimos de otra página)
 const mockLocation = { state: null };
@@ -32,8 +31,8 @@ vi.mock('../../../api/endpoints', () => ({
 
 // 4. MOCK DEL COMPONENTE HIJO (ChatComponent)
 vi.mock('../../../components/functional/ChatComponent', () => ({
-  default: ({ nombreDestinatario }) => (
-    <div data-testid="mock-chat-component">
+  default: ({ nombreDestinatario, autoGreet, greetingMessage }) => (
+    <div data-testid="mock-chat-component" data-greeting={autoGreet ? greetingMessage : ""}>
       Chat activo con: {nombreDestinatario}
       <textarea aria-label="Borrador de prueba" />
     </div>
@@ -63,6 +62,7 @@ vi.mock('stompjs', () => ({
 describe('Página ChatClientePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    auth.userId = 'cliente-123';
     api.get.mockReset();
     // Limpiamos la caché simulada
     vi.stubGlobal('sessionStorage', {
@@ -74,7 +74,7 @@ describe('Página ChatClientePage', () => {
   });
 
   const renderComponent = () => {
-    render(
+    return render(
       <BrowserRouter>
         <ChatClientePage />
       </BrowserRouter>
@@ -252,5 +252,57 @@ describe('Página ChatClientePage', () => {
       expect(screen.getByTestId('mock-chat-component')).toBeInTheDocument();
       expect(screen.getByText('Chat activo con: Entrenador Redirigido')).toBeInTheDocument();
     });
+  });
+
+  it('ignores a late external contact after a newer navigation', async () => {
+    let finishOld;
+    mockLocation.state = { openChatWith: 'old-coach', autoGreet: true, greetingMessage: 'Saludo anterior' };
+    api.get.mockImplementation(url => url === '/api/entrenador/old-coach'
+      ? new Promise(resolve => { finishOld = resolve; })
+      : Promise.resolve({ data: url === '/api/entrenador/new-coach'
+        ? { id: 'new-coach', nombre: 'Nuevo', apellido: 'Coach' } : { entrenador: coach } }));
+    const view = renderComponent();
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/entrenador/old-coach'));
+    mockLocation.state = { openChatWith: 'new-coach', autoGreet: true, greetingMessage: 'Saludo actual' };
+    view.rerender(<BrowserRouter><ChatClientePage /></BrowserRouter>);
+    await screen.findByText('Chat activo con: Nuevo Coach');
+    await act(async () => finishOld({ data: { id: 'old-coach', nombre: 'Anterior', apellido: 'Coach' } }));
+    expect(screen.getByTestId('mock-chat-component')).toHaveAttribute('data-greeting', 'Saludo actual');
+    expect(screen.queryByText('Chat activo con: Anterior Coach')).not.toBeInTheDocument();
+  });
+  it('does not replace an explicitly selected conversation with a delayed external contact', async () => {
+    let finishExternal;
+    mockLocation.state = { openChatWith: 'external-coach', autoGreet: true };
+    api.get.mockImplementation(url => url === '/api/entrenador/external-coach'
+      ? new Promise(resolve => { finishExternal = resolve; }) : Promise.resolve({ data: { entrenador: coach } }));
+    mockObtenerContactosChat.mockResolvedValue([friend]);
+    renderComponent();
+    fireEvent.click(await screen.findByText('Compi'));
+    await act(async () => finishExternal({ data: { id: 'external-coach', nombre: 'Externo', apellido: 'Coach' } }));
+    expect(screen.getByText('Chat activo con: Compi')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-chat-component')).toHaveAttribute('data-greeting', '');
+  });
+  it('does not transfer the requested greeting to a manually selected contact', async () => {
+    mockLocation.state = { openChatWith: 'external-coach', autoGreet: true, greetingMessage: 'Saludo privado' };
+    api.get.mockImplementation(url => Promise.resolve({ data: url === '/api/entrenador/external-coach'
+      ? { id: 'external-coach', nombre: 'Externo', apellido: 'Coach' } : { entrenador: coach } }));
+    mockObtenerContactosChat.mockResolvedValue([friend]);
+    renderComponent();
+    await screen.findByText('Chat activo con: Externo Coach');
+    expect(screen.getByTestId('mock-chat-component')).toHaveAttribute('data-greeting', 'Saludo privado');
+    fireEvent.click(await screen.findByText('Compi'));
+    expect(screen.getByTestId('mock-chat-component')).toHaveAttribute('data-greeting', '');
+  });
+  it('does not copy cached contacts from the previous account into the new cache', async () => {
+    sessionStorage.getItem.mockImplementation(key => key === 'contactos_chat_cliente-123' ? JSON.stringify([friend]) : null);
+    api.get.mockResolvedValue({ data: { entrenador: null } });
+    const view = renderComponent();
+    fireEvent.click(await screen.findByText('Compi'));
+    auth.userId = 'new-client';
+    view.rerender(<BrowserRouter><ChatClientePage /></BrowserRouter>);
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/clientes/new-client'));
+    expect(screen.queryByText('Compi')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-chat-component')).not.toBeInTheDocument();
+    expect(sessionStorage.setItem.mock.calls.filter(([key]) => key === 'contactos_chat_new-client')).toHaveLength(0);
   });
 });

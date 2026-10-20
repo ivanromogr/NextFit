@@ -275,3 +275,9 @@ recuperar los datos y conserva cambios si falla el guardado. La persistencia del
 nombre y la conservación del correo están verificadas con API local real; el
 correo se cambia desde su operación de Seguridad. El candidato sigue sin
 desplegar; consultar [Pruebas generales](testing-general.md).
+
+La revisión del alta usa la cuenta autenticada tras restaurar sesión, conserva
+el formulario si falla el guardado y valida experiencia sin truncarla. Se
+comprueba su persistencia con API local real. La navegación al chat descarta
+contactos tardíos y evita trasladar el saludo a otra conversación. Los recuentos
+vigentes están en [Pruebas generales](testing-general.md).
