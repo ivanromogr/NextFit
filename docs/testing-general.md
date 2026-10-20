@@ -22,10 +22,10 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Auditoría npm móvil | Árbol instalado: 93 avisos (88 altos, 5 moderados); lockfile: 50 (45 altos, 5 moderados). Mismos tres avisos directos; cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
-| Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. Producción conserva su revisión anterior; una preview anterior cab7e7d figura READY; la aceptación de la última versión sigue pendiente |
+| Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. Producción conserva su revisión anterior; una preview anterior 6d7edbd figura READY; la aceptación de la última versión sigue pendiente |
 | Enlaces válidos con entrega local | Contraseña y cambio de correo para ambos roles, tokens reales y cookie renovable; transporte de correo externo pendiente |
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
-| Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
+| Identidad de preview Vercel | Nueve pruebas de contrato; SHA, READY y alias estable de una preview anterior verificados. No equivale a aceptación de la última versión |
 
 Las suites de backend, web y móvil suman **988 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
@@ -1120,3 +1120,50 @@ La consulta posterior al registro npm sigue devolviendo como últimas versiones
 `braces@3.0.3`, `node-forge@1.4.0` y `sprintf-js@1.1.3`; no se identifica una
 versión estable nueva fuera de los rangos de los avisos pendientes. No se
 modifican dependencias ni se elimina ese bloqueo de publicación.
+
+## Configuración publicada y límites externos actuales (20 de octubre)
+
+La lectura de configuración devuelve ya `draft_id: null`: el borrador que
+autoriza el alias estable de preview está publicado. No se vuelve a pedir la
+misma publicación. Las solicitudes desde esta instancia siguen fallando antes
+de llegar a Vercel con `Tunnel connection failed: 403 Forbidden`, tanto en la
+ejecución restringida como en la consulta autorizada fuera de esa restricción.
+El guardado publicado no demuestra que esta instancia haya recibido la política
+de red nueva. No se desactiva la protección de Vercel ni se crean credenciales
+de bypass.
+
+La lista de Vercel muestra previews READY posteriores a la cab7e7d, incluidas
+909b71c y 6d7edbd. El commit funcional más reciente de esta pasada,
+`3f8c3a89bc7b6b9fc6641dfc2940283d43fee543`, no tiene preview. La comprobación de
+ese SHA falla como corresponde: una preview anterior no cuenta como aceptación.
+
+Ante ese cambio de estado se intenta una sola creación de preview fijando ese
+SHA y el proyecto existente, sin destino de producción. Vercel responde 402
+`payment_required`, con límite `api-deployments-free-per-day` y mensaje de más
+de 100 despliegues. No se crea el despliegue ni se contrata un plan. Los límites
+60/59 devueltos en las cabeceras pertenecen a la petición API y no se usan para
+inventar la hora de reinicio de la cuota diaria. No se repiten creaciones tras
+ese rechazo.
+
+La consulta de Render sigue indicando correo desactivado y falta de remitente,
+clave y URLs de los enlaces. Las correcciones de código mantienen sus
+verificaciones anteriores (386 backend, 432 web, 170 móvil); esta pasada solo
+consulta infraestructura e intenta preparar la preview, sin repetir suites de
+aplicación ni modificar producción.
+
+## Alias estable fijado al candidato
+
+`check-vercel-candidate.py --stable-alias` exige primero el SHA exacto, proyecto,
+estado READY y destino no productivo. Después consulta el alias estable de
+`codex/mobile-ux`: hostname, proyecto e identificador de despliegue deben
+coincidir; una referencia anidada contradictoria también falla. Así se puede
+reutilizar el dominio ya autorizado sin aceptar una preview distinta.
+
+Nueve contratos de candidato pasan; junto con los seis de producción suman
+quince pruebas de herramientas, aparte de las 988 de aplicación. La pasada
+real confirma que el alias corresponde a `6d7edbd` y al despliegue
+`dpl_4r79iARVEAQwMQLSrSheSqnAFRoB`. La consulta para `3f8c3a8` falla porque
+no tiene preview. Ninguna de esas respuestas acredita funcionamiento de la web.
+La petición posterior al alias sigue devolviendo 403 del túnel.
+
+La continuación reproducible queda en [Retomar el paso 7](step-7-handoff.md).

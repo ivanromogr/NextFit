@@ -16,6 +16,7 @@ import urllib.request
 
 PROJECT = 'prj_DV1DoyYpDkDArwnUxI59VZkH8MAM'
 TEAM = 'team_8TgSndZQtJ1fZasKF9z8QkqG'
+STABLE_ALIAS = 'next-fit-q7uo-git-codex-mobile-ux-ivanromo1708-6643s-projects.vercel.app'
 
 
 class CandidateFailure(Exception):
@@ -44,6 +45,19 @@ def validate_deployment(deployment, commit, project=PROJECT):
             'scope': 'metadata only; browser/API acceptance remains pending'}
 
 
+
+def validate_alias(alias, deployment):
+    require(isinstance(alias, dict), 'Unexpected alias metadata')
+    require(alias.get('alias') == STABLE_ALIAS, 'Unexpected preview alias hostname')
+    require(alias.get('projectId') == PROJECT, 'Alias belongs to another project')
+    require(alias.get('deploymentId') == deployment['deployment'],
+            'Stable alias does not point to the exact candidate deployment')
+    nested = alias.get('deployment')
+    require(nested is None or isinstance(nested, dict)
+            and nested.get('id') == deployment['deployment'], 'Conflicting alias deployment metadata')
+    return {**deployment, 'stableAlias': 'https://' + STABLE_ALIAS}
+
+
 def get_json(path, token):
     request = urllib.request.Request('https://api.vercel.com' + path,
                                      headers={'Authorization': 'Bearer ' + token})
@@ -56,7 +70,7 @@ def get_json(path, token):
         raise CandidateFailure('Could not read valid Vercel metadata') from None
 
 
-def check(commit, token):
+def check(commit, token, *, stable_alias=False):
     require(bool(token), 'VERCEL_TOKEN binding is missing')
     query = urllib.parse.urlencode({'projectId': PROJECT, 'teamId': TEAM, 'sha': commit, 'limit': 100})
     result = get_json('/v6/deployments?' + query, token)
@@ -73,7 +87,11 @@ def check(commit, token):
             'Unexpected deployment identifier')
     detail = get_json('/v13/deployments/' + deployment_id + '?' + urllib.parse.urlencode({'teamId': TEAM}), token)
     require(isinstance(detail, dict), 'Unexpected deployment detail response')
-    return validate_deployment(detail, commit)
+    candidate = validate_deployment(detail, commit)
+    if stable_alias:
+        alias = get_json('/v4/aliases/' + STABLE_ALIAS + '?' + urllib.parse.urlencode({'teamId': TEAM}), token)
+        candidate = validate_alias(alias, candidate)
+    return candidate
 
 
 def commit_argument(value):
@@ -85,11 +103,13 @@ def commit_argument(value):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--commit', type=commit_argument, help='defaults to the repository HEAD')
+    parser.add_argument('--stable-alias', action='store_true',
+                        help='also require the branch alias to point to this exact deployment')
     args = parser.parse_args(argv)
     try:
         commit = args.commit or subprocess.check_output(
             ['git', 'rev-parse', 'HEAD'], cwd=Path(__file__).resolve().parents[1], text=True).strip()
-        result = check(commit, os.environ.get('VERCEL_TOKEN'))
+        result = check(commit, os.environ.get('VERCEL_TOKEN'), stable_alias=args.stable_alias)
     except (CandidateFailure, subprocess.SubprocessError) as error:
         print(f'FAIL candidate metadata: {error}', file=sys.stderr)
         return 1

@@ -48,5 +48,30 @@ class CandidateMetadataTest(unittest.TestCase):
             read.assert_not_called()
 
 
+    def test_stable_alias_is_verified_after_exact_source_and_readiness(self):
+        alias = {'alias': candidate.STABLE_ALIAS, 'projectId': candidate.PROJECT,
+                 'deploymentId': 'dpl_Test123', 'deployment': {'id': 'dpl_Test123'}}
+        with patch.object(candidate, 'get_json', side_effect=[{'deployments': [self.deployment()]}, self.deployment(), alias]) as read:
+            result = candidate.check(COMMIT, 'test-binding', stable_alias=True)
+            self.assertEqual(result['stableAlias'], 'https://' + candidate.STABLE_ALIAS)
+            self.assertEqual(read.call_count, 3)
+            self.assertIn('/v4/aliases/', read.call_args.args[0])
+
+    def test_alias_cannot_substitute_an_older_deployment_or_another_project(self):
+        alias = {'alias': candidate.STABLE_ALIAS, 'projectId': candidate.PROJECT,
+                 'deploymentId': 'dpl_Test123'}
+        deployment = candidate.validate_deployment(self.deployment(), COMMIT)
+        for updates in ({'deploymentId': 'dpl_Older'}, {'projectId': 'another-project'},
+                        {'alias': 'unexpected.vercel.app'}, {'deployment': {'id': 'dpl_Conflicting'}}):
+            with self.subTest(updates=updates), self.assertRaises(candidate.CandidateFailure):
+                candidate.validate_alias({**alias, **updates}, deployment)
+
+    def test_alias_lookup_is_not_attempted_when_exact_candidate_is_absent(self):
+        with patch.object(candidate, 'get_json', return_value={'deployments': []}) as read:
+            with self.assertRaisesRegex(candidate.CandidateFailure, 'No preview exists'):
+                candidate.check(COMMIT, 'test-binding', stable_alias=True)
+            self.assertEqual(read.call_count, 1)
+
+
 if __name__ == '__main__':
     unittest.main()
