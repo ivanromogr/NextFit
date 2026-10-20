@@ -11,7 +11,9 @@ const requireProductionUrl = (value, variableName) => {
 };
 
 export const API_BASE_URL = trimTrailingSlash(
-  requireProductionUrl(envApiUrl, "VITE_API_URL") || localDevUrl
+  import.meta.env.VITE_API_SAME_ORIGIN === "true"
+    ? localDevUrl
+    : requireProductionUrl(envApiUrl, "VITE_API_URL") || localDevUrl
 );
 
 const wsEnvUrl = requireProductionUrl(envWsUrl, "VITE_WS_URL") || API_BASE_URL;
@@ -22,6 +24,6 @@ const WS_BASE_URL = (() => {
     return trimTrailingSlash(url.toString());
 })();
 
-const SOCKJS_URL = `${API_BASE_URL}/ws`;
+const SOCKJS_URL = `${trimTrailingSlash(wsEnvUrl)}/ws`;
 
 export { SOCKJS_URL, WS_BASE_URL };
