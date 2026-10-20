@@ -961,3 +961,35 @@ python3 scripts/check-public-web.py --base-url https://DOMINIO_NEXTFIT.vercel.ap
 
 Ambos dominios de preview consultados siguen devolviendo 403 del túnel del
 entorno. El guardado de su acceso todavía no acredita publicación aplicada.
+
+## Baja de cuenta con navegador y API real local (20 de octubre)
+
+El recorrido `scripts/check-local-beta.py` incorpora cuentas nuevas ficticias de
+cliente y entrenador, únicamente en H2 aislado. Se ejecuta completo y pasa,
+incluidas las verificaciones anteriores de entrenamientos, calendario,
+estadísticas, chat, perfiles, sesiones y enlaces válidos.
+
+Para cada rol, la baja comprueba:
+
+- Fallo controlado de carga de métodos: no ofrece el formulario; el reintento
+  carga los métodos desde la API real.
+- Cancelar la confirmación no envía ninguna petición de baja y mantiene activa
+  la cuenta.
+- Un 503 controlado conserva contraseña y sesión; una contraseña incorrecta
+  recibe 400 real, sin desactivar la cuenta ni revocar sus sesiones.
+- Corregir la contraseña confirma la baja con 200 real y redirige al login;
+  desaparece la cookie de renovación.
+- JWT anterior, renovación móvil y login previo rechazados con 401. Los enlaces
+  de recuperación y cambio de correo emitidos antes de la baja reciben 400.
+- Al eliminar el entrenador, su atleta ficticio queda desvinculado y continúa
+  activo: lectura de perfil y login correctos.
+
+Los fallos 503 están interceptados; las operaciones satisfactorias y los
+rechazos de credenciales, tokens y enlaces se consultan contra la API local real.
+No se comprueba baja social con Google/Apple reales ni borrado físico de todos
+los datos: el comportamiento previsto es desactivación y anonimización.
+No se tocan usuarios ni registros de producción.
+
+No cambia código de producto: las suites previas conservan sus 967 pruebas;
+este ensayo de navegador se contabiliza aparte. Se detienen los servicios
+locales propios y se elimina el marcador del fixture al finalizar.

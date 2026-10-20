@@ -86,3 +86,13 @@ Resultados de esta entrega:
 Si el usuario abandona la pantalla antes de que termine la verificación del SDK,
 la credencial tardía no dispara una nueva petición de baja. Una petición de baja
 ya enviada y confirmada no puede cancelarse simplemente navegando atrás.
+
+## Recorrido real local posterior (20 de octubre)
+
+El navegador verifica la baja por contraseña para ambos roles con H2 aislado:
+carga y envío recuperables, cancelación sin petición, contraseña incorrecta sin
+baja, éxito con cookie eliminada, rechazo de JWT/login/renovación anteriores y
+enlaces pendientes invalidados. Al dar de baja al entrenador, su atleta sigue
+activo y queda desvinculado. No se usan cuentas reales ni proveedores sociales.
+El ensayo reproducible está en `scripts/check-local-beta.py`; detalle y límites
+en [Pruebas generales](testing-general.md).

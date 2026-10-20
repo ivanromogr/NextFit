@@ -686,4 +686,79 @@ with sync_playwright() as p:
   print('PASS valid local mail links:',role,'real notifier HTML, reset replacement/replay protection, password login and refresh revocation, one email confirmation, old email rejected, new email login and cookie reload. Delivery captured in memory; external transport not tested.')
   flow_context.close()
 
+
+ # Destructive operations only on fresh synthetic accounts in the isolated JVM.
+ for role in ('cliente','entrenador'):
+  identity=account(role,'Delete'+role)
+  dependent=None
+  if role=='entrenador':
+   dependent=account('cliente','Dependent')
+   call('POST',f"/api/entrenador/{identity['id']}/fichar",{'email':dependent['email']},identity['token'])
+   assert len(call('GET',f"/api/entrenador/{identity['id']}/clientes",token=identity['token']))==1
+  call('POST','/api/auth/password/forgot',{'email':identity['email']})
+  _,pending_reset=captured_link(identity['email'],'/reset-password')
+  next_email='delete-pending-'+role+'-'+suffix+'@example.invalid'
+  call('PUT','/api/auth/email',{'currentPassword':password,'newEmail':next_email},identity['token'])
+  _,pending_email=captured_link(next_email,'/confirm-email-change')
+  deletion_context=browser.new_context(viewport={'width':390 if role=='cliente' else 1365,'height':900})
+  deletion_context.route('**/*',lambda route:route.continue_() if route.request.url.startswith((WEB+'/',API+'/')) else route.abort())
+  failures={'identities':1,'delete':1}
+  def fail_deletion(route,_request,left=failures):
+   key='identities' if route.request.method=='GET' else 'delete'
+   if left[key]:
+    left[key]-=1
+    route.fulfill(status=503,json={'message':'Local beta injected account deletion failure'})
+   else:route.continue_()
+  deletion_context.route('**/api/auth/identities',fail_deletion)
+  deletion_context.route('**/api/auth/account',fail_deletion)
+  flow=deletion_context.new_page()
+  confirmation={'accept':False}
+  flow.on('dialog',lambda dialog:dialog.accept() if confirmation['accept'] else dialog.dismiss())
+  sent=[]
+  deletion_context.on('request',lambda request,seen=sent:seen.append(request.method) if urlsplit(request.url).path=='/api/auth/account' else None)
+  flow.goto(WEB+'/auth/login')
+  flow.get_by_placeholder('usuario@email.com').fill(identity['email'])
+  flow.get_by_placeholder('••••••••').fill(password)
+  flow.get_by_role('button',name=re.compile('^INICIAR SESIÓN$',re.I)).click()
+  flow.wait_for_url(re.compile('/'+role+'/dashboard$'))
+  flow.wait_for_load_state('networkidle')
+  flow.goto(WEB+'/'+role+'/seguridad/eliminar-cuenta')
+  expect(flow.get_by_role('alert')).to_contain_text('No se pudieron cargar tus métodos')
+  expect(flow.get_by_label('Contraseña actual',exact=True)).to_have_count(0)
+  flow.get_by_role('button',name='Reintentar',exact=True).click()
+  flow.get_by_label('Contraseña actual',exact=True).fill(password)
+  flow.get_by_role('button',name='Eliminar mi cuenta',exact=True).click()
+  assert not sent, 'Cancelling confirmation sent a deletion request'
+  assert call('GET','/api/auth/sessions',token=identity['token'])
+  confirmation['accept']=True
+  # First deletion response is a controlled outage, then actual wrong-password rejection.
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/account')) as unavailable:
+   flow.get_by_role('button',name='Eliminar mi cuenta',exact=True).click()
+  assert unavailable.value.status==503
+  expect(flow.get_by_role('status')).to_contain_text('No se pudo eliminar')
+  expect(flow.get_by_label('Contraseña actual',exact=True)).to_have_value(password)
+  assert call('GET','/api/auth/sessions',token=identity['token'])
+  flow.get_by_label('Contraseña actual',exact=True).fill('Wrong-local-password!')
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/account')) as wrong_password:
+   flow.get_by_role('button',name='Eliminar mi cuenta',exact=True).click()
+  assert wrong_password.value.status==400
+  expect(flow.get_by_role('status')).to_contain_text('La contraseña actual no es correcta')
+  assert call('GET','/api/auth/sessions',token=identity['token'])
+  flow.get_by_label('Contraseña actual',exact=True).fill(password)
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/account')) as deleted:
+   flow.get_by_role('button',name='Eliminar mi cuenta',exact=True).click()
+  assert deleted.value.status==200 and deleted.value.json()['message']=='Cuenta eliminada'
+  flow.wait_for_url(re.compile('/auth/login$'))
+  assert not any(cookie['name']=='nextfit_refresh' for cookie in deletion_context.cookies())
+  assert call('GET','/api/auth/sessions',token=identity['token'],expected=401)['code']=='INVALID_TOKEN'
+  call('POST','/api/auth/refresh',{'refreshToken':identity['refreshToken']},expected=401)
+  call('POST','/api/auth/login',{'email':identity['email'],'password':password},expected=401)
+  call('POST','/api/auth/password/reset',{'token':pending_reset,'newPassword':password},expected=400)
+  call('POST','/api/auth/email/confirm',{'token':pending_email},expected=400)
+  if dependent:
+   assert not call('GET',f"/api/clientes/{dependent['id']}",token=dependent['token']).get('entrenador')
+   assert call('POST','/api/auth/login',{'email':dependent['email'],'password':password})['user']['id']==dependent['id']
+  print('PASS account deletion:',role,'load/outage recovery, cancelled confirmation sends nothing, actual wrong-password rejection, successful deactivation clears cookie and rejects JWT/login/refresh/pending links; dependent athlete remains active when coach is deleted.')
+  deletion_context.close()
+
  browser.close()

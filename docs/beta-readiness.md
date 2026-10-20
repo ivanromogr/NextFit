@@ -341,3 +341,9 @@ anónima de progreso. La API está interceptada y no se usan cuentas: no equival
 a login real, aceptación del candidato ni validación legal. El comprobador
 reutilizable es `scripts/check-public-web.py`; detalle en
 [Pruebas generales](testing-general.md).
+
+La baja por contraseña se verifica también de extremo a extremo local para
+cliente y entrenador: cookies y credenciales anteriores dejan de servir, se
+rechazan enlaces pendientes y la baja del entrenador desvincula al atleta sin
+desactivarlo. Se usan cuentas ficticias en H2, sin producción ni login social
+real. Pasa el recorrido completo ampliado de `scripts/check-local-beta.py`.
