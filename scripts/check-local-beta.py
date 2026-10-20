@@ -1,5 +1,5 @@
 """Isolated local HTTP + real browser check. Never accepts remote URLs."""
-import json, re, secrets
+import json, re, secrets, struct, zlib
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError
 from pathlib import Path
@@ -192,6 +192,42 @@ with sync_playwright() as p:
  coach_chat.get_by_text('Mensaje beta de atleta',exact=True).wait_for()
  coach_chat.get_by_text('Respuesta beta del entrenador',exact=True).wait_for()
  coach_chat.get_by_text('Mensaje beta tras desbloquear',exact=True).wait_for()
+ # A valid synthetic PNG exercises the real multipart endpoint and private media.
+ def png_chunk(kind,data):
+  return struct.pack('!I',len(data))+kind+data+struct.pack('!I',zlib.crc32(kind+data)&0xffffffff)
+ image=(b'\x89PNG\r\n\x1a\n'
+        +png_chunk(b'IHDR',struct.pack('!IIBBBBB',1,1,8,6,0,0,0))
+        +png_chunk(b'IDAT',zlib.compress(b'\0\xff\0\0\xff'))+png_chunk(b'IEND',b''))
+ athlete_chat.locator('input[type=file]').set_input_files({'name':'invalid.png','mimeType':'image/png','buffer':b'not a PNG'})
+ athlete_chat.get_by_placeholder('Añade un comentario...').fill('Imagen privada beta')
+ with athlete_chat.expect_response(lambda r:r.url.endswith('/api/upload') and r.request.method=='POST') as rejected_upload:
+  athlete_chat.get_by_role('button',name='Enviar mensaje',exact=True).click()
+ assert rejected_upload.value.status==400
+ assert rejected_upload.value.json()['code']=='UNSUPPORTED_FILE_TYPE'
+ expect(athlete_chat.get_by_role('alert')).to_contain_text('Formato no admitido')
+ expect(athlete_chat.get_by_placeholder('Añade un comentario...')).to_have_value('Imagen privada beta')
+ expect(athlete_chat.get_by_text('invalid.png',exact=True)).to_be_visible()
+ assert not any(item['contenido']=='Imagen privada beta' for item in call('GET',history_path,token=client['token']))
+ athlete_chat.locator('input[type=file]').set_input_files({'name':'beta-private.png','mimeType':'image/png','buffer':image})
+ with athlete_chat.expect_response(lambda r:r.url.endswith('/api/upload') and r.request.method=='POST') as uploaded:
+  athlete_chat.get_by_role('button',name='Enviar mensaje',exact=True).click()
+ assert uploaded.value.status==200
+ metadata=uploaded.value.json()
+ assert metadata['visibility']=='PRIVATE' and metadata['purpose']=='CHAT_ATTACHMENT'
+ file_path=f"/api/upload/files/{metadata['id']}"
+ coach_chat.get_by_text('Imagen privada beta',exact=True).wait_for()
+ expect(coach_chat.get_by_alt_text('Adjunto',exact=True)).to_be_visible()
+ coach_chat.wait_for_function("() => [...document.querySelectorAll('img[alt=Adjunto]')].some(img => img.complete && img.naturalWidth > 0)")
+ for user in (client,coach):
+  request=Request(API+file_path,headers={'Authorization':'Bearer '+user['token']})
+  with urlopen(request,timeout=20) as downloaded:
+   assert downloaded.status==200 and downloaded.read()==image
+   assert downloaded.headers.get('Content-Type').startswith('image/png')
+   assert 'no-store' in downloaded.headers.get('Cache-Control','')
+   assert downloaded.headers.get('X-Content-Type-Options')=='nosniff'
+ call('GET',file_path,token=other['token'],expected=403)
+ call('GET',file_path,expected=403)
+ print('PASS private attachment: invalid file rejected with draft retained, valid retry, decoded image, exact downloads, unrelated/anonymous access denied')
  print('PASS real browser chat: bidirectional delivery, report, peer send rejected without persistence, unblock and stored history')
  for context in chat_contexts: context.close()
  browser.close()

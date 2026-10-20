@@ -52,7 +52,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
         greeted.current = false; setHistoryReady(false);
         setMensajes([]);
         setSafety(null); setReportMessageId(null); setSendError('');
-        setNuevoMensaje(''); setArchivoAdjunto(null); setConectado(false);
+        setNuevoMensaje(''); setArchivoAdjunto(null); setIsUploading(false); setConectado(false);
         cargarHistorial(version);
 
         if (stompClientRef.current) {
@@ -240,11 +240,18 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 });
                 attachmentId = res.data.id;
             } catch (error) {
-                console.error("Error subiendo archivo", error);
+                if (sendingVersion !== conversationVersion.current) return;
+                const status = error?.response?.status;
+                setSendError(status === 413
+                    ? 'La imagen supera el tamaño permitido. Elige una imagen más pequeña.'
+                    : status === 415 || error?.response?.data?.code === 'UNSUPPORTED_FILE_TYPE'
+                        ? 'Formato no admitido. Selecciona una imagen JPEG, PNG o WebP.'
+                        : 'No se pudo subir la imagen. Conservamos el adjunto y tu comentario para que puedas reintentarlo.');
                 setIsUploading(false);
                 return;
             }
 
+            if (sendingVersion !== conversationVersion.current) return;
             setIsUploading(false);
         }
 
@@ -481,7 +488,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                         ref={fileInputRef}
                         onChange={handleFileSelect}
                         style={{ display: 'none' }}
-                        accept="image/*,video/*"
+                        accept="image/jpeg,image/png,image/webp"
                     />
                     <button
                         type="button"

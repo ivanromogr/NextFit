@@ -171,6 +171,63 @@ describe('Componente ChatComponent', () => {
     });
   });
 
+  it.each([
+    [503, 'No se pudo subir la imagen. Conservamos el adjunto y tu comentario para que puedas reintentarlo.'],
+    [413, 'La imagen supera el tamaño permitido. Elige una imagen más pequeña.'],
+    [415, 'Formato no admitido. Selecciona una imagen JPEG, PNG o WebP.'],
+    [400, 'Formato no admitido. Selecciona una imagen JPEG, PNG o WebP.', 'UNSUPPORTED_FILE_TYPE'],
+  ])('shows upload failure %s and preserves the draft for a successful retry', async (status, message, code) => {
+    api.post.mockRejectedValueOnce({ response: { status, data: { code } } })
+      .mockResolvedValueOnce({ data: { id: 'retry-attachment' } });
+    render(<ChatComponent {...defaultProps} />);
+    await waitFor(() => expect(screen.getByPlaceholderText('Escribe un mensaje...')).not.toBeDisabled());
+    fireEvent.change(document.querySelector('input[type="file"]'), {
+      target: { files: [new File(['image'], 'draft.png', { type: 'image/png' })] }
+    });
+    const comment = screen.getByPlaceholderText('Añade un comentario...');
+    fireEvent.change(comment, { target: { value: 'Comentario que quiero conservar' } });
+    fireEvent.submit(comment.closest('form'));
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(comment).toHaveValue('Comentario que quiero conservar');
+    expect(screen.getByText('draft.png')).toBeInTheDocument();
+    expect(mockPublish).not.toHaveBeenCalled();
+    fireEvent.submit(comment.closest('form'));
+    await waitFor(() => expect(mockPublish).toHaveBeenCalledWith(expect.objectContaining({
+      destination: '/app/chat',
+      body: expect.stringContaining('"attachmentId":"retry-attachment"')
+    })));
+    expect(api.post).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Escribe un mensaje...')).toHaveValue('');
+  });
+
+  it.each(['success', 'failure'])('ignores upload %s after switching to another conversation', async outcome => {
+    let resolveUpload, rejectUpload;
+    api.post.mockImplementationOnce(() => new Promise((resolve, reject) => {
+      resolveUpload = resolve; rejectUpload = reject;
+    }));
+    const { rerender } = render(<ChatComponent {...defaultProps} />);
+    await waitFor(() => expect(screen.getByPlaceholderText('Escribe un mensaje...')).not.toBeDisabled());
+    fireEvent.change(document.querySelector('input[type="file"]'), {
+      target: { files: [new File(['image'], 'old.png', { type: 'image/png' })] }
+    });
+    fireEvent.submit(screen.getByPlaceholderText('Añade un comentario...').closest('form'));
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+    rerender(<ChatComponent {...defaultProps} destinatarioId={3} nombreDestinatario="Otro contacto" />);
+    const input = screen.getByPlaceholderText('Escribe un mensaje...');
+    await waitFor(() => expect(input).not.toBeDisabled());
+    fireEvent.change(input, { target: { value: 'Borrador de otra conversación' } });
+    const { act } = await import('@testing-library/react');
+    await act(async () => {
+      if (outcome === 'success') resolveUpload({ data: { id: 'old-attachment' } });
+      else rejectUpload({ response: { status: 503 } });
+    });
+    expect(input).toHaveValue('Borrador de otra conversación');
+    expect(input).not.toBeDisabled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(mockPublish).not.toHaveBeenCalled();
+  });
+
   it('marca los mensajes recibidos como leídos si la ventana está visible', async () => {
     const mockHistorial = [
       { id: 101, remitenteId: 2, destinatarioId: 1, contenido: 'Mensaje nuevo', fechaHora: new Date().toISOString(), leido: false }

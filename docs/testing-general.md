@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 321 pruebas en 60 archivos, todas correctas |
+| Web, suite completa | 327 pruebas en 60 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -24,10 +24,12 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
 | Producción actual | Render informa `live` para el despliegue existente; `/actuator/health` vuelve a agotar 45 segundos de espera. Disponibilidad HTTP sin confirmar; la rama candidata sigue sin desplegar |
 
-Las suites suman **865 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites suman **871 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
+La suite web se volvió a ejecutar completa el día 20 tras corregir los adjuntos:
+327 pruebas correctas en 60 archivos.
 
 ## Errores corregidos durante la pasada completa
 
@@ -194,3 +196,43 @@ conceden permisos ni se usa una cuenta real en este ensayo.
 El recorrido completo de entrenamientos, calendario y chat termina correctamente
 con estas comprobaciones adicionales; las suites anteriores conservan su recuento
 de 865 casos. El código de aplicación no necesitó cambios para estos escenarios.
+
+## Adjuntos privados y recuperación de subidas
+
+La continuación del paso 7 detecta y corrige un fallo de presentación: la subida
+fallida conservaba el archivo y el comentario, pero solo escribía el error en
+consola. El chat muestra ahora un aviso para fallos de servicio, exceso de tamaño
+y formato no admitido; permite reintentar conservando el borrador. El formato
+rechazado se reconoce también mediante el código real `UNSUPPORTED_FILE_TYPE`
+devuelto con HTTP 400 por el backend. El selector ofrece JPEG, PNG y WebP, los
+formatos admitidos por el servidor.
+
+Cambiar de conversación durante una subida libera el editor de la nueva
+conversación y descarta el éxito o error tardío de la anterior. El adjunto anterior
+no se publica al nuevo destinatario. Esto no garantiza el borrado inmediato de un
+archivo que el servidor ya haya recibido antes de cambiar de conversación.
+
+Las seis pruebas de regresión añadidas cubren cuatro respuestas de error con
+conservación/reintento y dos resoluciones tardías después de cambiar de contacto.
+Las 19 pruebas del componente pasan. El ensayo de navegador con API real verifica:
+
+- Rechazo de un archivo falso por su contenido, sin confiar en su nombre/MIME.
+- Aviso visible y comentario conservado; sustitución por un PNG sintético válido.
+- Subida multipart real y mensaje con un identificador de adjunto privado.
+- Imagen descargada y decodificada por el navegador del destinatario.
+- Descarga exacta de los mismos bytes por ambos participantes, con `no-store` y
+  `nosniff`; cuenta ajena y acceso anónimo reciben HTTP 403.
+
+Se utiliza almacenamiento local temporal y H2 ficticio. Este ensayo no vuelve a
+verificar Cloudinary ni demuestra persistencia tras recrear una instancia. El
+recorrido completo previo de rutinas, calendario y seguridad del chat también
+pasa con el código corregido.
+
+Validación final de esta corrección: suite web completa con **327 pruebas en 60
+archivos**, todas correctas; build Vite con las variables explícitas de API/WS
+locales, correcto; lint con cero errores y los ocho avisos anteriores. Backend
+(374) y móvil (170) conservan sus verificaciones previas: no se vuelven a ejecutar
+porque esta corrección solo cambia el cliente web y el ensayo. El total de las
+suites pasa a 871; el recorrido integrado sigue contabilizado por separado.
+Los servidores temporales se detuvieron y el PNG sintético se eliminó al terminar.
+No se despliega esta compilación local ni se modifica producción.
