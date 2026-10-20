@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 331 pruebas en 60 archivos, todas correctas |
+| Web, suite completa | 336 pruebas en 60 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -24,13 +24,14 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
 | Producción actual | Render informa `live` para el despliegue existente; `/actuator/health` vuelve a agotar 45 segundos de espera. Disponibilidad HTTP sin confirmar; la rama candidata sigue sin desplegar |
 
-Las suites suman **875 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites suman **880 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
 La suite web se volvió a ejecutar completa el día 20 tras corregir los adjuntos:
 327 pruebas correctas en 60 archivos; la revisión posterior de confirmación y
-reconexión vuelve a ejecutar la suite completa con 331 casos correctos.
+reconexión vuelve a ejecutar la suite completa con 331 casos correctos. La
+recuperación posterior de historial e imágenes la eleva a 336 casos correctos.
 
 ## Errores corregidos durante la pasada completa
 
@@ -59,8 +60,9 @@ dos sesiones distintas; un tercero recibe 403 y la petición anónima 401. En el
 navegador comprueba login y renovación de cookie después de recargar, creación
 manual con 35,5 kg, edición común de series con 37,5 kg, registro de entrenamiento,
 consulta de rutinas por el entrenador y resultados del primer evento sin mostrar
-los del segundo. No reemplaza esos endpoints por mocks. Bloquea conexiones del
-navegador a servicios externos.
+los del segundo. Esos recorridos usan endpoints reales. La recuperación del chat
+añade dos respuestas 503 deliberadas en el navegador (historial e imagen); sus
+reintentos vuelven a la API real. Se bloquean conexiones a servicios externos.
 
 El arranque de prueba no hereda credenciales de proveedores ni configuración de
 despliegue. Usa H2 en memoria, almacenamiento local temporal y correo/proveedores
@@ -164,7 +166,9 @@ para el final, antes de publicar la aplicación.
 
 El ensayo `scripts/check-local-beta.py` abre dos contextos independientes de
 Chromium con las cuentas ficticias de cliente y entrenador. Usa el transporte
-SockJS/STOMP y la API reales del servidor H2 temporal, sin simular sus respuestas:
+SockJS/STOMP y la API reales del servidor H2 temporal. Los dos fallos HTTP
+controlados añadidos posteriormente se describen en el apartado de recuperación;
+los mensajes STOMP proceden del servidor real:
 
 - Mensaje del atleta recibido por el entrenador y respuesta recibida por el atleta.
 - Denuncia de un mensaje recibido: selección de motivo y respuesta HTTP 202.
@@ -282,3 +286,43 @@ en el borrador pendiente. Las verificaciones anteriores de backend (374) y móvi
 El total de las suites es 875, además de los ensayos de navegador y la prueba de
 herramientas iOS contabilizados por separado. La aceptación de la versión
 final desplegada, la prueba física aplazada y los avisos móviles siguen pendientes.
+
+## Recuperación del historial y las imágenes del chat
+
+La continuación del paso 7 reproduce cinco fallos mediante pruebas nuevas: el
+historial fallido aparecía como conversación vacía, una respuesta con formato
+incorrecto podía romper el renderizado, la descarga fallida no mostraba ninguna
+imagen ni explicación, un error de decodificación carecía de recuperación y una
+descarga terminada después de abandonar el chat creaba una URL de objeto que ya
+no se liberaba. Las cinco pruebas fallan antes de la corrección y pasan después;
+las 28 pruebas focalizadas del componente terminan correctamente.
+
+El historial diferencia carga, error y vacío confirmado. Un fallo conserva los
+mensajes que ya estaban visibles, advierte de que podrían estar incompletos y
+ofrece «Reintentar historial» sin borrar el borrador. Se valida que la respuesta
+sea un array antes de actualizar React y se descartan respuestas obsoletas de
+cargas anteriores. El saludo automático permanece pendiente mientras no se
+conozca el historial.
+
+Los adjuntos muestran carga, error y «Volver a cargar imagen». El reintento sigue
+usando el endpoint autenticado; no abre ni publica una URL del proveedor. Las URLs
+de objeto se liberan al reintentar o abandonar la pantalla y no se crean para una
+respuesta que llega después del desmontaje.
+
+El ensayo integrado fuerza una única respuesta HTTP 503 del historial y otra de
+la imagen en el navegador del entrenador. Son fallos simulados deliberadamente;
+las recuperaciones vuelven a los endpoints reales, comprueban los mensajes y la
+imagen decodificada. El resto de registro, entrenamientos, calendario, bloqueo,
+denuncia, descargas autorizadas y reconexión usa la API H2 y STOMP reales y también
+pasa. Esto no mide una caída real de Cloudinary, latencia de redes móviles o una
+recuperación del despliegue de producción.
+
+El build de localhost pasa. Los servidores temporales se detienen y se elimina
+la imagen ficticia al terminar el ensayo.
+
+Validación final de recuperación: **336 pruebas web en 60 archivos**, todas
+correctas; build Vite correcto y lint con cero errores y los ocho avisos anteriores.
+Las verificaciones previas de backend (374) y móvil (170) se mantienen porque esta
+corrección solo cambia la web. El total de las suites es 880; ensayos de navegador
+y prueba de herramientas iOS se contabilizan por separado. Los avisos móviles y
+la aceptación del despliegue/dispositivo definitivo conservan sus pendientes.

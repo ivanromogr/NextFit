@@ -64,6 +64,85 @@ describe('Componente ChatComponent', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('offers history retry without showing an empty conversation or losing the draft', async () => {
+    let rejectHistory;
+    api.get.mockImplementation(url => url.includes('/safety/')
+      ? Promise.resolve({ data: { blockedByMe: false, canSend: true } })
+      : new Promise((_, reject) => { rejectHistory = reject; }));
+    render(<ChatComponent {...defaultProps} />);
+    expect(screen.queryByText('Aún no hay mensajes.')).not.toBeInTheDocument();
+    const input = screen.getByPlaceholderText('Escribe un mensaje...');
+    await waitFor(() => expect(input).not.toBeDisabled());
+    fireEvent.change(input, { target: { value: 'Borrador conservado' } });
+    await act(async () => rejectHistory(new Error('offline')));
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudo cargar el historial');
+    expect(screen.queryByText('Aún no hay mensajes.')).not.toBeInTheDocument();
+    mockHistory([{ id: 100, remitenteId: 2, destinatarioId: 1, contenido: 'Mensaje recuperado', leido: true }]);
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar historial' }));
+    expect(await screen.findByText('Mensaje recuperado')).toBeInTheDocument();
+    expect(input).toHaveValue('Borrador conservado');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('does not treat malformed history as an empty conversation', async () => {
+    mockHistory({ unexpected: 'response' });
+    render(<ChatComponent {...defaultProps} />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar el historial');
+    expect(screen.queryByText('Aún no hay mensajes.')).not.toBeInTheDocument();
+  });
+
+  const privateImage = () => {
+    vi.stubGlobal('URL', Object.assign(class extends URL {}, {
+      createObjectURL: vi.fn(() => 'blob:private-image'), revokeObjectURL: vi.fn()
+    }));
+    const message = { id: 100, remitenteId: 2, destinatarioId: 1, contenido: 'Con adjunto', attachmentId: 'private-image', leido: true };
+    return message;
+  };
+
+  it('shows a private-image download error and retries the authenticated endpoint', async () => {
+    const message = privateImage();
+    let attempts = 0;
+    api.get.mockImplementation(url => {
+      if (url.includes('/files/')) return ++attempts === 1
+        ? Promise.reject(new Error('storage unavailable')) : Promise.resolve({ data: new Blob(['image']) });
+      return Promise.resolve({ data: url.includes('/safety/') ? { blockedByMe: false, canSend: true } : [message] });
+    });
+    const { unmount } = render(<ChatComponent {...defaultProps} />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar la imagen');
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a cargar imagen' }));
+    expect(await screen.findByAltText('Adjunto')).toHaveAttribute('src', 'blob:private-image');
+    expect(api.get.mock.calls.filter(([url]) => url === '/api/upload/files/private-image')).toHaveLength(2);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:private-image');
+  });
+
+  it('shows recovery when the downloaded image cannot be decoded', async () => {
+    const message = privateImage();
+    api.get.mockImplementation(url => Promise.resolve({ data: url.includes('/files/')
+      ? new Blob(['image']) : url.includes('/safety/') ? { blockedByMe: false, canSend: true } : [message] }));
+    render(<ChatComponent {...defaultProps} />);
+    fireEvent.error(await screen.findByAltText('Adjunto'));
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudo cargar la imagen');
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a cargar imagen' }));
+    expect(await screen.findByAltText('Adjunto')).toBeInTheDocument();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:private-image');
+  });
+
+  it('does not allocate a blob URL when the download finishes after leaving the chat', async () => {
+    const message = privateImage();
+    let finishDownload;
+    api.get.mockImplementation(url => url.includes('/files/')
+      ? new Promise(resolve => { finishDownload = resolve; })
+      : Promise.resolve({ data: url.includes('/safety/') ? { blockedByMe: false, canSend: true } : [message] }));
+    const { unmount } = render(<ChatComponent {...defaultProps} />);
+    await waitFor(() => expect(finishDownload).toBeDefined());
+    unmount();
+    await act(async () => finishDownload({ data: new Blob(['image']) }));
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
   });
 
   it('renderiza correctamente y carga el historial vacío', async () => {

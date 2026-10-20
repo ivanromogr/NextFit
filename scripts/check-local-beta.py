@@ -195,8 +195,18 @@ with sync_playwright() as p:
  send(athlete_chat,'Mensaje beta tras desbloquear')
  coach_chat.get_by_text('Mensaje beta tras desbloquear',exact=True).wait_for()
  # Reload after all messages settle to verify stored history as well as delivery.
+ history_failures={'remaining':1}
+ def fail_first_history(route):
+  if history_failures['remaining']:
+   history_failures['remaining']-=1
+   route.fulfill(status=503,json={'message':'Local beta injected history failure'})
+  else: route.continue_()
+ chat_contexts[1].route(API+'/api/chat/historial?*',fail_first_history)
  coach_chat.reload()
  coach_chat.get_by_text('Atleta Beta',exact=True).click()
+ expect(coach_chat.get_by_role('alert')).to_contain_text('No se pudo cargar el historial')
+ expect(coach_chat.get_by_text('Aún no hay mensajes.',exact=True)).to_have_count(0)
+ coach_chat.get_by_role('button',name='Reintentar historial',exact=True).click()
  coach_chat.get_by_text('Mensaje beta de atleta',exact=True).wait_for()
  coach_chat.get_by_text('Respuesta beta del entrenador',exact=True).wait_for()
  coach_chat.get_by_text('Mensaje beta tras desbloquear',exact=True).wait_for()
@@ -216,6 +226,13 @@ with sync_playwright() as p:
  expect(athlete_chat.get_by_placeholder('Añade un comentario...')).to_have_value('Imagen privada beta')
  expect(athlete_chat.get_by_text('invalid.png',exact=True)).to_be_visible()
  assert not any(item['contenido']=='Imagen privada beta' for item in call('GET',history_path,token=client['token']))
+ image_failures={'remaining':1}
+ def fail_first_image(route):
+  if image_failures['remaining']:
+   image_failures['remaining']-=1
+   route.fulfill(status=503,json={'message':'Local beta injected image failure'})
+  else: route.continue_()
+ chat_contexts[1].route(API+'/api/upload/files/*',fail_first_image)
  athlete_chat.locator('input[type=file]').set_input_files({'name':'beta-private.png','mimeType':'image/png','buffer':image})
  with athlete_chat.expect_response(lambda r:r.url.endswith('/api/upload') and r.request.method=='POST') as uploaded:
   athlete_chat.get_by_role('button',name='Enviar mensaje',exact=True).click()
@@ -224,6 +241,8 @@ with sync_playwright() as p:
  assert metadata['visibility']=='PRIVATE' and metadata['purpose']=='CHAT_ATTACHMENT'
  file_path=f"/api/upload/files/{metadata['id']}"
  coach_chat.get_by_text('Imagen privada beta',exact=True).wait_for()
+ expect(coach_chat.get_by_role('alert')).to_contain_text('No se pudo cargar la imagen')
+ coach_chat.get_by_role('button',name='Volver a cargar imagen',exact=True).click()
  expect(coach_chat.get_by_alt_text('Adjunto',exact=True)).to_be_visible()
  coach_chat.wait_for_function("() => [...document.querySelectorAll('img[alt=Adjunto]')].some(img => img.complete && img.naturalWidth > 0)")
  for user in (client,coach):
@@ -235,6 +254,7 @@ with sync_playwright() as p:
    assert downloaded.headers.get('X-Content-Type-Options')=='nosniff'
  call('GET',file_path,token=other['token'],expected=403)
  call('GET',file_path,expected=403)
+ print('PASS injected failure recovery: history/image first requests return 503; explicit retries recover actual API data')
  print('PASS private attachment: invalid file rejected with draft retained, valid retry, decoded image, exact downloads, unrelated/anonymous access denied')
  # Close only this browser's live sockets; the server and trainer remain online.
  expect(athlete_chat.get_by_placeholder('Escribe un mensaje...')).to_have_value('')

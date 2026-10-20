@@ -8,19 +8,31 @@ import EmojiPicker from 'emoji-picker-react';
 import { api } from '../../api/endpoints';
 import { API_BASE_URL, SOCKJS_URL } from '../../api/config';
 
+const retryButtonStyle = {
+    background: '#1f1f22', color: '#FACC15', border: '1px solid #3f3f46',
+    borderRadius: '8px', padding: '8px 12px', font: 'inherit', cursor: 'pointer'
+};
 
 function PrivateAttachmentImage({ attachmentId }) {
     const [objectUrl, setObjectUrl] = useState(null);
+    const [error, setError] = useState(false);
+    const [attempt, setAttempt] = useState(0);
     useEffect(() => {
         let active = true;
         let url;
         api.get(`/api/upload/files/${attachmentId}`, { responseType: 'blob' }).then(({ data }) => {
+            if (!active) return;
             url = URL.createObjectURL(data);
-            if (active) setObjectUrl(url);
-        }).catch(() => { if (active) setObjectUrl(null); });
+            setObjectUrl(url);
+        }).catch(() => { if (active) setError(true); });
         return () => { active = false; if (url) URL.revokeObjectURL(url); };
-    }, [attachmentId]);
-    return objectUrl ? <img src={objectUrl} alt="Adjunto" style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '6px', maxHeight: '250px', objectFit: 'cover' }} /> : null;
+    }, [attachmentId, attempt]);
+    if (error) return <div role="alert">
+        <p>No se pudo cargar la imagen.</p>
+        <button type="button" style={retryButtonStyle} onClick={() => { setError(false); setObjectUrl(null); setAttempt(value => value + 1); }}>Volver a cargar imagen</button>
+    </div>;
+    return objectUrl ? <img src={objectUrl} alt="Adjunto" onError={() => setError(true)} style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '6px', maxHeight: '250px', objectFit: 'cover' }} />
+        : <p role="status">Cargando imagen…</p>;
 }
 
 export default function ChatComponent({ usuarioId, destinatarioId, nombreDestinatario, fotoDestinatario, autoGreet = false, greetingMessage = '', onAutoGreetSent }) {
@@ -32,6 +44,9 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     const safetyRef = useRef(null);
     safetyRef.current = safety;
     const [historyReady, setHistoryReady] = useState(false);
+    const [historyLoading, setHistoryLoading] = useState(true);
+    const [historyError, setHistoryError] = useState(false);
+    const historyRequests = useRef(0);
     const greeted = useRef(false);
     const [mensajes, setMensajes] = useState([]);
     const [nuevoMensaje, setNuevoMensaje] = useState("");
@@ -151,18 +166,25 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
     }, [conectado, autoGreet, destinatarioId, usuarioId, safety?.canSend, historyReady]);
 
     const cargarHistorial = async (version) => {
+        const request = ++historyRequests.current;
+        setHistoryLoading(true);
+        setHistoryError(false);
+        setHistoryReady(false);
         try {
             const response = await api.get(`/api/chat/historial?otroUsuarioId=${destinatarioId}`);
-            if (version === conversationVersion.current) {
+            if (!Array.isArray(response.data)) throw new Error('Invalid chat history');
+            if (version === conversationVersion.current && request === historyRequests.current) {
                 setMensajes(current => {
-                    const merged = new Map((response.data || []).map(message => [message.id, message]));
+                    const merged = new Map(response.data.map(message => [message.id, message]));
                     current.forEach(message => merged.set(message.id, message));
                     return [...merged.values()].sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
                 });
                 setHistoryReady(true);
             }
-        } catch (error) {
-            console.error(error);
+        } catch {
+            if (version === conversationVersion.current && request === historyRequests.current) setHistoryError(true);
+        } finally {
+            if (version === conversationVersion.current && request === historyRequests.current) setHistoryLoading(false);
         }
     };
 
@@ -441,8 +463,13 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                 reportMessageId={reportMessageId} onCloseReport={() => setReportMessageId(null)} revision={safetyRevision} />
             {sendError && <p role="alert" style={{ color: '#fca5a5', padding: '0 20px' }}>{sendError}</p>}
             {isSending && <p role="status" style={{ padding: '0 20px' }}>Esperando confirmación del mensaje…</p>}
+            {historyLoading && <p role="status" style={{ padding: '0 20px' }}>Cargando historial…</p>}
+            {historyError && <div role="alert" style={{ padding: '0 20px' }}>
+                <p>No se pudo cargar el historial. Los mensajes visibles pueden estar incompletos.</p>
+                <button type="button" style={retryButtonStyle} onClick={() => cargarHistorial(conversationVersion.current)}>Reintentar historial</button>
+            </div>}
             <div className="hide-scroll" style={styles.chatArea}>
-                {mensajes.length === 0 && (
+                {historyReady && !historyLoading && !historyError && mensajes.length === 0 && (
                     <div style={{ textAlign: 'center', color: '#52525b', marginTop: 'auto', marginBottom: 'auto' }}>
                         <p style={{ margin: 0, fontSize: '0.9rem' }}>Aún no hay mensajes.</p>
                     </div>
@@ -478,7 +505,7 @@ export default function ChatComponent({ usuarioId, destinatarioId, nombreDestina
                                             : {})
                                     }}
                                 >
-                                    {msg.attachmentId && <PrivateAttachmentImage attachmentId={msg.attachmentId} />}
+                                    {msg.attachmentId && <PrivateAttachmentImage key={msg.attachmentId} attachmentId={msg.attachmentId} />}
 
                                     {!esMio && <button type="button" className="chat-report-button" onClick={() => setReportMessageId(msg.id)}>Denunciar mensaje</button>}
                                     {msg.contenido && (
