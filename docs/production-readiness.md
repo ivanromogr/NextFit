@@ -132,3 +132,12 @@ el rechazo de orígenes CORS ajenos y el permiso de credenciales del navegador.
 con el timeout normal. Seis pruebas de contrato aisladas pasan y la ejecución real
 posterior del día 20 pasa. No se reinicia el servicio ni se atribuye el timeout a
 un arranque gratuito sin evidencia adicional.
+
+## Correo transaccional: configuración pendiente (20 de octubre)
+
+La consulta de configuración de Render muestra `EMAIL_ENABLED` desactivado y
+ningún valor configurado para `EMAIL_FROM`, `RESEND_API_KEY`,
+`APP_PASSWORD_RESET_URL` y `APP_EMAIL_CHANGE_CONFIRM_URL`. No se modifica el
+servicio ni se envían mensajes. Faltan el remitente y la configuración del
+proveedor antes de verificar recepción externa; los enlaces válidos ya se
+ensayan mediante un buzón local en memoria.

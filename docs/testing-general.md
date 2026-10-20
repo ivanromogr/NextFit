@@ -11,7 +11,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 
 | Comprobación | Resultado verificado |
 |---|---|
-| Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
+| Backend, Maven verify | 380 pruebas, cero fallos/errores/omisiones; JAR generado |
 | Web, suite completa | 417 pruebas en 61 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
@@ -27,7 +27,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
 
-Las suites de backend, web y móvil suman **961 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **967 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -827,3 +827,32 @@ con JDK 21 y se ejecuta el navegador completo. Se mantienen las suites de
 aplicación ya verificadas (**374 backend, 417 web, 170 móvil: 961**); no se
 repiten ni se aumentan sus contadores por añadir estos recorridos. La cuota de
 Vercel y los avisos móviles siguen bloqueando la aceptación para publicación.
+
+## Transporte de correo y configuración incompleta (20 de octubre)
+
+El proveedor sin clave, remitente o tipo válido produce ahora
+`EmailDeliveryException`, la excepción que recuperación trata como fallo de
+entrega. Así, una cuenta existente conserva la respuesta neutral de solicitud
+aunque el proveedor esté incompleto, igual que una cuenta desconocida. No se
+relajan las comprobaciones del token ni se afirma que haya habido entrega.
+
+El cliente HTTP usa cinco segundos para conectar y diez para leer, no sigue
+redirecciones y solo acepta respuestas 2xx. Los errores se traducen sin cuerpo
+del proveedor, clave ni token en la excepción o el registro. No se añaden
+reintentos automáticos que puedan duplicar un envío.
+
+Cinco pruebas con un servidor HTTP en loopback verifican POST/JSON y cabeceras,
+aceptación 202, rechazo 429 y 503 sin reintentos, redirección no seguida y espera
+de lectura limitada. Otra prueba verifica la respuesta neutral usando el
+notificador real con configuración incompleta. No se contacta con Resend ni se
+envían mensajes a destinatarios reales.
+
+Maven `verify` completo: **380 pruebas, cero fallos, errores u omisiones**, JAR
+generado sin el fixture local. Web y móvil conservan sus resultados previos
+(417 y 170): **967 pruebas de aplicación verificadas**.
+
+Se repite el recorrido completo de navegador con las clases actualizadas:
+entrenamientos, calendario, estadísticas, chat y adjuntos privados, perfiles,
+sesiones y enlaces válidos de contraseña/correo para ambos roles pasan. El
+buzón es local en memoria; el ensayo del transporte HTTP anterior usa un
+servidor simulado separado. Ninguno acredita recepción externa.

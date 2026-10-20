@@ -120,4 +120,19 @@ class PasswordResetServiceTest {
         assertThrows(NewPasswordMustBeDifferentException.class, () -> service.changePassword(user, "same-password", "same-password"));
         verify(refreshTokens, times(1)).revokeAllForUser(id, Role.ENTRENADOR);
     }
+
+    @Test void forgot_MisconfiguredProviderKeepsNeutralResponse() {
+        var user = new AuthenticatedUser(UUID.randomUUID(), "fixture@example.invalid", Role.CLIENTE);
+        when(identities.findByEmail(user.email())).thenReturn(Optional.of(
+            new AuthenticatableIdentity(user.userId(), user.email(), user.role(), "hash")));
+        var client = mock(org.springframework.web.client.RestClient.class);
+        var properties = new com.tuap.backend.config.EmailProperties();
+        var delivery = new ResendEmailService(client, properties);
+        var realNotifier = new EmailPasswordResetNotifier(delivery, properties);
+        var withProvider = new PasswordResetService(identities, clientes, entrenadores, tokens,
+            encoder, realNotifier, 30, Clock.fixed(now, ZoneOffset.UTC), refreshTokens);
+        assertDoesNotThrow(() -> withProvider.requestReset(user.email()));
+        verify(tokens).save(any(PasswordResetToken.class));
+        verifyNoInteractions(client);
+    }
 }

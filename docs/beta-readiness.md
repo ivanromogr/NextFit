@@ -314,3 +314,9 @@ reutilización rechazada, renovación revocada y nueva cookie tras recargar.
 El transporte y la recepción mediante un proveedor externo siguen pendientes.
 No cambia el JAR ni añade endpoints a la aplicación; ver
 [Pruebas generales](testing-general.md).
+
+El transporte de correo limita conexión y lectura, rechaza redirecciones y
+conserva la respuesta neutral de recuperación si falta configuración. Las
+pruebas HTTP usan loopback y no envían correo externo. Backend completo: 380
+pruebas correctas; recepción externa pendiente de configurar remitente y
+proveedor. Detalle en [Pruebas generales](testing-general.md).
