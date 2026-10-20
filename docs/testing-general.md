@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 380 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 424 pruebas en 62 archivos, todas correctas |
+| Web, suite completa | 429 pruebas en 62 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -27,7 +27,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
 
-Las suites de backend, web y móvil suman **974 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **979 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -1027,3 +1027,35 @@ correcta. La primera pasada produjo también el resumen de 424 casos correctos,
 pero devolvió señal 143 al terminar, por lo que no se usó como evidencia de
 salida normal. Backend (380) y móvil (170) conservan sus verificaciones previas
 porque no cambia su código: **974 pruebas de aplicación verificadas**.
+
+## Cambio de contraseña autenticado (20 de octubre)
+
+El formulario bloquea envíos repetidos durante la petición y después de un
+éxito confirmado. Una respuesta de la cuenta anterior no limpia la sesión de
+la cuenta actual ni navega fuera de ella. Cambiar de cuenta limpia los campos;
+un fallo conserva el borrador para corregir o reintentar. Tras éxito se borran
+las contraseñas y se limpia la sesión local. Si esa limpieza falla, se informa
+de que la contraseña ya cambió y no se vuelve a enviar la operación.
+
+Cinco pruebas nuevas se añaden a las tres existentes: serialización, recuperación
+de errores, respuesta satisfactoria o fallida de otra cuenta y fallo de limpieza
+posterior a la confirmación. Suite focalizada: ocho pruebas correctas.
+
+El recorrido completo de navegador pasa con cliente y entrenador, cuentas
+ficticias y H2 en memoria. Para cada rol verifica un 503 controlado que conserva
+los campos, contraseña actual incorrecta con 400 real, cambio satisfactorio con
+200 y payload limitado a las dos contraseñas. La anterior recibe 401 al entrar;
+renovación móvil y cookie web anteriores reciben 401; el enlace de recuperación
+pendiente recibe 400. El nuevo login conserva el ID y renueva correctamente al
+recargar. La consulta web de renovación incluye el origen permitido, de forma
+que el rechazo no se confunde con un bloqueo por falta de Origin.
+
+Se comprueba revocación de **renovaciones**, no invalidación inmediata de todos
+los JWT de acceso emitidos previamente. No se cambia la política backend ni se
+prueban proveedores sociales o correo externo. También pasan las preferencias
+de privacidad, ambas bajas y el resto de recorridos anteriores.
+
+Validación final: **429 pruebas web en 62 archivos, salida 0**, compilación con
+manifest y lint sin errores ni avisos. Backend (380) y móvil (170) conservan
+sus verificaciones previas: **979 pruebas de aplicación verificadas**. Los
+servicios temporales propios se detienen después de concluir ambas ejecuciones.

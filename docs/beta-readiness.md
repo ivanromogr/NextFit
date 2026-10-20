@@ -353,3 +353,11 @@ preferencia confirmada si falla el guardado. Cargas y guardados tardíos quedan
 aislados por cuenta. El navegador verifica activar y retirar marketing en ambos
 roles, persistencia tras recargar y registros legales sin cambios, usando H2
 local y cuentas ficticias. No se envían correos ni se altera producción.
+
+Cambio de contraseña autenticado: envíos repetidos bloqueados, borrador
+conservado tras fallo y respuestas tardías aisladas por cuenta. El navegador
+verifica ambos roles con API local: contraseña antigua y renovaciones
+anteriores rechazadas, enlace de recuperación pendiente invalidado y nuevo
+login con recarga correcto. No acredita invalidación inmediata de todos los JWT
+previos. Suite web final: 429 casos correctos; ver
+[Pruebas generales](testing-general.md).

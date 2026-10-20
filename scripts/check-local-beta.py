@@ -687,6 +687,70 @@ with sync_playwright() as p:
   flow_context.close()
 
 
+ # Authenticated password change uses real credentials and revokes refresh sessions.
+ for role in ('cliente','entrenador'):
+  identity=account(role,'Password'+role)
+  call('POST','/api/auth/password/forgot',{'email':identity['email']})
+  _,pending_reset=captured_link(identity['email'],'/reset-password')
+  next_password='Local-change!'+secrets.token_hex(12)
+  fixture_secrets.append(next_password)
+  password_context=browser.new_context(viewport={'width':390 if role=='cliente' else 1365,'height':900})
+  password_context.route('**/*',lambda route:route.continue_() if route.request.url.startswith((WEB+'/',API+'/')) else route.abort())
+  failures={'save':1}
+  def fail_password_change(route,_request,left=failures):
+   if left['save']:
+    left['save']-=1
+    route.fulfill(status=503,json={'message':'Local beta injected password change failure'})
+   else:route.continue_()
+  password_context.route('**/api/auth/password',fail_password_change)
+  flow=password_context.new_page()
+  flow.goto(WEB+'/auth/login')
+  flow.get_by_placeholder('usuario@email.com').fill(identity['email'])
+  flow.get_by_placeholder('••••••••').fill(password)
+  flow.get_by_role('button',name=re.compile('^INICIAR SESIÓN$',re.I)).click()
+  flow.wait_for_url(re.compile('/'+role+'/dashboard$'))
+  flow.wait_for_load_state('networkidle')
+  assert any(cookie['name']=='nextfit_refresh' and cookie['httpOnly'] for cookie in password_context.cookies())
+  flow.goto(WEB+'/'+role+'/seguridad/password')
+  for label,value in [('Contraseña actual',password),('Nueva contraseña',next_password),('Confirmar nueva contraseña',next_password)]:
+   flow.get_by_label(label,exact=True).fill(value)
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/password')) as unavailable:
+   flow.get_by_role('button',name='Actualizar contraseña',exact=True).click()
+  assert unavailable.value.status==503
+  expect(flow.get_by_role('status')).to_contain_text('No se pudo actualizar')
+  expect(flow.get_by_label('Contraseña actual',exact=True)).to_have_value(password)
+  expect(flow.get_by_label('Nueva contraseña',exact=True)).to_have_value(next_password)
+  assert call('POST','/api/auth/login',{'email':identity['email'],'password':password})['user']['id']==identity['id']
+  flow.get_by_label('Contraseña actual',exact=True).fill('Wrong-local-password!')
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/password')) as wrong_password:
+   flow.get_by_role('button',name='Actualizar contraseña',exact=True).click()
+  assert wrong_password.value.status==400
+  expect(flow.get_by_role('status')).to_contain_text('La contraseña actual no es correcta')
+  flow.get_by_label('Contraseña actual',exact=True).fill(password)
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/password')) as changed:
+   flow.get_by_role('button',name='Actualizar contraseña',exact=True).click()
+  assert changed.value.status==200
+  assert changed.value.request.post_data_json=={'currentPassword':password,'newPassword':next_password}
+  flow.wait_for_url(re.compile('/auth/login$'))
+  call('POST','/api/auth/login',{'email':identity['email'],'password':password},expected=401)
+  call('POST','/api/auth/refresh',{'refreshToken':identity['refreshToken']},expected=401)
+  web_refresh=password_context.request.post(API+'/api/auth/refresh',headers={'X-Client-Type':'WEB','X-Requested-With':'XMLHttpRequest','Origin':WEB},data={})
+  assert web_refresh.status==401, 'The previous web refresh cookie still renewed the session'
+  call('POST','/api/auth/password/reset',{'token':pending_reset,'newPassword':password},expected=400)
+  login=call('POST','/api/auth/login',{'email':identity['email'],'password':next_password})
+  assert login['user']['id']==identity['id']
+  flow.goto(WEB+'/'+role+'/dashboard')
+  flow.wait_for_url(re.compile('/auth/login$'))
+  flow.get_by_placeholder('usuario@email.com').fill(identity['email'])
+  flow.get_by_placeholder('••••••••').fill(next_password)
+  flow.get_by_role('button',name=re.compile('^INICIAR SESIÓN$',re.I)).click()
+  flow.wait_for_url(re.compile('/'+role+'/dashboard$'))
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/refresh')) as refreshed:
+   flow.reload()
+  assert refreshed.value.status==200 and refreshed.value.json()['user']['id']==identity['id']
+  print('PASS authenticated password change:',role,'outage keeps fields, actual wrong-password rejection, success logs out locally, old password and mobile/web refresh rejected, pending reset invalidated, new password login and cookie reload work.')
+  password_context.close()
+
  # Privacy consent is isolated per account and persisted in the real local API.
  for role in ('cliente','entrenador'):
   identity=account(role,'Privacy'+role)
