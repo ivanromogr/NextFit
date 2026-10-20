@@ -926,3 +926,38 @@ Sigue pendiente aceptar la preview mediante navegador. El backend de producción
 conserva la revisión d3b366b y no contiene necesariamente las correcciones locales
 posteriores: esta pasada pública no sustituye la validación de esas correcciones
 con el servidor local ni acredita un despliegue del backend candidato.
+
+## Navegador sobre las páginas públicas desplegadas (20 de octubre)
+
+Nuevo comprobador reproducible `scripts/check-public-web.py`, ejecutado contra
+https://next-fit-q7uo.vercel.app. Pasa en 390×844 y 1365×900:
+
+- Acceso directo a login, registro, recuperación de contraseña, términos y
+  privacidad: documento 200, contenido esperado y sin desbordamiento horizontal.
+- Sin errores JavaScript no capturados ni documentos, scripts o estilos
+  propios con HTTP de error.
+- Acceso anónimo directo a `/cliente/progreso` redirigido al login.
+
+No se usan cuentas ni se envían solicitudes a la API: se interceptan con una
+respuesta 401 aislada. Las escrituras remotas y recursos de otros orígenes se
+bloquean. La pasada no comprueba login social, entrega de correo, recursos
+externos, contenido legal definitivo ni el candidato de la rama. Son doce
+comprobaciones de navegador separadas del recuento de 967 pruebas de aplicación.
+
+Chromium restringido devuelve `ERR_CERT_AUTHORITY_INVALID` al no disponer del
+acceso requerido a su almacén NSS. La ejecución autorizada con ese acceso pasa
+manteniendo TLS y las cuatro autoridades originales. Se confirma que no queda
+una entrada temporal adicional. No se usan `ignore_https_errors`, certificados
+inventados ni flags para ignorar errores TLS. Las instrucciones reutilizables
+quedan guardadas en el borrador del entorno.
+
+Reproducción (Playwright, Chromium y permisos de acceso a NSS necesarios):
+
+```sh
+python3 scripts/check-public-web.py
+# Para una preview: primero verificar SHA y acceso, después:
+python3 scripts/check-public-web.py --base-url https://DOMINIO_NEXTFIT.vercel.app
+```
+
+Ambos dominios de preview consultados siguen devolviendo 403 del túnel del
+entorno. El guardado de su acceso todavía no acredita publicación aplicada.

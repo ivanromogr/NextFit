@@ -334,3 +334,10 @@ reinicia ni modifica Render y la causa de los timeouts previos queda sin
 confirmar. El acceso a la preview sigue bloqueado por el túnel del entorno;
 la versión publicada del backend continúa siendo anterior a las últimas
 correcciones locales.
+
+Las páginas públicas desplegadas pasan una comprobación de navegador en móvil
+y escritorio: login, registro, recuperación, términos, privacidad y redirección
+anónima de progreso. La API está interceptada y no se usan cuentas: no equivale
+a login real, aceptación del candidato ni validación legal. El comprobador
+reutilizable es `scripts/check-public-web.py`; detalle en
+[Pruebas generales](testing-general.md).
