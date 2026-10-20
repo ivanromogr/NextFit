@@ -234,3 +234,14 @@ Validación: 21 pruebas correctas en cuatro archivos (resumen, sesión, calendar
 ## Pasada completa del paso 7
 
 Backend: 374 pruebas correctas; web: 321; móvil: 170 tras alinear Babel y dependencias con Expo 54. Recorrido real local de cliente y entrenador completado, sin mocks de API ni datos de producción. Auditoría web sin avisos; móvil mantiene 61 (48 altos, 13 moderados, cero críticos). El paso sigue pendiente de cierre de seguridad móvil y aceptación de la versión final desplegada. Detalle y reproducción: [Pruebas generales](testing-general.md).
+
+### Actualización de dependencias móviles, 20 de octubre
+
+WebSocket 7 y PostCSS 8 reciben versiones corregidas mediante overrides acotados.
+La auditoría móvil baja de 61 a 59 avisos (46 altos, 13 moderados, cero críticos).
+Se mantiene abierto el cierre de seguridad; ver [Dependencias móviles](mobile-dependencies.md)
+para las dependencias restantes y por qué no se fuerza un cambio mayor del SDK.
+
+La cohorte de Metro se actualiza posteriormente de 0.83.3 a 0.83.8, sin cambiar
+Expo 54; desaparece la dependencia de origen `image-size`. El estado más reciente
+es 58 avisos móviles (45 altos, 13 moderados, cero críticos) y 170 pruebas correctas.

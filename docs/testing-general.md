@@ -19,7 +19,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Exportaciones móviles | Android/iOS Hermes correctas con Babel SDK 54; no son builds firmadas |
 | Lint web | Cero errores, ocho avisos de dependencias de hooks existentes |
 | Auditoría npm web | Cero avisos después de actualizaciones compatibles |
-| Auditoría npm móvil | 61 avisos: 48 altos, 13 moderados, cero críticos |
+| Auditoría npm móvil | 58 avisos: 45 altos, 13 moderados, cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; ambos recorridos completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
 | Producción actual | El intento de comprobar `/actuator/health` agotó su tiempo de espera; no acredita disponibilidad ni prueba la rama candidata |
@@ -107,3 +107,20 @@ No se ha fusionado con main ni desplegado esta revisión. Los pasos 5, 6, 8, 9 y
 El recorrido reproducible y las exportaciones Android/iOS se completaron también en
 la pasada final del día 20. Los servidores temporales de API y preview se detuvieron
 al finalizar; no se publica un entorno de prueba ni se conservan sus usuarios en producción.
+
+## Revisión posterior de dependencias móviles
+
+Se acotan overrides para WebSocket 7 y PostCSS 8, manteniendo Expo 54 y React
+Native 0.81.5. La auditoría baja de 61 a 59 avisos, sin críticos. Los avisos
+restantes, versiones contrastadas y límites se registran en
+[Dependencias móviles](mobile-dependencies.md). No se elimina ese bloqueo del cierre
+para publicación.
+
+La continuación del 20 de octubre actualiza también la cohorte Metro dentro de
+0.83 y retira el lector de imágenes vulnerable. La auditoría móvil queda en 58
+avisos (45 altos, 13 moderados, cero críticos), manteniendo 170 pruebas correctas
+y la compatibilidad declarada con Expo 54.
+
+Las exportaciones Hermes Android/iOS de la cohorte Metro 0.83.8 también se completaron.
+Son verificaciones adicionales de la herramienta de compilación; la aceptación
+física y el cierre de los avisos restantes siguen pendientes.
