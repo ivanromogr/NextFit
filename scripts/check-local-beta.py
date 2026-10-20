@@ -60,6 +60,15 @@ client=account('cliente','Atleta')
 other=account('cliente','Otro')
 coach=account('entrenador','Entrenador')
 call('POST',f"/api/entrenador/{coach['id']}/fichar",{'email':'  '+client['email'].upper()+'  '},coach['token'])
+# Removing a coach avatar must not break the assigned athlete's profile.
+call('DELETE','/api/auth/profile-image',token=coach['token'],expected=204)
+for viewer in (client,coach):
+ profile=call('GET',f"/api/clientes/{client['id']}",token=viewer['token'])
+ assert profile['entrenador']['id']==coach['id'] and profile['entrenador']['fotoPerfil'] is None
+ assert 'contrasena' not in profile and 'contrasena' not in profile['entrenador'] and 'email' not in profile['entrenador']
+call('GET',f"/api/clientes/{client['id']}",token=other['token'],expected=403)
+call('GET',f"/api/clientes/{client['id']}",expected=401)
+print('PASS assigned profile after real avatar removal: athlete and assigned coach can read the null-photo summary; unrelated/anonymous access denied and no password fields exposed.')
 exercise=call('GET','/api/ejercicios',token=client['token'])[0]['id']
 routine=call('POST','/api/rutinas/manual',{'nombre':'Plan beta local','idCliente':client['id'],'creador':'ENTRENADOR','entrenadorId':coach['id'],'ejercicios':[{'idEjercicio':exercise,'series':2,'repeticiones':10,'peso':30.5,'rpe':8}]},coach['token'])['id']
 template=call('POST','/api/rutinas/manual',{'nombre':'Plantilla beta local','esPlantilla':True,'creador':'ENTRENADOR','entrenadorId':coach['id'],'ejercicios':[{'idEjercicio':exercise,'series':2,'repeticiones':10,'peso':30.5,'rpe':8}]},coach['token'])['id']

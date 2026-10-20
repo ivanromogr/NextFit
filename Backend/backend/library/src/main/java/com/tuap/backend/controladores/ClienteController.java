@@ -68,12 +68,13 @@ public class ClienteController {
         response.put("genero", cliente.getGenero());
 
         if (cliente.getEntrenador() != null) {
-            response.put("entrenador", Map.of(
-                    "id", cliente.getEntrenador().getId(),
-                    "nombre", cliente.getEntrenador().getNombre(),
-                    "apellido", cliente.getEntrenador().getApellido(),
-                    "fotoPerfil", cliente.getEntrenador().getFotoPerfil()
-            ));
+            // Photo is optional, including after the trainer removes their avatar.
+            Map<String, Object> entrenador = new java.util.HashMap<>();
+            entrenador.put("id", cliente.getEntrenador().getId());
+            entrenador.put("nombre", cliente.getEntrenador().getNombre());
+            entrenador.put("apellido", cliente.getEntrenador().getApellido());
+            entrenador.put("fotoPerfil", cliente.getEntrenador().getFotoPerfil());
+            response.put("entrenador", entrenador);
         }
 
         return ResponseEntity.ok(response);

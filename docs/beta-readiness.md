@@ -361,3 +361,9 @@ anteriores rechazadas, enlace de recuperación pendiente invalidado y nuevo
 login con recarga correcto. No acredita invalidación inmediata de todos los JWT
 previos. Suite web final: 429 casos correctos; ver
 [Pruebas generales](testing-general.md).
+
+Se corrige el perfil del atleta que fallaba si su entrenador no tenía foto.
+La respuesta conserva el resumen limitado y admite foto nula. Las pruebas de
+integración verifican accesos autorizados y rechazo de cuentas ajenas; el ensayo
+local reproduce la retirada del avatar mediante la API. Backend completo: 386
+casos correctos, sin cambios en código web o móvil.

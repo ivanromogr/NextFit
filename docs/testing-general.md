@@ -11,7 +11,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 
 | Comprobación | Resultado verificado |
 |---|---|
-| Backend, Maven verify | 380 pruebas, cero fallos/errores/omisiones; JAR generado |
+| Backend, Maven verify | 386 pruebas, cero fallos/errores/omisiones; JAR generado |
 | Web, suite completa | 429 pruebas en 62 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
@@ -27,7 +27,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
 
-Las suites de backend, web y móvil suman **979 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **985 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -1059,3 +1059,36 @@ Validación final: **429 pruebas web en 62 archivos, salida 0**, compilación co
 manifest y lint sin errores ni avisos. Backend (380) y móvil (170) conservan
 sus verificaciones previas: **979 pruebas de aplicación verificadas**. Los
 servicios temporales propios se detienen después de concluir ambas ejecuciones.
+
+## Perfil del atleta con entrenador sin avatar (20 de octubre)
+
+Se reproduce una excepción del endpoint `GET /api/clientes/{id}` al construir
+el resumen de un entrenador con `fotoPerfil = null`. El atleta y su entrenador
+estaban autorizados, pero la creación con `Map.of` rechazaba el campo opcional.
+La regresión inicial ejecuta seis casos y falla en esas dos lecturas autorizadas.
+
+Se conserva la misma proyección de cuatro campos del entrenador y se permite
+`fotoPerfil: null`, sin convertir el resumen en la entidad completa ni añadir
+campos privados. Los permisos siguen comprobándose antes de consultar el perfil.
+
+Las seis pruebas de integración usan JWT, controladores y persistencia H2 reales,
+con rollback: lectura del atleta y entrenador sin foto, atleta sin entrenador,
+foto existente conservada sin contraseñas ni correo privado del entrenador,
+rechazo de cliente/entrenador ajenos y rechazo anónimo. La suite completa Maven
+`verify` termina con **386 casos correctos, cero fallos/errores/omisiones**, salida
+0 y JAR generado. Web (429) y móvil (170) conservan sus verificaciones previas:
+**985 pruebas de aplicación verificadas**.
+
+El ensayo HTTP local elimina el avatar mediante
+`DELETE /api/auth/profile-image` y consulta después el perfil con ambos actores
+autorizados: 200 con foto nula, sin campos de contraseña ni correo del entrenador.
+Una tercera cuenta recibe 403 y la consulta anónima 401. No se usa producción ni
+se modifica almacenamiento externo.
+
+El recorrido completo de navegador termina también con salida 0 sobre las
+clases actualizadas: entrenamientos, calendario, estadísticas, chat y adjuntos,
+perfiles, sesiones, enlaces válidos, cambio de contraseña, privacidad y bajas de
+ambos roles. No se repiten las suites web/móvil al no cambiar su código. Los
+servicios temporales propios se detienen después del ensayo. El cierre del
+paso 7 conserva sus requisitos de aceptación desplegada, correo externo y
+dependencias móviles.
