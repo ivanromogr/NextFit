@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 386 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 434 pruebas en 63 archivos, todas correctas |
+| Web, suite completa | 436 pruebas en 64 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -27,7 +27,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Nueve pruebas de contrato; candidato 678f948 READY y alias estable verificados; doce comprobaciones públicas correctas. Recorrido autenticado válido pendiente |
 
-Las suites de backend, web y móvil suman **990 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **992 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -1282,3 +1282,38 @@ no el acceso autenticado con una cuenta válida.
 La suite web completa posterior a la corrección termina con salida 0: 434 pruebas
 en 63 archivos, 104,30 segundos. Backend 386 y móvil 170 conservan sus anteriores
 resultados; no se repitieron en esta continuación. Total de aplicación: 990.
+
+
+### Cookies de terceros y proxy de API de la preview
+
+La aceptación con cuentas ficticias reales confirmó login HTTP 200, pero refresh
+401 `INVALID_REFRESH_TOKEN` al recargar. Chromium informó `UserPreferences` como
+motivo de bloqueo de la cookie de Render, sin guardar la cookie. No se modificaron
+sus preferencias para aparentar éxito. Las solicitudes de baja de las dos primeras
+cuentas recibieron 200; el comprobador falló al decodificar la respuesta con el
+charset incorrecto y no completó sus verificaciones de revocación. Corregida esa
+lectura y la conservación de cookies en la instrumentación, las siguientes cuentas
+temporales se dieron de baja y se verificó el rechazo de login, JWT y refresh.
+No se usaron cuentas personales ni se enviaron correos.
+
+Se añadió un rewrite Vercel `/api/:path*` al backend y una opción
+`VITE_API_SAME_ORIGIN=true` que usa el origen de la web para HTTP. La opción se
+configuró solo para target preview de la rama `codex/mobile-ux`, conservando la
+configuración de producción. WebSocket/SockJS sigue usando `VITE_WS_URL`; no se
+intenta pasar conexiones WebSocket a través de un rewrite HTTP de Vercel.
+Dos pruebas nuevas verifican activación y compatibilidad del backend explícito.
+Lint y build con la opción activada pasan. La suite completa termina con salida 0:
+436 pruebas en 64 archivos, 104,70 segundos. Total de aplicación vigente: 992.
+
+El script reproducible `scripts/check-local-session-proxy.py`, sin argumentos de
+origen remoto y con marcador obligatorio H2, comprueba ambos roles mediante el
+proxy HTTP local: login 200, cuenta correcta, panel privado, refresh 200 al recargar
+y baja con rechazo posterior de login/JWT/refresh. Se ejecutó correctamente con
+la build de la nueva opción y la API H2 aislada; no sustituye probar el rewrite de
+Vercel ni el HTTPS de la preview.
+
+El código de aplicación está en `ce18e94`; un intento de despliegue recibió 402
+`api-deployments-free-per-day`. No se repite la solicitud ni se contrata nada.
+La preview pública previamente validada sigue siendo `678f948`, que todavía no
+incluye esta corrección de cookies. No se declara completada la aceptación con
+sesión persistente del candidato nuevo. Correo real y avisos móviles siguen abiertos.

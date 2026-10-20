@@ -6,7 +6,7 @@ rama de trabajo `codex/mobile-ux`. Los cambios están subidos; no se fusiona con
 
 ## Evidencia vigente
 
-- Backend: 386 pruebas; web: 434 en 63 archivos; móvil: 170. Total: 990.
+- Backend: 386 pruebas; web: 436 en 64 archivos; móvil: 170. Total: 992.
 - Compilación web, JAR, lint y recorrido completo local de ambos roles correctos.
 - Contratos de comprobadores: quince, contabilizados aparte.
 - Detalle y límites: [Pruebas generales](testing-general.md).
@@ -67,6 +67,20 @@ backend `d3b366b6ccb1873cbe2507badb1b8bf7e4ae5fac`:
 pasan. El login ficticio desde la preview recibe 401 y muestra el error correcto.
 No se crearon cuentas: el acceso con una cuenta válida permanece pendiente.
 La suite completa web pasa con 434 pruebas en 63 archivos.
+
+## Nuevo candidato: cookies sin dependencia de terceros
+
+La prueba remota con cuentas ficticias confirmó login, pero Chromium bloquea la
+cookie cross-site de Render por `UserPreferences`; refresh devuelve 401. Las
+cuentas se dieron de baja. La corrección posterior `ce18e94` usa un rewrite HTTP
+`/api/:path*` y `VITE_API_SAME_ORIGIN=true`, configurado solo para las previews
+de `codex/mobile-ux`. WebSocket conserva `VITE_WS_URL` hacia Render.
+
+436 pruebas web en 64 archivos, lint y build pasan. El script
+`check-local-session-proxy.py` pasa con ambos roles, H2, proxy local, recarga y
+revocación tras baja. No acepta URLs remotas. El despliegue del candidato nuevo
+recibe 402 por cuota diaria; no repetir en bucle ni contratar. La preview
+`678f948` no contiene esta corrección; no sirve para aceptarla.
 
 ## Otros bloqueos del cierre
 
