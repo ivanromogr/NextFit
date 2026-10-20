@@ -299,3 +299,10 @@ descarta respuestas del anterior; ambos envíos bloquean peticiones simultáneas
 Los reintentos, la respuesta neutral y los enlaces inválidos se comprueban con
 API local real. Sigue pendiente probar entrega de correo y restablecimiento
 con un enlace válido recibido; ver [Pruebas generales](testing-general.md).
+
+El cambio de correo bloquea solicitudes repetidas y la confirmación evita volver
+a consumir el enlace por una actualización de contexto o repetición de efectos.
+Los fallos transitorios ofrecen reintento; los rechazos de contraseña, correo
+ocupado y token inválido se verifican con API local real. La entrega y
+confirmación de un enlace válido recibido siguen pendientes; ver
+[Pruebas generales](testing-general.md).

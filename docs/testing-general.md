@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 408 pruebas en 60 archivos, todas correctas |
+| Web, suite completa | 417 pruebas en 61 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -26,7 +26,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
 
-Las suites de backend, web y móvil suman **952 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **961 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -41,7 +41,7 @@ del panel termina con 369 pruebas web correctas; la edición de perfiles eleva
 la suite a 381 casos correctos. El alta y la navegación al chat completan
 la suite con 394 casos correctos. La revisión de sesiones activas termina
 con 402 pruebas web correctas; recuperación de contraseña eleva la suite a
-408 casos correctos.
+408 casos correctos. Cambio de correo completa 417 casos en 61 archivos.
 
 ## Errores corregidos durante la pasada completa
 
@@ -84,7 +84,9 @@ Sesiones añade fallos controlados de listado y revocación, renovaciones
 rechazadas tras el cierre y eliminación real de la cookie web tras cierre global.
 Recuperación añade errores controlados, respuesta neutral para un correo
 inexistente y rechazo real de enlaces inválidos, incluido el cambio de token
-sin recargar la página. Se bloquean conexiones a servicios externos.
+sin recargar la página. Cambio de correo añade fallos controlados y rechazos reales por contraseña
+incorrecta, correo ocupado y enlace inválido, sin modificar el correo.
+Se bloquean conexiones a servicios externos.
 
 El arranque de prueba no hereda credenciales de proveedores ni configuración de
 despliegue. Usa H2 en memoria, almacenamiento local temporal y correo/proveedores
@@ -723,3 +725,50 @@ backend/web/móvil es **952**; backend y móvil conservan sus comprobaciones
 anteriores porque esta revisión solo modifica la web y el ensayo local. El
 paso 7 sigue abierto para publicación; la entrega real de correo y el reset con
 un enlace válido no se dan por probados con este ensayo.
+
+
+## Solicitud y confirmación de cambio de correo (20 de octubre)
+
+La solicitud bloquea envíos simultáneos, conserva sus campos ante un error y
+limpia la contraseña cuando se confirma la solicitud. El formulario pertenece a
+la cuenta actual: al cambiar de cuenta se reinicia y se ignora la respuesta
+antigua en la interfaz. Esto no cancela una operación que el servidor ya haya
+procesado.
+
+La confirmación espera la restauración de sesión antes de consumir el enlace.
+Los cambios de identidad del callback de autenticación no vuelven a ejecutar la
+petición. Se reutiliza la petición pendiente durante la repetición de efectos
+de StrictMode; únicamente el reintento explícito crea otra petición para el
+mismo formulario. Esto no ofrece idempotencia entre pestañas o recargas.
+
+Cada token tiene su instancia de confirmación; al cambiar de enlace se descarta
+la respuesta anterior para la actualización de la sesión y la interfaz. Retirar
+el token muestra un enlace inválido, sin conservar un éxito anterior. Los
+errores de red o servidor ofrecen «Reintentar confirmación»; un token inválido
+400 y un correo ocupado mantienen sus mensajes propios. No se afirma que se
+pueda deshacer una confirmación ya procesada por el servidor.
+
+Pasan doce pruebas focalizadas. Se añaden nueve regresiones para espera de
+sesión, StrictMode, cambio del callback de login, respuesta tardía, retirada del
+token, reintento transitorio, error terminal, solicitud sin duplicados y cambio
+de cuenta. La prueba de StrictMode de la suite completa lo aplica a la raíz del
+árbol para comprobar la repetición inicial de efectos.
+
+El navegador con API local real fuerza fallos 503 de solicitud y confirmación.
+Verifica que se conserva el formulario; los siguientes intentos reciben los
+rechazos reales de contraseña incorrecta, correo ya ocupado y token inválido.
+Las lecturas posteriores confirman que el correo de la cuenta no cambia. Se
+comprueba también que un error terminal no muestra el reintento transitorio.
+
+No se ha comprobado entrega de correo ni confirmación satisfactoria con un
+enlace válido recibido; los éxitos simulados en pruebas unitarias no equivalen
+a ese recorrido. El correo sigue desactivado y las cuentas son ficticias sobre
+H2 temporal. También pasa la regresión anterior completa, incluida recuperación
+de contraseña y revocación de sesiones.
+
+Validación final de cambio de correo: **417 pruebas web en 61 archivos**,
+compilación Vite correcta y lint con **cero errores y cero avisos**. El total
+vigente backend/web/móvil es **961**; backend y móvil conservan sus resultados
+anteriores porque esta revisión cambia solo la web y el ensayo local. La
+aceptación del candidato desplegado y la prueba de correo con un enlace válido
+recibido siguen pendientes; el paso 7 no se declara cerrado para publicación.

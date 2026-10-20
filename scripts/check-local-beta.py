@@ -500,6 +500,44 @@ with sync_playwright() as p:
   rejected=context.request.post(API+'/api/auth/refresh',headers={'X-Client-Type':'WEB','Origin':WEB})
   assert rejected.status==401
   print('PASS session management:',user['role'],'load/revoke failures recovered; private IDs hidden; foreign revocation denied; revoked mobile and global refresh rejected; web cookie removed')
+ email_context=chat_contexts[0]
+ email_page=chat_pages[0]
+ email_page.get_by_placeholder('usuario@email.com').fill(client['email'])
+ email_page.get_by_placeholder('••••••••').fill(password)
+ email_page.get_by_role('button',name=re.compile('^INICIAR SESIÓN$',re.I)).click()
+ email_page.wait_for_url(re.compile('/cliente/dashboard$'))
+ email_page.wait_for_load_state('networkidle')
+ email_failures={'request':1,'confirm':1}
+ def fail_email(route,_request):
+  kind='confirm' if urlsplit(route.request.url).path.endswith('/confirm') else 'request'
+  if email_failures[kind]:
+   email_failures[kind]-=1
+   route.fulfill(status=503,json={'message':'Local beta injected email change failure'})
+  else: route.continue_()
+ email_context.route(API+'/api/auth/email',fail_email)
+ email_context.route(API+'/api/auth/email/confirm',fail_email)
+ email_page.goto(WEB+'/cliente/seguridad/email')
+ email_page.get_by_label('Nuevo correo electrónico',exact=True).fill('unassigned-'+suffix+'@example.invalid')
+ email_page.get_by_label('Contraseña actual',exact=True).fill('wrong-fixture-password')
+ email_page.get_by_role('button',name='Cambiar correo',exact=True).click()
+ expect(email_page.get_by_role('status')).to_contain_text('No se pudo cambiar el correo')
+ expect(email_page.get_by_label('Contraseña actual',exact=True)).to_have_value('wrong-fixture-password')
+ email_page.get_by_role('button',name='Cambiar correo',exact=True).click()
+ expect(email_page.get_by_role('status')).to_contain_text('Contraseña actual incorrecta')
+ email_page.get_by_label('Contraseña actual',exact=True).fill(password)
+ email_page.get_by_label('Nuevo correo electrónico',exact=True).fill(coach['email'])
+ email_page.get_by_role('button',name='Cambiar correo',exact=True).click()
+ expect(email_page.get_by_role('status')).to_contain_text('Ese correo ya está asociado a otra cuenta')
+ assert call('GET',f"/api/clientes/{client['id']}",token=client['token'])['email']==client['email']
+ email_page.goto(WEB+'/confirm-email-change?token=local-invalid-email-first')
+ email_page.get_by_role('button',name='Reintentar confirmación',exact=True).wait_for()
+ with email_page.expect_response(lambda response: response.url.endswith('/api/auth/email/confirm')) as invalid_email:
+  email_page.get_by_role('button',name='Reintentar confirmación',exact=True).click()
+ assert invalid_email.value.status==400
+ expect(email_page.get_by_role('alert')).to_contain_text('no es válido o ha caducado')
+ expect(email_page.get_by_role('button',name='Reintentar confirmación',exact=True)).to_have_count(0)
+ assert call('GET',f"/api/clientes/{client['id']}",token=client['token'])['email']==client['email']
+ print('PASS email change rejection: controlled failures retain draft/retry; real wrong-password and occupied-email errors; invalid confirmation rejected without changing email. No delivery or valid-link confirmation is asserted.')
  for context in chat_contexts: context.close()
  recovery_context=browser.new_context(viewport={'width':390,'height':844})
  recovery_context.route('**/*',lambda route:route.continue_() if route.request.url.startswith((WEB+'/',API+'/')) else route.abort())
