@@ -59,8 +59,12 @@ NSS; conservar TLS y las autoridades originales. Mantener la protección Vercel.
 Se limita a 15 segundos la espera de login y refresh tras observar un login de
 preview sin respuesta y botón bloqueado durante 45 segundos. Doce pruebas dirigidas
 pasan, incluida una con servidor HTTP real sin respuesta; también lint y build.
-La aceptación pública anterior corresponde a `4ddbca7`: validar el nuevo SHA
-cuando se despliegue antes de atribuirle esa evidencia.
+La nueva preview `678f948dbc12b647b2d2c3ab1a1b0ca3124bf6bd` está READY
+(`dpl_A14ja8jXP7E2R5jCAh4PG2YEXKQT`) y su alias y doce comprobaciones públicas
+pasan. El botón se libera tras el fallo de conexión en la prueba real. Un preflight
+real confirma 403: falta ese origen estable en la lista CORS de Render. Añadirlo
+y aplicar el cambio requiere una actualización del backend de producción; no se
+ha realizado ni se atribuye aceptación autenticada a estos resultados.
 
 ## Otros bloqueos del cierre
 

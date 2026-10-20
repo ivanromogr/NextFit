@@ -1245,3 +1245,17 @@ tres archivos (dos pruebas nuevas), lint y compilación web con manifest. No se
 ha repetido la suite web completa; el último total completo sigue siendo 432.
 El timeout limita la espera del cliente; no cancela necesariamente el trabajo ya
 recibido por el servidor ni resuelve la disponibilidad de Render.
+
+
+La corrección quedó desplegada como `678f948dbc12b647b2d2c3ab1a1b0ca3124bf6bd`,
+READY `dpl_A14ja8jXP7E2R5jCAh4PG2YEXKQT`; se asignó el alias estable y pasó
+su comprobación de metadatos. Las doce comprobaciones públicas volvieron a pasar.
+El intento ficticio contra la API real mostró el error de conexión y devolvió
+el botón a su estado disponible dentro de 22 segundos; no acredita credenciales
+rechazadas ni login válido. La configuración de Render no contiene el hostname
+estable `next-fit-q7uo-git-codex-mobile-ux-ivanromo1708-6643s-projects.vercel.app`.
+Un OPTIONS real de login con ese Origin devuelve 403 sin autorización CORS.
+La conexión de esta preview requiere añadir exactamente ese origen conservando
+los existentes, y aplicar la configuración al backend. No se hizo ese cambio ni
+se redesplegó producción; la posible corrección debe conservar el SHA del backend
+actual, sin incorporar otros cambios pendientes a producción.
