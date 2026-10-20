@@ -9,6 +9,7 @@ import os
 import re
 from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright
+from preview_access import preview_headers
 
 
 def origin(value):
@@ -45,7 +46,8 @@ def main():
                         remote_writes.append(request.method)
                         route.abort()
                     elif request.url.startswith(base + '/'):
-                        route.continue_()
+                        route.continue_(headers=preview_headers(request.url, request.headers,
+                                        os.environ.get('VERCEL_AUTOMATION_BYPASS_SECRET')))
                     else:
                         route.abort()
 

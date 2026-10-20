@@ -26,18 +26,18 @@ restauración. Las instrucciones de arranque están guardadas en el entorno.
 
 ## Candidato desplegado
 
-La preview READY más reciente comprobada corresponde a
-`6d7edbd842a8de3c8496ea8cddb0295004712bd5`. El alias estable apunta a ese
-despliegue. La corrección posterior de aislamiento de la baja está en `3f8c3a8`,
-sin preview al comprobarla. La versión de aplicación más reciente debe verificarse
-por SHA; una anterior no la sustituye.
+La preview del candidato `4ddbca71668f2c723f5adf2137c3413efdb01dd8` está
+READY: `dpl_BP5mcMf7uPZ8qhcK9B4WkHBpGpDo`. El alias estable se asignó a ese
+despliegue y el comprobador de metadatos confirmó SHA, proyecto y alias.
+Vercel aceptó esta creación; el bloqueo anterior de cuota ya no impidió este intento.
+No se desplegó producción.
 
-El intento de crear una preview de ese último commit recibe 402 de Vercel:
-`api-deployments-free-per-day`, más de 100 despliegues. No se crea el despliegue
-ni se contrata nada; no repetir solicitudes en bucle ni atribuir a las cabeceras
-de cuota por minuto un reinicio diario. Cuando el proveedor vuelva a permitir
-crear la preview, fijar el SHA del checkout elegido y usar el proyecto existente,
-sin `target: production`.
+La clave de automatización está disponible en esta sesión. El comprobador público
+limita su encabezado al hostname HTTPS exacto del alias mediante `preview_access.py`;
+tres pruebas verifican la inclusión autorizada y la exclusión de otros orígenes,
+HTTP, credenciales en URL, puertos y encabezados heredados. La prueba de navegador
+con certificados del sistema sigue fallando con `ERR_TUNNEL_CONNECTION_FAILED`:
+la aceptación visual desplegada permanece pendiente. No se desactivaron TLS ni SSO.
 
 Comprobación de metadatos del candidato elegido:
 
