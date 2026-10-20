@@ -1192,3 +1192,21 @@ tiempos de espera. No se reinició ni desplegó producción.
 El registro npm sigue publicando como últimas estables braces 3.0.3,
 node-forge 1.4.0 y sprintf-js 1.1.3. No se cambian dependencias ni se declara
 resuelta su exposición. El paso 7 permanece abierto por los bloqueos documentados.
+
+
+### Recuperación de acceso y protección de la preview
+
+En la siguiente comprobación, Render respondió UP en 0,5 segundos; la segunda
+petición de salud también pasó, junto con todos los controles públicos de acceso
+anónimo, CORS y credencial Google inválida. El fallo anterior no se reproduce en
+esta pasada; su causa no está determinada y no acredita disponibilidad continua.
+Los cinco eventos recientes de gestión son de compilación y despliegue del 19 de
+octubre, sin evidencia adicional sobre los tiempos de espera observados.
+
+El alias de preview ya responde mediante HTTP, pero devuelve 302 a
+`vercel.com/sso-api` incluso con el encabezado de automatización restringido al
+hostname autorizado. No se sigue esa redirección con credenciales. La API de
+Vercel informa de cero entradas `automation-bypass` en el proyecto: disponer de
+una variable en el entorno no acredita que exista una clave válida en Vercel.
+El bloqueo actual observado es la protección SSO; no se declaran aprobadas las
+páginas del candidato y se mantiene la protección.
