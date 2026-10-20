@@ -19,7 +19,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Exportaciones móviles | Android/iOS Hermes correctas con Babel SDK 54; no son builds firmadas |
 | Lint web | Cero errores y cero avisos |
 | Auditoría npm web | Cero avisos después de actualizaciones compatibles |
-| Auditoría npm móvil | 50 avisos: 45 altos, 5 moderados, cero críticos |
+| Auditoría npm móvil | Árbol instalado: 93 avisos (88 altos, 5 moderados); lockfile: 50 (45 altos, 5 moderados). Mismos tres avisos directos; cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
 | Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. Producción conserva su revisión anterior; el último commit funcional carece de preview por cuota Vercel |
@@ -856,3 +856,16 @@ entrenamientos, calendario, estadísticas, chat y adjuntos privados, perfiles,
 sesiones y enlaces válidos de contraseña/correo para ambos roles pasan. El
 buzón es local en memoria; el ensayo del transporte HTTP anterior usa un
 servidor simulado separado. Ninguno acredita recepción externa.
+
+## Seguimiento dinámico de avisos móviles (20 de octubre)
+
+El comprobador del bundle usa el informe de auditoría actual, rechaza entradas
+incompletas y detecta paquetes nuevos, rutas Windows y mapas indexados. Seis
+pruebas Node de herramienta pasan, contabilizadas aparte de las 967 pruebas
+de aplicación. Los mapas Android/iOS existentes pasan el nuevo análisis.
+
+La auditoría instalada devuelve 93 avisos y la del lockfile 50; los tres paquetes
+con avisos directos coinciden y siguen sin versión estable corregida. Se registra
+la diferencia de propagación sin silenciar avisos ni afirmar que la auditoría
+pase. No cambian dependencias ni código de producto: las suites previas de
+aplicación mantienen su alcance. Ver [Dependencias móviles](mobile-dependencies.md).

@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test:ios-tools": "node --test scripts/ios-project-tools.test.cjs",
-    "check:bundle-tooling": "node scripts/check-bundle-tooling.cjs"
+    "check:bundle-tooling": "node scripts/check-bundle-tooling.cjs",
+    "test:bundle-tooling": "node --test scripts/check-bundle-tooling.test.cjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

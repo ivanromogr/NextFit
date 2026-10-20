@@ -106,9 +106,40 @@ Comprobaciones adicionales desde `Frontend_App`:
 ```sh
 npm run test:ios-tools
 # Tras expo export --platform android --platform ios --source-maps ...
-npm run check:bundle-tooling -- RUTA_EXPORTACION
+npm audit --json > /tmp/nextfit-mobile-audit.json # devuelve 1 mientras existan avisos
+npm run test:bundle-tooling
+npm run check:bundle-tooling -- RUTA_EXPORTACION /tmp/nextfit-mobile-audit.json
 ```
 
 Los proyectos PBX usados por la prueba son temporales y se eliminan al terminar.
 Los mapas de fuentes de la revisión se guardan fuera del repositorio. No publicar
 estos artefactos de análisis como una build firmada o un despliegue de la app.
+
+## Comprobación dinámica y diferencia de recuentos (20 de octubre)
+
+La comprobación de mapas toma ahora un informe completo de `npm audit --json`
+y deriva todos los paquetes con avisos directos. Ya no depende de una lista
+fija de tres nombres: un aviso nuevo sobre otro paquete se comprueba también.
+Un informe fallido/incompleto, un mapa vacío o la ausencia de una plataforma
+provocan error. La detección contempla mapas indexados, paquetes con ámbito y
+rutas Windows. No se ignoran avisos ni se consideran resueltos por estar fuera
+del bundle.
+
+Seis pruebas Node aisladas pasan, incluida la detección de un paquete ficticio
+nuevo que no estaba en la lista antigua. El análisis repetido de los mapas
+Hermes ya generados pasa con 4.172 fuentes Android y 4.167 iOS. No se generan
+nuevas builds ni se modifica código móvil de producto o dependencias.
+
+La nueva consulta al registro confirma las mismas últimas versiones estables:
+`braces@3.0.3`, `node-forge@1.4.0` y `sprintf-js@1.1.3`, todas afectadas por sus
+avisos. El árbol instalado usa `sprintf-js@1.0.3`, también afectado.
+
+En esta pasada, `npm audit --json` sobre el árbol instalado informa **93 avisos
+(88 altos y 5 moderados)**; `npm audit --package-lock-only --json` informa
+**50 (45 altos y 5 moderados)**. Ambos informes contienen los mismos tres
+avisos de origen. El exceso del árbol instalado se propaga por consumidores y
+relaciones con React Native, sin un aviso directo nuevo; `npm ls --depth=0` no
+reporta problemas. Se registran ambos recuentos y no se presenta el menor como
+resultado de la auditoría instalada. Las verificaciones de exclusión de paquetes
+solo acotan JavaScript: herramientas y bibliotecas nativas siguen fuera de su
+alcance.
