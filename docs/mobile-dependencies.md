@@ -1,7 +1,7 @@
 # Dependencias móviles: revisión del 20 de octubre de 2026
 
 La auditoría npm pasa de 61 a **50 avisos**: 45 altos, 5 moderados y cero críticos.
-No son 59 fallos independientes: npm incluye los paquetes afectados por depender
+El recuento de npm incluye también los paquetes afectados por depender
 de otros vulnerables. La web mantiene su auditoría anterior sin avisos; en esta
 revisión solo se modifica `Frontend_App`.
 

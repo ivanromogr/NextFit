@@ -22,7 +22,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Auditoría npm móvil | 50 avisos: 45 altos, 5 moderados, cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; ambos recorridos completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
-| Producción actual | El intento de comprobar `/actuator/health` agotó su tiempo de espera; no acredita disponibilidad ni prueba la rama candidata |
+| Producción actual | Render informa `live` para el despliegue existente; `/actuator/health` vuelve a agotar 45 segundos de espera. Disponibilidad HTTP sin confirmar; la rama candidata sigue sin desplegar |
 
 Las suites suman **865 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
@@ -135,3 +135,24 @@ origen de los avisos restantes no forman parte de esos bundles JavaScript.
 El análisis acota la exposición del artefacto, mantiene los avisos de herramientas
 abiertos y no sustituye las validaciones físicas y de despliegue pendientes.
 Ver [Dependencias móviles](mobile-dependencies.md).
+
+## Comprobación del 20 de octubre: límites del cierre
+
+La API de Render confirma que el último despliegue del servicio NextFit
+(`srv-d772eof5r7bs73e4ffe0`) continúa en estado `live`, terminado el 19 de octubre.
+La consulta HTTP de salud posterior agota su espera de 45 segundos. El script
+se detiene en esa primera comprobación: las verificaciones posteriores de CORS,
+moderación y rechazo de credenciales Google no se ejecutaron en esta pasada.
+El estado del despliegue no demuestra que el servicio responda correctamente.
+No se ha modificado ni reiniciado el servicio durante esta comprobación.
+
+El registro npm sigue publicando como últimas versiones estables `braces@3.0.3`,
+`node-forge@1.4.0` y `sprintf-js@1.1.3`, incluidas en los rangos de los avisos ya
+analizados. No se repiten las suites completas porque esta continuación solo
+actualiza documentación y consulta el estado externo; permanecen los resultados
+locales anteriores, con sus límites de alcance.
+
+Para completar la aceptación final falta probar la versión candidata desplegada,
+resolver o revisar la exposición de las herramientas pendientes y realizar las
+pruebas físicas aplazadas. La integración de ejercicios de pago sigue reservada
+para el final, antes de publicar la aplicación.
