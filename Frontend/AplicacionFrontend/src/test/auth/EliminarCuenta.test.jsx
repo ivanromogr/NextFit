@@ -8,7 +8,8 @@ const m = vi.hoisted(() => ({
   clear: vi.fn(), navigate: vi.fn(), apple: vi.fn(),
 }));
 vi.mock('../../api/endpoints', () => m.api);
-vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ clearLocalSession: m.clear }) }));
+const auth = vi.hoisted(() => ({ userId: 'first' }));
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ ...auth, clearLocalSession: m.clear }) }));
 vi.mock('react-router-dom', async () => ({ ...await vi.importActual('react-router-dom'), useNavigate: () => m.navigate }));
 vi.mock('../../components/auth/GoogleSignIn', () => ({ default: ({ onCredential, disabled }) => <button disabled={disabled} onClick={() => onCredential('google-fixture')}>Verificar Google</button> }));
 vi.mock('../../services/appleAuthWeb', () => ({ appleConfig: () => ({ appleAuthEnabled: true }), startAppleSignIn: m.apple }));
@@ -18,7 +19,7 @@ const open = async () => {
   await waitFor(() => expect(screen.queryByText('Cargando métodos de verificación…')).not.toBeInTheDocument());
 };
 beforeEach(() => {
-  vi.clearAllMocks(); vi.stubEnv('VITE_GOOGLE_WEB_CLIENT_ID', 'test-client');
+  vi.clearAllMocks(); auth.userId = 'first'; vi.stubEnv('VITE_GOOGLE_WEB_CLIENT_ID', 'test-client');
   m.api.getAuthIdentities.mockResolvedValue(methods('LOCAL'));
   m.api.deleteAccount.mockResolvedValue({}); m.api.deleteAccountWithGoogle.mockResolvedValue({});
   m.api.deleteAccountWithApple.mockResolvedValue({}); m.clear.mockResolvedValue();
@@ -86,4 +87,46 @@ it('salir de la pantalla mientras Apple verifica no inicia una baja tardía', as
   view.unmount();
   await act(async () => { finish({ identityToken: 'late', nonce: 'nonce' }); });
   expect(m.api.deleteAccountWithApple).not.toHaveBeenCalled(); expect(m.clear).not.toHaveBeenCalled();
+});
+
+
+it('a completed deletion from the previous account does not clear the new session', async () => {
+  let finish;
+  m.api.deleteAccount.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  const view = render(<MemoryRouter><EliminarCuenta /></MemoryRouter>);
+  fireEvent.change(await screen.findByLabelText('Contraseña actual'), { target: { value: 'old-fixture-password' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Eliminar mi cuenta' }));
+  auth.userId = 'second'; view.rerender(<MemoryRouter><EliminarCuenta /></MemoryRouter>);
+  await screen.findByLabelText('Contraseña actual');
+  await act(async () => finish({}));
+  expect(m.clear).not.toHaveBeenCalled(); expect(m.navigate).not.toHaveBeenCalled();
+  const input = screen.getByLabelText('Contraseña actual');
+  expect(input).toHaveValue('');
+  fireEvent.change(input, { target: { value: 'new-fixture-password' } });
+  expect(input).toHaveValue('new-fixture-password');
+  expect(screen.getByRole('button', { name: 'Eliminar mi cuenta' })).toBeEnabled();
+});
+it('a rejected deletion from the previous account does not show an error in the new one', async () => {
+  let reject;
+  m.api.deleteAccount.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
+  const view = render(<MemoryRouter><EliminarCuenta /></MemoryRouter>);
+  fireEvent.change(await screen.findByLabelText('Contraseña actual'), { target: { value: 'old-fixture-password' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Eliminar mi cuenta' }));
+  auth.userId = 'second'; view.rerender(<MemoryRouter><EliminarCuenta /></MemoryRouter>);
+  await screen.findByLabelText('Contraseña actual');
+  await act(async () => reject(new Error('late rejection')));
+  expect(screen.queryByText('No se pudo eliminar la cuenta. Inténtalo de nuevo.')).not.toBeInTheDocument();
+  expect(m.clear).not.toHaveBeenCalled();
+});
+it('ignores verification methods loaded for the previous account', async () => {
+  let finish;
+  m.api.getAuthIdentities.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }))
+    .mockResolvedValue(methods('GOOGLE'));
+  const view = render(<MemoryRouter><EliminarCuenta /></MemoryRouter>);
+  await waitFor(() => expect(m.api.getAuthIdentities).toHaveBeenCalledTimes(1));
+  auth.userId = 'second'; view.rerender(<MemoryRouter><EliminarCuenta /></MemoryRouter>);
+  await screen.findByRole('button', { name: 'Verificar Google' });
+  await act(async () => finish(methods('LOCAL')));
+  expect(screen.queryByLabelText('Contraseña actual')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Verificar Google' })).toBeEnabled();
 });

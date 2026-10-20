@@ -367,3 +367,9 @@ La respuesta conserva el resumen limitado y admite foto nula. Las pruebas de
 integración verifican accesos autorizados y rechazo de cuentas ajenas; el ensayo
 local reproduce la retirada del avatar mediante la API. Backend completo: 386
 casos correctos, sin cambios en código web o móvil.
+
+La baja pendiente queda aislada de un cambio de cuenta: respuestas y métodos
+anteriores no alteran el nuevo formulario ni cierran su sesión. Tres regresiones
+reproducen el fallo antes de corregir; once pruebas focalizadas y el recorrido
+local de ambas bajas pasan después. Suite web final: 432 pruebas correctas;
+ver [Pruebas generales](testing-general.md).

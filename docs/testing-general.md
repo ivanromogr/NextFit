@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 386 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 429 pruebas en 62 archivos, todas correctas |
+| Web, suite completa | 432 pruebas en 62 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -22,12 +22,12 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Auditoría npm móvil | Árbol instalado: 93 avisos (88 altos, 5 moderados); lockfile: 50 (45 altos, 5 moderados). Mismos tres avisos directos; cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
-| Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. Producción conserva su revisión anterior; el candidato cab7e7d tiene preview READY; su aceptación sigue pendiente del acceso de red |
+| Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. Producción conserva su revisión anterior; una preview anterior cab7e7d figura READY; la aceptación de la última versión sigue pendiente |
 | Enlaces válidos con entrega local | Contraseña y cambio de correo para ambos roles, tokens reales y cookie renovable; transporte de correo externo pendiente |
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
 
-Las suites de backend, web y móvil suman **985 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **988 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -1092,3 +1092,31 @@ ambos roles. No se repiten las suites web/móvil al no cambiar su código. Los
 servicios temporales propios se detienen después del ensayo. El cierre del
 paso 7 conserva sus requisitos de aceptación desplegada, correo externo y
 dependencias móviles.
+
+## Baja pendiente y cambio de cuenta (20 de octubre)
+
+Se añaden tres regresiones al formulario de baja y se ejecutan antes de corregir:
+las tres fallan y las ocho anteriores pasan. Detectan datos de métodos/contraseña
+conservados al cambiar de cuenta, errores tardíos mostrados en la cuenta nueva y
+el riesgo de limpiar esa sesión al terminar una baja anterior.
+
+La pantalla se aísla por ID autenticado. Una respuesta recibida después de salir
+del formulario no actualiza sus campos, no limpia otra sesión y no navega.
+La carga de métodos anterior también se descarta. Una baja ya enviada al
+servidor puede completarse: esta guarda protege el estado de la sesión actual,
+sin prometer cancelar una operación aceptada por el servidor.
+
+Las once pruebas focalizadas pasan tras corregir. La suite web completa termina
+con **432 casos en 62 archivos, salida 0**; compilación con manifest correcta y
+lint sin errores ni avisos. El recorrido de navegador completo termina con
+salida 0, incluidas ambas bajas, sobre API local real y cuentas ficticias. Los
+proveedores sociales del ensayo unitario permanecen simulados.
+
+Backend (386) y móvil (170) mantienen sus verificaciones previas al no cambiar
+su código: **988 pruebas de aplicación verificadas**. Los servicios temporales
+propios se detienen después de terminar suite y navegador.
+
+La consulta posterior al registro npm sigue devolviendo como últimas versiones
+`braces@3.0.3`, `node-forge@1.4.0` y `sprintf-js@1.1.3`; no se identifica una
+versión estable nueva fuera de los rangos de los avisos pendientes. No se
+modifican dependencias ni se elimina ese bloqueo de publicación.

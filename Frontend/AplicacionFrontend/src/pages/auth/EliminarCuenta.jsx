@@ -6,6 +6,11 @@ import GoogleSignIn from '../../components/auth/GoogleSignIn';
 import { appleConfig, startAppleSignIn } from '../../services/appleAuthWeb';
 
 export default function EliminarCuenta() {
+  const { userId, clearLocalSession } = useAuth();
+  return <DeleteAccountForm key={userId || 'anonymous'} clearLocalSession={clearLocalSession} />;
+}
+
+function DeleteAccountForm({ clearLocalSession }) {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [identities, setIdentities] = useState([]);
@@ -17,7 +22,6 @@ export default function EliminarCuenta() {
   const completed = useRef(false);
   const mounted = useRef(false);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  const { clearLocalSession } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
     let active = true;
@@ -39,18 +43,20 @@ export default function EliminarCuenta() {
     setBusy(true); setMessage('');
     try {
       await operation();
+      if (!mounted.current) return;
       completed.current = true;
       setPassword('');
       await clearLocalSession();
-      navigate('/auth/login', { replace: true });
+      if (mounted.current) navigate('/auth/login', { replace: true });
     } catch (error) {
+      if (!mounted.current) return;
       if (completed.current) setMessage('Tu cuenta ya está desactivada. Recarga la página para salir.');
       else if (!/cancelled|canceled/i.test(error?.message || '')) setMessage(error.response?.data?.code === 'INVALID_CURRENT_PASSWORD'
         ? 'La contraseña actual no es correcta.'
         : error.response?.data?.code === 'INVALID_REAUTH_TOKEN'
           ? 'Confirma tu identidad con una cuenta que esté vinculada a NextFit.'
           : 'No se pudo eliminar la cuenta. Inténtalo de nuevo.');
-    } finally { lock.current = false; setBusy(false); }
+    } finally { lock.current = false; if (mounted.current) setBusy(false); }
   }, [loading, loadError, clearLocalSession, navigate]);
   const google = useCallback(credential => run(() => deleteAccountWithGoogle(credential)), [run]);
   const apple = () => run(async () => {

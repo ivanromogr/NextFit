@@ -96,3 +96,13 @@ enlaces pendientes invalidados. Al dar de baja al entrenador, su atleta sigue
 activo y queda desvinculado. No se usan cuentas reales ni proveedores sociales.
 El ensayo reproducible está en `scripts/check-local-beta.py`; detalle y límites
 en [Pruebas generales](testing-general.md).
+
+## Respuestas tardías y cambio de cuenta
+
+El formulario se aísla por ID autenticado y descarta cargas y respuestas de una
+instancia anterior. Una baja pendiente no limpia ni redirige una nueva sesión;
+la contraseña anterior tampoco permanece en el nuevo formulario. Las tres
+regresiones nuevas fallan antes de corregir y pasan después; la suite del
+formulario termina con once casos correctos. La operación ya enviada puede
+completarse en el servidor: cambiar de pantalla no la revierte. El recorrido
+local de bajas de ambos roles sigue pasando.
