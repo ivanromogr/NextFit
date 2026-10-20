@@ -23,6 +23,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
 | Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. Producción conserva su revisión anterior; el último commit funcional carece de preview por cuota Vercel |
+| Enlaces válidos con entrega local | Contraseña y cambio de correo para ambos roles, tokens reales y cookie renovable; transporte de correo externo pendiente |
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
 
@@ -63,7 +64,8 @@ con 402 pruebas web correctas; recuperación de contraseña eleva la suite a
 
 `scripts/check-local-beta.py` usa la web compilada y la API en localhost. Crea tres
 cuentas ficticias con correo `example.invalid` y contraseña aleatoria en H2:
-cliente, otro cliente sin permisos y entrenador. No usa cuentas reales.
+cliente, otro cliente sin permisos y entrenador, más dos cuentas adicionales
+para enlaces válidos (cliente y entrenador). No usa cuentas reales.
 
 Comprueba registro, vinculación entrenador/atleta, rutina asignada, dos eventos y
 dos sesiones distintas; un tercero recibe 403 y la petición anónima 401. En el
@@ -89,8 +91,10 @@ incorrecta, correo ocupado y enlace inválido, sin modificar el correo.
 Se bloquean conexiones a servicios externos.
 
 El arranque de prueba no hereda credenciales de proveedores ni configuración de
-despliegue. Usa H2 en memoria, almacenamiento local temporal y correo/proveedores
-sociales/limpieza automática desactivados. La sesión de Spring se ejecuta con
+despliegue. Usa H2 en memoria, almacenamiento local temporal y transporte externo de correo,
+proveedores sociales y limpieza automática desactivados. Los notificadores reales
+de contraseña y cambio de correo entregan únicamente al buzón local en memoria
+del fixture, que solo acepta destinatarios `@example.invalid`. La sesión de Spring se ejecuta con
 `open-in-view=false`. Al detenerla desaparece la base de datos de este ensayo.
 No conectar estos scripts a una base real ni publicar sus puertos.
 
@@ -772,3 +776,54 @@ vigente backend/web/móvil es **961**; backend y móvil conservan sus resultados
 anteriores porque esta revisión cambia solo la web y el ensayo local. La
 aceptación del candidato desplegado y la prueba de correo con un enlace válido
 recibido siguen pendientes; el paso 7 no se declara cerrado para publicación.
+
+
+## Enlaces válidos generados por el servidor, entrega en memoria (20 de octubre)
+
+Se cierra la ausencia de prueba local con enlaces válidos de contraseña y cambio
+de correo. Las notas anteriores de «sin token válido» describen las pasadas
+anteriores. Sigue pendiente verificar entrega y recepción mediante el proveedor
+externo; el buzón de este ensayo no sustituye esa comprobación.
+
+`BetaLocal.java`, fuera de `src/main` y del JAR, registra exclusivamente para
+el ensayo los notificadores reales `EmailPasswordResetNotifier` y
+`EmailChangeNotifier`, conectados a un `EmailService` que conserva el HTML en
+memoria. El formulario solicita la operación al servidor y el ensayo extrae el
+enlace de ese HTML; no fabrica ni inserta tokens en la base de datos. Se usa el
+servicio real de tokens, persistencia H2, contraseña, sesiones y cookies.
+
+El buzón escucha solo en `127.0.0.1:18081`, consume el mensaje al leerlo y marca
+la respuesta `no-store`. No envía mensajes ni escribe su contenido en archivos.
+Solo acepta destinatarios `@example.invalid`. El launcher mantiene
+`app.email.enabled=false`, H2 temporal y credenciales de proveedores excluidas
+del proceso hijo. El fixture exige esos argumentos locales antes de iniciar y
+el JAR existente no contiene `BetaLocal`. La salida de errores del ensayo
+redacta los tokens válidos capturados y las nuevas contraseñas ficticias.
+
+Para cliente y entrenador se verifica con navegador y HTTP reales:
+
+- Solicitud de restablecimiento, captura del enlace y sustitución por una segunda
+  solicitud; el enlace anterior devuelve 400.
+- Uso del enlace válido en el formulario, éxito real y rechazo 400 de su
+  reutilización. La contraseña antigua ya no permite entrar y la nueva sí.
+- Rechazo 401 de la renovación móvil anterior al restablecimiento.
+- Solicitud de cambio de correo con la nueva contraseña; el correo permanece
+  intacto hasta confirmar el enlace generado.
+- Confirmación válida con una sola petición, incluso tras actualizar el contexto
+  de autenticación. La respuesta web no expone refreshToken en JSON y genera
+  una cookie HttpOnly inaccesible mediante `document.cookie`.
+- Rechazo de la reutilización del enlace de correo, de un restablecimiento
+  pendiente anterior a la confirmación y de una renovación móvil anterior.
+- Login rechazado con el correo antiguo y admitido con el nuevo, conservando el
+  ID de cuenta; renovación web correcta y nuevo correo tras navegar y recargar.
+
+También pasa toda la regresión previa. Se detienen API, preview y buzón, se
+retira el marcador del ensayo y se eliminan sus adjuntos ficticios. Al terminar
+el JVM desaparecen H2 y los mensajes. No se crea un endpoint de depuración en
+la aplicación ni se cambia el backend distribuido.
+
+Esta revisión modifica solo el fixture y el comprobador: se recompila el fixture
+con JDK 21 y se ejecuta el navegador completo. Se mantienen las suites de
+aplicación ya verificadas (**374 backend, 417 web, 170 móvil: 961**); no se
+repiten ni se aumentan sus contadores por añadir estos recorridos. La cuota de
+Vercel y los avisos móviles siguen bloqueando la aceptación para publicación.

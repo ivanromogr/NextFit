@@ -306,3 +306,11 @@ Los fallos transitorios ofrecen reintento; los rechazos de contraseña, correo
 ocupado y token inválido se verifican con API local real. La entrega y
 confirmación de un enlace válido recibido siguen pendientes; ver
 [Pruebas generales](testing-general.md).
+
+La revisión posterior prueba enlaces válidos reales del servidor para contraseña
+y cambio de correo en ambos roles. Captura el HTML de los notificadores en un
+buzón de memoria exclusivo del fixture local: comprueba cambios efectivos,
+reutilización rechazada, renovación revocada y nueva cookie tras recargar.
+El transporte y la recepción mediante un proveedor externo siguen pendientes.
+No cambia el JAR ni añade endpoints a la aplicación; ver
+[Pruebas generales](testing-general.md).

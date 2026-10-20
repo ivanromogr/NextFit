@@ -1,8 +1,9 @@
 """Isolated local HTTP + real browser check. Never accepts remote URLs."""
-import json, re, secrets, struct, zlib
+import json, re, secrets, struct, zlib, sys, traceback
+from html import unescape
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, parse_qs, urlencode
 from pathlib import Path
 import tempfile
 from datetime import date as calendar_date, timedelta
@@ -10,6 +11,30 @@ from playwright.sync_api import sync_playwright, expect
 API='http://127.0.0.1:18080'
 WEB='http://127.0.0.1:4181'
 assert (Path(tempfile.gettempdir())/'nextfit-beta-local'/'ready').read_text()=='isolated-h2-fixture'
+# Valid synthetic tokens stay in memory and are redacted from failure traces.
+fixture_secrets=[]
+def redact_exception(kind,error,trace):
+ text=''.join(traceback.format_exception(kind,error,trace))
+ for secret in fixture_secrets:
+  if secret: text=text.replace(secret,'[fixture-redacted]')
+ sys.stderr.write(text)
+sys.excepthook=redact_exception
+
+def captured_link(address,path):
+ assert address.endswith('@example.invalid')
+ with urlopen('http://127.0.0.1:18081/next?'+urlencode({'to':address}),timeout=10) as response:
+  assert response.headers.get('Cache-Control')=='no-store'
+  message=json.load(response)
+ assert message['to']==address
+ match=re.search(r'href="([^"]+)"',message['html'])
+ assert match, 'The actual notifier did not produce a link'
+ link=unescape(match.group(1)); parsed=urlsplit(link)
+ assert parsed.scheme+'://'+parsed.netloc==WEB and parsed.path==path
+ token=parse_qs(parsed.query).get('token',[''])[0]
+ assert token, 'The actual notifier link has no token'
+ fixture_secrets.append(token)
+ return link,token
+
 
 def call(method,path,body=None,token=None,expected=200):
  headers={'Content-Type':'application/json','X-Client-Type':'MOBILE'}
@@ -583,4 +608,82 @@ with sync_playwright() as p:
  expect(recovery_page.get_by_role('button',name='RESTABLECER CONTRASEÑA',exact=True)).to_have_count(0)
  print('PASS password recovery: controlled failures retain drafts; real neutral unknown-email response; invalid reset rejected; token navigation clears passwords and submits current link; missing token blocks form. No email delivery or successful reset is asserted.')
  recovery_context.close()
+ # Real issued tokens, notifier HTML and one-use semantics; delivery is captured
+ # exclusively in the test JVM's memory, never via an external email provider.
+ for role in ('cliente','entrenador'):
+  identity=account(role,'Recovery'+role)
+  flow_context=browser.new_context(viewport={'width':390 if role=='cliente' else 1365,'height':900})
+  flow_context.route('**/*',lambda route:route.continue_() if route.request.url.startswith((WEB+'/',API+'/')) else route.abort())
+  flow=flow_context.new_page()
+  flow.goto(WEB+'/forgot-password')
+  flow.get_by_label('Correo electrónico',exact=True).fill(identity['email'])
+  flow.get_by_role('button',name='ENVIAR INSTRUCCIONES',exact=True).click()
+  expect(flow.get_by_role('status')).to_contain_text('Si existe una cuenta')
+  _,superseded_reset=captured_link(identity['email'],'/reset-password')
+  call('POST','/api/auth/password/forgot',{'email':identity['email']})
+  reset_link,reset_token=captured_link(identity['email'],'/reset-password')
+  new_password='Local-reset!'+secrets.token_hex(12)
+  fixture_secrets.append(new_password)
+  call('POST','/api/auth/password/reset',{'token':superseded_reset,'newPassword':new_password},expected=400)
+  flow.goto(reset_link)
+  for label in ('Nueva contraseña','Confirmar contraseña'):
+   flow.get_by_label(label,exact=True).fill(new_password)
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/password/reset')) as successful_reset:
+   flow.get_by_role('button',name='RESTABLECER CONTRASEÑA',exact=True).click()
+  assert successful_reset.value.status==200
+  expect(flow.get_by_role('status')).to_contain_text('Tu contraseña se ha restablecido')
+  expect(flow.get_by_label('Nueva contraseña',exact=True)).to_have_count(0)
+  call('POST','/api/auth/password/reset',{'token':reset_token,'newPassword':password},expected=400)
+  call('POST','/api/auth/login',{'email':identity['email'],'password':password},expected=401)
+  renewed=call('POST','/api/auth/login',{'email':identity['email'],'password':new_password})
+  call('POST','/api/auth/refresh',{'refreshToken':identity['refreshToken']},expected=401)
+  flow.goto(WEB+'/auth/login')
+  flow.get_by_placeholder('usuario@email.com').fill(identity['email'])
+  flow.get_by_placeholder('••••••••').fill(new_password)
+  flow.get_by_role('button',name=re.compile('^INICIAR SESIÓN$',re.I)).click()
+  flow.wait_for_url(re.compile('/'+role+'/dashboard$'))
+  flow.wait_for_load_state('networkidle')
+  flow.goto(WEB+'/'+role+'/seguridad/email')
+  next_email='changed-'+role+'-'+suffix+'@example.invalid'
+  flow.get_by_label('Nuevo correo electrónico',exact=True).fill(next_email)
+  flow.get_by_label('Contraseña actual',exact=True).fill(new_password)
+  flow.get_by_role('button',name='Cambiar correo',exact=True).click()
+  expect(flow.get_by_role('status')).to_contain_text('enviado un enlace')
+  expect(flow.get_by_label('Contraseña actual',exact=True)).to_have_value('')
+  profile_path=f"/api/{'clientes' if role=='cliente' else 'entrenador'}/{identity['id']}"
+  old_profile=call('GET',profile_path,token=renewed['accessToken'])
+  if role=='entrenador': old_profile=old_profile.get('entrenador',old_profile)
+  assert old_profile['email']==identity['email']
+  confirm_link,confirm_token=captured_link(next_email,'/confirm-email-change')
+  call('POST','/api/auth/password/forgot',{'email':identity['email']})
+  _,pending_reset=captured_link(identity['email'],'/reset-password')
+  confirmations=[]
+  flow_context.on('request',lambda request,seen=confirmations: seen.append(request.url) if request.method=='POST' and urlsplit(request.url).path=='/api/auth/email/confirm' else None)
+  with flow.expect_response(lambda response: response.url.endswith('/api/auth/email/confirm')) as successful_confirmation:
+   flow.goto(confirm_link)
+  assert successful_confirmation.value.status==200
+  expect(flow.get_by_role('status')).to_contain_text('Tu correo se ha confirmado correctamente')
+  flow.wait_for_load_state('networkidle')
+  assert len(confirmations)==1, 'Auth context updates repeated a valid one-use confirmation'
+  updated_session=successful_confirmation.value.json()
+  assert updated_session['user']['id']==identity['id'] and updated_session['user']['email']==next_email
+  assert updated_session.get('refreshToken') is None, 'Web confirmation exposed a refresh token in JSON'
+  assert any(cookie['name']=='nextfit_refresh' and cookie['httpOnly'] for cookie in flow_context.cookies())
+  assert 'nextfit_refresh' not in flow.evaluate('document.cookie')
+  call('POST','/api/auth/email/confirm',{'token':confirm_token},expected=400)
+  call('POST','/api/auth/password/reset',{'token':pending_reset,'newPassword':password},expected=400)
+  call('POST','/api/auth/refresh',{'refreshToken':renewed['refreshToken']},expected=401)
+  call('POST','/api/auth/login',{'email':identity['email'],'password':new_password},expected=401)
+  final_login=call('POST','/api/auth/login',{'email':next_email,'password':new_password})
+  assert final_login['user']['id']==identity['id']
+  for reload_page in (False,True):
+   with flow.expect_response(lambda response: response.url.endswith('/api/auth/refresh')) as refreshed:
+    if reload_page: flow.reload()
+    else: flow.goto(WEB+'/'+role+'/dashboard')
+   assert refreshed.value.status==200 and refreshed.value.json()['user']['email']==next_email
+   flow.wait_for_url(re.compile('/'+role+'/dashboard$'))
+   flow.wait_for_load_state('networkidle')
+  print('PASS valid local mail links:',role,'real notifier HTML, reset replacement/replay protection, password login and refresh revocation, one email confirmation, old email rejected, new email login and cookie reload. Delivery captured in memory; external transport not tested.')
+  flow_context.close()
+
  browser.close()
