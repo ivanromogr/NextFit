@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import PlantillasEntrenador from '../../../pages/entrenador/PlantillasEntrenador';
@@ -13,9 +13,8 @@ vi.mock('react-router-dom', async () => {
     return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock('../../../context/AuthContext', () => ({
-    useAuth: () => ({ userId: 'coach-123' })
-}));
+const auth = vi.hoisted(() => ({ userId: 'coach-123' }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
 
 const mockToast = {
     success: vi.fn(),
@@ -49,12 +48,14 @@ describe('Página PlantillasEntrenador', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        auth.userId = 'coach-123';
+        endpoints.obtenerPlantillasEntrenador.mockReset();
         // Mock de window.confirm
         vi.stubGlobal('confirm', vi.fn(() => true));
     });
 
     const renderComponent = () => {
-        render(<BrowserRouter><PlantillasEntrenador /></BrowserRouter>);
+        return render(<BrowserRouter><PlantillasEntrenador /></BrowserRouter>);
     };
 
     it('muestra el loader mientras carga las plantillas', () => {
@@ -145,5 +146,42 @@ describe('Página PlantillasEntrenador', () => {
         await waitFor(() => {
             expect(mockToast.error).toHaveBeenCalledWith('Error al eliminar la plantilla');
         });
+    });
+
+    it('recovers a failed load without presenting an empty collection', async () => {
+        endpoints.obtenerPlantillasEntrenador.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(mockPlantillas);
+        renderComponent();
+        const retry = await screen.findByRole('button', { name: 'Reintentar plantillas' });
+        expect(screen.queryByText(/Tu biblioteca está vacía/i)).not.toBeInTheDocument();
+        fireEvent.click(retry);
+        expect(await screen.findByText('Fuerza Máxima')).toBeInTheDocument();
+        expect(endpoints.obtenerPlantillasEntrenador).toHaveBeenCalledTimes(2);
+    });
+    it('treats a malformed collection as an error rather than an empty result', async () => {
+        endpoints.obtenerPlantillasEntrenador.mockResolvedValue({ error: 'unavailable' });
+        renderComponent();
+        expect(await screen.findByRole('alert')).toBeInTheDocument();
+        expect(screen.queryByText(/Tu biblioteca está vacía/i)).not.toBeInTheDocument();
+    });
+    it('ignores a delayed response from the previous account', async () => {
+        let finishOld;
+        endpoints.obtenerPlantillasEntrenador.mockImplementation(id => id === 'coach-123'
+            ? new Promise(resolve => { finishOld = resolve; }) : Promise.resolve([]));
+        const view = renderComponent();
+        await waitFor(() => expect(endpoints.obtenerPlantillasEntrenador).toHaveBeenCalledWith('coach-123'));
+        auth.userId = 'coach-other';
+        view.rerender(<BrowserRouter><PlantillasEntrenador /></BrowserRouter>);
+        await screen.findByText(/Tu biblioteca está vacía/i);
+        await act(async () => finishOld(mockPlantillas));
+        expect(screen.queryByText('Fuerza Máxima')).not.toBeInTheDocument();
+    });
+    it('hides previously loaded data immediately when the account changes', async () => {
+        endpoints.obtenerPlantillasEntrenador.mockResolvedValueOnce(mockPlantillas).mockReturnValue(new Promise(() => {}));
+        const view = renderComponent();
+        await screen.findByText('Fuerza Máxima');
+        auth.userId = 'coach-other';
+        view.rerender(<BrowserRouter><PlantillasEntrenador /></BrowserRouter>);
+        expect(screen.queryByText('Fuerza Máxima')).not.toBeInTheDocument();
+        expect(screen.queryByText(/Tu biblioteca está vacía/i)).not.toBeInTheDocument();
     });
 });

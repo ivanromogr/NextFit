@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
     obtenerClientesEntrenador, 
@@ -13,6 +13,8 @@ import {
     MessageCircle, X, UserMinus, AlertTriangle 
 } from "lucide-react";
 
+import useAccountList from "../../hooks/useAccountList";
+
 import GymButton from "../../components/ui/GymButton";
 import GymInput from "../../components/ui/GymInput";
 import ChatComponent from "../../components/functional/ChatComponent"; 
@@ -20,8 +22,8 @@ import ChatComponent from "../../components/functional/ChatComponent";
 export default function GestionAtletas() {
   const navigate = useNavigate();
   const { userId: entrenadorId } = useAuth();
-  const [listaClientes, setListaClientes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: listaClientes, loading, error: loadError, refresh: cargarClientes, update: setListaClientes }
+    = useAccountList(entrenadorId, obtenerClientesEntrenador);
   
   // Modal Vincular y Búsqueda
   const [showAddModal, setShowAddModal] = useState(false);
@@ -32,22 +34,6 @@ export default function GestionAtletas() {
 
   const [showUnlinkModal, setShowUnlinkModal] = useState(false);
   const [atletaToUnlink, setAtletaToUnlink] = useState(null);
-
-  useEffect(() => {
-    if (entrenadorId) cargarClientes();
-  }, [entrenadorId]);
-
-  const cargarClientes = async () => {
-    try {
-      setLoading(true);
-      const data = await obtenerClientesEntrenador(entrenadorId);
-      setListaClientes(data || []);
-    } catch (error) { 
-        console.error("Error al cargar clientes:", error); 
-    } finally { 
-        setLoading(false); 
-    }
-  };
 
   const triggerDesvincular = (e, clientInfo) => {
     e.stopPropagation();
@@ -171,6 +157,11 @@ export default function GestionAtletas() {
       {/* GRID DE ATLETAS O ESTADO VACÍO */}
       {loading ? (
         <p style={{color: "#666", textAlign: 'center', marginTop: '50px'}}>Cargando equipo...</p>
+      ) : loadError ? (
+        <div role="alert" style={{ color: '#fca5a5', padding: '20px' }}>
+          <p>No se pudieron cargar tus atletas.</p>
+          <GymButton onClick={cargarClientes}>Reintentar atletas</GymButton>
+        </div>
       ) : clientesFiltrados.length === 0 ? (
         
         <div style={styles.emptyState}>

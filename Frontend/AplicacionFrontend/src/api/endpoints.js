@@ -356,13 +356,9 @@ export const obtenerEjerciciosConHistorial = async (clienteId, entrenadorId = nu
   return response.data;
 };
 export const obtenerPlantillasEntrenador = async (entrenadorId) => {
-  try {
-    const response = await api.get(`/api/rutinas/plantillas/${entrenadorId}`);
-    return Array.isArray(response.data) ? response.data : [];
-  } catch (error) {
-    console.error("Error obteniendo plantillas:", error);
-    return [];
-  }
+  const response = await api.get(`/api/rutinas/plantillas/${entrenadorId}`);
+  if (!Array.isArray(response.data)) throw new Error('Invalid template list');
+  return response.data;
 };
 
 export const clonarPlantilla = async (plantillaId, clienteId) => {

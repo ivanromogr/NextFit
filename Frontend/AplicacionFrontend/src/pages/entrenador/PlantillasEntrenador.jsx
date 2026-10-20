@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerPlantillasEntrenador, eliminarRutina } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
@@ -8,6 +8,8 @@ import {
     BookOpen, Plus, Edit, Trash2, Dumbbell, Activity, Copy
 } from "lucide-react";
 
+import useAccountList from "../../hooks/useAccountList";
+
 import GymButton from "../../components/ui/GymButton";
 
 export default function PlantillasEntrenador() {
@@ -15,26 +17,8 @@ export default function PlantillasEntrenador() {
   const { userId: entrenadorId } = useAuth();
   const toast = useToast();
 
-  const [plantillas, setPlantillas] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (entrenadorId) {
-      cargarPlantillas();
-    }
-  }, [entrenadorId]);
-
-  const cargarPlantillas = async () => {
-    try {
-      setLoading(true);
-      const data = await obtenerPlantillasEntrenador(entrenadorId);
-      setPlantillas(data || []);
-    } catch {
-      toast.error("Error al cargar la biblioteca de plantillas.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: plantillas, loading, error: loadError, refresh: cargarPlantillas }
+    = useAccountList(entrenadorId, obtenerPlantillasEntrenador);
 
   const handleCrearNueva = () => {
     // Viajamos al creador, pero le pasamos un parámetro especial para que sepa que es plantilla
@@ -98,6 +82,10 @@ export default function PlantillasEntrenador() {
         </GymButton>
       </div>
 
+      {loadError && <div role="alert" style={{ color: '#fca5a5', padding: '20px' }}>
+        <p>No se pudo cargar tu biblioteca de plantillas.</p>
+        <GymButton onClick={cargarPlantillas}>Reintentar plantillas</GymButton>
+      </div>}
       <div style={styles.grid}>
         {plantillas.map((rutina) => (
           <div 
@@ -139,7 +127,7 @@ export default function PlantillasEntrenador() {
           </div>
         ))}
 
-        {plantillas.length === 0 && (
+        {!loadError && plantillas.length === 0 && (
           <div style={{ gridColumn: "1/-1", textAlign: 'center', padding: '60px 20px', background: 'rgba(255,255,255,0.01)', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '24px' }}>
             <Copy size={48} color="rgba(255,255,255,0.1)" style={{marginBottom: '20px'}}/>
             <h3 style={{margin: '0 0 10px 0', fontSize: '1.4rem', color: 'rgba(255,255,255,0.7)', fontWeight: 800}}>Tu biblioteca está vacía</h3>

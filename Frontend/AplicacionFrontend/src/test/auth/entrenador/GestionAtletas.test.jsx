@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import GestionAtletas from '../../../pages/entrenador/GestionAtletas';
@@ -13,9 +13,8 @@ vi.mock('react-router-dom', async () => {
     return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock('../../../context/AuthContext', () => ({
-    useAuth: () => ({ userId: 'coach-123' })
-}));
+const auth = vi.hoisted(() => ({ userId: 'coach-123' }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
 
 vi.mock('../../../api/endpoints', () => ({
     obtenerClientesEntrenador: vi.fn(),
@@ -54,10 +53,12 @@ describe('Página GestionAtletas', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        auth.userId = 'coach-123';
+        endpoints.obtenerClientesEntrenador.mockReset();
     });
 
     const renderComponent = () => {
-        render(<BrowserRouter><GestionAtletas /></BrowserRouter>);
+        return render(<BrowserRouter><GestionAtletas /></BrowserRouter>);
     };
 
     it('muestra el estado vacío cuando el entrenador no tiene atletas', async () => {
@@ -142,5 +143,42 @@ describe('Página GestionAtletas', () => {
         fireEvent.click(btnGestionar[0]);
 
         expect(mockNavigate).toHaveBeenCalledWith('/entrenador/cliente/c1/rutinas');
+    });
+
+    it('recovers a failed load without presenting an empty collection', async () => {
+        endpoints.obtenerClientesEntrenador.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(mockClientes);
+        renderComponent();
+        const retry = await screen.findByRole('button', { name: 'Reintentar atletas' });
+        expect(screen.queryByText(/Tu equipo está vacío/i)).not.toBeInTheDocument();
+        fireEvent.click(retry);
+        expect(await screen.findByText('Juan Pérez')).toBeInTheDocument();
+        expect(endpoints.obtenerClientesEntrenador).toHaveBeenCalledTimes(2);
+    });
+    it('treats a malformed collection as an error rather than an empty result', async () => {
+        endpoints.obtenerClientesEntrenador.mockResolvedValue({ error: 'unavailable' });
+        renderComponent();
+        expect(await screen.findByRole('alert')).toBeInTheDocument();
+        expect(screen.queryByText(/Tu equipo está vacío/i)).not.toBeInTheDocument();
+    });
+    it('ignores a delayed response from the previous account', async () => {
+        let finishOld;
+        endpoints.obtenerClientesEntrenador.mockImplementation(id => id === 'coach-123'
+            ? new Promise(resolve => { finishOld = resolve; }) : Promise.resolve([]));
+        const view = renderComponent();
+        await waitFor(() => expect(endpoints.obtenerClientesEntrenador).toHaveBeenCalledWith('coach-123'));
+        auth.userId = 'coach-other';
+        view.rerender(<BrowserRouter><GestionAtletas /></BrowserRouter>);
+        await screen.findByText(/Tu equipo está vacío/i);
+        await act(async () => finishOld(mockClientes));
+        expect(screen.queryByText('Juan Pérez')).not.toBeInTheDocument();
+    });
+    it('hides previously loaded data immediately when the account changes', async () => {
+        endpoints.obtenerClientesEntrenador.mockResolvedValueOnce(mockClientes).mockReturnValue(new Promise(() => {}));
+        const view = renderComponent();
+        await screen.findByText('Juan Pérez');
+        auth.userId = 'coach-other';
+        view.rerender(<BrowserRouter><GestionAtletas /></BrowserRouter>);
+        expect(screen.queryByText('Juan Pérez')).not.toBeInTheDocument();
+        expect(screen.queryByText(/Tu equipo está vacío/i)).not.toBeInTheDocument();
     });
 });

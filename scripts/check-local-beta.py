@@ -37,6 +37,10 @@ coach=account('entrenador','Entrenador')
 call('POST',f"/api/entrenador/{coach['id']}/fichar",{'email':'  '+client['email'].upper()+'  '},coach['token'])
 exercise=call('GET','/api/ejercicios',token=client['token'])[0]['id']
 routine=call('POST','/api/rutinas/manual',{'nombre':'Plan beta local','idCliente':client['id'],'creador':'ENTRENADOR','entrenadorId':coach['id'],'ejercicios':[{'idEjercicio':exercise,'series':2,'repeticiones':10,'peso':30.5,'rpe':8}]},coach['token'])['id']
+template=call('POST','/api/rutinas/manual',{'nombre':'Plantilla beta local','esPlantilla':True,'creador':'ENTRENADOR','entrenadorId':coach['id'],'ejercicios':[{'idEjercicio':exercise,'series':2,'repeticiones':10,'peso':30.5,'rpe':8}]},coach['token'])['id']
+for private_path in (f"/api/rutinas/plantillas/{coach['id']}",f"/api/entrenador/{coach['id']}/clientes"):
+ call('GET',private_path,token=other['token'],expected=403)
+ call('GET',private_path,expected=401)
 first_day=calendar_date.today().replace(day=1)
 dates=[first_day.isoformat(),(first_day+timedelta(days=1)).isoformat()]
 for date in dates:
@@ -152,6 +156,26 @@ with sync_playwright() as p:
   page.get_by_role('button',name='Reintentar gráfica',exact=True).click()
   page.get_by_text(re.compile(r'PR:\s*50\.5kg')).wait_for()
   assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), 'Progress overflows the viewport'
+  if user is coach:
+   for api_path,screen_path,retry_label,empty_label,expected_name in (
+     (f"/api/entrenador/{coach['id']}/clientes",'/entrenador/atletas','Reintentar atletas','Tu equipo está vacío','Atleta Beta'),
+     (f"/api/rutinas/plantillas/{coach['id']}",'/entrenador/plantillas','Reintentar plantillas','Tu biblioteca está vacía','Plantilla beta local')):
+    failures_left=[1]
+    def fail_first_list(route,_request,left=failures_left):
+     if left[0]:
+      left[0]-=1
+      route.fulfill(status=503,json={'message':'Local beta injected coach list failure'})
+     else: route.continue_()
+    context.route(API+api_path,fail_first_list)
+    page.wait_for_load_state('networkidle')
+    page.goto(WEB+screen_path)
+    retry=page.get_by_role('button',name=retry_label,exact=True)
+    retry.wait_for()
+    expect(page.get_by_text(empty_label,exact=True)).to_have_count(0)
+    retry.click()
+    page.get_by_text(expected_name,exact=True).wait_for()
+    expect(page.get_by_role('alert')).to_have_count(0)
+   print('PASS coach lists: two controlled 503 failures, actual API retries, athletes/template recovered; unrelated/anonymous access denied')
   print('PASS built browser statistics:',user['role'],width,'four injected failures recovered; totals match real API and personal record is 50.5 kg')
   print('PASS built browser:',user['role'],width,'login/cookie refresh + manual routine/workout' if user is client else 'assigned client/calendar + exact event results')
   context.close()

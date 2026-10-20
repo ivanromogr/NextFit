@@ -259,3 +259,8 @@ sustituya al atleta o ejercicio seleccionado. Se verifica con API local real
 y fallos de red controlados para cliente y entrenador, junto a la regresión de
 calendario y chat. El estado y los recuentos vigentes están en
 [Pruebas generales](testing-general.md). No implica un despliegue de la candidata.
+
+La recuperación de listas del entrenador distingue fallos de equipos o bibliotecas
+vacías y descarta respuestas de otra cuenta. Los reintentos se han verificado con
+API local real y fallos controlados, además de los recorridos anteriores. El
+recuento vigente permanece en [Pruebas generales](testing-general.md).

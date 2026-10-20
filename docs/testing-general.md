@@ -12,12 +12,12 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 353 pruebas en 60 archivos, todas correctas |
+| Web, suite completa | 361 pruebas en 60 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
 | Exportaciones móviles | Android/iOS Hermes correctas con Babel SDK 54; no son builds firmadas |
-| Lint web | Cero errores, siete avisos de dependencias de hooks pendientes |
+| Lint web | Cero errores, cinco avisos de dependencias de hooks pendientes |
 | Auditoría npm web | Cero avisos después de actualizaciones compatibles |
 | Auditoría npm móvil | 50 avisos: 45 altos, 5 moderados, cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
@@ -25,7 +25,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Producción actual | Pasada final correcta: salud UP, protección anónima, CORS con credenciales y rechazo de Google inválido. La rama candidata sigue sin desplegar |
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 
-Las suites de backend, web y móvil suman **897 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **905 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -34,7 +34,8 @@ La suite web se volvió a ejecutar completa el día 20 tras corregir los adjunto
 reconexión vuelve a ejecutar la suite completa con 331 casos correctos. La
 recuperación posterior de historial e imágenes la eleva a 336 casos correctos;
 la revisión de las listas de conversaciones termina con 346 casos correctos.
-La revisión posterior de progreso termina con 353 pruebas web correctas.
+La revisión posterior de progreso termina con 353 pruebas web correctas;
+la de listas del entrenador eleva la suite a 361 casos correctos.
 
 ## Errores corregidos durante la pasada completa
 
@@ -67,7 +68,8 @@ los del segundo. Esos recorridos usan endpoints reales. La recuperación del cha
 añade respuestas 503 deliberadas en el navegador para una fuente de contactos
 de cada perfil, el historial y una imagen. Progreso añade un 503 en cada una de
 sus cuatro secciones para ambos perfiles; todos esos reintentos vuelven a la API
-real. Se bloquean conexiones a servicios externos.
+real. Las listas de atletas y plantillas añaden también un 503 inicial por
+pantalla y recuperación contra la API real. Se bloquean conexiones a servicios externos.
 
 El arranque de prueba no hereda credenciales de proveedores ni configuración de
 despliegue. Usa H2 en memoria, almacenamiento local temporal y correo/proveedores
@@ -448,3 +450,32 @@ Vite y lint con cero errores y los siete avisos anteriores. El total vigente de
 las suites backend/web/móvil es **897**; backend y móvil conservan sus resultados
 anteriores porque esta revisión solo modifica la web y el ensayo local. No se
 ha desplegado esta candidata ni se ha dado por cerrado el paso 7 para publicación.
+
+
+## Listas de atletas y plantillas del entrenador (20 de octubre)
+
+Ambas pantallas distinguen los errores de una lista vacía y ofrecen reintentos
+explícitos. La API de plantillas propaga los fallos y rechaza respuestas que no
+sean listas. El selector de plantillas de las rutinas conserva su manejo de error.
+
+La carga compartida asocia resultados y reintentos a la cuenta actual. Oculta
+inmediatamente los datos de la cuenta anterior e ignora sus respuestas tardías.
+Se conservan el refresco tras fichar o borrar y la eliminación local de un atleta
+desvinculado. No se han cambiado los permisos del servidor.
+
+Se añaden ocho regresiones: fallo y reintento, respuesta inválida, respuesta tardía
+y ocultación de datos ya cargados al cambiar de cuenta, en cada pantalla. Pasan
+las 25 pruebas focalizadas de ambas pantallas y rutinas de cliente.
+
+El ensayo de navegador añade una plantilla ficticia a la base H2 temporal. Fuerza
+un 503 inicial en cada lista del entrenador y verifica que los reintentos contra
+la API real recuperan el atleta y la plantilla. Ambas rutas devuelven 403 al
+tercer cliente y 401 sin sesión. También pasan todos los recorridos anteriores
+de entrenamiento, calendario, progreso y chat. No se han usado datos reales ni
+servicios de pago.
+
+Validación final de listas del entrenador: **361 pruebas web en 60 archivos**,
+compilación Vite correcta y lint con cero errores y **cinco avisos**, dos menos
+que en la revisión anterior. Backend y móvil conservan sus comprobaciones
+anteriores: el total vigente es **905 pruebas** en las tres suites. La candidata
+no se ha desplegado y el paso 7 sigue abierto para publicación.
