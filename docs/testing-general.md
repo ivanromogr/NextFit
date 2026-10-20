@@ -20,7 +20,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Lint web | Cero errores, ocho avisos de dependencias de hooks existentes |
 | Auditoría npm web | Cero avisos después de actualizaciones compatibles |
 | Auditoría npm móvil | 50 avisos: 45 altos, 5 moderados, cero críticos |
-| Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; ambos recorridos completados |
+| Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
 | Producción actual | Render informa `live` para el despliegue existente; `/actuator/health` vuelve a agotar 45 segundos de espera. Disponibilidad HTTP sin confirmar; la rama candidata sigue sin desplegar |
 
@@ -156,3 +156,21 @@ Para completar la aceptación final falta probar la versión candidata desplegad
 resolver o revisar la exposición de las herramientas pendientes y realizar las
 pruebas físicas aplazadas. La integración de ejercicios de pago sigue reservada
 para el final, antes de publicar la aplicación.
+
+## Chat con dos navegadores y API real local
+
+El ensayo `scripts/check-local-beta.py` abre dos contextos independientes de
+Chromium con las cuentas ficticias de cliente y entrenador. Usa el transporte
+SockJS/STOMP y la API reales del servidor H2 temporal, sin simular sus respuestas:
+
+- Mensaje del atleta recibido por el entrenador y respuesta recibida por el atleta.
+- Denuncia de un mensaje recibido: selección de motivo y respuesta HTTP 202.
+- Bloqueo desde el cliente: respuesta HTTP 200, editor deshabilitado y estado
+  `canSend=false` para el entrenador consultado directamente en la API.
+- Desbloqueo y entrega de un nuevo mensaje.
+- Recarga del chat del entrenador y recuperación de los tres mensajes guardados.
+
+Este recorrido amplía la comprobación anterior de entrenamientos y calendario.
+No añade casos al recuento de las suites unitarias ni acredita comportamiento
+físico en iPhone. No prueba archivos adjuntos o reconexión tras pérdida de red.
+Se ejecuta con cuentas `example.invalid` y no escribe en producción.

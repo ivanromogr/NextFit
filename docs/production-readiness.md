@@ -11,7 +11,12 @@ comprobar ese permiso. Ser cliente o entrenador no lo concede y no existe una
 API pública para concedérselo. La activación temporal de despliegue está retirada.
 No añadir cuentas por dominio de correo ni abrir el panel a todos los usuarios.
 
-## Estado comprobado
+## Estado comprobado históricamente
+
+Las respuestas HTTP de este apartado corresponden al 19 de octubre. En la
+comprobación del día 20, Render informa `live` y `not_suspended`, pero la consulta
+de salud agota su tiempo de espera. La web devuelve HTTP 200; disponibilidad
+actual de la API sin confirmar. Ver [Pruebas generales](testing-general.md).
 
 - API NextFit: `https://nextfit-pa8i.onrender.com`, servicio Render
   `srv-d772eof5r7bs73e4ffe0`, plan gratuito, sin disco persistente.
