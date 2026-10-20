@@ -1167,3 +1167,28 @@ no tiene preview. Ninguna de esas respuestas acredita funcionamiento de la web.
 La petición posterior al alias sigue devolviendo 403 del túnel.
 
 La continuación reproducible queda en [Retomar el paso 7](step-7-handoff.md).
+
+
+## Continuación de aceptación externa (20 de octubre)
+
+La preview del código de aplicación `4ddbca71668f2c723f5adf2137c3413efdb01dd8`
+se creó y quedó READY (`dpl_BP5mcMf7uPZ8qhcK9B4WkHBpGpDo`); el comprobador
+confirmó el alias estable y el SHA exacto. Los cambios posteriores del comprobador
+y su documentación no modifican el código de aplicación de ese candidato.
+Las 18 pruebas de herramientas Python pasan, incluidas tres que limitan el
+encabezado de automatización al origen HTTPS exacto autorizado. El intento de
+navegador con TLS y certificados del sistema falla antes de cargar la página:
+`ERR_TUNNEL_CONNECTION_FAILED`. El acceso HTTP independiente confirma un 403 del
+proxy pese a que el hostname consta en la política publicada; la aceptación
+visual sigue pendiente y no se desactiva la protección de Vercel.
+
+La comprobación pública de Render agotó 45,2 segundos en `/actuator/health`;
+una segunda comprobación agotó 15,1 segundos. No se ejecutaron las comprobaciones
+posteriores a la salud. La API de gestión identifica el servicio NextFit como
+`not_suspended` y su último despliegue como `live`, terminado el 19 de octubre.
+Estos metadatos no demuestran disponibilidad HTTP ni determinan la causa de los
+tiempos de espera. No se reinició ni desplegó producción.
+
+El registro npm sigue publicando como últimas estables braces 3.0.3,
+node-forge 1.4.0 y sprintf-js 1.1.3. No se cambian dependencias ni se declara
+resuelta su exposición. El paso 7 permanece abierto por los bloqueos documentados.
