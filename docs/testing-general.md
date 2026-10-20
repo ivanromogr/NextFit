@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 374 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 394 pruebas en 60 archivos, todas correctas |
+| Web, suite completa | 402 pruebas en 60 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -26,7 +26,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Seis pruebas de contrato; una preview anterior READY verificada por metadatos. No equivale a aceptación de la última versión |
 
-Las suites de backend, web y móvil suman **938 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **946 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -39,7 +39,8 @@ La revisión posterior de progreso termina con 353 pruebas web correctas;
 la de listas del entrenador eleva la suite a 361 casos correctos. La revisión
 del panel termina con 369 pruebas web correctas; la edición de perfiles eleva
 la suite a 381 casos correctos. El alta y la navegación al chat completan
-la suite con 394 casos correctos.
+la suite con 394 casos correctos. La revisión de sesiones activas termina
+con 402 pruebas web correctas.
 
 ## Errores corregidos durante la pasada completa
 
@@ -78,6 +79,8 @@ de atletas y resumen, un refresco fallido y recuperación al volver a enfocarlo.
 Los perfiles añaden fallos controlados de carga y guardado; sus reintentos usan
 la API real y verifican los datos persistidos. El alta del entrenador añade
 un guardado fallido y un reintento real, con lectura posterior del perfil.
+Sesiones añade fallos controlados de listado y revocación, renovaciones
+rechazadas tras el cierre y eliminación real de la cookie web tras cierre global.
 Se bloquean conexiones a servicios externos.
 
 El arranque de prueba no hereda credenciales de proveedores ni configuración de
@@ -637,3 +640,50 @@ metadatos. Tras restablecerse la cuota, queda generar una preview del commit
 elegido para release, verificar su identidad con este comprobador y después
 aceptar sus flujos en navegador contra la API correspondiente. No se sustituye
 esa validación por un estado READY de una revisión anterior.
+
+
+## Sesiones activas: recuperación, revocación y cierre global (20 de octubre)
+
+El listado diferencia carga, fallo recuperable y ausencia real de sesiones. Las
+respuestas inválidas se rechazan; «Reintentar sesiones» consulta de nuevo la API.
+Los datos se asocian a la cuenta actual y se descartan respuestas de cuentas
+anteriores. El cierre individual y global bloquea órdenes simultáneas mientras
+están pendientes. Un fallo conserva la lista y ofrece un error para reintentar.
+
+Si la revocación se confirma pero falla la recarga, se distingue la confirmación
+del cierre del fallo de listado. Un cierre global fallido no limpia la sesión
+local como si hubiera funcionado. Una respuesta de cierre global que llega
+después de cambiar de cuenta no limpia ni redirige la nueva cuenta. No se
+muestran identificadores de familia ni tokens en la pantalla.
+
+Pasan once pruebas focalizadas, con ocho regresiones nuevas de listado fallido,
+respuesta inválida, cambio de cuenta, reintento de revocación sin duplicados,
+fallo de recarga tras revocar, fallo global, respuesta tardía de cierre global y
+cancelación del diálogo. La prueba anterior de recarga espera explícitamente la
+segunda petición asíncrona.
+
+El navegador con API local real repite el recorrido para cliente y entrenador.
+Fuerza un 503 inicial del listado y otro del cierre individual; recupera ambas
+operaciones con reintentos reales y confirma que la familia revocada desaparece.
+Una renovación móvil con su token anterior recibe 401. Una cuenta ajena recibe
+404 al intentar revocar esa familia y la petición anónima recibe 401.
+
+El cierre global se ejecuta con la cookie web actual y una segunda sesión móvil
+activa. Se verifica la vuelta al login, la eliminación de la cookie
+`nextfit_refresh` y el rechazo 401 de nuevas renovaciones web y del otro
+dispositivo. Esto prueba la revocación de renovación, no la invalidez instantánea
+de todos los JWT de acceso ya emitidos ni notificaciones a un móvil físico.
+Los tokens de cuentas ficticias solo viven en la memoria del ensayo y no se
+imprimen ni se guardan en el repositorio.
+
+También pasa la regresión completa anterior de entrenamiento, calendario,
+progreso, panel, listas, chat, perfiles y alta. El ensayo sigue aislado sobre H2
+temporal y sin proveedores externos; la cuota de Vercel continúa siendo un
+bloqueo independiente para aceptar el candidato desplegado.
+
+Validación final de sesiones: **402 pruebas web en 60 archivos**, compilación
+Vite correcta y lint con **cero errores y cero avisos**. El total vigente de
+backend/web/móvil es **946**; backend y móvil conservan sus resultados anteriores
+porque esta revisión solo cambia la web y el ensayo local. El candidato no se
+ha aceptado desplegado y el paso 7 continúa abierto por la cuota de preview,
+los avisos móviles y la aceptación de la versión definitiva.

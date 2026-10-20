@@ -30,7 +30,7 @@ password='Beta!'+secrets.token_hex(12)
 def account(role,name):
  email=f'beta-{name}-{suffix}@example.invalid'.lower()
  result=call('POST','/api/register',{'nombre':name,'apellido':'Beta','email':email,'contrasena':password,'rol':role,'acceptTerms':True,'acceptPrivacy':True,'marketingConsent':False},expected=201)
- return {'email':email,'id':result['user']['id'],'token':result['accessToken'],'role':role}
+ return {'email':email,'id':result['user']['id'],'token':result['accessToken'],'refreshToken':result.get('refreshToken'),'role':role}
 client=account('cliente','Atleta')
 other=account('cliente','Otro')
 coach=account('entrenador','Entrenador')
@@ -460,5 +460,45 @@ with sync_playwright() as p:
  assert persisted['aniosExperiencia']==6
  assert persisted['descripcionPerfil']=='Biografía beta local conservada después de un fallo.'
  print('PASS trainer onboarding: fractional experience blocked, failed save retains biography, real retry persists experience and biography for authenticated coach')
+ for user,context,page in zip((client,coach),chat_contexts,chat_pages):
+  owned_sessions=call('GET','/api/auth/sessions',token=user['token'])
+  mobile_sessions=[item for item in owned_sessions if item['clientType']=='MOBILE']
+  assert len(mobile_sessions)==1 and isinstance(user['refreshToken'],str)
+  family=mobile_sessions[0]['familyId']
+  call('DELETE','/api/auth/sessions/'+family,token=other['token'],expected=404)
+  call('DELETE','/api/auth/sessions/'+family,expected=401)
+  failures={'load':1,'revoke':1}
+  def fail_sessions(route,_request,left=failures):
+   kind='load' if route.request.method=='GET' else 'revoke' if route.request.method=='DELETE' else None
+   if left.get(kind,0):
+    left[kind]-=1
+    route.fulfill(status=503,json={'message':'Local beta injected session failure'})
+   else: route.continue_()
+  context.route(API+'/api/auth/sessions',fail_sessions)
+  context.route(API+'/api/auth/sessions/'+family,fail_sessions)
+  page.wait_for_load_state('networkidle')
+  page.goto(WEB+'/'+user['role']+'/seguridad/sesiones')
+  page.get_by_role('button',name='Reintentar sesiones',exact=True).wait_for()
+  expect(page.get_by_text('No hay sesiones activas.',exact=True)).to_have_count(0)
+  page.get_by_role('button',name='Reintentar sesiones',exact=True).click()
+  mobile_row=page.get_by_role('listitem').filter(has=page.get_by_text('Móvil',exact=True))
+  mobile_row.wait_for()
+  assert family not in page.locator('body').inner_text()
+  mobile_row.get_by_role('button',name='Cerrar sesión',exact=True).click()
+  expect(page.get_by_role('alert')).to_contain_text('No se pudo cerrar esa sesión')
+  expect(mobile_row).to_have_count(1)
+  mobile_row.get_by_role('button',name='Cerrar sesión',exact=True).click()
+  expect(page.get_by_text('Móvil',exact=True)).to_have_count(0)
+  assert all(item['familyId']!=family for item in call('GET','/api/auth/sessions',token=user['token']))
+  call('POST','/api/auth/refresh',{'refreshToken':user['refreshToken']},expected=401)
+  another_device=call('POST','/api/auth/login',{'email':user['email'],'password':password})
+  page.once('dialog',lambda dialog:dialog.accept())
+  page.get_by_role('button',name='Cerrar todas las sesiones',exact=True).click()
+  page.wait_for_url(re.compile('/auth/login$'))
+  assert not any(cookie['name']=='nextfit_refresh' for cookie in context.cookies())
+  call('POST','/api/auth/refresh',{'refreshToken':another_device['refreshToken']},expected=401)
+  rejected=context.request.post(API+'/api/auth/refresh',headers={'X-Client-Type':'WEB','Origin':WEB})
+  assert rejected.status==401
+  print('PASS session management:',user['role'],'load/revoke failures recovered; private IDs hidden; foreign revocation denied; revoked mobile and global refresh rejected; web cookie removed')
  for context in chat_contexts: context.close()
  browser.close()

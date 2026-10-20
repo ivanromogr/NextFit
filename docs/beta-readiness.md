@@ -287,3 +287,9 @@ Vercel (100 despliegues, cero restantes). El proveedor indica restablecimiento
 el 21 de octubre a las 14:06, hora de Madrid. Existen previews anteriores READY,
 pero no satisfacen la aceptación del candidato. El nuevo comprobador de identidad
 exige el commit y proyecto correctos; ver [Pruebas generales](testing-general.md).
+
+La revisión de sesiones activas incorpora errores recuperables y bloqueo de
+órdenes repetidas. El navegador con API local real verifica revocación individual,
+protección frente a otra cuenta, cierre global, retirada de la cookie web y
+rechazo de renovaciones posteriores para ambos roles. No acredita invalidación
+instantánea de JWT de acceso ya emitidos; ver [Pruebas generales](testing-general.md).
