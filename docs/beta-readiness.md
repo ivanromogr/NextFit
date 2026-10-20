@@ -264,3 +264,8 @@ La recuperación de listas del entrenador distingue fallos de equipos o bibliote
 vacías y descarta respuestas de otra cuenta. Los reintentos se han verificado con
 API local real y fallos controlados, además de los recorridos anteriores. El
 recuento vigente permanece en [Pruebas generales](testing-general.md).
+
+El resumen del entrenador diferencia fallos de datos vacíos, evita actualizaciones
+simultáneas y señala cuándo conserva datos antiguos por un fallo de refresco.
+Se verifica contra la API local real, junto a la regresión anterior. El candidato
+sigue sin desplegar; consultar los recuentos en [Pruebas generales](testing-general.md).

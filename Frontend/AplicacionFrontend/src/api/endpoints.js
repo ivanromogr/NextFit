@@ -254,13 +254,8 @@ export const actualizarEntrenador = async (id, payload) => {
 
 // --- DASHBOARD ENTRENADOR ---
 export const obtenerDashboardResumen = async (entrenadorId) => {
-  try {
-    const response = await api.get(`/api/entrenador/${entrenadorId}/dashboard-resumen`);
-    return response.data;
-  } catch (error) {
-    console.error("Error obteniendo dashboard:", error);
-    return null;
-  }
+  const response = await api.get(`/api/entrenador/${entrenadorId}/dashboard-resumen`);
+  return response.data;
 };
 
 // --- 8. HISTORIAL DE ENTRENAMIENTO ---

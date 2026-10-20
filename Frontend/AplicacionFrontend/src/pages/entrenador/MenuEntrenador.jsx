@@ -1,10 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-    obtenerClientesEntrenador, 
     ficharCliente, 
-    obtenerDashboardResumen,
-    getEntrenador
     
 } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
@@ -14,6 +11,8 @@ import {
   AlertTriangle, Zap, Check, MessageCircle, TrendingUp, Bell
 } from "lucide-react";
 
+import useCoachDashboard from "../../hooks/useCoachDashboard";
+
 import GymButton from "../../components/ui/GymButton";
 import GymInput from "../../components/ui/GymInput";
 import ChatComponent from "../../components/functional/ChatComponent";
@@ -22,14 +21,13 @@ export default function MenuEntrenador() {
   const navigate = useNavigate();
   const { userId: entrenadorId } = useAuth();
   
-  const [perfil, setPerfil] = useState({ nombre: 'Coach', fotoPerfil: '' });
-  const [listaClientes, setListaClientes] = useState([]); 
-  const [feed, setFeed] = useState([]); 
-  const [stats, setStats] = useState({ hoy: 0, riesgo: 0, records: 0 });
-  const [loading, setLoading] = useState(true);
-  const [activityToast, setActivityToast] = useState(null);
-  const latestFeedIdRef = useRef(null);
-  const initialDashboardLoadedRef = useRef(false);
+  const dashboard = useCoachDashboard(entrenadorId);
+  const { loading, refresh: cargarDatos, failures = {} } = dashboard;
+  const perfil = dashboard.profile || { nombre: 'Coach', fotoPerfil: '' };
+  const listaClientes = dashboard.clients || [];
+  const feed = dashboard.summary?.feedActividad || [];
+  const stats = dashboard.summary?.stats;
+  const activityToast = dashboard.toast;
 
   // UI
   const [showAddModal, setShowAddModal] = useState(false);
@@ -37,104 +35,8 @@ export default function MenuEntrenador() {
   const [chatOpen, setChatOpen] = useState(null);
 
   useEffect(() => {
-    if (!entrenadorId) {
-        navigate("/auth/login");
-        return;
-    }
-    cargarDatos();
+    if (!entrenadorId) navigate('/auth/login');
   }, [entrenadorId, navigate]);
-
-  useEffect(() => {
-    if (!entrenadorId) return undefined;
-
-    const interval = setInterval(() => {
-      cargarActividadDashboard(true);
-    }, 8000);
-
-    const handleFocus = () => cargarActividadDashboard(true);
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("focus", handleFocus);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entrenadorId]);
-
-  const aplicarDashboard = (dataDash, notify = false) => {
-      if (!dataDash) return;
-
-      const nuevoFeed = dataDash.feedActividad || [];
-      const nuevoStats = dataDash.stats || { hoy: 0, riesgo: 0, records: 0 };
-      const ultimaActividad = nuevoFeed[0];
-      const ultimoIdAnterior = latestFeedIdRef.current;
-
-      setFeed(nuevoFeed);
-      setStats({
-          hoy: nuevoStats.hoy || 0,
-          riesgo: nuevoStats.riesgo || 0,
-          records: nuevoStats.records || 0,
-      });
-
-      if (ultimaActividad?.id) {
-          latestFeedIdRef.current = ultimaActividad.id;
-      }
-
-      if (
-          notify &&
-          initialDashboardLoadedRef.current &&
-          ultimaActividad?.id &&
-          ultimoIdAnterior &&
-          ultimaActividad.id !== ultimoIdAnterior
-      ) {
-          setActivityToast({
-              clienteNombre: ultimaActividad.clienteNombre,
-              rutina: ultimaActividad.rutina,
-          });
-          setTimeout(() => setActivityToast(null), 4500);
-      }
-
-      initialDashboardLoadedRef.current = true;
-  };
-
-  const cargarActividadDashboard = async (notify = false) => {
-    try {
-      const dataDash = await obtenerDashboardResumen(entrenadorId);
-      aplicarDashboard(dataDash, notify);
-    } catch (error) {
-      console.error("Error refrescando actividad del entrenador:", error);
-    }
-  };
-
-  const cargarDatos = async () => {
-    try {
-      setLoading(true);
-      
-      // Cargamos todo en paralelo para que sea súper rápido
-      const [dataClientes, dataDash, dataPerfil] = await Promise.all([
-          Promise.resolve(obtenerClientesEntrenador(entrenadorId)).catch(() => []),
-          typeof obtenerDashboardResumen === 'function' ? Promise.resolve(obtenerDashboardResumen(entrenadorId)).catch(() => null) : null,
-          Promise.resolve(getEntrenador(entrenadorId)).catch(() => null)
-      ]);
-
-      // Perfil Entrenador
-      if (dataPerfil) {
-          const info = dataPerfil.entrenador || dataPerfil;
-          setPerfil({ nombre: info.nombre || 'Coach', fotoPerfil: info.fotoPerfil || '' });
-      }
-
-      // Clientes
-      setListaClientes(dataClientes || []);
-
-      // Stats Dashboard
-      aplicarDashboard(dataDash, false);
-
-    } catch (error) {
-      console.error("Error cargando dashboard del entrenador:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFichar = async () => {
   try {
@@ -278,7 +180,13 @@ export default function MenuEntrenador() {
         </button>
       </div>
 
-      <div style={styles.statsGrid}>
+      {Object.values(failures).some(Boolean) && <div role="alert" style={{ padding: '20px', marginBottom: '24px', border: '1px solid #7f1d1d', borderRadius: '12px', color: '#fca5a5' }}>
+        {failures.profile && <p>No se pudo cargar tu perfil.</p>}
+        {failures.clients && <p>No se pudieron cargar tus atletas.</p>}
+        {failures.summary && <p>{stats ? 'No se pudo actualizar la actividad. Se muestran los últimos datos recibidos.' : 'No se pudo cargar el resumen de actividad.'}</p>}
+        <GymButton onClick={cargarDatos}>Reintentar panel</GymButton>
+      </div>}
+      {stats && <div style={styles.statsGrid}>
         <div style={styles.statCard}>
             <div style={{...styles.iconWrap, background: 'rgba(239, 68, 68, 0.1)'}}>
                 <AlertTriangle size={24} color="#EF4444"/>
@@ -306,7 +214,7 @@ export default function MenuEntrenador() {
                 <div style={styles.statValue}>{stats.records}</div>
             </div>
         </div>
-      </div>
+      </div>}
 
       <div style={styles.mainLayout}>
           
@@ -314,7 +222,7 @@ export default function MenuEntrenador() {
           <div style={styles.leftCol}>
               <h3 style={{color:'white', margin:'0 0 20px 0', fontSize: '1rem', letterSpacing: '1px'}}>MIS ATLETAS</h3>
               
-                {listaClientes.length === 0 ? (
+                {failures.clients ? <p style={{ color: '#fca5a5' }}>Equipo no disponible. Reintenta la carga del panel.</p> : listaClientes.length === 0 ? (
                   <div style={{padding:'60px 40px', border:'1px dashed rgba(255,255,255,0.1)', borderRadius:'24px', textAlign:'center', background: 'rgba(255,255,255,0.01)'}}>
                     <User size={40} color="rgba(255,255,255,0.2)" style={{marginBottom: '15px'}}/>
                     <div style={{color:'rgba(255,255,255,0.7)', fontWeight: 600, fontSize: '1.1rem'}}>No tienes atletas vinculados.</div>
@@ -384,7 +292,7 @@ export default function MenuEntrenador() {
           <div style={styles.rightCol}>
               <div style={styles.feedTitle}><Activity size={18} color="#FACC15"/> Última Actividad</div>
               
-              {feed.length > 0 ? (
+              {!dashboard.summary ? <p style={{ color: '#fca5a5' }}>Actividad no disponible. Reintenta la carga del panel.</p> : feed.length > 0 ? (
                   feed.map((item, idx) => (
                       <div 
                         key={item.id || idx} 

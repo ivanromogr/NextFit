@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import MenuEntrenador from '../../../pages/entrenador/MenuEntrenador';
@@ -13,9 +13,8 @@ vi.mock('react-router-dom', async () => {
     return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock('../../../context/AuthContext', () => ({
-    useAuth: () => ({ userId: 'coach-ultra-123' })
-}));
+const auth = vi.hoisted(() => ({ userId: 'coach-ultra-123' }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
 
 vi.mock('../../../api/endpoints', () => ({
     obtenerClientesEntrenador: vi.fn(),
@@ -58,10 +57,14 @@ describe('Página MenuEntrenador (Cuartel General)', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        auth.userId = 'coach-ultra-123';
+        endpoints.obtenerClientesEntrenador.mockReset().mockResolvedValue(mockClientes);
+        endpoints.obtenerDashboardResumen.mockReset().mockResolvedValue(mockResumen);
+        endpoints.getEntrenador.mockReset().mockResolvedValue(mockPerfil);
     });
 
     const renderComponent = () => {
-        render(<BrowserRouter><MenuEntrenador /></BrowserRouter>);
+        return render(<BrowserRouter><MenuEntrenador /></BrowserRouter>);
     };
 
     it('muestra el estado de carga inicial', () => {
@@ -150,5 +153,91 @@ describe('Página MenuEntrenador (Cuartel General)', () => {
             expect(endpoints.ficharCliente).toHaveBeenCalledWith('coach-ultra-123', 'nuevo@atleta.com');
             expect(screen.queryByText(/Vincular Atleta/i)).not.toBeInTheDocument();
         });
+    });
+
+    it('recovers a failed summary without inventing zero statistics or empty activity', async () => {
+        endpoints.obtenerDashboardResumen.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(mockResumen);
+        renderComponent();
+        await screen.findByRole('alert');
+        expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+        expect(screen.queryByText('Entrenan Hoy')).not.toBeInTheDocument();
+        expect(screen.queryByText('No hay actividad reciente en tu equipo.')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar panel' }));
+        expect(await screen.findByText('5')).toBeInTheDocument();
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+    it('keeps available statistics when athletes fail without showing an empty team', async () => {
+        endpoints.obtenerClientesEntrenador.mockRejectedValueOnce(new Error('offline'));
+        renderComponent();
+        await screen.findByRole('alert');
+        expect(screen.getByText('5')).toBeInTheDocument();
+        expect(screen.queryByText('No tienes atletas vinculados.')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar panel' }));
+        expect(await screen.findByText('Juan Pérez')).toBeInTheDocument();
+    });
+    it('reports a profile failure while keeping the other available sections', async () => {
+        endpoints.getEntrenador.mockRejectedValueOnce(new Error('offline'));
+        renderComponent();
+        expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar tu perfil.');
+        expect(screen.getByText('5')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar panel' }));
+        expect(await screen.findByText(/Hola, Carlos/)).toBeInTheDocument();
+    });
+    it('rejects malformed summary data instead of treating it as a zero result', async () => {
+        endpoints.obtenerDashboardResumen.mockResolvedValue({ stats: {}, feedActividad: [] });
+        renderComponent();
+        expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar el resumen');
+        expect(screen.queryByText('Entrenan Hoy')).not.toBeInTheDocument();
+    });
+    it('ignores a late initial load from the previous account', async () => {
+        let finishOld;
+        endpoints.obtenerDashboardResumen.mockReturnValueOnce(new Promise(resolve => { finishOld = resolve; }));
+        const view = renderComponent();
+        await waitFor(() => expect(endpoints.obtenerDashboardResumen).toHaveBeenCalledTimes(1));
+        auth.userId = 'coach-other';
+        endpoints.getEntrenador.mockResolvedValue({ nombre: 'Laura' });
+        endpoints.obtenerClientesEntrenador.mockResolvedValue([]);
+        endpoints.obtenerDashboardResumen.mockResolvedValue({ stats: { hoy: 7, riesgo: 0, records: 0 }, feedActividad: [] });
+        view.rerender(<BrowserRouter><MenuEntrenador /></BrowserRouter>);
+        await screen.findByText(/Hola, Laura/);
+        await act(async () => finishOld(mockResumen));
+        expect(screen.getByText('7')).toBeInTheDocument();
+        expect(screen.queryByText('5')).not.toBeInTheDocument();
+        expect(screen.queryByText('Juan Pérez')).not.toBeInTheDocument();
+    });
+    it('hides loaded data immediately when the account changes', async () => {
+        const view = renderComponent();
+        await screen.findByText(/Hola, Carlos/);
+        auth.userId = 'coach-other';
+        endpoints.obtenerDashboardResumen.mockReturnValue(new Promise(() => {}));
+        view.rerender(<BrowserRouter><MenuEntrenador /></BrowserRouter>);
+        expect(screen.queryByText(/Hola, Carlos/)).not.toBeInTheDocument();
+        expect(screen.queryByText('Juan Pérez')).not.toBeInTheDocument();
+        expect(screen.queryByText('5')).not.toBeInTheDocument();
+    });
+    it('deduplicates simultaneous focus refreshes and removes its listener on unmount', async () => {
+        const view = renderComponent();
+        await screen.findByText('5');
+        let finishRefresh;
+        endpoints.obtenerDashboardResumen.mockReturnValueOnce(new Promise(resolve => { finishRefresh = resolve; }));
+        fireEvent(window, new Event('focus'));
+        fireEvent(window, new Event('focus'));
+        expect(endpoints.obtenerDashboardResumen).toHaveBeenCalledTimes(2);
+        await act(async () => finishRefresh(mockResumen));
+        view.unmount();
+        fireEvent(window, new Event('focus'));
+        expect(endpoints.obtenerDashboardResumen).toHaveBeenCalledTimes(2);
+    });
+    it('marks retained statistics as stale on refresh failure and recovers on focus', async () => {
+        renderComponent();
+        await screen.findByText('5');
+        endpoints.obtenerDashboardResumen.mockRejectedValueOnce(new Error('offline'));
+        fireEvent(window, new Event('focus'));
+        expect(await screen.findByRole('alert')).toHaveTextContent('últimos datos recibidos');
+        expect(screen.getByText('5')).toBeInTheDocument();
+        endpoints.obtenerDashboardResumen.mockResolvedValue({ ...mockResumen, stats: { ...mockResumen.stats, hoy: 8 } });
+        fireEvent(window, new Event('focus'));
+        expect(await screen.findByText('8')).toBeInTheDocument();
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 });

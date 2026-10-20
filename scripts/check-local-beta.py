@@ -38,7 +38,7 @@ call('POST',f"/api/entrenador/{coach['id']}/fichar",{'email':'  '+client['email'
 exercise=call('GET','/api/ejercicios',token=client['token'])[0]['id']
 routine=call('POST','/api/rutinas/manual',{'nombre':'Plan beta local','idCliente':client['id'],'creador':'ENTRENADOR','entrenadorId':coach['id'],'ejercicios':[{'idEjercicio':exercise,'series':2,'repeticiones':10,'peso':30.5,'rpe':8}]},coach['token'])['id']
 template=call('POST','/api/rutinas/manual',{'nombre':'Plantilla beta local','esPlantilla':True,'creador':'ENTRENADOR','entrenadorId':coach['id'],'ejercicios':[{'idEjercicio':exercise,'series':2,'repeticiones':10,'peso':30.5,'rpe':8}]},coach['token'])['id']
-for private_path in (f"/api/rutinas/plantillas/{coach['id']}",f"/api/entrenador/{coach['id']}/clientes"):
+for private_path in (f"/api/rutinas/plantillas/{coach['id']}",f"/api/entrenador/{coach['id']}/clientes",f"/api/entrenador/{coach['id']}/dashboard-resumen"):
  call('GET',private_path,token=other['token'],expected=403)
  call('GET',private_path,expected=401)
 first_day=calendar_date.today().replace(day=1)
@@ -176,6 +176,38 @@ with sync_playwright() as p:
     page.get_by_text(expected_name,exact=True).wait_for()
     expect(page.get_by_role('alert')).to_have_count(0)
    print('PASS coach lists: two controlled 503 failures, actual API retries, athletes/template recovered; unrelated/anonymous access denied')
+   summary_path=f"/api/entrenador/{coach['id']}/dashboard-resumen"
+   expected_dashboard=call('GET',summary_path,token=coach['token'])
+   dashboard_failures={summary_path:1,f"/api/entrenador/{coach['id']}/clientes":1}
+   def fail_dashboard(route,_request):
+    path=urlsplit(route.request.url).path
+    if dashboard_failures.get(path,0):
+     dashboard_failures[path]-=1
+     route.fulfill(status=503,json={'message':'Local beta injected dashboard failure'})
+    else: route.continue_()
+   context.route(API+summary_path,fail_dashboard)
+   context.route(API+f"/api/entrenador/{coach['id']}/clientes",fail_dashboard)
+   page.wait_for_load_state('networkidle')
+   page.goto(WEB+'/entrenador/dashboard')
+   page.get_by_role('button',name='Reintentar panel',exact=True).wait_for()
+   expect(page.get_by_text('Entrenan Hoy',exact=True)).to_have_count(0)
+   expect(page.get_by_text('No tienes atletas vinculados.',exact=True)).to_have_count(0)
+   expect(page.get_by_text('No hay actividad reciente en tu equipo.',exact=True)).to_have_count(0)
+   page.get_by_role('button',name='Reintentar panel',exact=True).click()
+   page.get_by_role('heading',name='Atleta Beta',exact=True).wait_for()
+   for label,field in (('En Riesgo','riesgo'),('Entrenan Hoy','hoy'),('Entrenos Semanales','records')):
+    expect(page.get_by_text(label,exact=True).locator('..').locator(':scope > div').nth(1)).to_have_text(str(expected_dashboard['stats'][field]))
+   expect(page.get_by_role('alert')).to_have_count(0)
+   dashboard_failures[summary_path]=1
+   with page.expect_response(lambda response: summary_path in response.url and response.status==503):
+    page.evaluate("window.dispatchEvent(new Event('focus'))")
+   expect(page.get_by_role('alert')).to_contain_text('últimos datos recibidos')
+   expect(page.get_by_text('Entrenan Hoy',exact=True)).to_have_count(1)
+   with page.expect_response(lambda response: summary_path in response.url and response.status==200):
+    page.evaluate("window.dispatchEvent(new Event('focus'))")
+   expect(page.get_by_role('alert')).to_have_count(0)
+   print('PASS coach dashboard: partial failures recovered, totals match actual API, failed refresh retains labeled stale data and focus recovers')
+
   print('PASS built browser statistics:',user['role'],width,'four injected failures recovered; totals match real API and personal record is 50.5 kg')
   print('PASS built browser:',user['role'],width,'login/cookie refresh + manual routine/workout' if user is client else 'assigned client/calendar + exact event results')
   context.close()
