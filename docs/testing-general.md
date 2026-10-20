@@ -19,7 +19,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Exportaciones móviles | Android/iOS Hermes correctas con Babel SDK 54; no son builds firmadas |
 | Lint web | Cero errores, ocho avisos de dependencias de hooks existentes |
 | Auditoría npm web | Cero avisos después de actualizaciones compatibles |
-| Auditoría npm móvil | 58 avisos: 45 altos, 13 moderados, cero críticos |
+| Auditoría npm móvil | 50 avisos: 45 altos, 5 moderados, cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; ambos recorridos completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
 | Producción actual | El intento de comprobar `/actuator/health` agotó su tiempo de espera; no acredita disponibilidad ni prueba la rama candidata |
@@ -124,3 +124,14 @@ y la compatibilidad declarada con Expo 54.
 Las exportaciones Hermes Android/iOS de la cohorte Metro 0.83.8 también se completaron.
 Son verificaciones adicionales de la herramienta de compilación; la aceptación
 física y el cierre de los avisos restantes siguen pendientes.
+
+### Herramientas iOS y análisis de artefactos
+
+La actualización acotada de UUID para `xcode` deja la auditoría móvil en 50 avisos
+(45 altos, 5 moderados, cero críticos). La suite móvil mantiene sus 170 casos;
+una prueba adicional de lectura/modificación/escritura PBX pasa fuera de Jest.
+Los mapas de las exportaciones Android/iOS confirman que los tres paquetes de
+origen de los avisos restantes no forman parte de esos bundles JavaScript.
+El análisis acota la exposición del artefacto, mantiene los avisos de herramientas
+abiertos y no sustituye las validaciones físicas y de despliegue pendientes.
+Ver [Dependencias móviles](mobile-dependencies.md).

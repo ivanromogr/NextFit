@@ -245,3 +245,10 @@ para las dependencias restantes y por qué no se fuerza un cambio mayor del SDK.
 La cohorte de Metro se actualiza posteriormente de 0.83.3 a 0.83.8, sin cambiar
 Expo 54; desaparece la dependencia de origen `image-size`. El estado más reciente
 es 58 avisos móviles (45 altos, 13 moderados, cero críticos) y 170 pruebas correctas.
+
+La revisión posterior de la herramienta iOS aplica UUID corregido únicamente a
+`xcode`, con prueba PBX real. El estado más reciente es 50 avisos (45 altos,
+5 moderados, cero críticos), originados en tres paquetes de herramientas que no
+aparecen en los bundles Android/iOS examinados. Se mantienen 170 pruebas móviles
+correctas y una prueba adicional de herramientas. Los avisos y límites continúan
+registrados en [Dependencias móviles](mobile-dependencies.md).
