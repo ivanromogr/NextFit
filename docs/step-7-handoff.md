@@ -34,11 +34,16 @@ El código de aplicación `ce18e94` añade rewrite `/api/:path*` y
 de `codex/mobile-ux`; producción web no cambia. WebSocket/SockJS conserva el
 backend de `VITE_WS_URL`. Los recorridos completos locales del proxy pasan.
 
-Vercel rechazó crear la nueva preview con 402 `api-deployments-free-per-day`.
-No existe preview del candidato nuevo en la última consulta. No repetir solicitudes
-en bucle ni comprar una ampliación. No confundir la preview anterior con la
-corrección de cookies. Tras recuperar cuota, desplegar el SHA actual elegido,
-verificar build con la opción de proxy activada y fijar el alias a ese despliegue.
+La cuota permitió después desplegar `7d2477750353051fc963e04225e5b65069de3bb5`:
+`dpl_CuEcPAa22hrzJau9YGw1zDob6snh`, READY, alias verificado. La build activa
+VITE_API_SAME_ORIGIN=true. Las doce pruebas públicas y login/recarga reales para
+ambos roles pasan. Las dos cuentas de la pasada satisfactoria se dieron de baja
+y se verificó revocación. No se desactivó el bloqueo de cookies de terceros.
+
+Render necesitó un reinicio para recuperar HTTP; código y configuración siguen
+igual. Un primer intento de alta agotó el tiempo sin devolver identidad/token y
+su efecto queda sin confirmar: no afirmar limpieza total sin correlacionar logs/BD.
+Después de recuperar la API, salud y todos los controles públicos pasan.
 
 ## Acceso y comandos
 
@@ -54,12 +59,12 @@ python3 scripts/check-vercel-candidate.py --stable-alias --commit SHA_COMPLETO
 /workspace/nextfit-setup/browser-venv/bin/python scripts/check-public-web.py --base-url https://next-fit-q7uo-git-codex-mobile-ux-ivanromo1708-6643s-projects.vercel.app
 ```
 
-Los controles públicos interceptan la API. Completar después login y recarga
-reales para cliente y entrenador sobre la nueva preview con cuentas temporales,
-verificando baja y revocación al terminar. No relajar el bloqueo de cookies de
-terceros para ocultar el fallo. Los ensayos remotos específicos de esta sesión
-están en `/tmp/nextfit-authenticated-preview-check.py`; contienen lógica de prueba,
-no credenciales guardadas. No ejecutar sin verificar primero origen y candidato.
+Los controles públicos interceptan la API. La aceptación remota específica de
+login/recarga ya pasó sobre el candidato indicado, y su lógica está en
+`/tmp/nextfit-authenticated-preview-check.py`, sin credenciales guardadas.
+Para futuras pasadas comprobar salud ANTES de crear cuentas y preparar recuperación
+si un alta pierde la respuesta; nunca presumir que un timeout revierte la petición.
+No ejecutar contra otra versión sin validar primero el candidato y su alias.
 
 ## Otros límites
 

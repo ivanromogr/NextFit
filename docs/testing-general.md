@@ -22,10 +22,10 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Auditoría npm móvil | Árbol instalado: 93 avisos (88 altos, 5 moderados); lockfile: 50 (45 altos, 5 moderados). Mismos tres avisos directos; cero críticos |
 | Navegador con API real local | Cliente a 390 px y entrenador a 1365 px; entrenamientos, calendario, progreso con recuperación y chat entre dos sesiones independientes completados |
 | Carga web y recuperación | Guardas, registro bajo demanda y recuperación de chunk fallido, a 390×844 y 1365×900 |
-| Producción actual | Mismo SHA del backend d3b366b redesplegado con el origen exacto de la preview autorizado: salud, protección anónima, CORS y Google inválido correctos. Login ficticio de preview rechazado con 401; acceso válido pendiente |
+| Producción actual | Backend d3b366b: salud, protección anónima, CORS y Google inválido correctos tras reiniciar. Preview con login válido y recarga de ambos roles verificados |
 | Enlaces válidos con entrega local | Contraseña y cambio de correo para ambos roles, tokens reales y cookie renovable; transporte de correo externo pendiente |
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
-| Identidad de preview Vercel | Nueve pruebas de contrato; candidato 678f948 READY y alias estable verificados; doce comprobaciones públicas correctas. Recorrido autenticado válido pendiente |
+| Identidad de preview Vercel | Candidato 7d24777 READY y alias estable verificados; doce comprobaciones públicas y login/recarga reales de ambos roles correctos |
 
 Las suites de backend, web y móvil suman **992 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
@@ -1342,3 +1342,39 @@ conservan los 992 casos verificados; esta pasada de navegador se contabiliza apa
 La lectura final de metadatos sigue indicando que no existe preview del nuevo
 candidato. No se repite el POST que recibió 402. Quedan pendientes la aceptación
 remota de la corrección y los avisos móviles; no se declara cerrado el paso 7.
+
+
+## Aceptación desplegada del proxy de sesión
+
+Vercel aceptó el candidato `7d2477750353051fc963e04225e5b65069de3bb5` como
+`dpl_CuEcPAa22hrzJau9YGw1zDob6snh`, READY. Se activó expresamente
+VITE_API_SAME_ORIGIN=true en la build, se asignó el alias estable y el comprobador
+confirmó SHA/proyecto/estado/alias. Las doce comprobaciones públicas pasan.
+
+Render agotó varios tiempos de espera, tanto directo como mediante el proxy.
+Un intento inicial de alta ficticia agotó 25 segundos sin respuesta: su creación
+y eventual limpieza no se pudieron confirmar, ya que no se recibió identidad ni
+token. No se presume que un timeout cancele el trabajo del servidor. Queda por
+correlacionar ese intento con registros o BD antes de afirmar limpieza total de
+esta continuación; no se usaron datos personales.
+
+Se reinició el mismo servicio sin modificar código ni variables. La API de
+Render registra `server_restarted`; después la salud vuelve a UP y todos los
+controles públicos terminan con salida 0. El reinicio resuelve esta incidencia
+observada, pero no determina su causa ni garantiza disponibilidad continua.
+
+Con la API recuperada, la aceptación remota termina con salida 0 para cliente
+(390 px) y entrenador (1365 px): alta de dos cuentas ficticias, login 200, identidad
+correcta, panel privado, recarga y refresh 200. La cookie está vinculada al hostname
+de la preview, con Secure/HttpOnly, y Chromium la envía en la recarga sin cambiar
+sus preferencias de cookies de terceros. Las dos cuentas de esta pasada recibieron
+baja confirmada y se rechazaron sus login, JWT y refresh posteriores. El recorrido
+remoto no sustituye la validación física de iPhone ni los proveedores sociales.
+
+La auditoría móvil nueva conserva 93 avisos instalados: 88 altos y 5 moderados,
+cero críticos. Las últimas estables siguen siendo braces 3.0.3, node-forge 1.4.0
+y sprintf-js 1.1.3. El escáner contra el informe nuevo verifica que ninguno de
+los tres paquetes de origen aparece entre las 4.172 fuentes Android y 4.167 iOS
+de los artefactos ya exportados. No es una compilación nueva ni revisión nativa;
+los riesgos de la cadena de herramientas siguen abiertos. La aceptación funcional
+del proxy está completada; no se declara cerrada la seguridad para publicación.
