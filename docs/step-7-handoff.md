@@ -4,7 +4,28 @@ Comprobado el 21 de octubre de 2026. Repositorio `ivanromogr/NextFit`, rama
 `codex/mobile-ux`. Preservar el `app.json` raíz sin seguimiento. No fusionar main
 ni contratar servicios. El paso 7 no está cerrado para publicación.
 
-## Resultado de la última pasada, 21 de octubre
+## Preview vigente: corrección de esperas HTTP
+
+Commit de aplicación `4440f0bd00d32c022a8f77942a9849cac6439baa`, despliegue
+`dpl_GkbyG48NwRJ2Tw5vvqL85sPpXB8A`, READY. El alias estable apunta ahora a este
+despliegue y se verificaron proyecto, SHA y destino preview exactos. Se creó una
+única preview manual, con API en el mismo origen, sin despliegue de producción.
+
+Después de actualizar y verificar el alias, los doce controles públicos de
+Chromium pasan sobre este candidato; salida en
+`/tmp/nextfit-bounded-public-verified.log`. Una pasada anterior se ejecutó antes
+de corregir el alias y no se atribuye al candidato nuevo. Esta comprobación
+intercepta la API: no demuestra acceso autenticado ni disponibilidad del backend.
+La aceptación autenticada anterior sigue perteneciendo al commit 8be41d2.
+
+La sonda de Render agotó 210,1 s; dos sondas adicionales de una ruta anónima,
+directa y mediante Vercel, agotaron 20 s. No hubo reinicio ni cambio de producción.
+No se crearon cuentas al estar la API sin confirmar. La suscripción oficial de
+logs `/v1/logs/subscribe` también devolvió HTTP 403, con cero mensajes: no hay
+registros de diagnóstico ni evidencia de causa interna. GitHub Actions sigue sin
+verificación remota porque su API devuelve Forbidden desde este entorno.
+
+## Resultado de la pasada autenticada anterior, 21 de octubre
 
 **Validación funcional completada; cierre para publicación bloqueado.** No pasar
 al siguiente apartado presentando la aplicación como lista para publicar.
@@ -183,7 +204,7 @@ La preview previamente validada 7d24777 no incluye esta corrección; verificar e
 SHA nuevo y su alias antes de atribuir aceptación remota.
 
 
-## Candidato web vigente y verificado
+## Candidato anterior con aceptación autenticada
 
 `8be41d2ec410dd65b7259e7e3b2923d7a4000a7a`, READY
 `dpl_2gGxQy49o12HLEnb13oBBb9G6A65`, tiene el alias estable y pasa metadatos,
