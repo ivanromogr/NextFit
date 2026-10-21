@@ -165,3 +165,22 @@ Render volvió a agotar tiempos de espera aun figurando no suspendido. Tras un
 pasan. La recurrencia y su causa permanecen por investigar; no declarar producción
 estable por una sola pasada correcta. No se crearon cuentas hasta confirmar UP.
 La consulta del alta incierta de la continuación anterior permanece pendiente.
+
+## Diagnóstico de disponibilidad, 21 de octubre
+
+Consulta de solo lectura con la clave existente: el servicio sigue accesible por
+la API de gestión y figura `not_suspended`. Se comprobaron las rutas y parámetros
+del cliente oficial de Render: `/v1/logs` con `ownerId` y `resource`, y
+`/v1/metrics/cpu` y `/v1/metrics/memory` con `resource`. Las tres devolvieron HTTP
+403; corregir la ruta anterior de métricas no habilita el acceso. No atribuir
+el fallo a memoria, CPU o PostgreSQL sin esa evidencia.
+
+`check-production.py --timeout 15 --startup-timeout 45` volvió a fallar en la
+primera petición de salud por timeout a los 45,1 segundos; los demás controles
+no llegaron a ejecutarse. No se reinició el servicio, no se cambiaron variables
+ni se crearon cuentas en esta comprobación. La disponibilidad sigue bloqueando
+el cierre de la parte 7.
+
+Control paralelo: la web de producción en Vercel respondió HTTP 200 en 0,4 s;
+`/api/moderation/access` en Render agotó 15 s. Esta diferencia acota la incidencia
+al acceso a la API y no demuestra por sí sola su causa interna.
