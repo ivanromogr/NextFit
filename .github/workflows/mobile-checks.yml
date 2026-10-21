@@ -1,0 +1,58 @@
+name: Mobile regression checks
+
+on:
+  push:
+    branches: [codex/mobile-ux, main]
+    paths:
+      - 'Frontend_App/**'
+      - '.github/workflows/mobile-checks.yml'
+  pull_request:
+    paths:
+      - 'Frontend_App/**'
+      - '.github/workflows/mobile-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Frontend_App
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: Frontend_App/package-lock.json
+      - name: Install locked dependencies and apply pinned mitigations
+        run: npm ci
+      - name: Verify mitigation installation and reproduced vulnerabilities
+        run: |
+          npm run check:tooling-security
+          npm run test:tooling-security
+      - name: Check actual coverage and iOS project tooling consumers
+        run: |
+          npm run test:coverage-tools
+          npm run test:ios-tools
+          npm run test:bundle-tooling
+      - name: Run mobile application regressions
+        run: npm test -- --runInBand
+      - name: Describe check scope
+        if: always()
+        run: |
+          echo '### Mobile regression checks' >> "$GITHUB_STEP_SUMMARY"
+          echo 'These checks do not certify npm audit, native builds, signing, device acceptance or production readiness. Known dependency advisories remain tracked in docs/mobile-dependencies.md.' >> "$GITHUB_STEP_SUMMARY"

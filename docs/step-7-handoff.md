@@ -249,3 +249,14 @@ independiente de toda la cadena criptográfica. Si se omiten scripts de instalac
 no están aplicadas; ejecutar postinstall y la comprobación explícita antes del uso.
 No se da por cerrado el permiso de publicación por estas pruebas. Reproducción,
 limitaciones y retirada futura en [Dependencias móviles](mobile-dependencies.md).
+
+## Control automático de regresiones móviles
+
+`.github/workflows/mobile-checks.yml` configura instalación desde lockfile,
+comprobación de mitigaciones, seis regresiones de seguridad, consumidores YAML/PBX,
+escáner y suite móvil. Se activa para cambios móviles de la rama candidata/main,
+pull requests y ejecución manual. Permisos de solo lectura, sin secretos de
+proveedores, sin despliegue, sin build firmada, con timeout de 15 minutos y
+cancelación de ejecuciones reemplazadas. YAML validado localmente. La ejecución
+remota debe verificarse por separado; configurar el workflow no demuestra que haya
+pasado en GitHub. El resultado no certifica auditoría npm ni cierre de publicación.
