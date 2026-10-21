@@ -1,6 +1,6 @@
 # Preparación de la beta de NextFit
 
-Actualizado el 20 de octubre de 2026.
+Actualizado el 21 de octubre de 2026.
 
 ## Alcance acordado
 
@@ -22,7 +22,7 @@ la beta.
 | 4 Chat y moderación | Implementado; moderación interna y recorrido real con ambos perfiles pendiente de la beta |
 | 5 BD y producción | Parcial: almacenamiento persistente verificado, copia/restauración real de PostgreSQL y migraciones pendientes |
 | 6 UX móvil | Mejoras implementadas en rama; falta validar en iPhone real, no se declara cerrado |
-| 7 Testing general | En curso: correcciones web de rutinas y sesiones con pruebas focalizadas; falta recorrido integrado final sobre los despliegues definitivos |
+| 7 Testing general | 1.049 pruebas de aplicación correctas y recorridos locales/remotos registrados; cierre bloqueado por disponibilidad recurrente de Render y avisos de seguridad de herramientas móviles. Ver [estado vigente](step-7-handoff.md). |
 | 8 Legal y web | Responsable y correo de soporte pendientes; textos públicos provisionales |
 | 9–10 iOS/TestFlight y App Store | Aplazados; faltan alta/credenciales, compilación firmada y pruebas en dispositivo |
 | API de ejercicios de pago | Aplazada al último tramo antes de publicar todo; sin contratación ni conexión nuevas |

@@ -1,8 +1,40 @@
 # Estado de cierre del paso 7
 
-Comprobado el 20 de octubre de 2026. Repositorio `ivanromogr/NextFit`, rama
+Comprobado el 21 de octubre de 2026. Repositorio `ivanromogr/NextFit`, rama
 `codex/mobile-ux`. Preservar el `app.json` raíz sin seguimiento. No fusionar main
 ni contratar servicios. El paso 7 no está cerrado para publicación.
+
+## Resultado de la última pasada, 21 de octubre
+
+**Validación funcional completada; cierre para publicación bloqueado.** No pasar
+al siguiente apartado presentando la aplicación como lista para publicar.
+
+- Candidato de aplicación `8be41d2ec410dd65b7259e7e3b2923d7a4000a7a`:
+  metadatos READY, proyecto, SHA y alias exactos verificados de nuevo.
+- Doce controles públicos de navegador y dieciocho contratos del verificador,
+  todos correctos. Son distintos de las 1.049 pruebas de aplicación registradas.
+- Login y restauración de sesión reales de cliente y entrenador, correctos.
+  Las dos cuentas ficticias de esta pasada se eliminaron; login, JWT y refresh
+  posteriores rechazados para ambas. No se usaron cuentas personales.
+- Tras confirmar el timeout, un único reinicio autorizado del mismo backend
+  recibió HTTP 200 y quedó registrado por Render. La salud tardó 172,6 s en
+  responder; después pasó el límite normal de 15 s. La comprobación desde la
+  ejecución autorizada también agotó 45 s durante el arranque. Una pasada final
+  volvió a superar todos los controles públicos, con salud en 0,2 s.
+- El servicio ya tenía `/actuator/health` configurado como health check. No se
+  alteraron código ni variables de producción, ni se contrató otro plan.
+
+El arranque lento observado explica por qué una sonda de 45 s puede fallar tras
+reiniciar; no demuestra la causa de la indisponibilidad anterior ni estabilidad
+continuada. Para una futura comprobación tras arranque usar
+`python3 scripts/check-production.py --timeout 15 --startup-timeout 210`:
+solo la primera sonda tiene margen ampliado; las demás conservan 15 s.
+
+Siguen pendientes la investigación de disponibilidad (logs/métricas HTTP 403),
+los tres orígenes de avisos de herramientas móviles documentados y la consulta
+de la antigua alta ficticia sin respuesta. Las pruebas físicas en iPhone,
+proveedores reales y demás aplazamientos mantienen su alcance anterior. Estas
+limitaciones impiden afirmar un cierre definitivo para publicación.
 
 ## Completado
 
@@ -21,7 +53,7 @@ ni contratar servicios. El paso 7 no está cerrado para publicación.
   `dpl_A14ja8jXP7E2R5jCAh4PG2YEXKQT`, pasa doce verificaciones públicas
   en móvil/escritorio y el rechazo de login ficticio contra Render.
 
-## Corrección que falta validar en Vercel
+## Historial de la corrección validada en Vercel
 
 Las pruebas con cuentas ficticias reales detectaron que Chromium bloquea por
 `UserPreferences` la cookie de Render, ubicada en otro dominio. Login da 200,
