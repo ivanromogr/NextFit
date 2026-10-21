@@ -79,3 +79,21 @@ Google/Apple nativos y Apple Developer siguen aplazados. API de ejercicios de pa
 queda para el final. Mantener estos límites visibles al preparar la publicación.
 
 Detalle histórico: [Pruebas generales](testing-general.md).
+
+
+## Investigación del alta sin respuesta
+
+Se comprobó el hostname PostgreSQL configurado en Render tanto en la ejecución
+normal como autorizada fuera del sandbox: DNS no resuelve en ninguna. No hubo
+conexión ni consulta de datos. `scripts/database/audit-preview-fixtures.sql`
+prepara una transacción de solo lectura, con timeout de cinco segundos, que
+selecciona únicamente id/correo de cuentas activas con los nombres exactos y
+patrones de correo ficticio generados por el comprobador. No lee contraseñas ni
+tokens y no modifica cuentas. No se ha ejecutado contra la base real.
+
+Un resultado vacío resolvería la duda de cuentas activas con estos marcadores;
+si aparecen filas, revisar solo esas identidades antes de aplicar su baja. No
+borrar filas por un patrón genérico ni tratar un fallo de DNS como resultado vacío.
+La auditoría móvil indica fixAvailable=false para braces y node-forge; para
+sprintf-js propone cambios de consumidores, no una nueva versión directa fuera
+del rango vulnerable. Mantener los tres avisos y su exposición documentados.
