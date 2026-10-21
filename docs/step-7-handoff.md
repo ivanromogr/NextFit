@@ -38,7 +38,7 @@ limitaciones impiden afirmar un cierre definitivo para publicación.
 
 ## Completado
 
-- Backend: 386 pruebas; web: 460 en 65 archivos; móvil: 203 en 33 suites. Total: 1.049.
+- Backend: 386 pruebas; web: 461 en 65 archivos; móvil: 203 en 33 suites. Total: 1.050.
   Backend conserva la ejecución anterior; web se repitió tras el proxy y móvil tras corregir los reintentos de red.
 - Lint web, build con manifest y 18 contratos Python correctos.
 - Recorrido completo con ambos perfiles, API H2 y HTTP en el mismo origen:
@@ -268,3 +268,24 @@ Render agotó 210,2 s sin respuesta y no ejecutó controles posteriores. No hubo
 reinicio, cambio de configuración ni alta de cuentas. El margen ampliado tampoco
 basta para explicar todas las incidencias como un arranque lento; disponibilidad
 sigue abierta y no se afirma que la automatización la resuelva.
+
+
+## Esperas HTTP web acotadas y nueva comprobación de disponibilidad
+
+La instancia Axios web general usa ahora timeout de 30 segundos: las peticiones
+que no usan cookiePost/cookieDelete también dejan de esperar indefinidamente.
+Los accesos y mutaciones de cookie conservan sus 15 segundos. No se añade ningún
+reintento automático de transporte a escrituras ni lecturas.
+
+Prueba con servidor HTTP loopback real sin respuesta: GET y POST de recuperación
+agotan sus 30 segundos, se observa una sola petición de cada uno y un nuevo
+intento explícito puede completar cuando el servidor responde. Suite completa:
+461 pruebas en 65 archivos; lint y build con manifest correctos. Backend/móvil no
+cambian: el total de pruebas de aplicación registradas pasa a 1.050.
+
+Render volvió a responder sin otro reinicio en esta continuación. La ruta anónima
+de moderación devuelve 401 tanto directamente como a través del proxy de Vercel,
+ambas en 0,6 s. Salud UP en 0,2 s y comprobador público completo correcto. Esto
+acredita recuperación actual, no causa conocida ni estabilidad continua. No se
+crearon cuentas ni se modificó la configuración de producción. La corrección de
+cliente no elimina la indisponibilidad del backend.

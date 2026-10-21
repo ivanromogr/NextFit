@@ -1532,3 +1532,18 @@ La carrera controlada de cookie se verificó localmente con rotación H2 real y
 Chromium; la pasada remota verifica login/recarga normales, no esa inyección.
 Los avisos móviles y la investigación de la disponibilidad de Render continúan
 abiertos. Las cuentas personales y el correo externo no se usaron.
+
+
+## Esperas HTTP generales de la web, 21 de octubre
+
+Timeout Axios por defecto de 30 segundos; accesos y peticiones de cookie conservan
+15 segundos. Una prueba HTTP loopback real verifica cancelación de GET/POST sin
+respuesta, ausencia de reenvío automático y recuperación por nuevo intento
+explícito. Suite completa 461/65, lint y build correctos. Logs locales:
+`/tmp/nextfit-web-bounded-full.log`, `nextfit-web-bounded-http.log`,
+`nextfit-web-bounded-lint.log` y `nextfit-web-bounded-build.log` en `/tmp`.
+
+Sin cambiar ni reiniciar Render, el comprobador público vuelve a pasar (salud
+0,2 s). Acceso anónimo directo y por Vercel devuelve 401 en 0,6 s. No demuestra
+estabilidad continua ni resuelve la causa de los timeouts anteriores. No se da
+por cerrado el paso 7 por esta recuperación.
