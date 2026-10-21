@@ -1,4 +1,36 @@
-# Dependencias móviles: revisión del 20 de octubre de 2026
+# Dependencias móviles: estado del 21 de octubre de 2026
+
+## Estado vigente: eliminado el origen sprintf-js
+
+La auditoría instalada y la del lockfile coinciden ahora en **45 avisos altos,
+cero moderados y cero críticos**, originados en `braces` y `node-forge`.
+`sprintf-js` ya no forma parte del árbol. Los recuentos inferiores son históricos.
+
+El override se limita a `@istanbuljs/load-nyc-config` → `js-yaml@4.3.2`.
+El consumidor real utiliza `load(text)`, conservado en YAML 4; no utiliza los
+métodos eliminados `safeLoad`/`safeDump`. Se evita actualizar Jest o Expo, o
+sustituir globalmente argparse por una API mayor incompatible con sus llamadas.
+YAML 4 elimina la rama argparse 1 → sprintf-js. El árbol deduplica con el YAML 4
+ya usado por las herramientas Expo. Este override debe revisarse al actualizar
+el consumidor, igual que los anteriores.
+
+Validación tras instalación limpia desde el lockfile:
+
+- 203 pruebas móviles correctas en 33 suites.
+- Dos pruebas Node del consumidor real: carga YAML, herencia, opciones de
+  cobertura y rechazo de claves duplicadas, sin mocks del parser.
+- Comprobación de dependencias Expo correcta; SDK y versiones React sin cambios.
+- Prueba PBX iOS y seis contratos del escáner correctos.
+- Exportaciones nuevas Android/iOS en
+  `/workspace/nextfit-setup/mobile-yaml-reviewed`; escáner correcto sobre 4.172 y
+  4.167 fuentes, respectivamente, para los dos orígenes aún señalados.
+
+Comando nuevo: `npm run test:coverage-tools`. Informes de esta ejecución:
+`/tmp/nextfit-yaml-audit.json` y `/tmp/nextfit-yaml-lock-audit.json`.
+No hay build firmada ni validación física, y los dos avisos de origen restantes
+no se consideran corregidos por no aparecer en el JavaScript exportado.
+
+## Historial de revisiones anteriores
 
 La auditoría npm pasa de 61 a **50 avisos**: 45 altos, 5 moderados y cero críticos.
 El recuento de npm incluye también los paquetes afectados por depender

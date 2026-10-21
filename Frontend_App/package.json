@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "test:ios-tools": "node --test scripts/ios-project-tools.test.cjs",
     "check:bundle-tooling": "node scripts/check-bundle-tooling.cjs",
-    "test:bundle-tooling": "node --test scripts/check-bundle-tooling.test.cjs"
+    "test:bundle-tooling": "node --test scripts/check-bundle-tooling.test.cjs",
+    "test:coverage-tools": "node --test scripts/coverage-config-tools.test.cjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -94,6 +95,9 @@
     "metro-transform-plugins@0.83.3": "0.83.8",
     "xcode": {
       "uuid": "11.1.1"
+    },
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "4.3.2"
     }
   }
 }

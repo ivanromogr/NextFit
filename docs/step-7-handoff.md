@@ -31,7 +31,7 @@ continuada. Para una futura comprobación tras arranque usar
 solo la primera sonda tiene margen ampliado; las demás conservan 15 s.
 
 Siguen pendientes la investigación de disponibilidad (logs/métricas HTTP 403),
-los tres orígenes de avisos de herramientas móviles documentados y la consulta
+los dos orígenes de avisos de herramientas móviles aún pendientes y la consulta
 de la antigua alta ficticia sin respuesta. Las pruebas físicas en iPhone,
 proveedores reales y demás aplazamientos mantienen su alcance anterior. Estas
 limitaciones impiden afirmar un cierre definitivo para publicación.
@@ -216,3 +216,20 @@ el cierre de la parte 7.
 Control paralelo: la web de producción en Vercel respondió HTTP 200 en 0,4 s;
 `/api/moderation/access` en Render agotó 15 s. Esta diferencia acota la incidencia
 al acceso a la API y no demuestra por sí sola su causa interna.
+
+
+## Corrección adicional: dependencia vulnerable retirada
+
+Se elimina la rama sprintf-js mediante un override revisado del lector YAML
+usado por Istanbul, sin cambiar Expo/Jest. Auditorías instalada/lockfile: 45 altos,
+0 moderados, 0 críticos; quedan braces y node-forge. Suite móvil 203/33, dos
+pruebas del consumidor YAML, comprobación Expo, herramientas PBX y escáner correctos.
+Exportación Android/iOS nueva en `mobile-yaml-reviewed`, comprobada contra la
+nueva auditoría. Detalle y comandos: [Dependencias móviles](mobile-dependencies.md).
+
+El 403 de logs/métricas se identificó como HTML de Cloudflare: “Sorry, you have
+been blocked”, no como JSON de autorización de Render. No permite concluir que
+la clave carezca de permisos ni que haga falta contratar otro plan. La API de
+gestión del servicio sí funciona. No se intentó eludir el bloqueo de Cloudflare.
+La consulta de la documentación pública sobre el plan Free falló por acceso de
+red; no se atribuye una causa definitiva a las caídas a partir de esa consulta.
