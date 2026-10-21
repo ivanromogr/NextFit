@@ -15,8 +15,13 @@ Después de actualizar y verificar el alias, los doce controles públicos de
 Chromium pasan sobre este candidato; salida en
 `/tmp/nextfit-bounded-public-verified.log`. Una pasada anterior se ejecutó antes
 de corregir el alias y no se atribuye al candidato nuevo. Esta comprobación
-intercepta la API: no demuestra acceso autenticado ni disponibilidad del backend.
-La aceptación autenticada anterior sigue perteneciendo al commit 8be41d2.
+intercepta la API y no demuestra por sí sola acceso autenticado ni disponibilidad.
+Posteriormente, con salud confirmada sin reinicio, el recorrido autenticado real
+pasó también sobre este candidato: cliente y entrenador, identidad correcta,
+panel privado y refresh con cookie tras recargar. Las dos cuentas ficticias de
+esa pasada recibieron baja y rechazo posterior de login, JWT y refresh. Registro:
+`/tmp/nextfit-final-authenticated-preview.log`, salida 0. El comprobador público
+completo también pasó, con salud UP en 0,3 s. No hubo cambios de producción.
 
 La sonda de Render agotó 210,1 s; dos sondas adicionales de una ruta anónima,
 directa y mediante Vercel, agotaron 20 s. No hubo reinicio ni cambio de producción.
@@ -310,3 +315,27 @@ ambas en 0,6 s. Salud UP en 0,2 s y comprobador público completo correcto. Esto
 acredita recuperación actual, no causa conocida ni estabilidad continua. No se
 crearon cuentas ni se modificó la configuración de producción. La corrección de
 cliente no elimina la indisponibilidad del backend.
+
+
+## Dictamen vigente de la parte 7
+
+**Aceptación funcional del candidato completada; publicación NO APROBADA.**
+1.050 pruebas de aplicación registradas; aceptación de navegador pública y
+sesión real de ambos perfiles sobre 4440f0b. Esto no elimina los siguientes límites:
+
+1. Disponibilidad intermitente de Render sin diagnóstico: hay timeouts de 210 s,
+   recuperación posterior y falta de acceso a logs/métricas. No afirmar causa ni
+   estabilidad continua, ni proponer un plan de pago como solución demostrada.
+2. Dos avisos de origen móviles con mitigaciones locales probadas y verificadas
+   tras instalación limpia; no hay versiones oficiales corregidas identificadas
+   ni revisión independiente de toda la cadena de herramientas.
+3. Alta ficticia antigua incierta: DNS del host PostgreSQL sigue sin resolver;
+   no se ha ejecutado la consulta de solo lectura ni confirmado ausencia de esa
+   cuenta. Las cuentas de las pasadas posteriores sí se eliminaron y revocaron.
+4. Workflow publicado; consulta remota de su resultado bloqueada por Forbidden.
+   La validación local no se atribuye a una ejecución de GitHub Actions.
+
+No repetir pasadas correctas ni reiniciar como sustituto de estos pendientes.
+Para continuar el cierre hacen falta evidencia de operación del proveedor,
+acceso de solo lectura a la base y verificación remota del workflow, conservando
+las restricciones de secretos, cuentas personales y servicios de pago.
