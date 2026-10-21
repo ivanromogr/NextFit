@@ -149,3 +149,19 @@ del login B no sustituye su cookie, y recargar conserva B. Los destinos de esa
 prueba son loopback fijos, con marcador H2. Abortar no revierte cambios del servidor.
 La preview previamente validada 7d24777 no incluye esta corrección; verificar el
 SHA nuevo y su alias antes de atribuir aceptación remota.
+
+
+## Candidato web vigente y verificado
+
+`8be41d2ec410dd65b7259e7e3b2923d7a4000a7a`, READY
+`dpl_2gGxQy49o12HLEnb13oBBb9G6A65`, tiene el alias estable y pasa metadatos,
+doce controles públicos y login/recarga reales de cliente y entrenador. Las dos
+cuentas temporales de esta pasada recibieron baja y revocación verificadas.
+La prueba de carrera de cookie es local; no se atribuye esa inyección a la pasada
+remota. Los cambios web de esta corrección sí están incluidos en este candidato.
+
+Render volvió a agotar tiempos de espera aun figurando no suspendido. Tras un
+único reinicio, sin cambios de código ni variables, salud y controles públicos
+pasan. La recurrencia y su causa permanecen por investigar; no declarar producción
+estable por una sola pasada correcta. No se crearon cuentas hasta confirmar UP.
+La consulta del alta incierta de la continuación anterior permanece pendiente.

@@ -1504,3 +1504,31 @@ rotación real de A, inicia login B, libera la respuesta antigua y verifica que 
 cookie B no cambió y la recarga restaura B. Se ejecuta en Chromium con destinos
 loopback fijos y marcador H2 obligatorio; las cuentas locales se dan de baja.
 Estos ensayos no sustituyen la validación del candidato nuevo en Vercel.
+
+
+### Preview verificada tras aislar sesiones web
+
+El candidato `8be41d2ec410dd65b7259e7e3b2923d7a4000a7a` quedó READY en
+`dpl_2gGxQy49o12HLEnb13oBBb9G6A65`. El alias estable se asignó a ese despliegue
+y se verificó SHA/proyecto/estado/alias. Las doce comprobaciones públicas terminan
+con salida 0. La build mantiene la API en el mismo origen, sin modificar la web
+principal de producción.
+
+Antes de crear cuentas se comprobó la salud. Render agotó tres sondas de salud de
+45 segundos y otra de 15; una ruta anónima también agotó 15 segundos. Su API de
+control seguía indicando not_suspended. Se hizo un único reinicio del servicio
+existente, sin tocar código ni variables. Después salud UP en 0,3 segundos y todos
+los controles públicos pasan. Se registra la recurrencia; no se presume que se
+tratara de arranque en frío ni que el reinicio acredite disponibilidad continua.
+
+Con salud confirmada, la prueba autenticada de la nueva preview termina con
+salida 0 para cliente y entrenador: login 200, identidad correcta, panel privado,
+recarga y refresh 200 con cookie Secure/HttpOnly del dominio web. Las dos cuentas
+ficticias recibieron baja confirmada y se rechazaron sus login, JWT y refresh
+posteriores. No se crearon cuentas durante los timeouts ni hubo otra alta sin
+respuesta en esta continuación. El alta incierta anterior sigue pendiente.
+
+La carrera controlada de cookie se verificó localmente con rotación H2 real y
+Chromium; la pasada remota verifica login/recarga normales, no esa inyección.
+Los avisos móviles y la investigación de la disponibilidad de Render continúan
+abiertos. Las cuentas personales y el correo externo no se usaron.
