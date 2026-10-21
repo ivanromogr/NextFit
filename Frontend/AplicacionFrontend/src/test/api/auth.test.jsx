@@ -12,7 +12,7 @@ describe('cliente HTTP de autenticación', () => {
   it('envía el nuevo contrato JSON a /api/auth/login', async () => {
     const post = vi.spyOn(api, 'post').mockResolvedValue({ status: 200 });
     await loginForm({ email: 'cliente@nextfit.test', password: 'secret' });
-    expect(post).toHaveBeenCalledWith('/api/auth/login', { email: 'cliente@nextfit.test', password: 'secret' }, { timeout: 15000, withCredentials: true, headers: { 'X-Client-Type': 'WEB' } });
+    expect(post).toHaveBeenCalledWith('/api/auth/login', { email: 'cliente@nextfit.test', password: 'secret' }, expect.objectContaining({ timeout: 15000, withCredentials: true, headers: { 'X-Client-Type': 'WEB' }, signal: expect.any(AbortSignal) }));
     post.mockRestore();
   });
 
@@ -30,6 +30,7 @@ describe('cliente HTTP de autenticación', () => {
   });
 
   it('un 401 limpia la sesión temporal y un 403 no la limpia', async () => {
+    const post = vi.spyOn(api, 'post').mockRejectedValue(new Error('Fixture refresh rejection'));
     const rejected = api.interceptors.response.handlers.at(-1).rejected;
     const session = JSON.stringify({ id: '1', email: 'x@nextfit.test', role: 'CLIENTE', accessToken: 'token', expiresAt: Date.now() + 60_000 });
     sessionStorage.setItem('auth_session', session);
@@ -37,5 +38,6 @@ describe('cliente HTTP de autenticación', () => {
     expect(sessionStorage.getItem('auth_session')).toBe(session);
     await expect(rejected({ response: { status: 401 } })).rejects.toBeDefined();
     expect(sessionStorage.getItem('auth_session')).toBeNull();
+    post.mockRestore();
   });
 });

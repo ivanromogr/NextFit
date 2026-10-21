@@ -20,15 +20,11 @@ it('cancela login y refresh sin respuesta y libera refresh para reintentar', asy
   const previous = api.defaults.baseURL;
   api.defaults.baseURL = `http://127.0.0.1:${server.address().port}`;
   try {
+    await expect(loginForm({ email: 'timeout@example.invalid', password: 'fictional' }))
+      .rejects.toMatchObject({ code: 'ECONNABORTED' });
     const refresh = refreshWebSession();
     expect(refreshWebSession()).toBe(refresh);
-    const results = await Promise.allSettled([
-      loginForm({ email: 'timeout@example.invalid', password: 'fictional' }), refresh,
-    ]);
-    for (const result of results) {
-      expect(result.status).toBe('rejected');
-      expect(result.reason.code).toBe('ECONNABORTED');
-    }
+    await expect(refresh).rejects.toMatchObject({ code: 'ECONNABORTED' });
     respond = true;
     await expect(refreshWebSession()).rejects.toMatchObject({ response: { status: 401 } });
     expect(requests).toBe(3);
@@ -37,4 +33,4 @@ it('cancela login y refresh sin respuesta y libera refresh para reintentar', asy
     server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
   }
-}, 25000);
+}, 40000);

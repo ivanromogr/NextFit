@@ -6,7 +6,7 @@ ni contratar servicios. El paso 7 no está cerrado para publicación.
 
 ## Completado
 
-- Backend: 386 pruebas; web: 436 en 64 archivos; móvil: 203 en 33 suites. Total: 1.025.
+- Backend: 386 pruebas; web: 460 en 65 archivos; móvil: 203 en 33 suites. Total: 1.049.
   Backend conserva la ejecución anterior; web se repitió tras el proxy y móvil tras corregir los reintentos de red.
 - Lint web, build con manifest y 18 contratos Python correctos.
 - Recorrido completo con ambos perfiles, API H2 y HTTP en el mismo origen:
@@ -135,3 +135,17 @@ Suite móvil completa: 203 pruebas en 33 suites. Exportación Android/iOS y esc�
 de mapas correctos en `/workspace/nextfit-setup/mobile-refresh-reviewed`. Sin
 cambios de dependencias, publicación ni validación física. Los bloqueos de cierre
 anteriores siguen vigentes.
+
+
+## Cambios de sesión web posteriores al candidato desplegado
+
+La web incorpora aislamiento por versión de cuenta en HTTP y restauración inicial,
+y cancela peticiones anteriores que pueden modificar cookies al iniciar otro
+acceso. Incluye confirmación de correo, baja local/social y cierre global.
+La suite completa pasa con 460 pruebas en 65 archivos; lint y build correctos.
+El recorrido H2 completo con --same-origin y la nueva prueba Chromium
+`check-local-cookie-race.py` pasan: una respuesta de rotación de A liberada después
+del login B no sustituye su cookie, y recargar conserva B. Los destinos de esa
+prueba son loopback fijos, con marcador H2. Abortar no revierte cambios del servidor.
+La preview previamente validada 7d24777 no incluye esta corrección; verificar el
+SHA nuevo y su alias antes de atribuir aceptación remota.

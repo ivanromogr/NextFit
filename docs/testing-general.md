@@ -12,7 +12,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobación | Resultado verificado |
 |---|---|
 | Backend, Maven verify | 386 pruebas, cero fallos/errores/omisiones; JAR generado |
-| Web, suite completa | 436 pruebas en 64 archivos, todas correctas |
+| Web, suite completa | 460 pruebas en 65 archivos, todas correctas |
 | Móvil, suite completa con preset SDK 54 | 203 pruebas en 33 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
@@ -27,7 +27,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Candidato 7d24777 READY y alias estable verificados; doce comprobaciones públicas y login/recarga reales de ambos roles correctos |
 
-Las suites de backend, web y móvil suman **1.025 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **1.049 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -1473,3 +1473,34 @@ existente también pasa para 4.172 fuentes Android y 4.167 iOS. No cambian depen
 SDK ni lockfile. No se publica una versión móvil ni se prueba físicamente en iPhone.
 Los avisos de la cadena de herramientas y la consulta ficticia pendiente continúan
 abiertos; esta corrección no equivale a cerrar el paso 7 para publicación.
+
+
+## Renovación y cambios de cookie aislados por sesión web
+
+La revisión web reprodujo seis fallos de nueve pruebas iniciales del interceptor.
+Se liga el tráfico Axios a una versión de cuenta; respuestas de una sesión anterior
+no se entregan, no persisten token ni borran una cuenta posterior. Las rotaciones
+de la misma cuenta comparten persistencia y permiten conservar sus otras consultas.
+Un 401 tardío usa el token ya renovado, sin repetir la rotación.
+
+La restauración inicial comprueba montaje y versión antes de guardar o limpiar.
+El logout remoto atrasado no limpia otro login. Se cancelan las peticiones antiguas
+que pueden establecer o borrar cookie al comenzar otro acceso o limpiar sesión:
+login, Google/Apple y sus altas, registro, refresh, logout, confirmación de correo,
+baja local/social y cierre global. Las mutaciones mantienen un límite de 15 segundos;
+no se reintentan automáticamente. Abortar el transporte no demuestra que el servidor
+no haya aplicado una operación: no se promete revertir una escritura ya recibida.
+
+Pasan 24 regresiones nuevas (18 de interceptor/cancelación y 6 del proveedor) y la
+suite completa: 460 pruebas en 65 archivos, 125,95 segundos, salida 0. El ensayo
+HTTP de timeout se ejecuta ahora secuencialmente porque iniciar login cancela por
+diseño el refresh anterior. Lint y build con manifest también pasan. Backend 386 y
+móvil 203 conservan sus ejecuciones: total de aplicación vigente 1.049.
+
+El recorrido completo H2 con --same-origin termina con salida 0, incluyendo chat,
+rutinas, correo válido capturado en memoria, contraseña, privacidad y baja de ambos
+roles. Además `scripts/check-local-cookie-race.py` retiene la respuesta de una
+rotación real de A, inicia login B, libera la respuesta antigua y verifica que la
+cookie B no cambió y la recarga restaura B. Se ejecuta en Chromium con destinos
+loopback fijos y marcador H2 obligatorio; las cuentas locales se dan de baja.
+Estos ensayos no sustituyen la validación del candidato nuevo en Vercel.

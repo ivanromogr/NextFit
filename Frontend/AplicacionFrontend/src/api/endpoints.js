@@ -1,7 +1,7 @@
 import axios from "axios";
 import { API_BASE_URL } from "./config";
 import { resolveExerciseImageUrl, resolveMediaUrl } from "../utils/media";
-import { clearAuthSession, getAccessToken, saveAuthSession } from "../utils/authSession";
+import { beginAuthSession, clearAuthSession, getAccessToken, getSessionVersion, saveAuthSession } from "../utils/authSession";
 
 // --- 1. CONFIGURACIÓN AXIOS ---
 export const api = axios.create({
@@ -11,8 +11,47 @@ export const api = axios.create({
   },
 });
 
+let refreshInFlight = null;
+let recoveryInFlight = null;
+const cookieRequests = new Set();
+const sessionChanged = config => Object.assign(new Error("La sesión cambió durante la petición"), { code: "AUTH_SESSION_CHANGED", config });
+const cancelCookieRequests = () => {
+  for (const controller of cookieRequests) controller.abort();
+  cookieRequests.clear();
+};
+if (typeof window !== "undefined") {
+  window.addEventListener("nextfit:auth-cleared", cancelCookieRequests);
+  window.addEventListener("nextfit:auth-changing", cancelCookieRequests);
+}
+const cookieRequest = (send, newAccount = false) => {
+  if (newAccount) { beginAuthSession(); cancelCookieRequests(); }
+  const controller = new AbortController();
+  cookieRequests.add(controller);
+  return send(controller.signal).finally(() => cookieRequests.delete(controller));
+};
+const cookiePost = (url, body, options, newAccount = false) => cookieRequest(
+  signal => api.post(url, body, { timeout: 15000, ...options, signal }), newAccount,
+);
+const cookieDelete = options => cookieRequest(
+  signal => api.delete("/api/auth/account", { timeout: 15000, ...options, signal }),
+);
+const recoverSession = version => {
+  if (recoveryInFlight?.version === version) return recoveryInFlight.promise;
+  if (version !== getSessionVersion()) return Promise.reject(sessionChanged());
+  const entry = { version };
+  entry.promise = refreshWebSession().then(response => {
+    if (!saveAuthSession(response.data, version) || getSessionVersion() !== version) throw sessionChanged();
+    return version;
+  }).finally(() => { if (recoveryInFlight === entry) recoveryInFlight = null; });
+  recoveryInFlight = entry;
+  return entry.promise;
+};
+
 // Interceptor para inyectar el token automáticamente
 api.interceptors.request.use((config) => {
+  const version = config.__authSessionVersion ?? getSessionVersion();
+  if (version !== getSessionVersion()) throw sessionChanged(config);
+  config.__authSessionVersion = version;
   const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -21,19 +60,28 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.config.__authSessionVersion !== undefined && response.config.__authSessionVersion !== getSessionVersion()) throw sessionChanged(response.config);
+    return response;
+  },
   async (error) => {
     const original = error.config || {};
+    const version = original.__authSessionVersion ?? getSessionVersion();
+    if (error.code === "ERR_CANCELED" || error.code === "AUTH_SESSION_CHANGED"
+      || (version !== getSessionVersion() && recoveryInFlight?.version !== version)) return Promise.reject(error);
     const authUrl = original.url?.includes("/api/auth/");
     if (error.response?.status === 401 && !original.__refreshRetry && !authUrl) {
       original.__refreshRetry = true;
       try {
-        const response = await refreshWebSession();
-        saveAuthSession(response.data);
+        const token = getAccessToken();
+        const alreadyRotated = token && original.headers?.Authorization && original.headers.Authorization !== `Bearer ${token}`;
+        const renewedVersion = alreadyRotated ? version : await recoverSession(version);
+        if (renewedVersion !== getSessionVersion()) throw sessionChanged(original);
+        original.__authSessionVersion = renewedVersion;
         original.headers = original.headers || {};
         original.headers.Authorization = `Bearer ${getAccessToken()}`;
         return api(original);
-      } catch { clearAuthSession(); }
+      } catch { clearAuthSession(version); }
     }
     return Promise.reject(error);
   },
@@ -84,29 +132,37 @@ const normalizarRutina = (rutina) => {
 
 // --- 2. AUTENTICACIÓN (LOGIN) ---
 export const loginForm = async ({ email, password }) => {
-  return api.post("/api/auth/login", { email, password }, { timeout: 15000, withCredentials: true, headers: { "X-Client-Type": "WEB" } });
+  return cookiePost("/api/auth/login", { email, password }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } }, true);
 };
-export const loginWithGoogle = (credential) => api.post("/api/auth/google", { credential }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
-export const completeGoogleOnboarding = (payload) => api.post("/api/auth/google/onboarding", payload, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
-export const authenticateWithApple = (identityToken, nonce) => api.post("/api/auth/apple", { identityToken, nonce }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
-export const completeAppleOnboarding = ({ pendingToken, role, nombre, apellido, acceptTerms, acceptPrivacy, marketingConsent }) => api.post("/api/auth/apple/onboarding", { pendingToken, role, nombre, apellido, acceptTerms, acceptPrivacy, marketingConsent }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
+export const loginWithGoogle = (credential) => cookiePost("/api/auth/google", { credential }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } }, true);
+export const completeGoogleOnboarding = (payload) => cookiePost("/api/auth/google/onboarding", payload, { withCredentials: true, headers: { "X-Client-Type": "WEB" } }, true);
+export const authenticateWithApple = (identityToken, nonce) => cookiePost("/api/auth/apple", { identityToken, nonce }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } }, true);
+export const completeAppleOnboarding = ({ pendingToken, role, nombre, apellido, acceptTerms, acceptPrivacy, marketingConsent }) => cookiePost("/api/auth/apple/onboarding", { pendingToken, role, nombre, apellido, acceptTerms, acceptPrivacy, marketingConsent }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } }, true);
 // These public endpoints deliberately do not retain the reset token. It is only
 // sent from the reset form while the user is completing that request.
 export const requestPasswordReset = (email) => api.post("/api/auth/password/forgot", { email });
 export const resetPassword = (token, newPassword) => api.post("/api/auth/password/reset", { token, newPassword });
 
 // --- 3. REGISTRO ---
-export const registerUser = async (payload) => api.post("/api/register", payload, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
-let refreshInFlight = null;
+export const registerUser = async (payload) => cookiePost("/api/register", payload, { withCredentials: true, headers: { "X-Client-Type": "WEB" } }, true);
 export const refreshWebSession = () => {
-  if (!refreshInFlight) refreshInFlight = api.post("/api/auth/refresh", null, { timeout: 15000, withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } }).finally(() => { refreshInFlight = null; });
-  return refreshInFlight;
+  const version = getSessionVersion();
+  if (!refreshInFlight || refreshInFlight.version !== version) {
+    const entry = { version };
+    entry.promise = cookiePost("/api/auth/refresh", null, { __authSessionVersion: version, withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } })
+      .finally(() => { if (refreshInFlight === entry) refreshInFlight = null; });
+    refreshInFlight = entry;
+  }
+  return refreshInFlight.promise;
 };
-export const logoutSession = () => api.post("/api/auth/logout", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } });
+export const logoutSession = () => {
+  cancelCookieRequests();
+  return cookiePost("/api/auth/logout", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } });
+};
 export const requestEmailChange = (currentPassword, newEmail) => api.put("/api/auth/email", { currentPassword, newEmail }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
-export const confirmEmailChange = (token) => api.post("/api/auth/email/confirm", { token }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
+export const confirmEmailChange = (token) => cookiePost("/api/auth/email/confirm", { token }, { withCredentials: true, headers: { "X-Client-Type": "WEB" } });
 export const changePassword = (currentPassword, newPassword) => api.put("/api/auth/password", { currentPassword, newPassword });
-export const deleteAccount = (currentPassword) => api.delete("/api/auth/account", { data: { currentPassword }, withCredentials: true });
+export const deleteAccount = (currentPassword) => cookieDelete({ data: { currentPassword }, withCredentials: true });
 export const getSessions = () => api.get("/api/auth/sessions");
 export const getAuthIdentities = () => api.get("/api/auth/identities");
 export const linkGoogleIdentity = (credential) => api.post("/api/auth/identities/google/link", { credential });
@@ -120,7 +176,7 @@ export const createLocalIdentity = (reauthToken, password) => api.post("/api/aut
 export const unlinkGoogleIdentity = (reauthToken) => api.delete("/api/auth/identities/google", { data: { reauthToken } });
 export const unlinkAppleIdentity = (reauthToken) => api.delete("/api/auth/identities/apple", { data: { reauthToken } });
 export const revokeSession = (familyId) => api.delete(`/api/auth/sessions/${familyId}`);
-export const logoutAllSessions = () => api.post("/api/auth/sessions/logout-all", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } });
+export const logoutAllSessions = () => cookiePost("/api/auth/sessions/logout-all", null, { withCredentials: true, headers: { "X-Client-Type": "WEB", "X-Requested-With": "XMLHttpRequest" } });
 export const getConsents = () => api.get("/api/auth/consents");
 export const updateMarketingConsent = (accepted) => api.put("/api/auth/consents/marketing", { accepted });
 export const assignProfileImage = (fileId) => api.put("/api/auth/profile-image", { fileId });
@@ -390,5 +446,5 @@ export const obtenerContactosChat = async () => {
     : [];
 };
 
-export const deleteAccountWithGoogle = (credential) => api.delete('/api/auth/account', { data: { provider: 'GOOGLE', credential }, withCredentials: true });
-export const deleteAccountWithApple = (identityToken, nonce) => api.delete('/api/auth/account', { data: { provider: 'APPLE', identityToken, nonce }, withCredentials: true });
+export const deleteAccountWithGoogle = (credential) => cookieDelete({ data: { provider: 'GOOGLE', credential }, withCredentials: true });
+export const deleteAccountWithApple = (identityToken, nonce) => cookieDelete({ data: { provider: 'APPLE', identityToken, nonce }, withCredentials: true });
