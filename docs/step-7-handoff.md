@@ -260,3 +260,11 @@ proveedores, sin despliegue, sin build firmada, con timeout de 15 minutos y
 cancelación de ejecuciones reemplazadas. YAML validado localmente. La ejecución
 remota debe verificarse por separado; configurar el workflow no demuestra que haya
 pasado en GitHub. El resultado no certifica auditoría npm ni cierre de publicación.
+
+Verificación de esta continuación: push del workflow correcto en `2b444ad`;
+`gh run list` falla por Forbidden al consultar api.github.com desde este entorno,
+por lo que no se atribuye una ejecución remota satisfactoria. La sonda pública de
+Render agotó 210,2 s sin respuesta y no ejecutó controles posteriores. No hubo
+reinicio, cambio de configuración ni alta de cuentas. El margen ampliado tampoco
+basta para explicar todas las incidencias como un arranque lento; disponibilidad
+sigue abierta y no se afirma que la automatización la resuelva.
