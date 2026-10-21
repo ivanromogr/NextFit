@@ -169,3 +169,9 @@ La revisión posterior de restauración inicial y persistencia móvil termina co
 `/workspace/nextfit-setup/mobile-session-reviewed`. El escáner vuelve a pasar sobre
 esos mapas nuevos. No hay cambios de dependencias ni eliminación de avisos de
 herramientas; las pruebas de carrera no equivalen a validación física en iPhone.
+
+
+La protección posterior de la renovación HTTP por cuenta termina con 203 pruebas
+en 33 suites. La exportación nueva y su escáner pasan en
+`/workspace/nextfit-setup/mobile-refresh-reviewed`. Las versiones de dependencias
+permanecen iguales y sus avisos no se dan por resueltos.

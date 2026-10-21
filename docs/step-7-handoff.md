@@ -6,7 +6,7 @@ ni contratar servicios. El paso 7 no está cerrado para publicación.
 
 ## Completado
 
-- Backend: 386 pruebas; web: 436 en 64 archivos; móvil: 194 en 32 suites. Total: 1.016.
+- Backend: 386 pruebas; web: 436 en 64 archivos; móvil: 203 en 33 suites. Total: 1.025.
   Backend conserva la ejecución anterior; web se repitió tras el proxy y móvil tras corregir los reintentos de red.
 - Lint web, build con manifest y 18 contratos Python correctos.
 - Recorrido completo con ambos perfiles, API H2 y HTTP en el mismo origen:
@@ -120,3 +120,18 @@ Se reprodujeron seis fallos previos; doce regresiones nuevas y toda la suite pas
 en `/workspace/nextfit-setup/mobile-session-reviewed`. Sin cambio de SDK, lockfile,
 publicación ni prueba física. Un logout sin respuesta remota limpia el dispositivo,
 pero no acredita revocación en el servidor. Los pendientes de cierre no cambian.
+
+
+## Renovación automática HTTP móvil
+
+Las peticiones y las promesas de renovación quedan ligadas a la versión de cuenta;
+las respuestas de una sesión anterior no se entregan, no sobrescriben credenciales
+ni cierran un login posterior. La rotación de token de la misma cuenta mantiene
+válidas las otras lecturas; los 401 simultáneos comparten renovación y persistencia,
+y un 401 tardío reutiliza el token actualizado sin otra rotación. Nueve regresiones
+con señales explícitas pasan (siete fallan con el interceptor anterior).
+
+Suite móvil completa: 203 pruebas en 33 suites. Exportación Android/iOS y escáner
+de mapas correctos en `/workspace/nextfit-setup/mobile-refresh-reviewed`. Sin
+cambios de dependencias, publicación ni validación física. Los bloqueos de cierre
+anteriores siguen vigentes.

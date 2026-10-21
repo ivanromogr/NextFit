@@ -7,6 +7,7 @@ const ROLES = new Set(['CLIENTE', 'ENTRENADOR']);
 let onSessionInvalidated = null;
 let accessToken = null;
 let storageVersion = 0;
+let sessionVersion = 0;
 let pendingStorage = Promise.resolve();
 
 function writeStorage(operation) {
@@ -39,7 +40,10 @@ export async function getAuthSession() {
   return null;
 }
 
-export async function saveAuthSession({ accessToken: nextAccessToken, refreshToken, user }) {
+export const getSessionVersion = () => sessionVersion;
+
+export async function saveAuthSession({ accessToken: nextAccessToken, refreshToken, user }, expectedVersion) {
+  if (expectedVersion !== undefined && expectedVersion !== sessionVersion) return null;
   const session = {
     id: user?.id,
     email: user?.email,
@@ -47,6 +51,7 @@ export async function saveAuthSession({ accessToken: nextAccessToken, refreshTok
   };
   if (!isValidSession(session)) throw new Error('Respuesta de autenticación inválida');
   if (typeof nextAccessToken !== 'string' || typeof refreshToken !== 'string') throw new Error('Respuesta de autenticación inválida');
+  if (expectedVersion === undefined) sessionVersion += 1;
   storageVersion += 1;
   accessToken = nextAccessToken;
   await writeStorage(async () => {
@@ -59,6 +64,7 @@ export async function saveAuthSession({ accessToken: nextAccessToken, refreshTok
 export async function updateAuthSession({ accessToken: nextAccessToken, user }) {
   const session = { id: user?.id, email: user?.email, role: user?.role };
   if (!isValidSession(session) || typeof nextAccessToken !== 'string') throw new Error('Respuesta de autenticación inválida');
+  sessionVersion += 1;
   storageVersion += 1;
   accessToken = nextAccessToken;
   await writeStorage(() => AsyncStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session)));
@@ -74,7 +80,9 @@ export const getRefreshToken = async () => {
   return SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
 };
 
-export async function clearAuthSession() {
+export async function clearAuthSession(expectedVersion) {
+  if (expectedVersion !== undefined && expectedVersion !== sessionVersion) return false;
+  sessionVersion += 1;
   const version = ++storageVersion;
   accessToken = null;
   await writeStorage(async () => {

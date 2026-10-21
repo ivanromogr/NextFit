@@ -13,7 +13,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 |---|---|
 | Backend, Maven verify | 386 pruebas, cero fallos/errores/omisiones; JAR generado |
 | Web, suite completa | 436 pruebas en 64 archivos, todas correctas |
-| Móvil, suite completa con preset SDK 54 | 194 pruebas en 32 suites, todas correctas |
+| Móvil, suite completa con preset SDK 54 | 203 pruebas en 33 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
 | Exportaciones móviles | Android/iOS Hermes correctas con Babel SDK 54; no son builds firmadas |
@@ -27,7 +27,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Candidato 7d24777 READY y alias estable verificados; doce comprobaciones públicas y login/recarga reales de ambos roles correctos |
 
-Las suites de backend, web y móvil suman **1.016 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **1.025 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -1440,3 +1440,36 @@ el escáner contra la auditoría existente pasa con 4.172 fuentes Android y 4.16
 sin los tres paquetes de origen en JavaScript. No cambiaron dependencias ni lockfile.
 No se publicó la app ni se realizó una prueba en teléfono. Los avisos de herramientas
 y la consulta de la cuenta ficticia sin respuesta siguen pendientes.
+
+
+## Renovación HTTP móvil aislada por sesión
+
+La revisión del interceptor 401 amplía la protección más allá de la restauración
+inicial del proveedor. Las peticiones quedan ligadas a la versión de cuenta con
+la que se iniciaron. Si cambia la sesión, una respuesta antigua no se entrega al
+consumidor ni inicia otra renovación, no persiste credenciales y no limpia la cuenta
+nueva. Guardar/limpiar admite una versión esperada para comprobar la condición
+antes de modificar memoria o almacenamiento.
+
+La versión de cuenta se distingue de la versión de escritura: rotar el token de
+la misma cuenta no invalida sus demás consultas en curso. La renovación y su
+guardado se comparten para los 401 simultáneos de esa sesión. Un 401 retrasado
+reutiliza el token ya renovado sin efectuar otra rotación. Una cuenta posterior
+no comparte la promesa pendiente de la anterior. Los reintentos de transporte
+conservan el límite previo y no pueden reenviarse bajo otra cuenta.
+
+Nueve regresiones usan el adaptador Axios sin conexiones externas y señales
+explícitas para controlar las carreras. Con el interceptor anterior reproducen
+siete fallos y dos controles correctos; con la corrección pasan los nueve. El
+primer borrador de esas pruebas usaba esperas de microtareas insuficientes; se
+corrigió la sincronización y se repitió la comparación contra el interceptor
+anterior antes de dar por válida esta evidencia.
+
+La suite completa termina con salida 0: 203 pruebas móviles en 33 suites,
+23,243 segundos. Total vigente con backend 386 y web 436: 1.025. Exportación
+Android/iOS nueva con source maps correcta en
+`/workspace/nextfit-setup/mobile-refresh-reviewed`; el escáner contra la auditoría
+existente también pasa para 4.172 fuentes Android y 4.167 iOS. No cambian dependencias,
+SDK ni lockfile. No se publica una versión móvil ni se prueba físicamente en iPhone.
+Los avisos de la cadena de herramientas y la consulta ficticia pendiente continúan
+abiertos; esta corrección no equivale a cerrar el paso 7 para publicación.
