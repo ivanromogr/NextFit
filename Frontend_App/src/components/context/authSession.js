@@ -6,6 +6,14 @@ export const REFRESH_TOKEN_KEY = 'nextfit_refresh';
 const ROLES = new Set(['CLIENTE', 'ENTRENADOR']);
 let onSessionInvalidated = null;
 let accessToken = null;
+let storageVersion = 0;
+let pendingStorage = Promise.resolve();
+
+function writeStorage(operation) {
+  const result = pendingStorage.catch(() => {}).then(operation);
+  pendingStorage = result;
+  return result;
+}
 
 const isValidSession = (session) => (
   session
@@ -15,7 +23,11 @@ const isValidSession = (session) => (
 );
 
 export async function getAuthSession() {
+  const version = storageVersion;
+  await pendingStorage;
+  if (version !== storageVersion) return null;
   const value = await AsyncStorage.getItem(AUTH_SESSION_KEY);
+  if (version !== storageVersion) return null;
   if (!value) return null;
   try {
     const session = JSON.parse(value);
@@ -35,17 +47,21 @@ export async function saveAuthSession({ accessToken: nextAccessToken, refreshTok
   };
   if (!isValidSession(session)) throw new Error('Respuesta de autenticación inválida');
   if (typeof nextAccessToken !== 'string' || typeof refreshToken !== 'string') throw new Error('Respuesta de autenticación inválida');
+  storageVersion += 1;
   accessToken = nextAccessToken;
-  await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
-  await AsyncStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+  await writeStorage(async () => {
+    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+    await AsyncStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+  });
   return session;
 }
 
 export async function updateAuthSession({ accessToken: nextAccessToken, user }) {
   const session = { id: user?.id, email: user?.email, role: user?.role };
   if (!isValidSession(session) || typeof nextAccessToken !== 'string') throw new Error('Respuesta de autenticación inválida');
+  storageVersion += 1;
   accessToken = nextAccessToken;
-  await AsyncStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+  await writeStorage(() => AsyncStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session)));
   return session;
 }
 
@@ -53,13 +69,19 @@ export async function getAccessToken() {
   return accessToken;
 }
 
-export const getRefreshToken = () => SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+export const getRefreshToken = async () => {
+  await pendingStorage;
+  return SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+};
 
 export async function clearAuthSession() {
+  const version = ++storageVersion;
   accessToken = null;
-  await AsyncStorage.removeItem(AUTH_SESSION_KEY);
-  await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-  onSessionInvalidated?.();
+  await writeStorage(async () => {
+    await AsyncStorage.removeItem(AUTH_SESSION_KEY);
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  });
+  if (version === storageVersion) onSessionInvalidated?.();
 }
 
 export function setSessionInvalidationHandler(handler) {

@@ -162,3 +162,10 @@ CI=1 EXPO_NO_TELEMETRY=1 __UNSAFE_EXPO_HOME_DIRECTORY=/workspace/.cache/expo EXP
 
 La corrección de reintentos no elimina avisos npm: impide reenviar escrituras
 cuando no llegó su respuesta. Solo GET/HEAD conservan un reintento de transporte.
+
+
+La revisión posterior de restauración inicial y persistencia móvil termina con
+194 pruebas en 32 suites y una exportación Android/iOS nueva correcta, en
+`/workspace/nextfit-setup/mobile-session-reviewed`. El escáner vuelve a pasar sobre
+esos mapas nuevos. No hay cambios de dependencias ni eliminación de avisos de
+herramientas; las pruebas de carrera no equivalen a validación física en iPhone.

@@ -1,10 +1,10 @@
 import React from 'react';
-import { renderHook, act } from '@testing-library/react-native';
+import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { AuthProvider, useAuth } from '../../components/context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 jest.mock('../../api/api', () => ({ refreshMobileSession: jest.fn(), logoutMobileSession: jest.fn() }));
-import { refreshMobileSession } from '../../api/api';
+import { refreshMobileSession, logoutMobileSession } from '../../api/api';
 
 describe('AuthContext (Mobile)', () => {
   
@@ -86,5 +86,89 @@ describe('AuthContext (Mobile)', () => {
       renderHook(() => useAuth());
     };
     expect(t).toThrow("useAuth debe usarse dentro de AuthProvider");
+  });
+});
+
+describe('respuestas atrasadas de sesión', () => {
+  const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
+  const oldUser = { id: 'old', email: 'old@example.invalid', role: 'CLIENTE' };
+  const newUser = { id: 'new', email: 'new@example.invalid', role: 'ENTRENADOR' };
+  const payload = user => ({ accessToken: 'access-' + user.id, refreshToken: 'refresh-' + user.id, user });
+  const pending = () => {
+    let resolve, reject;
+    const promise = new Promise((done, fail) => { resolve = done; reject = fail; });
+    return { promise, resolve, reject };
+  };
+  beforeEach(() => {
+    jest.clearAllMocks();
+    AsyncStorage.getItem.mockResolvedValue(null);
+    SecureStore.getItemAsync.mockResolvedValue(null);
+    refreshMobileSession.mockReset();
+    logoutMobileSession.mockReset();
+  });
+
+  test.each(['success', 'failure'])('la restauración antigua %s no sustituye ni borra un login nuevo', async outcome => {
+    const request = pending();
+    AsyncStorage.getItem.mockResolvedValue(JSON.stringify(oldUser));
+    refreshMobileSession.mockReturnValue(request.promise);
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(refreshMobileSession).toHaveBeenCalled());
+    await act(async () => { await result.current.login(payload(newUser)); });
+    AsyncStorage.removeItem.mockClear();
+    await act(async () => {
+      if (outcome === 'success') request.resolve({ data: payload(oldUser) });
+      else request.reject(new Error('old request failed'));
+    });
+    expect(result.current.user).toEqual(newUser);
+    expect(AsyncStorage.setItem).not.toHaveBeenCalledWith('auth_session', JSON.stringify(oldUser));
+    expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
+  });
+
+  test('una restauración pendiente no vuelve a entrar después de borrar la sesión', async () => {
+    const request = pending();
+    AsyncStorage.getItem.mockResolvedValue(JSON.stringify(oldUser));
+    refreshMobileSession.mockReturnValue(request.promise);
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(refreshMobileSession).toHaveBeenCalled());
+    await act(async () => { await result.current.clearLocalSession(); });
+    await act(async () => { request.resolve({ data: payload(oldUser) }); });
+    expect(result.current.user).toBeNull();
+    expect(SecureStore.setItemAsync).not.toHaveBeenCalled();
+  });
+
+  test('descarta la restauración si el proveedor se desmonta', async () => {
+    const request = pending();
+    AsyncStorage.getItem.mockResolvedValue(JSON.stringify(oldUser));
+    refreshMobileSession.mockReturnValue(request.promise);
+    const { unmount } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(refreshMobileSession).toHaveBeenCalled());
+    unmount();
+    await act(async () => { request.resolve({ data: payload(oldUser) }); });
+    expect(SecureStore.setItemAsync).not.toHaveBeenCalled();
+  });
+
+  test('cerrar sesión limpia localmente aunque el servidor no responda', async () => {
+    logoutMobileSession.mockRejectedValue(new Error('offline'));
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await act(async () => {});
+    await act(async () => { await result.current.login(payload(oldUser)); });
+    await act(async () => { await result.current.logout(); });
+    expect(result.current.user).toBeNull();
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('nextfit_refresh');
+  });
+
+  test('un logout atrasado no cierra una cuenta que entró después', async () => {
+    const request = pending();
+    logoutMobileSession.mockReturnValue(request.promise);
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await act(async () => {});
+    await act(async () => { await result.current.login(payload(oldUser)); });
+    let logout;
+    act(() => { logout = result.current.logout(); });
+    await act(async () => { await result.current.login(payload(newUser)); });
+    AsyncStorage.removeItem.mockClear();
+    await act(async () => { request.resolve(); await logout; });
+    expect(result.current.user).toEqual(newUser);
+    expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
   });
 });

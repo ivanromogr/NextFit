@@ -6,7 +6,7 @@ ni contratar servicios. El paso 7 no está cerrado para publicación.
 
 ## Completado
 
-- Backend: 386 pruebas; web: 436 en 64 archivos; móvil: 182 en 31 suites. Total: 1.004.
+- Backend: 386 pruebas; web: 436 en 64 archivos; móvil: 194 en 32 suites. Total: 1.016.
   Backend conserva la ejecución anterior; web se repitió tras el proxy y móvil tras corregir los reintentos de red.
 - Lint web, build con manifest y 18 contratos Python correctos.
 - Recorrido completo con ambos perfiles, API H2 y HTTP en el mismo origen:
@@ -108,3 +108,15 @@ completa pasan: 182 pruebas, 31 suites, también tras npm ci. No cambió el lock
 Las exportaciones Android/iOS nuevas y el escáner de mapas pasan en
 `/workspace/nextfit-setup/mobile-retry-reviewed`. No se publicó una actualización
 móvil ni se probó en teléfono; los avisos de herramientas siguen pendientes.
+
+
+## Restauración inicial móvil: corrección posterior
+
+La restauración inicial del proveedor y el logout descartan respuestas anteriores
+a otra operación de cuenta. La persistencia se serializa/versiona; las lecturas
+esperan las escrituras pendientes y una limpieza vieja no invalida una sesión nueva.
+Se reprodujeron seis fallos previos; doce regresiones nuevas y toda la suite pasan:
+194 pruebas en 32 suites. Exportación nueva Android/iOS y escáner de mapas correctos
+en `/workspace/nextfit-setup/mobile-session-reviewed`. Sin cambio de SDK, lockfile,
+publicación ni prueba física. Un logout sin respuesta remota limpia el dispositivo,
+pero no acredita revocación en el servidor. Los pendientes de cierre no cambian.

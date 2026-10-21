@@ -13,7 +13,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 |---|---|
 | Backend, Maven verify | 386 pruebas, cero fallos/errores/omisiones; JAR generado |
 | Web, suite completa | 436 pruebas en 64 archivos, todas correctas |
-| Móvil, suite completa con preset SDK 54 | 182 pruebas en 31 suites, todas correctas |
+| Móvil, suite completa con preset SDK 54 | 194 pruebas en 32 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
 | Exportaciones móviles | Android/iOS Hermes correctas con Babel SDK 54; no son builds firmadas |
@@ -27,7 +27,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Candidato 7d24777 READY y alias estable verificados; doce comprobaciones públicas y login/recarga reales de ambos roles correctos |
 
-Las suites de backend, web y móvil suman **1.004 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **1.016 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -1408,3 +1408,35 @@ física en iPhone. El escáner sobre esos artefactos nuevos y la auditoría nuev
 4.172 fuentes Android y 4.167 iOS, sin los tres paquetes de origen de los avisos.
 La auditoría instalada conserva 93 avisos (88 altos, 5 moderados); siguen abiertos
 los riesgos de la cadena de herramientas. No hubo actualización de SDK ni publicación.
+
+
+## Restauración inicial y persistencia móvil entre cuentas
+
+Se reprodujeron seis fallos antes de modificar código: una restauración inicial
+atrasada podía sustituir un login posterior o borrarlo al fallar, volver a entrar
+tras limpiar la sesión o persistir después de desmontar el proveedor. Un logout
+fallido conservaba la sesión local; uno atrasado podía borrar una cuenta posterior.
+La prueba previa termina con seis casos fallidos y cinco anteriores correctos.
+
+El proveedor usa una generación de operaciones y una guarda de montaje. Las
+respuestas antiguas se descartan antes de persistir y antes de publicar estado;
+el logout limpia localmente al finalizar aunque falle la solicitud remota, siempre
+que no haya comenzado otra operación de cuenta. No se afirma revocación remota
+si el servidor no respondió. Los cambios de correo conservan la misma guarda de
+publicación frente a otra operación posterior.
+
+Las mutaciones de SecureStore/AsyncStorage se serializan y versionan para que un
+borrado pendiente no invalide un guardado posterior. Las lecturas esperan los
+cambios pendientes y descartan resultados viejos. La cola puede continuar después
+de un fallo de almacenamiento. Seis pruebas de almacenamiento, además de las seis
+del proveedor, verifican escritura demorada, borrado/login concurrentes, recuperación
+del error, lectura corrupta atrasada y lectura durante guardados pendientes.
+
+La suite móvil completa termina con salida 0: 194 pruebas en 32 suites,
+23,164 segundos. Son doce pruebas nuevas sobre los 182 casos anteriores.
+Backend 386 y web 436 conservan sus ejecuciones: total vigente 1.016. La exportación
+Android/iOS termina con salida 0 en `/workspace/nextfit-setup/mobile-session-reviewed`;
+el escáner contra la auditoría existente pasa con 4.172 fuentes Android y 4.167 iOS,
+sin los tres paquetes de origen en JavaScript. No cambiaron dependencias ni lockfile.
+No se publicó la app ni se realizó una prueba en teléfono. Los avisos de herramientas
+y la consulta de la cuenta ficticia sin respuesta siguen pendientes.
