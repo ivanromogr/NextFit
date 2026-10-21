@@ -143,3 +143,22 @@ reporta problemas. Se registran ambos recuentos y no se presenta el menor como
 resultado de la auditoría instalada. Las verificaciones de exclusión de paquetes
 solo acotan JavaScript: herramientas y bibliotecas nativas siguen fuera de su
 alcance.
+
+
+## Reinstalación y artefactos tras corregir reintentos móviles
+
+Se reinstaló con npm ci para reparar archivos faltantes de la instalación, sin
+modificar versiones ni lockfile. La suite posterior pasa con 182 pruebas en 31
+suites. La nueva exportación Android/iOS termina correctamente y el escáner sobre
+los mapas nuevos vuelve a descartar los tres orígenes de avisos en JavaScript.
+La auditoría instalada sigue en 93 avisos (88 altos, 5 moderados, cero críticos).
+Las exportaciones no sustituyen un build firmado ni la validación física.
+
+En este entorno la CLI requiere caché escribible y telemetría desactivada:
+
+```sh
+CI=1 EXPO_NO_TELEMETRY=1 __UNSAFE_EXPO_HOME_DIRECTORY=/workspace/.cache/expo EXPO_PUBLIC_API_BASE_URL=https://nextfit-pa8i.onrender.com npx expo export --platform android --platform ios --source-maps --output-dir /workspace/nextfit-setup/mobile-retry-reviewed
+```
+
+La corrección de reintentos no elimina avisos npm: impide reenviar escrituras
+cuando no llegó su respuesta. Solo GET/HEAD conservan un reintento de transporte.

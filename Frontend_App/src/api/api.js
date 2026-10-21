@@ -65,6 +65,7 @@ api.interceptors.response.use(
             }
         }
         const shouldRetry =
+            ['get', 'head'].includes((config.method || '').toLowerCase()) &&
             !config.skipNetworkRetry && !config.__retry &&
             (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || !error.response);
 

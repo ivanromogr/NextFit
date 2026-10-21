@@ -6,8 +6,8 @@ ni contratar servicios. El paso 7 no está cerrado para publicación.
 
 ## Completado
 
-- Backend: 386 pruebas; web: 436 en 64 archivos; móvil: 170. Total: 992.
-  Backend y móvil conservan las ejecuciones anteriores; web se repitió tras el proxy.
+- Backend: 386 pruebas; web: 436 en 64 archivos; móvil: 182 en 31 suites. Total: 1.004.
+  Backend conserva la ejecución anterior; web se repitió tras el proxy y móvil tras corregir los reintentos de red.
 - Lint web, build con manifest y 18 contratos Python correctos.
 - Recorrido completo con ambos perfiles, API H2 y HTTP en el mismo origen:
   `scripts/check-local-beta.py --same-origin`, salida 0. Incluye chat,
@@ -97,3 +97,14 @@ borrar filas por un patrón genérico ni tratar un fallo de DNS como resultado v
 La auditoría móvil indica fixAvailable=false para braces y node-forge; para
 sprintf-js propone cambios de consumidores, no una nueva versión directa fuera
 del rango vulnerable. Mantener los tres avisos y su exposición documentados.
+
+
+## Corrección móvil posterior
+
+El interceptor reintentaba escrituras tras un timeout, pudiendo duplicar operaciones.
+Se limita el reintento de transporte a GET/HEAD, una sola vez. Los reintentos por
+401 autenticado conservan su comportamiento. Doce regresiones nuevas y la suite
+completa pasan: 182 pruebas, 31 suites, también tras npm ci. No cambió el lockfile.
+Las exportaciones Android/iOS nuevas y el escáner de mapas pasan en
+`/workspace/nextfit-setup/mobile-retry-reviewed`. No se publicó una actualización
+móvil ni se probó en teléfono; los avisos de herramientas siguen pendientes.

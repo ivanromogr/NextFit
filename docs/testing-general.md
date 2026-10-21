@@ -13,7 +13,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 |---|---|
 | Backend, Maven verify | 386 pruebas, cero fallos/errores/omisiones; JAR generado |
 | Web, suite completa | 436 pruebas en 64 archivos, todas correctas |
-| Móvil, suite completa con preset SDK 54 | 170 pruebas en 30 suites, todas correctas |
+| Móvil, suite completa con preset SDK 54 | 182 pruebas en 31 suites, todas correctas |
 | Compilación web | Vite de producción con manifest, correcta |
 | Compatibilidad Expo | `expo install --check`: dependencias actualizadas para SDK 54 |
 | Exportaciones móviles | Android/iOS Hermes correctas con Babel SDK 54; no son builds firmadas |
@@ -27,7 +27,7 @@ física en iPhone corresponde además a los pasos 6 y 9 aplazados.
 | Comprobador de producción | Seis pruebas de contrato aisladas correctas, además de la pasada HTTP real |
 | Identidad de preview Vercel | Candidato 7d24777 READY y alias estable verificados; doce comprobaciones públicas y login/recarga reales de ambos roles correctos |
 
-Las suites de backend, web y móvil suman **992 pruebas correctas**. Los ensayos de navegador son evidencia
+Las suites de backend, web y móvil suman **1.004 pruebas correctas**. Los ensayos de navegador son evidencia
 adicional, no se suman a ese recuento. Las ejecuciones de backend/web y el ensayo
 local se realizaron durante la revisión del 19 de octubre UTC; se repitieron las
 comprobaciones móviles tras alinear sus dependencias en la continuación del día 20.
@@ -1378,3 +1378,33 @@ los tres paquetes de origen aparece entre las 4.172 fuentes Android y 4.167 iOS
 de los artefactos ya exportados. No es una compilación nueva ni revisión nativa;
 los riesgos de la cadena de herramientas siguen abiertos. La aceptación funcional
 del proxy está completada; no se declara cerrada la seguridad para publicación.
+
+
+## Reintentos de transporte móvil
+
+Se detectó que el interceptor móvil reintentaba también POST, PUT, PATCH y DELETE
+cuando había timeout o no llegaba respuesta. Una prueba con el adaptador Axios real
+reprodujo el fallo antes de modificar código: un alta terminaba enviándose de nuevo.
+Se restringe el reintento de red a GET/HEAD, conservando una única repetición y la
+exclusión explícita skipNetworkRetry. Los fallos de escritura se devuelven al
+formulario sin reenviar automáticamente una operación que el servidor pudo aplicar.
+La recuperación autenticada tras un 401 no cambia; no se confunde con una respuesta
+perdida del transporte.
+
+Doce pruebas nuevas comprueban altas, refresh, sesiones, cambios de correo,
+PATCH/DELETE, errores sin código, lecturas GET/HEAD, límite de reintentos, HTTP 503
+y exclusión explícita. La prueba de regresión falló antes y pasa con la corrección.
+La suite móvil completa pasa dos veces, incluyendo después de reinstalar desde
+el lockfile: 182 pruebas en 31 suites, salida 0. Backend 386 y web 436 conservan
+sus anteriores ejecuciones: 1.004 pruebas de aplicación, sin sumar herramientas.
+
+La primera exportación encontró archivos ausentes de Chalk en la instalación
+existente. npm ci restauró las dependencias sin cambios de manifiesto ni lockfile.
+La siguiente ejecución necesitó ubicar la caché Expo en el workspace y desactivar
+telemetría, porque el home predeterminado no era escribible. La exportación final
+Android/iOS con source maps terminó con salida 0 en
+`/workspace/nextfit-setup/mobile-retry-reviewed`; no es un build firmado ni prueba
+física en iPhone. El escáner sobre esos artefactos nuevos y la auditoría nueva pasa:
+4.172 fuentes Android y 4.167 iOS, sin los tres paquetes de origen de los avisos.
+La auditoría instalada conserva 93 avisos (88 altos, 5 moderados); siguen abiertos
+los riesgos de la cadena de herramientas. No hubo actualización de SDK ni publicación.
