@@ -233,3 +233,19 @@ la clave carezca de permisos ni que haga falta contratar otro plan. La API de
 gestión del servicio sí funciona. No se intentó eludir el bloqueo de Cloudflare.
 La consulta de la documentación pública sobre el plan Free falló por acceso de
 red; no se atribuye una causa definitiva a las caídas a partir de esa consulta.
+
+
+## Mitigaciones locales de los dos avisos restantes
+
+Se reproducen y mitigan los fallos concretos de braces y node-forge, sin cambiar
+sus versiones ni ocultar npm audit. El postinstall verifica versiones/hashes y
+copias del lockfile antes de limitar anidamiento de patrones y exigir la estructura
+anidada correcta de AlgorithmIdentifier. Instalación limpia verificada; seis
+pruebas específicas y 203 móviles correctas. Exportaciones nuevas y escáner pasan
+en `mobile-tooling-mitigated`. Auditoría: 45 altos, 0 moderados y 0 críticos.
+
+Son mitigaciones propias acotadas, no versiones oficiales corregidas ni aceptación
+independiente de toda la cadena criptográfica. Si se omiten scripts de instalación,
+no están aplicadas; ejecutar postinstall y la comprobación explícita antes del uso.
+No se da por cerrado el permiso de publicación por estas pruebas. Reproducción,
+limitaciones y retirada futura en [Dependencias móviles](mobile-dependencies.md).

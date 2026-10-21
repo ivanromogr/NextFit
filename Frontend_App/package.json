@@ -11,7 +11,11 @@
     "test:ios-tools": "node --test scripts/ios-project-tools.test.cjs",
     "check:bundle-tooling": "node scripts/check-bundle-tooling.cjs",
     "test:bundle-tooling": "node --test scripts/check-bundle-tooling.test.cjs",
-    "test:coverage-tools": "node --test scripts/coverage-config-tools.test.cjs"
+    "test:coverage-tools": "node --test scripts/coverage-config-tools.test.cjs",
+    "postinstall": "node scripts/apply-tooling-security-patches.cjs",
+    "check:tooling-security": "node scripts/apply-tooling-security-patches.cjs --check",
+    "test:tooling-security": "node --test scripts/tooling-security.test.cjs",
+    "pretest": "npm run check:tooling-security"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

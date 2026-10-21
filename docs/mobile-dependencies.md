@@ -1,5 +1,52 @@
 # Dependencias móviles: estado del 21 de octubre de 2026
 
+## Mitigaciones locales de braces y node-forge
+
+No se identificaron versiones estables corregidas: `braces@3.0.3` y
+`node-forge@1.4.0` siguen afectadas. Las mitigaciones propias siguientes no cambian
+versiones, no eliminan avisos npm y no sustituyen un parche oficial ni una revisión
+independiente de criptografía. La auditoría conserva 45 avisos altos, sin moderados
+ni críticos. Se limita el alcance a los casos reproducidos y al árbol fijado.
+
+`npm ci` ejecuta `scripts/apply-tooling-security-patches.cjs` en postinstall:
+
+- Braces limita a 64 niveles la pila de anidamiento de patrones de texto, tanto
+  llaves como paréntesis, antes de llegar a visitantes recursivos. La regresión
+  ejecutada en un proceso con pila reducida producía RangeError antes; ahora
+  rechaza mediante SyntaxError. Los patrones normales, rangos, escapes y el límite
+  de 64 niveles siguen funcionando. Esta protección no valida AST arbitrarios
+  entregados directamente a las API internas del paquete.
+- Forge exige que el AlgorithmIdentifier de PKCS#1 v1.5 tenga exactamente el OID
+  y, si existe, un parámetro NULL vacío. La validación anterior solo contaba los
+  dos elementos del DigestInfo exterior y aceptaba elementos extra dentro de la
+  secuencia anidada. Una firma local con esa estructura era aceptada por Forge y
+  rechazada por Node/OpenSSL; ahora Forge también la rechaza. Se prueban parámetros
+  NULL adicionales, secuencia extra y NULL no vacío, además de firmas válidas con
+  y sin NULL, interoperabilidad con crypto de Node y digest incorrecto.
+
+El instalador verifica versiones, hashes SHA-256 del código original y una única
+copia de cada paquete en el lockfile. Valida todos los objetivos antes de escribir,
+acepta su propia aplicación previa y falla si el proveedor cambia el código o
+aparecen otras copias. No es una sustitución genérica sobre versiones desconocidas.
+`pretest` comprueba que estén aplicadas. Si se instala con `--ignore-scripts`,
+**no** se aplican: ejecutar `npm run postinstall` y `npm run check:tooling-security`
+antes de utilizar esas herramientas. No publicar una build generada con parches
+omitidos como si tuviera esta mitigación.
+
+Validación: instalación limpia con postinstall correcto; 203 pruebas móviles en
+33 suites; seis pruebas de herramientas específicas, incluida idempotencia y
+rechazo de fuentes modificadas; exportaciones Android/iOS en
+`/workspace/nextfit-setup/mobile-tooling-mitigated`; escáner correcto con 4.172 y
+4.167 fuentes. Expo genera, valida y firma con un certificado efímero local en la
+prueba: no se usan identidades reales ni se contacta con servicios externos.
+
+Comandos: `npm run check:tooling-security`, `npm run test:tooling-security`.
+Informe: `/tmp/nextfit-mitigated-audit.json`, todavía con salida npm audit 1.
+Retirar cada mitigación únicamente tras actualizar a una versión oficialmente
+corregida y repetir regresiones, suite y exportación; revisar a la vez la guardia
+de versión/hash. No marcar los avisos de cadena de herramientas como eliminados
+ni dar por hecha una compilación firmada o validación física de iPhone.
+
 ## Estado vigente: eliminado el origen sprintf-js
 
 La auditoría instalada y la del lockfile coinciden ahora en **45 avisos altos,
