@@ -329,9 +329,11 @@ sesión real de ambos perfiles sobre 4440f0b. Esto no elimina los siguientes lí
 2. Dos avisos de origen móviles con mitigaciones locales probadas y verificadas
    tras instalación limpia; no hay versiones oficiales corregidas identificadas
    ni revisión independiente de toda la cadena de herramientas.
-3. Alta ficticia antigua incierta: DNS del host PostgreSQL sigue sin resolver;
-   no se ha ejecutado la consulta de solo lectura ni confirmado ausencia de esa
-   cuenta. Las cuentas de las pasadas posteriores sí se eliminaron y revocaron.
+3. Comprobación de la antigua alta ficticia: RESUELTA el 26 de octubre. El
+   propietario ejecutó en DBeaver la consulta de solo lectura sobre NextFit y
+   aportó captura: cliente 0, entrenador 0. No hay cuentas activas con los nombres,
+   apellidos y patrones de email exactos generados por el comprobador. No acredita
+   que nunca se crearan ni que no existan filas inactivas; no hace falta borrado.
 4. Workflow publicado; consulta remota de su resultado bloqueada por Forbidden.
    La validación local no se atribuye a una ejecución de GitHub Actions.
 
@@ -376,3 +378,20 @@ consulta de solo lectura preparada debe ejecutarse desde una conexión disponibl
 como DBeaver; no se ha conectado a la base desde este entorno. Revisión actual de
 npm: braces 3.0.3 y node-forge 1.4.0 siguen siendo latest. GitHub Actions sigue
 sin resultado remoto accesible desde aquí. No hubo cambios en producción.
+
+
+## Evidencia de la consulta de fixtures, 26 de octubre
+
+Captura aportada por el propietario desde DBeaver, conexión nextfit_db_pixm,
+resultado de la consulta UNION ALL de conteo: cliente=0, entrenador=0. La consulta
+filtra nombre BetaPreview, apellido Temporal, patrón específico por rol con 20
+caracteres hexadecimales y dominio example.invalid, active=true y deleted_at NULL.
+Se cierra la duda de cuentas activas coincidentes con esos marcadores. Es evidencia
+aportada por el propietario; no se atribuye una conexión ni ejecución desde Codex.
+No se consultaron credenciales o hashes ni se modificaron registros para esta
+verificación. Se conserva la consulta anterior de identificación para auditoría;
+no ejecutarla de nuevo sin una necesidad nueva.
+
+Una URL de conexión compartida anteriormente incluía credencial. No se copia aquí
+ni se almacena en el repositorio. Su rotación y actualización coordinada en los
+consumidores queda pendiente de confirmación, sin atribuir una rotación realizada.
