@@ -17,6 +17,7 @@ aplicación iOS instalada ni acreditan disponibilidad continua de producción.
 | Preview web | Commit de aplicación `4440f0bd00d32c022a8f77942a9849cac6439baa`, despliegue `dpl_GkbyG48NwRJ2Tw5vvqL85sPpXB8A`. Alias, doce controles públicos y acceso/recarga reales de ambos perfiles verificados. |
 | Sesiones y carreras | Regresiones web/móvil verifican aislamiento entre cuentas y rechazo de respuestas antiguas; prueba local de cookie con Chromium y rotación real. |
 | GitHub Actions móvil | Success en `2b444ad`, acreditado mediante captura del propietario. Código móvil y workflow sin cambios desde esa ejecución. |
+| GitHub Actions web | Success en [40315100285](https://github.com/ivanromogr/NextFit/actions/runs/40315100285), commit exacto `0175db1c01571139e85efe77accbc25261c17aeb`, verificado directamente mediante el resumen público de ejecución y su enlace al commit. Incluye auditoría estricta, lint, pruebas y build. |
 | Cuenta ficticia antigua | Consulta de solo lectura ejecutada en DBeaver por el propietario: cero clientes y entrenadores activos con los marcadores exactos. No requiere borrado. |
 | Credencial PostgreSQL | Nueva credencial aplicada al mismo backend, despliegue `dep-dbfiaqgm7kps7397lho0`; retirada de la antigua confirmada por el propietario. Pruebas posteriores de lectura, escritura, sesión y baja correctas. |
 | Auditoría web actual | Cero avisos tras actualizar únicamente Zod 4.1.12 → 4.6.7, dependencia de desarrollo de ESLint. Instalación limpia, lint y build correctos. |
@@ -25,9 +26,10 @@ aplicación iOS instalada ni acreditan disponibilidad continua de producción.
 
 La actualización de Zod es posterior a la aceptación remota del commit web
 indicado. Cambia únicamente el lockfile de una herramienta de lint, sin código
-de aplicación. Se verificaron instalación, auditoría, lint y compilación; no se
-atribuye todavía ese lockfile nuevo a la preview anterior ni una nueva pasada
-completa de 461 pruebas al cambio de herramienta.
+de aplicación. Se verificaron instalación, auditoría, lint y compilación localmente. Después
+GitHub Actions pasó también sobre el commit 0175db1, que incluye este lockfile.
+No se atribuye ese lockfile a la preview anterior ni un recuento remoto de
+pruebas que no se haya leído en los logs detallados de GitHub.
 
 ## Observaciones pendientes para publicación
 

@@ -510,3 +510,27 @@ instalación, auditoría, lint y build pasaron tras la corrección de Zod; el ú
 recuento completo de aplicación web sigue siendo 461. No se atribuye una nueva
 pasada completa ni una ejecución remota del workflow hasta tener su resultado.
 No cambian el código móvil, su workflow ni su aceptación Success aportada.
+
+
+## Verificación remota directa del workflow web
+
+La API api.github.com sigue bloqueada, pero las páginas públicas github.com sí
+permiten lectura HTTP sin credenciales. Se consultaron los badges con filtro de
+rama codex/mobile-ux y ambos muestran passing. El badge por sí solo no se tomó
+como evidencia de un SHA exacto.
+
+La página pública de web-checks.yml contiene una única ejecución enlazada y el
+commit actual. Se abrió su resumen:
+https://github.com/ivanromogr/NextFit/actions/runs/40315100285
+Muestra Status: Success y enlaza exactamente al commit
+0175db1c01571139e85efe77accbc25261c17aeb. git ls-remote confirmó ese HEAD remoto.
+No hay cambios de la web ni de su workflow entre ese commit y el estado revisado.
+Se cierra la verificación remota del nuevo workflow web sin pedir otra captura.
+
+No se extrajeron logs detallados, por lo que no se inventan recuentos remotos por
+paso. El resultado cubre instalación, auditoría estricta, lint, pruebas y build
+según el workflow fijado. No implica deploy, validación física ni disponibilidad
+continua de Render. La aceptación remota del móvil anterior permanece válida.
+Para futuras comprobaciones preferir esta vía pública comprobable a repetir
+consultas API que devuelven Forbidden; comprobar siempre ejecución y SHA, no solo
+el badge.
