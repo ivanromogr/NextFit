@@ -393,8 +393,8 @@ verificación. Se conserva la consulta anterior de identificación para auditor�
 no ejecutarla de nuevo sin una necesidad nueva.
 
 Una URL de conexión compartida anteriormente incluía credencial. No se copia aquí
-ni se almacena en el repositorio. Su rotación y actualización coordinada en los
-consumidores queda pendiente de confirmación, sin atribuir una rotación realizada.
+ni se almacena en el repositorio. Su rotación se completó después mediante actualización del servicio,
+validación y confirmación de retirada por el propietario; ver evidencia al final.
 
 
 ## Rotación de credencial: nueva conexión aplicada y validada, 26 de octubre
@@ -423,3 +423,26 @@ DBeaver y elimine la credencial antigua en Credential Rotation, conservando la
 nueva marcada Default. No declarar revocación ni cierre de la exposición hasta
 recibir confirmación/evidencia de esa retirada. No se guardan contraseñas ni URLs
 de conexión con credenciales en el repositorio.
+
+
+## Cierre de la rotación tras retirada confirmada, 26 de octubre
+
+El propietario confirmó haber actualizado DBeaver y eliminado la credencial
+antigua siguiendo las instrucciones del panel. Esa retirada es evidencia aportada
+por el propietario; la API de credenciales sigue sin poder consultarse desde aquí
+ni se ensayó una conexión con el secreto antiguo. No afirmar esas comprobaciones.
+
+Verificación posterior: el servicio conserva el nuevo usuario PostgreSQL y el
+despliegue `dep-dbfiaqgm7kps7397lho0` sigue live con el mismo SHA d3b366b. El
+comprobador público completo pasa, con salud UP en 0,2 s. La prueba autenticada
+posterior también termina con salida 0: registro, login, lectura y recarga con
+refresh para cliente y entrenador. Las dos cuentas ficticias se eliminaron y
+sus login, JWT y refresh posteriores fueron rechazados. Evidencia local en
+`/tmp/nextfit-post-revocation-acceptance.log`.
+
+Se cierra la tarea de rotación con la confirmación del propietario y las pruebas
+aplicativas posteriores. No fue necesario otro despliegue ni reinicio para esta
+pasada. Las notas anteriores que indican retirada pendiente son históricas y
+quedan superadas por este resultado. La estabilidad intermitente del servicio,
+los avisos de herramientas mitigados localmente y la verificación remota de CI
+mantienen sus límites; esta rotación no constituye aprobación de publicación.
