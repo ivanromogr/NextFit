@@ -1,6 +1,6 @@
 # Estado de cierre del paso 7
 
-Comprobado el 21 de octubre de 2026. Repositorio `ivanromogr/NextFit`, rama
+Última comprobación: 26 de octubre de 2026. Repositorio `ivanromogr/NextFit`, rama
 `codex/mobile-ux`. Preservar el `app.json` raíz sin seguimiento. No fusionar main
 ni contratar servicios. El paso 7 no está cerrado para publicación.
 
@@ -339,3 +339,24 @@ No repetir pasadas correctas ni reiniciar como sustituto de estos pendientes.
 Para continuar el cierre hacen falta evidencia de operación del proveedor,
 acceso de solo lectura a la base y verificación remota del workflow, conservando
 las restricciones de secretos, cuentas personales y servicios de pago.
+
+
+## Registro actual aportado por el propietario, 26 de octubre
+
+El fragmento de 09:21–09:25 UTC muestra un arranque correcto del perfil Render:
+Hikari añade una conexión PostgreSQL y termina de iniciar; JPA se inicializa;
+Tomcat escucha en 10000; Spring informa 177,099 s de arranque (187,732 s de
+proceso). DispatcherServlet se inicializa y el broker sigue disponible. No hay
+ERROR, excepción fatal ni OutOfMemory en este fragmento. Las advertencias de
+commons-logging, dialecto y AuthenticationProvider no impiden este arranque.
+
+Tras recibirlo, `check-production.py --timeout 15` pasa por completo, con salud
+UP en 0,2 s, rechazos anónimos, CORS exacto/no confiable y credencial Google
+inválida. No se reinició ni se cambió configuración o código de producción.
+
+Se acredita un escenario de indisponibilidad durante el arranque de casi tres
+minutos, superior a los límites de las peticiones del cliente. No atribuir sin
+correlación temporal todos los timeouts anteriores, especialmente los de 210 s,
+a ese escenario; este registro no contiene el periodo anterior al inicio del
+proceso ni acredita estabilidad continua. No hay evidencia aquí que justifique
+cambiar JWT, el esquema de PostgreSQL o contratar otro plan.
