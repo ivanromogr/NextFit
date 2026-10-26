@@ -79,7 +79,9 @@ confirman Success para [backend](https://github.com/ivanromogr/NextFit/actions/r
 y [móvil](https://github.com/ivanromogr/NextFit/actions/runs/40331675215).
 La comprobación [web](https://github.com/ivanromogr/NextFit/actions/runs/40331675190)
 también confirma Success para ese SHA. La corrección móvil posterior de resolución
-de imágenes del proxy tiene comprobaciones separadas; no atribuirle ese run anterior.
+de imágenes del proxy pasa sus 220 pruebas locales y su propio
+[run móvil](https://github.com/ivanromogr/NextFit/actions/runs/40332514854),
+Success para el SHA exacto `cd8134ba7da27bce08573a2c1c6e18908a1dcda3`.
 
 Pendientes del propietario: correo público todavía sin crear, identidad legal,
 cuenta/firma Apple y prueba real en iPhone. Antes del despliegue de cambios de

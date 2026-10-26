@@ -14,7 +14,10 @@ pendiente; los documentos publicados siguen provisionales y no se cambian sus
 versiones de consentimiento.
 
 Commit de preparación: `ce3b70c1060bbc89704f6285fb42e4aebf5d6383`, subido a GitHub.
-Backend y móvil: Success remoto para ese SHA, runs `40331675333` y `40331675215`.
+Backend, móvil y web: Success remoto para ese SHA, runs `40331675333`,
+`40331675215` y `40331675190`. Ajuste posterior de imágenes nativas:
+`cd8134ba7da27bce08573a2c1c6e18908a1dcda3`, run móvil `40332514854` Success
+para el commit exacto, exportaciones y 220 pruebas correctas.
 
 Preparación local del 26 de octubre: backend 401 pruebas correctas (también con
 entorno sin secretos), móvil 220 en 37 suites; exportaciones Android/iOS con mapas
