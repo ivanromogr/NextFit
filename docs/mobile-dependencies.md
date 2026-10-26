@@ -3,10 +3,11 @@
 ## Auditoría vigente, 26 de octubre
 
 Auditorías instalada y del lockfile: **6 avisos altos, 0 moderados, 0 críticos**.
-El único origen enumerado actualmente es node-forge. Braces ya no figura en el
-informe, aunque la versión instalada sigue siendo 3.0.3; no se conoce el motivo
-del cambio del registro y no se atribuye a una corrección nueva del proyecto.
-Se mantienen ambas mitigaciones locales. Su comprobación de versión/hash pasa.
+El único origen enumerado actualmente es node-forge. GitHub retiró el aviso de
+braces el 23 de octubre porque no se considera una vulnerabilidad explotable en
+la práctica: [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm).
+Se retira por ese motivo la modificación local del parser; braces sigue en 3.0.3
+con el código publicado original. Solo se conserva la mitigación de node-forge.
 La última estable consultada de node-forge sigue siendo 1.4.0, afectada.
 
 Informes locales: `/tmp/nextfit-final-mobile-audit-20261026.json` y
@@ -16,7 +17,31 @@ informe nuevo pasa sobre los mapas existentes de mobile-tooling-mitigated:
 nuevos bundles ni se repitieron las 203 pruebas sin cambios de código móvil.
 Los recuentos de 45/50/93 de los apartados siguientes son históricos.
 
-## Mitigaciones locales de braces y node-forge
+## Retirada del parche propio de braces
+
+La retirada del aviso no es una nueva versión ni una corrección nuestra. El
+instalador ya no modifica braces ni restringe patrones a 64 niveles, y se retiran
+las dos pruebas que exigían esa restricción. **Actualizar con `npm ci`**: una
+instalación incremental puede conservar una copia de node_modules modificada por
+el instalador anterior. La instalación limpia realizada en esta revisión deja
+lib/parse.js con el hash del paquete original, comprobado explícitamente.
+
+Después de la retirada pasan las 203 pruebas móviles en 33 suites y las cuatro
+pruebas restantes de herramientas: instalación idempotente/rechazo de cambios,
+RSA malformado, firmas válidas e integración real del consumidor de firma Expo.
+Nueva exportación Android/iOS en
+`/workspace/nextfit-setup/mobile-braces-withdrawn-reviewed`, con mapas y escáner
+correctos. Auditoría actual guardada en `/tmp/nextfit-forge-only-audit-20261026.json`.
+
+El aviso [GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv)
+de node-forge continúa activo, afecta <=1.4.0 y no indica versión corregida.
+Su referencia a [PR 1152](https://github.com/digitalbazaar/forge/pull/1152) describe
+la comprobación de elementos de DigestAlgorithm; no se atribuye una versión
+oficial entregada a esa propuesta. La mitigación local sigue sin sustituir un
+parche oficial ni una revisión de toda la cadena criptográfica.
+
+## Historial de las mitigaciones locales de braces y node-forge
+
 
 No se identificaron versiones estables corregidas: `braces@3.0.3` y
 `node-forge@1.4.0` siguen afectadas. Las mitigaciones propias siguientes no cambian

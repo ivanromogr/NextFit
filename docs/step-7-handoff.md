@@ -330,7 +330,7 @@ sesión real de ambos perfiles sobre 4440f0b. Esto no elimina los siguientes lí
    estabilidad continua, ni proponer un plan de pago como solución demostrada.
 2. Auditoría móvil actual: seis avisos altos originados en node-forge, con
    mitigación propia probada; sigue sin versión oficial corregida identificada.
-   Braces ya no figura en la auditoría actual y conserva su protección local.
+   Braces recupera su código original tras confirmarse la retirada oficial del aviso.
    No atribuir una revisión independiente de toda la cadena de firma a estas pruebas.
 3. Comprobación de la antigua alta ficticia: RESUELTA el 26 de octubre. El
    propietario ejecutó en DBeaver la consulta de solo lectura sobre NextFit y
@@ -534,3 +534,20 @@ continua de Render. La aceptación remota del móvil anterior permanece válida.
 Para futuras comprobaciones preferir esta vía pública comprobable a repetir
 consultas API que devuelven Forbidden; comprobar siempre ejecución y SHA, no solo
 el badge.
+
+
+## Aviso braces retirado y parche local eliminado
+
+La página pública de GHSA-vfj7-8cjw-p6xm confirma retirada el 23 de octubre por
+no considerarse una vulnerabilidad explotable en la práctica. Se elimina el
+parche propio de braces y las dos regresiones que exigían límites de anidamiento.
+Solo queda la mitigación versionada/hash de node-forge; no se cambian versiones
+para evitar la auditoría. npm ci restaura el parser original, cuyo hash se verificó.
+La actualización debe usar instalación limpia para retirar copias ya modificadas.
+
+Validación local: 203 pruebas/33 suites, cuatro regresiones de herramientas,
+exportaciones Android/iOS y escáner correctos en mobile-braces-withdrawn-reviewed.
+El aviso node-forge sigue activo sin versión corregida publicada. La referencia
+PR 1152 se revisó como propuesta, no como entrega oficial. No hay cambios en
+producción. La nueva ejecución CI móvil debe verificarse tras subir estos cambios;
+el Success anterior no se atribuye al código nuevo del instalador.

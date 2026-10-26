@@ -5,16 +5,6 @@ const path = require('node:path');
 
 const patches = [
   {
-    name: 'braces', version: '3.0.3', file: 'braces/lib/parse.js',
-    sha256: 'e572166565f15fa6ad9865ae49d678218e32aabfd1b3720f6d0d43d39800d310',
-    before: '      stack.push(block);', count: 2,
-    after: `      // NextFit: bound recursion in downstream AST visitors for string patterns.
-      if (stack.length >= 65) {
-        throw new SyntaxError('NextFit tooling: pattern nesting exceeds 64 levels');
-      }
-      stack.push(block);`,
-  },
-  {
     name: 'node-forge', version: '1.4.0', file: 'node-forge/lib/rsa.js',
     sha256: 'fd4740238145ec26470eb3f06a627c72039538ce1307dbdce40521f94dfd0a50',
     before: '            obj.value.length !== 2) {', count: 1,

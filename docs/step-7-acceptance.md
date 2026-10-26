@@ -16,7 +16,7 @@ aplicación iOS instalada ni acreditan disponibilidad continua de producción.
 | Recorrido integrado local | Ambos perfiles, chat, entrenamientos, permisos, recuperación y baja, con H2 aislado y API real. |
 | Preview web | Commit de aplicación `4440f0bd00d32c022a8f77942a9849cac6439baa`, despliegue `dpl_GkbyG48NwRJ2Tw5vvqL85sPpXB8A`. Alias, doce controles públicos y acceso/recarga reales de ambos perfiles verificados. |
 | Sesiones y carreras | Regresiones web/móvil verifican aislamiento entre cuentas y rechazo de respuestas antiguas; prueba local de cookie con Chromium y rotación real. |
-| GitHub Actions móvil | Success en `2b444ad`, acreditado mediante captura del propietario. Código móvil y workflow sin cambios desde esa ejecución. |
+| GitHub Actions móvil | Success anterior en `2b444ad`, acreditado por el propietario. La retirada posterior del parche de braces requiere comprobar una nueva ejecución; sus pruebas locales ya pasan. |
 | GitHub Actions web | Success en [40315100285](https://github.com/ivanromogr/NextFit/actions/runs/40315100285), commit exacto `0175db1c01571139e85efe77accbc25261c17aeb`, verificado directamente mediante el resumen público de ejecución y su enlace al commit. Incluye auditoría estricta, lint, pruebas y build. |
 | Cuenta ficticia antigua | Consulta de solo lectura ejecutada en DBeaver por el propietario: cero clientes y entrenadores activos con los marcadores exactos. No requiere borrado. |
 | Credencial PostgreSQL | Nueva credencial aplicada al mismo backend, despliegue `dep-dbfiaqgm7kps7397lho0`; retirada de la antigua confirmada por el propietario. Pruebas posteriores de lectura, escritura, sesión y baja correctas. |
@@ -43,9 +43,9 @@ pruebas que no se haya leído en los logs detallados de GitHub.
   node-forge sigue siendo 1.4.0, afectada. La protección propia rechaza las
   estructuras malformadas reproducidas, con pruebas positivas y negativas, pero
   no es un parche oficial ni una auditoría de toda la cadena de firma. La
-  protección de braces permanece; el informe actual ya no enumera ese origen.
-  No se conoce el motivo del cambio del registro y no se atribuye a un cambio
-  nuestro: su versión instalada sigue siendo 3.0.3.
+  modificación propia de braces se retira: GitHub retiró su aviso el 23 de
+  octubre por no considerarlo explotable en la práctica. La instalación limpia
+  restaura el código publicado de braces 3.0.3; no es un parche de seguridad nuevo.
 - **Dispositivo y proveedores reales:** iPhone, build iOS firmada, Google/Apple
   nativos y correo real siguen aplazados; pertenecen a los hitos de dispositivo
   y publicación y no se presentan como pruebas ejecutadas.

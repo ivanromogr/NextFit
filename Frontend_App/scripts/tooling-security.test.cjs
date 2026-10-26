@@ -3,7 +3,6 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const forge = require('node-forge');
-const braces = require('braces');
 const signing = require('@expo/code-signing-certificates');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -16,7 +15,7 @@ test('installer is idempotent and refuses changed dependency sources before writ
     const installer = path.join(directory, 'scripts/installer.cjs');
     fs.copyFileSync(path.join(__dirname, '../package-lock.json'), path.join(directory, 'package-lock.json'));
     fs.copyFileSync(path.join(__dirname, 'apply-tooling-security-patches.cjs'), installer);
-    for (const [name, file] of [['braces', 'lib/parse.js'], ['node-forge', 'lib/rsa.js']]) {
+    for (const [name, file] of [['node-forge', 'lib/rsa.js']]) {
       const root = path.join(directory, 'node_modules', name);
       fs.mkdirSync(path.join(root, 'lib'), { recursive: true });
       fs.copyFileSync(require.resolve(`${name}/package.json`), path.join(root, 'package.json'));
@@ -25,45 +24,16 @@ test('installer is idempotent and refuses changed dependency sources before writ
     const run = (...args) => spawnSync(process.execPath, [installer, ...args], { encoding: 'utf8', timeout: 5000 });
     assert.equal(run().status, 0);
     assert.equal(run('--check').status, 0);
-    const braceFile = path.join(directory, 'node_modules/braces/lib/parse.js');
     const forgeFile = path.join(directory, 'node_modules/node-forge/lib/rsa.js');
-    const braceSource = fs.readFileSync(braceFile, 'utf8');
     fs.appendFileSync(forgeFile, '\n// simulated upstream source change\n');
+    const modifiedSource = fs.readFileSync(forgeFile, 'utf8');
     const result = run();
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Unexpected node-forge\/lib\/rsa.js/);
-    assert.equal(fs.readFileSync(braceFile, 'utf8'), braceSource);
+    assert.equal(fs.readFileSync(forgeFile, 'utf8'), modifiedSource);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }
-});
-
-test('deep string patterns reject predictably before recursive visitors exhaust the stack', () => {
-  const result = spawnSync(process.execPath, ['--stack-size=256', '-e', `
-    const assert = require('node:assert/strict');
-    const braces = require('braces');
-    for (const mode of ['compile', 'expand', 'stringify', 'parse']) {
-      for (const [left, right] of [['{', '}'], ['(', ')']]) {
-        assert.throws(() => braces[mode](left.repeat(3000) + 'a,b' + right.repeat(3000)),
-          error => error instanceof SyntaxError && /nesting exceeds 64/.test(error.message));
-      }
-    }
-  `], { cwd: process.cwd(), encoding: 'utf8', timeout: 5000 });
-  assert.equal(result.error, undefined);
-  assert.equal(result.status, 0, result.stderr);
-});
-
-test('ordinary glob compilation, expansion, escaping and ranges remain usable', () => {
-  assert.deepEqual(braces.expand('src/{client,coach}/file{1..3}.js'), [
-    'src/client/file1.js', 'src/client/file2.js', 'src/client/file3.js',
-    'src/coach/file1.js', 'src/coach/file2.js', 'src/coach/file3.js',
-  ]);
-  assert.doesNotThrow(() => braces.compile('{'.repeat(64) + 'a,b' + '}'.repeat(64)));
-  assert.throws(() => braces.compile('{'.repeat(65) + 'a,b' + '}'.repeat(65)), /nesting exceeds 64/);
-  const micromatch = require('micromatch');
-  assert.deepEqual(micromatch(['src/client/a.js', 'src/coach/b.jsx', 'other/a.js'],
-    'src/{client,coach}/*.{js,jsx}'), ['src/client/a.js', 'src/coach/b.jsx']);
-  assert.deepEqual(braces.expand('literal/\\{name\\}'), ['literal/{name}']);
 });
 
 const keys = crypto.generateKeyPairSync('rsa', {
