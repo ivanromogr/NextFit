@@ -360,3 +360,19 @@ correlación temporal todos los timeouts anteriores, especialmente los de 210 s,
 a ese escenario; este registro no contiene el periodo anterior al inicio del
 proceso ni acredita estabilidad continua. No hay evidencia aquí que justifique
 cambiar JWT, el esquema de PostgreSQL o contratar otro plan.
+
+## Aislamiento del bloqueo de acceso a PostgreSQL, 26 de octubre
+
+Se comprobó un control de DNS: api.render.com y registry.npmjs.org también
+fallan con EAI_AGAIN, mientras sus consultas HTTP mediante HTTPS_PROXY funcionan.
+El control fuera del sandbox vuelve a fallar tanto para Render API como para el
+hostname PostgreSQL. El error de resolución no demuestra que la base esté mal
+configurada o que su nombre público no exista. No pedir cambiarlo basándose solo
+en esta evidencia. La conexión interna PostgreSQL sí aparece correcta en el
+registro de arranque aportado por el propietario.
+
+Se retiró la petición de hostname al usuario tras identificar ese control. La
+consulta de solo lectura preparada debe ejecutarse desde una conexión disponible,
+como DBeaver; no se ha conectado a la base desde este entorno. Revisión actual de
+npm: braces 3.0.3 y node-forge 1.4.0 siguen siendo latest. GitHub Actions sigue
+sin resultado remoto accesible desde aquí. No hubo cambios en producción.
