@@ -1,0 +1,58 @@
+name: Web regression checks
+
+on:
+  push:
+    branches: [codex/mobile-ux, main]
+    paths:
+      - 'Frontend/AplicacionFrontend/**'
+      - '.github/workflows/web-checks.yml'
+  pull_request:
+    paths:
+      - 'Frontend/AplicacionFrontend/**'
+      - '.github/workflows/web-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Frontend/AplicacionFrontend
+    env:
+      CI: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: Frontend/AplicacionFrontend/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Reject dependency advisories
+        run: npm audit
+      - name: Lint actual application sources
+        run: npm run lint
+      - name: Run web application regressions
+        run: npm test
+      - name: Compile preview configuration
+        env:
+          VITE_API_SAME_ORIGIN: 'true'
+          VITE_API_URL: https://nextfit-pa8i.onrender.com
+          VITE_WS_URL: https://nextfit-pa8i.onrender.com
+        run: npm run build -- --manifest
+      - name: Describe check scope
+        if: always()
+        run: |
+          echo '### Web regression checks' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Dependency audit, lint, tests and build only. This workflow does not deploy, validate real production sessions, certify uptime or approve publication.' >> "$GITHUB_STEP_SUMMARY"

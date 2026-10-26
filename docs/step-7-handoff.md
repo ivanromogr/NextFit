@@ -494,3 +494,19 @@ El propietario confirmó que los gráficos CPU/RAM de su panel requieren pago.
 Esa vía de observación se aplaza sin contratar nada. No prueba la causa de los
 timeouts restantes. El resumen consolidado distingue aceptación funcional y
 observaciones pendientes de publicación en step-7-acceptance.md.
+
+## Automatización de regresiones web, 26 de octubre
+
+Se incorpora .github/workflows/web-checks.yml para push de codex/mobile-ux/main,
+pull requests y ejecución manual cuando cambie la web o su workflow. Ejecuta
+npm ci, npm audit sin tolerancias ni continue-on-error, lint, npm test y build
+con manifest/configuración de preview. Permisos contents:read, sin credenciales
+de proveedores, sin despliegue, timeout de 15 minutos y cancelación de pasadas
+sustituidas. Ubuntu 24.04 y Node 24. Acciones checkout/setup-node v6 fijadas por
+SHA, contrastadas con los tags oficiales mediante git ls-remote.
+
+YAML y guardas de configuración verificados localmente. Los comandos de
+instalación, auditoría, lint y build pasaron tras la corrección de Zod; el último
+recuento completo de aplicación web sigue siendo 461. No se atribuye una nueva
+pasada completa ni una ejecución remota del workflow hasta tener su resultado.
+No cambian el código móvil, su workflow ni su aceptación Success aportada.
