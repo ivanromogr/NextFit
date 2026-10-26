@@ -551,3 +551,16 @@ El aviso node-forge sigue activo sin versión corregida publicada. La referencia
 PR 1152 se revisó como propuesta, no como entrega oficial. No hay cambios en
 producción. La nueva ejecución CI móvil debe verificarse tras subir estos cambios;
 el Success anterior no se atribuye al código nuevo del instalador.
+
+
+## CI móvil posterior a retirada de braces verificado
+
+Resumen público:
+https://github.com/ivanromogr/NextFit/actions/runs/40319443807
+Status: Success, con enlace al commit exacto
+9091e05059bd01bc47c3f1ed33d056fa959c3400. Se comprobó el SHA del resumen, no solo
+el badge. Se cierra la verificación remota de la retirada del parche propio de
+braces. No cambia el workflow ni el código web, cuya aceptación anterior permanece.
+El aviso node-forge y sus límites siguen abiertos; los logs detallados remotos no
+se usaron para inventar recuentos por paso. Las pruebas locales aportan 203/33 y
+cuatro regresiones de herramientas, más exportaciones y escáner correctos.
