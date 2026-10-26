@@ -1,5 +1,7 @@
 # Estado de cierre del paso 7
 
+Resumen vigente: [informe de aceptación](step-7-acceptance.md).
+
 Última comprobación: 26 de octubre de 2026. Repositorio `ivanromogr/NextFit`, rama
 `codex/mobile-ux`. Preservar el `app.json` raíz sin seguimiento. No fusionar main
 ni contratar servicios. El paso 7 no está cerrado para publicación.
@@ -326,9 +328,10 @@ sesión real de ambos perfiles sobre 4440f0b. Esto no elimina los siguientes lí
 1. Disponibilidad intermitente de Render sin diagnóstico: hay timeouts de 210 s,
    recuperación posterior y falta de acceso a logs/métricas. No afirmar causa ni
    estabilidad continua, ni proponer un plan de pago como solución demostrada.
-2. Dos avisos de origen móviles con mitigaciones locales probadas y verificadas
-   tras instalación limpia; no hay versiones oficiales corregidas identificadas
-   ni revisión independiente de toda la cadena de herramientas.
+2. Auditoría móvil actual: seis avisos altos originados en node-forge, con
+   mitigación propia probada; sigue sin versión oficial corregida identificada.
+   Braces ya no figura en la auditoría actual y conserva su protección local.
+   No atribuir una revisión independiente de toda la cadena de firma a estas pruebas.
 3. Comprobación de la antigua alta ficticia: RESUELTA el 26 de octubre. El
    propietario ejecutó en DBeaver la consulta de solo lectura sobre NextFit y
    aportó captura: cliente 0, entrenador 0. No hay cuentas activas con los nombres,
@@ -470,3 +473,24 @@ Las anotaciones muestran deprecación de Node 20 en las acciones checkout@v4 y
 setup-node@v4, ejecutadas forzadamente con Node 24, y migración anunciada de
 ubuntu-latest. Son avisos de mantenimiento, no fallos del job. Este resultado no
 elimina avisos npm ni acredita build nativa, firma, iPhone o publicación.
+
+
+## Revisión de dependencias y consolidación, 26 de octubre
+
+Nueva vulnerabilidad GHSA-mrhx-c7xc-m3w5 en Zod <4.6.6, dependencia de desarrollo
+de eslint-plugin-react-hooks: lockfile web actualizado exclusivamente de 4.1.12 a
+4.6.7, dentro del rango existente. npm ci, lint, build con manifest y auditoría
+instalada correctos; cero avisos web. No se modificó código de aplicación ni se
+repitió toda su suite solo por actualizar la herramienta de lint.
+
+Las auditorías móviles instalada/lockfile actuales coinciden en 6 altos y ningún
+moderado/crítico, con node-forge como único origen enumerado. Braces permanece en
+3.0.3 y su mitigación se conserva; no atribuir su ausencia en el nuevo informe a
+un cambio propio ni afirmar retirada oficial sin evidencia. Guardias instaladas
+y escáner de mapas existentes correctos con el informe nuevo. Npm audit móvil
+sigue devolviendo 1. Los recuentos anteriores son históricos.
+
+El propietario confirmó que los gráficos CPU/RAM de su panel requieren pago.
+Esa vía de observación se aplaza sin contratar nada. No prueba la causa de los
+timeouts restantes. El resumen consolidado distingue aceptación funcional y
+observaciones pendientes de publicación en step-7-acceptance.md.

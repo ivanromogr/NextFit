@@ -1,5 +1,21 @@
 # Dependencias móviles: estado del 21 de octubre de 2026
 
+## Auditoría vigente, 26 de octubre
+
+Auditorías instalada y del lockfile: **6 avisos altos, 0 moderados, 0 críticos**.
+El único origen enumerado actualmente es node-forge. Braces ya no figura en el
+informe, aunque la versión instalada sigue siendo 3.0.3; no se conoce el motivo
+del cambio del registro y no se atribuye a una corrección nueva del proyecto.
+Se mantienen ambas mitigaciones locales. Su comprobación de versión/hash pasa.
+La última estable consultada de node-forge sigue siendo 1.4.0, afectada.
+
+Informes locales: `/tmp/nextfit-final-mobile-audit-20261026.json` y
+`/tmp/nextfit-mobile-final-lock-audit-20261026.json`. El escáner repetido con el
+informe nuevo pasa sobre los mapas existentes de mobile-tooling-mitigated:
+4.172 fuentes Android y 4.167 iOS, sin el único origen enumerado. No se exportaron
+nuevos bundles ni se repitieron las 203 pruebas sin cambios de código móvil.
+Los recuentos de 45/50/93 de los apartados siguientes son históricos.
+
 ## Mitigaciones locales de braces y node-forge
 
 No se identificaron versiones estables corregidas: `braces@3.0.3` y
@@ -47,7 +63,7 @@ corregida y repetir regresiones, suite y exportación; revisar a la vez la guard
 de versión/hash. No marcar los avisos de cadena de herramientas como eliminados
 ni dar por hecha una compilación firmada o validación física de iPhone.
 
-## Estado vigente: eliminado el origen sprintf-js
+## Eliminación anterior del origen sprintf-js
 
 La auditoría instalada y la del lockfile coinciden ahora en **45 avisos altos,
 cero moderados y cero críticos**, originados en `braces` y `node-forge`.

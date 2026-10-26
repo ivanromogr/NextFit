@@ -1,0 +1,58 @@
+# Informe de aceptación de pruebas — parte 7
+
+Actualizado el 26 de octubre de 2026. Rama: `codex/mobile-ux`.
+
+## Dictamen
+
+**Aceptación funcional comprobada. Publicación todavía no aprobada.**
+Los resultados siguientes no convierten una exportación JavaScript en una
+aplicación iOS instalada ni acreditan disponibilidad continua de producción.
+
+## Resultados y evidencia
+
+| Comprobación | Resultado y alcance |
+|---|---|
+| Pruebas de aplicación | Backend 386, web 461, móvil 203: 1.050 correctas en las últimas ejecuciones registradas. No se repiten solo para actualizar una fecha. |
+| Recorrido integrado local | Ambos perfiles, chat, entrenamientos, permisos, recuperación y baja, con H2 aislado y API real. |
+| Preview web | Commit de aplicación `4440f0bd00d32c022a8f77942a9849cac6439baa`, despliegue `dpl_GkbyG48NwRJ2Tw5vvqL85sPpXB8A`. Alias, doce controles públicos y acceso/recarga reales de ambos perfiles verificados. |
+| Sesiones y carreras | Regresiones web/móvil verifican aislamiento entre cuentas y rechazo de respuestas antiguas; prueba local de cookie con Chromium y rotación real. |
+| GitHub Actions móvil | Success en `2b444ad`, acreditado mediante captura del propietario. Código móvil y workflow sin cambios desde esa ejecución. |
+| Cuenta ficticia antigua | Consulta de solo lectura ejecutada en DBeaver por el propietario: cero clientes y entrenadores activos con los marcadores exactos. No requiere borrado. |
+| Credencial PostgreSQL | Nueva credencial aplicada al mismo backend, despliegue `dep-dbfiaqgm7kps7397lho0`; retirada de la antigua confirmada por el propietario. Pruebas posteriores de lectura, escritura, sesión y baja correctas. |
+| Auditoría web actual | Cero avisos tras actualizar únicamente Zod 4.1.12 → 4.6.7, dependencia de desarrollo de ESLint. Instalación limpia, lint y build correctos. |
+| Auditoría móvil actual | Seis avisos altos, cero moderados/críticos, tanto instalada como lockfile; único origen enumerado: node-forge. La mitigación propia se conserva y se verifica. |
+| Exportaciones móviles | Android/iOS generadas y verificadas; los mapas de 4.172/4.167 fuentes no incluyen el origen señalado por la auditoría actual. No son builds firmadas. |
+
+La actualización de Zod es posterior a la aceptación remota del commit web
+indicado. Cambia únicamente el lockfile de una herramienta de lint, sin código
+de aplicación. Se verificaron instalación, auditoría, lint y compilación; no se
+atribuye todavía ese lockfile nuevo a la preview anterior ni una nueva pasada
+completa de 461 pruebas al cambio de herramienta.
+
+## Observaciones pendientes para publicación
+
+- **Operación de Render:** el registro aportado muestra conexión correcta a
+  PostgreSQL y arranque de 177 segundos. Después hay sondas rápidas correctas,
+  pero también timeouts previos de 210 segundos sin correlación completa.
+  No hay causa demostrada para todos los periodos de indisponibilidad. El
+  propietario confirma que CPU/RAM requieren pago en su panel; no se contrata
+  nada ni se convierte esa limitación en una prueba de estabilidad.
+- **Cadena de herramientas móvil:** la última versión estable consultada de
+  node-forge sigue siendo 1.4.0, afectada. La protección propia rechaza las
+  estructuras malformadas reproducidas, con pruebas positivas y negativas, pero
+  no es un parche oficial ni una auditoría de toda la cadena de firma. La
+  protección de braces permanece; el informe actual ya no enumera ese origen.
+  No se conoce el motivo del cambio del registro y no se atribuye a un cambio
+  nuestro: su versión instalada sigue siendo 3.0.3.
+- **Dispositivo y proveedores reales:** iPhone, build iOS firmada, Google/Apple
+  nativos y correo real siguen aplazados; pertenecen a los hitos de dispositivo
+  y publicación y no se presentan como pruebas ejecutadas.
+
+No hace falta volver a consultar fixtures, rotar de nuevo la credencial ni pedir
+otra captura del mismo workflow por cambios exclusivos de web/documentación.
+Los nuevos intentos de diagnóstico deben aportar evidencia adicional, no repetir
+sondas y reinicios como sustituto de resolver los límites conocidos.
+
+Historial y reproducción: [estado técnico](step-7-handoff.md),
+[pruebas generales](testing-general.md),
+[dependencias móviles](mobile-dependencies.md).
