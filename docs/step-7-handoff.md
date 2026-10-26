@@ -334,13 +334,17 @@ sesión real de ambos perfiles sobre 4440f0b. Esto no elimina los siguientes lí
    aportó captura: cliente 0, entrenador 0. No hay cuentas activas con los nombres,
    apellidos y patrones de email exactos generados por el comprobador. No acredita
    que nunca se crearan ni que no existan filas inactivas; no hace falta borrado.
-4. Workflow publicado; consulta remota de su resultado bloqueada por Forbidden.
-   La validación local no se atribuye a una ejecución de GitHub Actions.
+4. Workflow remoto: RESUELTO el 26 de octubre mediante captura aportada por el
+   propietario. GitHub muestra Success para el job mobile del commit 2b444ad.
+   Frontend_App y el workflow no han cambiado desde ese commit; se comprobó con
+   git diff. La consulta API desde Codex continúa bloqueada, pero ya no falta
+   evidencia del resultado remoto. No atribuir esa evidencia a una consulta propia.
 
 No repetir pasadas correctas ni reiniciar como sustituto de estos pendientes.
-Para continuar el cierre hacen falta evidencia de operación del proveedor,
-acceso de solo lectura a la base y verificación remota del workflow, conservando
-las restricciones de secretos, cuentas personales y servicios de pago.
+El cierre restante requiere revisar la exposición de los avisos mitigados y
+aclarar los periodos de indisponibilidad que no cubren los registros de arranque
+aportados, conservando las restricciones de secretos y servicios de pago. La
+consulta de fixtures y la evidencia del workflow ya están resueltas.
 
 
 ## Registro actual aportado por el propietario, 26 de octubre
@@ -446,3 +450,23 @@ pasada. Las notas anteriores que indican retirada pendiente son históricas y
 quedan superadas por este resultado. La estabilidad intermitente del servicio,
 los avisos de herramientas mitigados localmente y la verificación remota de CI
 mantienen sus límites; esta rotación no constituye aprobación de publicación.
+
+
+## Evidencia remota de GitHub Actions aportada, 26 de octubre
+
+La captura del propietario muestra Mobile regression checks, ejecución #1,
+Automate mobile regression and tooling mitigation checks in GitHub, rama
+codex/mobile-ux, commit 2b444ad, estado Success, job mobile en verde. Duración total
+1 min 10 s; job 1 min 7 s. No se recibieron logs detallados de pasos y no se
+inventan recuentos remotos distintos de los resultados locales ya registrados.
+
+Se confirmó git diff sin cambios entre ese commit y HEAD para Frontend_App y
+.github/workflows/mobile-checks.yml. La evidencia sigue cubriendo el código móvil
+y workflow vigentes. No cubre los cambios web posteriores, cuya suite y aceptación
+se verificaron por separado. No hace falta repetir esa ejecución solo por los
+commits posteriores de documentación y web.
+
+Las anotaciones muestran deprecación de Node 20 en las acciones checkout@v4 y
+setup-node@v4, ejecutadas forzadamente con Node 24, y migración anunciada de
+ubuntu-latest. Son avisos de mantenimiento, no fallos del job. Este resultado no
+elimina avisos npm ni acredita build nativa, firma, iPhone o publicación.
