@@ -22,7 +22,7 @@ la beta.
 | 4 Chat y moderación | Implementado; moderación interna y recorrido real con ambos perfiles pendiente de la beta |
 | 5 BD y producción | Parcial: almacenamiento persistente verificado, copia/restauración real de PostgreSQL y migraciones pendientes |
 | 6 UX móvil | Mejoras implementadas en rama; falta validar en iPhone real, no se declara cerrado |
-| 7 Testing general | 1.050 pruebas de aplicación correctas; aceptación funcional, CI, limpieza de fixtures y rotación verificadas. Publicación no aprobada por límites operativos y seguridad residual de herramientas. Ver [informe de aceptación](step-7-acceptance.md). |
+| 7 Testing general | 1.082 pruebas de aplicación correctas; aceptación funcional, CI, limpieza de fixtures y rotación verificadas. Publicación no aprobada por límites operativos y seguridad residual de herramientas. Ver [informe de aceptación](step-7-acceptance.md). |
 | 8 Legal y web | Responsable y correo de soporte pendientes; textos públicos provisionales |
 | 9–10 iOS/TestFlight y App Store | Aplazados; faltan alta/credenciales, compilación firmada y pruebas en dispositivo |
 | API de ejercicios de pago | Aplazada al último tramo antes de publicar todo; sin contratación ni conexión nuevas |

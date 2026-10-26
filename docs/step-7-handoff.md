@@ -13,12 +13,15 @@ No usar su correo personal de moderación como sustituto. Identidad del responsa
 pendiente; los documentos publicados siguen provisionales y no se cambian sus
 versiones de consentimiento.
 
+Commit de preparación: `ce3b70c1060bbc89704f6285fb42e4aebf5d6383`, subido a GitHub.
+Backend y móvil: Success remoto para ese SHA, runs `40331675333` y `40331675215`.
+
 Preparación local del 26 de octubre: backend 401 pruebas correctas (también con
-entorno sin secretos), móvil 218 en 36 suites; exportaciones Android/iOS con mapas
+entorno sin secretos), móvil 220 en 37 suites; exportaciones Android/iOS con mapas
 sin node-forge. Se repitió el recorrido integrado H2 con ambos perfiles, incluida
 baja de las cuentas ficticias, sin proveedor externo. Los registros de esta pasada
 son `/tmp/nextfit-release-backend-no-secrets.log`,
-`/tmp/nextfit-release-mobile-complete.log` y
+`/tmp/nextfit-release-mobile-image-complete.log` y
 `/tmp/nextfit-release-local-browser.log`. No son evidencias de despliegue remoto.
 
 Se preparan metadatos/icono/permisos iOS, acceso permanente a documentos legales,

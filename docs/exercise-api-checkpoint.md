@@ -25,7 +25,9 @@ con credenciales y acota descargas de imágenes a 5 MiB con tipos de imagen perm
 El proxy valida el identificador y su existencia en el catálogo. La importación
 se detiene ante páginas repetidas y tiene un techo de 50 páginas. Ese techo es
 una protección contra bucles, **no** la cuota del plan ni un presupuesto diario.
-Las pruebas usan dobles y servidores HTTP loopback, con claves ficticias.
+Las pruebas usan dobles y servidores HTTP loopback, con claves ficticias. Las
+miniaturas de creación, edición y sesión móvil resuelven la ruta relativa del
+proxy contra el backend configurado; Image nativo no puede cargar esa ruta sola.
 
 ## Condiciones antes de activar
 

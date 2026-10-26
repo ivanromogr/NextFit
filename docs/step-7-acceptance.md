@@ -12,7 +12,7 @@ aplicación iOS instalada ni acreditan disponibilidad continua de producción.
 
 | Comprobación | Resultado y alcance |
 |---|---|
-| Pruebas de aplicación | Backend 401, web 461, móvil 218: 1.080 correctas en las últimas ejecuciones registradas. No se repiten solo para actualizar una fecha. |
+| Pruebas de aplicación | Backend 401, web 461, móvil 220: 1.082 correctas en las últimas ejecuciones registradas. No se repiten solo para actualizar una fecha. |
 | Recorrido integrado local | Ambos perfiles, chat, entrenamientos, permisos, recuperación y baja, con H2 aislado y API real. |
 | Preview web | Commit de aplicación `4440f0bd00d32c022a8f77942a9849cac6439baa`, despliegue `dpl_GkbyG48NwRJ2Tw5vvqL85sPpXB8A`. Alias, doce controles públicos y acceso/recarga reales de ambos perfiles verificados. |
 | Sesiones y carreras | Regresiones web/móvil verifican aislamiento entre cuentas y rechazo de respuestas antiguas; prueba local de cookie con Chromium y rotación real. |
@@ -22,8 +22,8 @@ aplicación iOS instalada ni acreditan disponibilidad continua de producción.
 | Credencial PostgreSQL | Nueva credencial aplicada al mismo backend, despliegue `dep-dbfiaqgm7kps7397lho0`; retirada de la antigua confirmada por el propietario. Pruebas posteriores de lectura, escritura, sesión y baja correctas. |
 | Auditoría web actual | Cero avisos tras actualizar únicamente Zod 4.1.12 → 4.6.7, dependencia de desarrollo de ESLint. Instalación limpia, lint y build correctos. |
 | Auditoría móvil actual | Seis avisos altos, cero moderados/críticos, tanto instalada como lockfile; único origen enumerado: node-forge. La mitigación propia se conserva y se verifica. |
-| Compatibilidad Forge | Suite original comparada sin/con guardia: 828 correctas, 4 omitidas, 0 fallos en ambas; mismo inventario. Evidencia externa, sin sumar a las 1.080 pruebas de aplicación. [Detalle](node-forge-compatibility.md). |
-| Exportaciones móviles | Android/iOS generadas y verificadas; los mapas de 4.172/4.167 fuentes no incluyen el origen señalado por la auditoría actual. No son builds firmadas. |
+| Compatibilidad Forge | Suite original comparada sin/con guardia: 828 correctas, 4 omitidas, 0 fallos en ambas; mismo inventario. Evidencia externa, sin sumar a las 1.082 pruebas de aplicación. [Detalle](node-forge-compatibility.md). |
+| Exportaciones móviles | Android/iOS generadas y verificadas; los mapas de 4.173/4.168 fuentes no incluyen el origen señalado por la auditoría actual. No son builds firmadas. |
 
 La actualización de Zod es posterior a la aceptación remota del commit web
 indicado. Cambia únicamente el lockfile de una herramienta de lint, sin código
@@ -63,18 +63,23 @@ Historial y reproducción: [estado técnico](step-7-handoff.md),
 ## Preparación previa a proveedores, 26 de octubre
 
 Backend y móvil se vuelven a verificar tras las correcciones de medios y cuenta:
-401 y 218 pruebas respectivamente. El backend pasa también sin secretos de
+401 y 220 pruebas respectivamente. El backend pasa también sin secretos de
 proveedores. El recorrido integrado local completo con H2 pasa y sus procesos se
 cierran. Las exportaciones móviles actuales pasan el escáner con el informe de
-seis avisos cuyo origen es node-forge: 4.172 fuentes Android y 4.167 iOS. No se
+seis avisos cuyo origen es node-forge: 4.173 fuentes Android y 4.168 iOS. No se
 ha conectado ninguna API de pago ni actualizado el backend de producción.
 
 Se añaden icono y configuración nativa de NextFit, permisos coherentes con galería,
 acceso a documentos legales con o sin sesión, aislamiento de preferencias entre
 cuentas y configuración por plataforma de Google. La inspección de configuración
 nativa y los tests no acreditan una IPA ni los permisos de un dispositivo real.
-Se prepara además CI Java 21 para el backend; su resultado remoto debe verificarse
-para el nuevo commit, sin atribuirle ejecuciones de commits anteriores.
+Se añade CI Java 21 para el backend. Sobre el commit exacto
+`ce3b70c1060bbc89704f6285fb42e4aebf5d6383`, las páginas públicas de GitHub
+confirman Success para [backend](https://github.com/ivanromogr/NextFit/actions/runs/40331675333)
+y [móvil](https://github.com/ivanromogr/NextFit/actions/runs/40331675215).
+La comprobación [web](https://github.com/ivanromogr/NextFit/actions/runs/40331675190)
+también confirma Success para ese SHA. La corrección móvil posterior de resolución
+de imágenes del proxy tiene comprobaciones separadas; no atribuirle ese run anterior.
 
 Pendientes del propietario: correo público todavía sin crear, identidad legal,
 cuenta/firma Apple y prueba real en iPhone. Antes del despliegue de cambios de

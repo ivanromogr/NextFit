@@ -1,3 +1,4 @@
+import ExerciseImage from '../../components/ui/ExerciseImage';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, 
@@ -35,7 +36,7 @@ const esVideoDirecto = (url = "") => /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(ur
 const ExerciseMediaThumb = ({ imageUrl, videoUrl, style, placeholder }) => {
   const thumbnail = imageUrl || obtenerYoutubeThumbnail(videoUrl);
 
-  if (thumbnail) return <Image source={{ uri: thumbnail }} style={style} />;
+  if (thumbnail) return <ExerciseImage uri={thumbnail} style={style} />;
 
   if (esVideoDirecto(videoUrl)) {
     return (

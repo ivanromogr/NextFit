@@ -2,7 +2,24 @@
 
 Revisión del 20 de octubre de 2026. Rama `codex/mobile-ux`.
 
-## Estado
+## Última preparación antes de conectar proveedores, 26 de octubre de 2026
+
+Backend: **401** pruebas, sin fallos, errores ni omisiones; Maven verify pasa
+además con entorno sin secretos. Web: **461** en 65 archivos, lint y build correctos.
+Móvil: **220** en 37 suites y exportaciones Android/iOS verificadas con el informe
+actual de auditoría. Total: **1.082 pruebas de aplicación**; no sumar pruebas de
+herramientas ni la suite externa Forge. El recorrido integrado local con H2 y
+ambos perfiles pasa; sus procesos se cerraron después.
+
+Evidencia local: `/tmp/nextfit-release-backend-no-secrets.log`,
+`/tmp/nextfit-release-web-complete.log`, `/tmp/nextfit-release-mobile-image-complete.log`,
+`/tmp/nextfit-release-local-browser.log`. Las configuraciones nativas se
+inspeccionaron, pero no hay IPA ni aprobación de dispositivo. Se preparan medios
+sin claves, límites del proveedor y CI del backend sin consultar la API externa.
+Producción no recibe estos cambios. Véanse [aceptación](step-7-acceptance.md) y
+[condiciones de la API y revisión posterior del entrenamiento](exercise-api-checkpoint.md).
+
+## Estado histórico del 20 de octubre
 
 La verificación automatizada local está completada con los resultados siguientes.
 El paso 7 **no se declara cerrado para publicación**: quedan los avisos de
