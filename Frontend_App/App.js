@@ -68,8 +68,6 @@ function RootNavigation() {
           <Stack.Screen name="AppleOnboarding" component={AppleOnboardingScreen} />
           <Stack.Screen name="ClienteOnboarding" component={ClienteOnboardingScreen} />
           <Stack.Screen name="EntrenadorOnboarding" component={EntrenadorOnboardingScreen} />
-          <Stack.Screen name="Terms" component={TermsScreen} />
-          <Stack.Screen name="Privacy" component={PrivacyScreen} />
         </>
       ) : (
         <>
@@ -103,6 +101,8 @@ function RootNavigation() {
         
         </>
       )}
+      <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="Privacy" component={PrivacyScreen} />
     </Stack.Navigator>
   );
 }

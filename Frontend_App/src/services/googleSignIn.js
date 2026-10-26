@@ -2,11 +2,16 @@ import { Platform } from 'react-native';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 let configured = false;
+export function hasGoogleSignInConfig() {
+  return ['android', 'ios'].includes(Platform.OS)
+    && Boolean(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim())
+    && (Platform.OS !== 'ios' || Boolean(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim()));
+}
 export function configureGoogleSignIn() {
   if (configured) return;
-  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-  if (!webClientId || (Platform.OS === 'ios' && !iosClientId)) return;
+  if (!hasGoogleSignInConfig()) return;
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
+  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim();
   GoogleSignin.configure({ webClientId, iosClientId: iosClientId || undefined, offlineAccess: false });
   configured = true;
 }

@@ -2,6 +2,8 @@ package com.tuap.backend.dominio.gestores;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -16,9 +18,14 @@ import com.tuap.backend.dominio.entidades.Ejercicio;
 import com.tuap.backend.dto.EjercicioApiResponse;
 import com.tuap.backend.persistencia.EjercicioDAO;
 import com.tuap.backend.servicios.ServicioTraduccion;
+import com.tuap.backend.util.ExerciseMediaUrls;
+import com.tuap.backend.util.ExerciseProviderHttp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class GestorEjerciciosApi {
+    private static final Logger log = LoggerFactory.getLogger(GestorEjerciciosApi.class);
 
     @Value("${exercisedb.api.key:}")
     private String apiKey;
@@ -38,7 +45,7 @@ public class GestorEjerciciosApi {
             return new ArrayList<>();
         }
 
-        RestTemplate restTemplate = new RestTemplate();
+        RestTemplate restTemplate = ExerciseProviderHttp.client();
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-RapidAPI-Key", apiKey);
@@ -50,9 +57,11 @@ public class GestorEjerciciosApi {
 
         int limit = 100;
         int offset = 0;
+        Set<String> seenIds = new HashSet<>();
 
         try {
-            while (true) {
+            // Safety ceiling, not a paid-plan quota. Review provider limits before activation.
+            for (int page = 0; page < 50; page++) {
 
                 String url = "https://exercisedb.p.rapidapi.com/exercises?limit=" + limit + "&offset=" + offset;
 
@@ -76,10 +85,12 @@ public class GestorEjerciciosApi {
                 System.out.println("Ejercicios recibidos desde la API: " + ejerciciosApi.size());
 
                 List<Ejercicio> ejerciciosGuardar = new ArrayList<>();
+                boolean madeProgress = false;
 
                 for (EjercicioApiResponse api : ejerciciosApi) {
-                    if (api.getId() != null
-                            && api.getName() != null
+                    if (api == null || !ExerciseMediaUrls.validId(api.getId()) || !seenIds.add(api.getId())) continue;
+                    madeProgress = true;
+                    if (api.getName() != null
                             && api.getTarget() != null
                             && api.getEquipment() != null
                             && !ejercicioDAO.existsByApiId(api.getId())) {
@@ -100,12 +111,7 @@ public class GestorEjerciciosApi {
                         ejercicio.setEquipamiento(api.getEquipment());
                         ejercicio.setParteCuerpo(api.getBodyPart());
 
-                        ejercicio.setImagenUrl(
-                                "https://exercisedb.p.rapidapi.com/image?exerciseId="
-                                        + api.getId()
-                                        + "&resolution=180"
-                                        + "&rapidapi-key=" + apiKey
-                        );
+                        ejercicio.setImagenUrl(ExerciseMediaUrls.proxyPath(api.getId()));
 
                         ejercicio.setVideoUrl(null);
                         ejercicio.setDificultad(null);
@@ -113,6 +119,10 @@ public class GestorEjerciciosApi {
 
                         ejerciciosGuardar.add(ejercicio);
                     }
+                }
+                if (!madeProgress) {
+                    log.warn("Exercise provider pagination did not advance; stopping import");
+                    break;
                 }
 
                 System.out.println("Ejercicios nuevos a guardar en este bloque: " + ejerciciosGuardar.size());
@@ -123,6 +133,7 @@ public class GestorEjerciciosApi {
                 }
 
                 offset += ejerciciosApi.size();
+                if (page == 49) log.warn("Exercise import reached page safety limit; catalog may be incomplete");
             }
 
             System.out.println("=========================================");
@@ -134,8 +145,8 @@ public class GestorEjerciciosApi {
             return ejerciciosGuardadosTotales;
 
         } catch (Exception e) {
-            System.out.println("❌ ERROR al llamar a la API:");
-            e.printStackTrace();
+            // Provider bodies/messages can echo credentials; do not log either.
+            log.warn("Exercise provider import failed (type={})", e.getClass().getSimpleName());
             return new ArrayList<>();
         }
     }

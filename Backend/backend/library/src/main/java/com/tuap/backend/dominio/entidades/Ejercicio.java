@@ -1,6 +1,7 @@
 package com.tuap.backend.dominio.entidades;
 
 import java.util.UUID;
+import com.tuap.backend.util.ExerciseMediaUrls;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -136,43 +137,43 @@ public class Ejercicio {
     }
 
     public String getImagenUrl() {
-        return imagenUrl;
+        return ExerciseMediaUrls.forClient(apiId, imagenUrl);
     }
 
     public void setImagenUrl(String imagenUrl) {
-        this.imagenUrl = imagenUrl;
+        this.imagenUrl = ExerciseMediaUrls.forClient(apiId, imagenUrl);
     }
 
     public String getImagenPaso1() {
-        return imagenPaso1;
+        return ExerciseMediaUrls.forClient(apiId, imagenPaso1);
     }
 
     public void setImagenPaso1(String imagenPaso1) {
-        this.imagenPaso1 = imagenPaso1;
+        this.imagenPaso1 = ExerciseMediaUrls.forClient(apiId, imagenPaso1);
     }
 
     public String getImagenPaso2() {
-        return imagenPaso2;
+        return ExerciseMediaUrls.forClient(apiId, imagenPaso2);
     }
 
     public void setImagenPaso2(String imagenPaso2) {
-        this.imagenPaso2 = imagenPaso2;
+        this.imagenPaso2 = ExerciseMediaUrls.forClient(apiId, imagenPaso2);
     }
 
     public String getImagenPaso3() {
-        return imagenPaso3;
+        return ExerciseMediaUrls.forClient(apiId, imagenPaso3);
     }
 
     public void setImagenPaso3(String imagenPaso3) {
-        this.imagenPaso3 = imagenPaso3;
+        this.imagenPaso3 = ExerciseMediaUrls.forClient(apiId, imagenPaso3);
     }
 
     public String getVideoUrl() {
-        return videoUrl;
+        return ExerciseMediaUrls.forClient(apiId, videoUrl);
     }
 
     public void setVideoUrl(String videoUrl) {
-        this.videoUrl = videoUrl;
+        this.videoUrl = ExerciseMediaUrls.forClient(apiId, videoUrl);
     }
 
     public String getDificultad() {

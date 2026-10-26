@@ -5,10 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,7 +13,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
 
 import com.tuap.backend.dominio.entidades.Ejercicio;
 import com.tuap.backend.dominio.gestores.GestorEjerciciosApi;
@@ -24,6 +20,8 @@ import com.tuap.backend.dto.EjercicioResponse;
 import com.tuap.backend.persistencia.EjercicioDAO;
 import com.tuap.backend.servicios.EjercicioSeeder;
 import com.tuap.backend.servicios.TraductorEjercicios;
+import com.tuap.backend.util.ExerciseMediaUrls;
+import com.tuap.backend.util.ExerciseProviderHttp;
 
 @RestController
 @RequestMapping("/api/ejercicios")
@@ -124,9 +122,13 @@ public class EjercicioController {
     @GetMapping("/imagen/{apiId}")
     public ResponseEntity<byte[]> obtenerImagenEjercicio(@PathVariable String apiId) {
         try {
+            if (!ExerciseMediaUrls.validId(apiId)) {
+                return ResponseEntity.badRequest().build();
+            }
             if (apiKey == null || apiKey.isBlank()) {
                 return ResponseEntity.notFound().build();
             }
+            if (!ejercicioDAO.existsByApiId(apiId)) return ResponseEntity.notFound().build();
 
             String url = "https://exercisedb.p.rapidapi.com/image?exerciseId=" + apiId + "&resolution=180";
 
@@ -134,25 +136,10 @@ public class EjercicioController {
             headers.set("X-RapidAPI-Key", apiKey);
             headers.set("X-RapidAPI-Host", "exercisedb.p.rapidapi.com");
 
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            RestTemplate restTemplate = new RestTemplate();
-
-            ResponseEntity<byte[]> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    byte[].class
-            );
-
-            HttpHeaders responseHeaders = new HttpHeaders();
-            responseHeaders.setContentType(MediaType.IMAGE_GIF);
-
-            return ResponseEntity.ok()
-                    .headers(responseHeaders)
-                    .body(response.getBody());
+            return ExerciseProviderHttp.image(ExerciseProviderHttp.client(), url, headers);
 
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(502).build();
         }
     }
 

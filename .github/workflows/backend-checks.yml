@@ -1,0 +1,45 @@
+name: Backend regression checks
+
+on:
+  push:
+    branches: [codex/mobile-ux, main]
+    paths:
+      - 'Backend/backend/library/**'
+      - '.github/workflows/backend-checks.yml'
+  pull_request:
+    paths:
+      - 'Backend/backend/library/**'
+      - '.github/workflows/backend-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Backend/backend/library
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: Backend/backend/library/pom.xml
+      - name: Compile, test and package with isolated test configuration
+        run: bash ./mvnw --batch-mode verify
+      - name: Describe check scope
+        if: always()
+        run: |
+          echo '### Backend regression checks' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Tests and packaging only, without provider secrets or production database access. This workflow does not deploy, connect a paid exercise API, validate native devices or certify a production backup.' >> "$GITHUB_STEP_SUMMARY"

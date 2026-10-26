@@ -6,6 +6,39 @@ Resumen vigente: [informe de aceptación](step-7-acceptance.md).
 `codex/mobile-ux`. Preservar el `app.json` raíz sin seguimiento. No fusionar main
 ni contratar servicios. El paso 7 no está cerrado para publicación.
 
+## Preparación actual antes de la API de ejercicios
+
+El propietario confirma que todavía no ha creado el correo público de soporte.
+No usar su correo personal de moderación como sustituto. Identidad del responsable
+pendiente; los documentos publicados siguen provisionales y no se cambian sus
+versiones de consentimiento.
+
+Preparación local del 26 de octubre: backend 401 pruebas correctas (también con
+entorno sin secretos), móvil 218 en 36 suites; exportaciones Android/iOS con mapas
+sin node-forge. Se repitió el recorrido integrado H2 con ambos perfiles, incluida
+baja de las cuentas ficticias, sin proveedor externo. Los registros de esta pasada
+son `/tmp/nextfit-release-backend-no-secrets.log`,
+`/tmp/nextfit-release-mobile-complete.log` y
+`/tmp/nextfit-release-local-browser.log`. No son evidencias de despliegue remoto.
+
+Se preparan metadatos/icono/permisos iOS, acceso permanente a documentos legales,
+aislamiento de preferencias por cuenta, disponibilidad de Google según plataforma,
+metadatos web y CI del backend. El importador opcional no persiste nuevas claves
+como enlaces y filtra enlaces heredados al serializar; transporte, medios y
+paginación tienen límites comprobados sin consultar el proveedor. No se han
+limpiado filas ni backups antiguos ni desplegado este backend: producción conserva
+`d3b366b6ccb1873cbe2507badb1b8bf7e4ae5fac` y la credencial rotada.
+
+El orden siguiente es [avisar antes de conectar la API de pago y después revisar
+la adaptación real del entrenamiento](exercise-api-checkpoint.md). No declarar
+hecha esa revisión. Los datos y pasos iOS están en
+[preparación para publicación](ios-publication-preparation.md); el
+[borrador legal](legal-publication-draft.md) no es publicable todavía.
+
+Los apartados inferiores conservan resultados históricos: sus cuentas de pruebas,
+versiones de dependencias y bloqueos antiguos no sustituyen este estado y el
+informe de aceptación vigente.
+
 ## Preview vigente: corrección de esperas HTTP
 
 Commit de aplicación `4440f0bd00d32c022a8f77942a9849cac6439baa`, despliegue

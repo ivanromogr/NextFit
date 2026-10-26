@@ -3,8 +3,9 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import PrivacidadComunicacionesScreen from '../screens/PrivacidadComunicacionesScreen';
 import { getConsents, updateMarketingConsent } from '../api/endpoints';
 
+jest.mock('../components/context/AuthContext', () => ({ useAuth: () => ({ userId: 'privacy-fixture' }) }));
 jest.mock('../api/endpoints', () => ({ getConsents: jest.fn(), updateMarketingConsent: jest.fn() }));
-const data = { terms: { version: '1', acceptedAt: '2026-01-01' }, privacy: { version: '1', acceptedAt: '2026-01-01' }, marketing: { accepted: false } };
+const data = { terms: { accepted: true, version: '1', acceptedAt: '2026-01-01' }, privacy: { accepted: true, version: '1', acceptedAt: '2026-01-01' }, marketing: { accepted: false } };
 beforeEach(() => jest.clearAllMocks());
 
 test('retrying a failed load restores the saved preference without changing it', async () => {

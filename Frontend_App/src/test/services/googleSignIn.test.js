@@ -49,6 +49,13 @@ describe('Google nativo: credencial para Android', () => {
 });
 
  describe('Google iOS', () => {
+  it('does not advertise configuration for an unsupported platform or missing iOS client', () => {
+    Platform.OS = 'web'; expect(load().hasGoogleSignInConfig()).toBe(false);
+    Platform.OS = 'ios'; delete process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+    expect(load().hasGoogleSignInConfig()).toBe(false);
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID = 'ios-client.apps.googleusercontent.com';
+    expect(load().hasGoogleSignInConfig()).toBe(true);
+  });
   it('requires an iOS OAuth client before opening the native SDK', async () => {
     Platform.OS = 'ios';
     delete process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;

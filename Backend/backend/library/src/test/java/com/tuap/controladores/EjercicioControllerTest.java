@@ -15,6 +15,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.RestTemplate;
+import static org.mockito.Mockito.mockConstruction;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.tuap.backend.controladores.EjercicioController;
 import com.tuap.backend.dominio.entidades.Ejercicio;
@@ -51,6 +55,16 @@ class EjercicioControllerTest {
         ejercicioMock.setNombre("Dominadas");
         ejercicioMock.setGrupoMuscular("Espalda");
         ejercicioMock.setEquipamiento("Peso corporal");
+    }
+
+    @Test
+    void imagen_IdentificadoresInyectadosYNoCatalogadosNoLlamanAlProveedor() {
+        ReflectionTestUtils.setField(ejercicioController, "apiKey", "fictional-controller-key");
+        try (var clients = mockConstruction(RestTemplate.class)) {
+            assertEquals(400, ejercicioController.obtenerImagenEjercicio("123&resolution=9999").getStatusCode().value());
+            assertEquals(404, ejercicioController.obtenerImagenEjercicio("not-in-catalog").getStatusCode().value());
+            assertTrue(clients.constructed().isEmpty());
+        }
     }
 
     @Test
