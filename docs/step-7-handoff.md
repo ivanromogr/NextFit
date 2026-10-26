@@ -395,3 +395,31 @@ no ejecutarla de nuevo sin una necesidad nueva.
 Una URL de conexión compartida anteriormente incluía credencial. No se copia aquí
 ni se almacena en el repositorio. Su rotación y actualización coordinada en los
 consumidores queda pendiente de confirmación, sin atribuir una rotación realizada.
+
+
+## Rotación de credencial: nueva conexión aplicada y validada, 26 de octubre
+
+El propietario creó una credencial PostgreSQL nueva en Render y actualizó
+SPRING_DATASOURCE_USERNAME/PASSWORD del servicio con Save only. Se confirmó por
+API, sin imprimir valores, que el usuario dejó de ser el original y había una
+contraseña configurada. La URL JDBC no contiene credenciales incrustadas y los
+indicadores de salud de base de datos no están deshabilitados explícitamente.
+
+Se desplegó una sola vez el mismo backend
+`d3b366b6ccb1873cbe2507badb1b8bf7e4ae5fac`, conservando caché:
+`dep-dbfiaqgm7kps7397lho0`. Terminó live. Salud UP en 0,4 s y todos los controles
+públicos correctos. No se publicó código backend nuevo.
+
+Se verificó de nuevo el candidato/alias web exacto 4440f0b y se ejecutó el recorrido
+autenticado con ambos perfiles usando el backend nuevo: registro, login, lectura
+del panel y refresh al recargar correctos. Las dos cuentas ficticias se eliminaron;
+login, JWT y refresh posteriores rechazados. Salida 0 en
+`/tmp/nextfit-credential-rotation-acceptance.log`. Esta pasada aporta evidencia de
+lectura y escritura con la credencial nueva, además de la comprobación de salud.
+
+La credencial original NO se ha revocado desde Codex: la API de credenciales de
+PostgreSQL sigue devolviendo 403. Falta que el propietario actualice su conexión
+DBeaver y elimine la credencial antigua en Credential Rotation, conservando la
+nueva marcada Default. No declarar revocación ni cierre de la exposición hasta
+recibir confirmación/evidencia de esa retirada. No se guardan contraseñas ni URLs
+de conexión con credenciales en el repositorio.
