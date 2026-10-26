@@ -17,6 +17,18 @@ informe nuevo pasa sobre los mapas existentes de mobile-tooling-mitigated:
 nuevos bundles ni se repitieron las 203 pruebas sin cambios de código móvil.
 Los recuentos de 45/50/93 de los apartados siguientes son históricos.
 
+## Compatibilidad ampliada de la guardia RSA
+
+Se ejecutó la suite original de Forge v1.4.0, primero sin la guardia y después con
+ella, sobre una copia aislada y sin credenciales de proveedores. En ambas pasadas:
+828 correctas, 4 omitidas y 0 fallos; inventarios y omisiones idénticos. Se detectó
+y neutralizó un describe.only upstream que inicialmente seleccionaba solo cinco
+pruebas; esa pasada inicial no se cuenta como suite completa.
+
+Fuente fijada, método, informes y límites en
+[Compatibilidad de node-forge](node-forge-compatibility.md). Estas pruebas externas
+no aumentan el recuento de pruebas de aplicación ni eliminan el aviso npm.
+
 ## Retirada del parche propio de braces
 
 La retirada del aviso no es una nueva versión ni una corrección nuestra. El

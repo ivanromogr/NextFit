@@ -564,3 +564,18 @@ braces. No cambia el workflow ni el código web, cuya aceptación anterior perma
 El aviso node-forge y sus límites siguen abiertos; los logs detallados remotos no
 se usaron para inventar recuentos por paso. Las pruebas locales aportan 203/33 y
 cuatro regresiones de herramientas, más exportaciones y escáner correctos.
+
+
+## Compatibilidad upstream de node-forge comprobada
+
+Copia aislada de Forge v1.4.0, commit fa385f92440879601240020f158bed68e444e83a.
+Tras neutralizar un selector describe.only en ambas variantes, la suite original
+pasa sin/con nuestra guardia RSA: 828 correctas, 4 omitidas, 0 fallos en ambas;
+inventario y omisiones idénticos. No se modificaron aserciones para obtener ese
+resultado. Se verificó que la única diferencia de biblioteca fuera la guardia
+RSA y no se heredaron credenciales de proveedores en los procesos de pruebas.
+
+Ver node-forge-compatibility.md para fuente, método, informes y límites. No se
+suman estas pruebas externas al total de aplicación. No cambia la mitigación,
+la producción ni el resultado de npm audit. La versión oficial corregida y los
+límites operativos de Render siguen pendientes para publicación.

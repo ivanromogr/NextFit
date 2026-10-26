@@ -22,6 +22,7 @@ aplicación iOS instalada ni acreditan disponibilidad continua de producción.
 | Credencial PostgreSQL | Nueva credencial aplicada al mismo backend, despliegue `dep-dbfiaqgm7kps7397lho0`; retirada de la antigua confirmada por el propietario. Pruebas posteriores de lectura, escritura, sesión y baja correctas. |
 | Auditoría web actual | Cero avisos tras actualizar únicamente Zod 4.1.12 → 4.6.7, dependencia de desarrollo de ESLint. Instalación limpia, lint y build correctos. |
 | Auditoría móvil actual | Seis avisos altos, cero moderados/críticos, tanto instalada como lockfile; único origen enumerado: node-forge. La mitigación propia se conserva y se verifica. |
+| Compatibilidad Forge | Suite original comparada sin/con guardia: 828 correctas, 4 omitidas, 0 fallos en ambas; mismo inventario. Evidencia externa, sin sumar a las 1.050 pruebas de aplicación. [Detalle](node-forge-compatibility.md). |
 | Exportaciones móviles | Android/iOS generadas y verificadas; los mapas de 4.172/4.167 fuentes no incluyen el origen señalado por la auditoría actual. No son builds firmadas. |
 
 La actualización de Zod es posterior a la aceptación remota del commit web
